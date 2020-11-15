@@ -1,6 +1,6 @@
 # GitHub SC Bot
 
-Experimental GitHub Bot to manage our development workflows
+Experimental GitHub Bot to manage our development workflows.
 
 ## Roadmap
 
@@ -10,3 +10,8 @@ Experimental GitHub Bot to manage our development workflows
     - [ ] Require reviews
     - [ ] Require mandatory reviews
     - [ ] Enable auto-merge
+
+## Building
+
+This project use the **just** command runner (https://github.com/casey/just).
+To install, use `cargo install just`.
