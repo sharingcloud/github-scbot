@@ -64,3 +64,13 @@ pub struct Label {
     pub color: String,
     pub description: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct Application {
+    pub id: u32,
+    pub slug: String,
+    pub node_id: String,
+    pub owner: User,
+    pub name: String,
+    pub description: String,
+}

@@ -3,7 +3,10 @@
 use actix_web::{web::Payload, Error, HttpRequest, HttpResponse, Responder};
 
 use super::constants::GITHUB_EVENT_HEADER;
-use super::types::{EventType, PingEvent, PullRequestEvent, PullRequestReviewEvent, PushEvent};
+use super::types::{
+    CheckRunEvent, CheckSuiteEvent, EventType, PingEvent, PullRequestEvent, PullRequestReviewEvent,
+    PushEvent,
+};
 use super::utils::convert_payload_to_string;
 
 pub async fn ping_event(event: PingEvent) -> HttpResponse {
@@ -30,6 +33,18 @@ pub async fn pull_request_review_event(event: PullRequestReviewEvent) -> HttpRes
     HttpResponse::Ok().body("Pull request review.")
 }
 
+pub async fn check_run_event(event: CheckRunEvent) -> HttpResponse {
+    println!("{:#?}", event);
+
+    HttpResponse::Ok().body("Check run.")
+}
+
+pub async fn check_suite_event(event: CheckSuiteEvent) -> HttpResponse {
+    println!("{:#?}", event);
+
+    HttpResponse::Ok().body("Check suite.")
+}
+
 pub async fn event_handler(req: HttpRequest, mut payload: Payload) -> Result<HttpResponse, Error> {
     // Route event depending on header
     if let Ok(Some(event_type)) = req
@@ -48,6 +63,8 @@ pub async fn event_handler(req: HttpRequest, mut payload: Payload) -> Result<Htt
                 EventType::PullRequestReview => {
                     Ok(pull_request_review_event(serde_json::from_str(&body)?).await)
                 }
+                EventType::CheckRun => Ok(check_run_event(serde_json::from_str(&body)?).await),
+                EventType::CheckSuite => Ok(check_suite_event(serde_json::from_str(&body)?).await),
                 e => Ok(HttpResponse::Ok().body(format!(
                     "Event handling in to be implemented for {}",
                     e.as_str()
