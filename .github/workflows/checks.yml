@@ -1,0 +1,20 @@
+name: Checks
+
+on: [pull_request]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get just
+      run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to .
+    - name: Build
+      run: ./just build
+    - name: Check lints
+      run: ./just lint
+    - name: Check format
+      run: ./just fmt-check
+    - name: Run tests
+      run: ./just test
