@@ -4,8 +4,8 @@ use actix_web::{web::Payload, Error, HttpRequest, HttpResponse, Responder};
 
 use super::constants::GITHUB_EVENT_HEADER;
 use super::types::{
-    CheckRunEvent, CheckSuiteEvent, EventType, PingEvent, PullRequestEvent, PullRequestReviewEvent,
-    PushEvent,
+    CheckRunEvent, CheckSuiteEvent, EventType, IssueCommentEvent, PingEvent, PullRequestEvent,
+    PullRequestReviewCommentEvent, PullRequestReviewEvent, PushEvent,
 };
 use super::utils::convert_payload_to_string;
 
@@ -33,6 +33,20 @@ pub async fn pull_request_review_event(event: PullRequestReviewEvent) -> HttpRes
     HttpResponse::Ok().body("Pull request review.")
 }
 
+pub async fn pull_request_review_comment_event(
+    event: PullRequestReviewCommentEvent,
+) -> HttpResponse {
+    println!("{:#?}", event);
+
+    HttpResponse::Ok().body("Pull request review comment.")
+}
+
+pub async fn issue_comment_event(event: IssueCommentEvent) -> HttpResponse {
+    println!("{:#?}", event);
+
+    HttpResponse::Ok().body("Issue comment.")
+}
+
 pub async fn check_run_event(event: CheckRunEvent) -> HttpResponse {
     println!("{:#?}", event);
 
@@ -55,7 +69,11 @@ pub async fn event_handler(req: HttpRequest, mut payload: Payload) -> Result<Htt
     {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
             match event_type {
-                EventType::Push => Ok(push_event(serde_json::from_str(&body)?).await),
+                EventType::CheckRun => Ok(check_run_event(serde_json::from_str(&body)?).await),
+                EventType::CheckSuite => Ok(check_suite_event(serde_json::from_str(&body)?).await),
+                EventType::IssueComment => {
+                    Ok(issue_comment_event(serde_json::from_str(&body)?).await)
+                }
                 EventType::Ping => Ok(ping_event(serde_json::from_str(&body)?).await),
                 EventType::PullRequest => {
                     Ok(pull_request_event(serde_json::from_str(&body)?).await)
@@ -63,8 +81,10 @@ pub async fn event_handler(req: HttpRequest, mut payload: Payload) -> Result<Htt
                 EventType::PullRequestReview => {
                     Ok(pull_request_review_event(serde_json::from_str(&body)?).await)
                 }
-                EventType::CheckRun => Ok(check_run_event(serde_json::from_str(&body)?).await),
-                EventType::CheckSuite => Ok(check_suite_event(serde_json::from_str(&body)?).await),
+                EventType::PullRequestReviewComment => {
+                    Ok(pull_request_review_comment_event(serde_json::from_str(&body)?).await)
+                }
+                EventType::Push => Ok(push_event(serde_json::from_str(&body)?).await),
                 e => Ok(HttpResponse::Ok().body(format!(
                     "Event handling in to be implemented for {}",
                     e.as_str()

@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 use super::common::{Application, Repository, User};
-use super::pull_request::PullRequest;
+use super::pull_request::PullRequestShort;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -60,7 +60,7 @@ pub struct CheckSuite {
     pub head_sha: String,
     pub status: CheckStatus,
     pub conclusion: Option<CheckConclusion>,
-    pub pull_requests: Vec<PullRequest>,
+    pub pull_requests: Vec<PullRequestShort>,
     pub app: Application,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

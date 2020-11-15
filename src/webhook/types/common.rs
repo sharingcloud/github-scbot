@@ -33,11 +33,18 @@ pub struct Commit {
 
 #[derive(Debug, Deserialize)]
 pub struct Branch {
-    pub label: String,
+    pub label: Option<String>,
     #[serde(rename = "ref")]
     pub reference: String,
     pub sha: String,
-    pub user: User,
+    pub user: Option<User>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BranchShort {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub sha: String,
 }
 
 #[derive(Debug, Deserialize)]
