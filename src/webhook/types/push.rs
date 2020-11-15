@@ -16,5 +16,5 @@ pub struct PushEvent {
     pub forced: bool,
     pub base_ref: Option<String>,
     pub commits: Vec<Commit>,
-    pub head_commit: Commit,
+    pub head_commit: Option<Commit>,
 }

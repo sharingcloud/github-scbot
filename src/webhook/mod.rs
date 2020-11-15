@@ -8,6 +8,9 @@ mod middlewares;
 mod types;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 pub use middlewares::VerifySignature;
 
 pub fn configure_webhooks(cfg: &mut web::ServiceConfig) {
