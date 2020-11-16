@@ -23,16 +23,19 @@ mod webhook;
 pub async fn run_server(ip: &str) -> std::io::Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
 
-    let pool = database::establish_connection();
-
-    HttpServer::new(move || {
-        App::new()
-            .data(pool.clone())
-            .wrap(webhook::VerifySignature::new())
-            .wrap(Logger::default())
-            .service(web::scope("/webhook").configure(webhook::configure_webhooks))
-    })
-    .bind(ip)?
-    .run()
-    .await
+    if let Ok(pool) = database::establish_connection() {
+        HttpServer::new(move || {
+            App::new()
+                .data(pool.clone())
+                .wrap(webhook::VerifySignature::new())
+                .wrap(Logger::default())
+                .service(web::scope("/webhook").configure(webhook::configure_webhooks))
+        })
+        .bind(ip)?
+        .run()
+        .await
+    } else {
+        eprintln!("Error while establishing connection to database.");
+        std::process::exit(1);
+    }
 }

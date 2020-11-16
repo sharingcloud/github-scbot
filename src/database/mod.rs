@@ -1,6 +1,7 @@
 //! Database module
 
 use std::env;
+use std::error::Error;
 
 use diesel::sqlite::SqliteConnection;
 use r2d2::Pool;
@@ -19,24 +20,26 @@ embed_migrations!();
 
 pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 
-pub fn run_migrations(conn: &SqliteConnection) {
-    diesel_migrations::run_pending_migrations(conn).expect("Error while running migrations");
+pub fn run_migrations(conn: &SqliteConnection) -> Result<(), Box<dyn Error>> {
+    diesel_migrations::run_pending_migrations(conn).map_err(Into::into)
 }
 
-pub fn establish_connection() -> DbPool {
+pub fn establish_connection() -> Result<DbPool, Box<dyn Error>> {
     if cfg!(test) {
         let manager = ConnectionManager::<SqliteConnection>::new(":memory:");
-        let pool = Pool::builder()
-            .build(manager)
-            .expect("Failed to create database pool.");
-        run_migrations(&pool.get().unwrap());
-        pool
+        let pool = Pool::builder().build(manager)?;
+
+        if let Ok(conn) = pool.get() {
+            run_migrations(&conn)?;
+        } else {
+            return Err("Error while establising connection to database.".into());
+        }
+
+        Ok(pool)
     } else {
         let database_url = env::var(ENV_DATABASE_URL)
-            .unwrap_or_else(|_| (panic!("{} must be set", ENV_DATABASE_URL)));
+            .map_err(|_| (format!("{} must be set", ENV_DATABASE_URL)))?;
         let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
-        Pool::builder()
-            .build(manager)
-            .unwrap_or_else(|_| panic!("Error connecting to database '{}'", database_url))
+        Pool::builder().build(manager).map_err(Into::into)
     }
 }

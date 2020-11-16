@@ -1,5 +1,7 @@
 //! Database models
 
+use std::error::Error;
+
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -18,10 +20,8 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub fn list(conn: &DbConn) -> Vec<Self> {
-        repo_dsl
-            .load::<Repository>(conn)
-            .expect("Error loading repositories.")
+    pub fn list(conn: &DbConn) -> Result<Vec<Self>, Box<dyn Error>> {
+        repo_dsl.load::<Repository>(conn).map_err(Into::into)
     }
 
     pub fn get_by_name(conn: &DbConn, filter_name: &str, filter_owner: &str) -> Option<Self> {
@@ -34,13 +34,11 @@ impl Repository {
             .ok()
     }
 
-    pub fn create(conn: &DbConn, entry: NewRepository) -> Self {
-        diesel::insert_into(repo_dsl)
-            .values(&entry)
-            .execute(conn)
-            .expect("Error creating repository.");
+    pub fn create(conn: &DbConn, entry: NewRepository) -> Result<Self, Box<dyn Error>> {
+        diesel::insert_into(repo_dsl).values(&entry).execute(conn)?;
 
-        Self::get_by_name(conn, entry.name, entry.owner).expect("Error loading repository.")
+        Self::get_by_name(conn, entry.name, entry.owner)
+            .ok_or_else(|| "Error while fetching created repository".into())
     }
 }
 
@@ -56,10 +54,8 @@ pub struct PullRequest {
 }
 
 impl PullRequest {
-    pub fn list(conn: &DbConn) -> Vec<Self> {
-        pr_dsl
-            .load::<PullRequest>(conn)
-            .expect("Error loading pull requests.")
+    pub fn list(conn: &DbConn) -> Result<Vec<Self>, Box<dyn Error>> {
+        pr_dsl.load::<PullRequest>(conn).map_err(Into::into)
     }
 }
 
