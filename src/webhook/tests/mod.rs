@@ -95,6 +95,94 @@ async fn test_check_run_completed() {
 }
 
 #[actix_rt::test]
+async fn test_issue_comment_created() {
+    let (req, payload) = test::TestRequest::default()
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Event", EventType::IssueComment.as_str())
+        .set_payload(fixtures::ISSUE_COMMENT_CREATED_DATA)
+        .to_http_parts();
+
+    let resp = event_handler(req, web::Payload(payload))
+        .await
+        .expect("Call should work");
+    assert_eq!(resp.status(), http::StatusCode::OK);
+
+    let data = read_body(resp).await;
+    assert_eq!(data.to_vec(), b"Issue comment.");
+}
+
+#[actix_rt::test]
+async fn test_pull_request_opened() {
+    let (req, payload) = test::TestRequest::default()
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Event", EventType::PullRequest.as_str())
+        .set_payload(fixtures::PULL_REQUEST_OPENED_DATA)
+        .to_http_parts();
+
+    let resp = event_handler(req, web::Payload(payload))
+        .await
+        .expect("Call should work");
+    assert_eq!(resp.status(), http::StatusCode::OK);
+
+    let data = read_body(resp).await;
+    assert_eq!(data.to_vec(), b"Pull request.");
+}
+
+#[actix_rt::test]
+async fn test_pull_request_labeled() {
+    let (req, payload) = test::TestRequest::default()
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Event", EventType::PullRequest.as_str())
+        .set_payload(fixtures::PULL_REQUEST_LABELED_DATA)
+        .to_http_parts();
+
+    let resp = event_handler(req, web::Payload(payload))
+        .await
+        .expect("Call should work");
+    assert_eq!(resp.status(), http::StatusCode::OK);
+
+    let data = read_body(resp).await;
+    assert_eq!(data.to_vec(), b"Pull request.");
+}
+
+#[actix_rt::test]
+async fn test_pull_request_review_comment_created() {
+    let (req, payload) = test::TestRequest::default()
+        .header("Content-Type", "application/json")
+        .header(
+            "X-GitHub-Event",
+            EventType::PullRequestReviewComment.as_str(),
+        )
+        .set_payload(fixtures::PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA)
+        .to_http_parts();
+
+    let resp = event_handler(req, web::Payload(payload))
+        .await
+        .expect("Call should work");
+    assert_eq!(resp.status(), http::StatusCode::OK);
+
+    let data = read_body(resp).await;
+    assert_eq!(data.to_vec(), b"Pull request review comment.");
+}
+
+#[actix_rt::test]
+async fn test_pull_request_review_submitted() {
+    let (req, payload) = test::TestRequest::default()
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Event", EventType::PullRequestReview.as_str())
+        .set_payload(fixtures::PULL_REQUEST_REVIEW_SUBMITTED_DATA)
+        .to_http_parts();
+
+    let resp = event_handler(req, web::Payload(payload))
+        .await
+        .expect("Call should work");
+    assert_eq!(resp.status(), http::StatusCode::OK);
+
+    let data = read_body(resp).await;
+    assert_eq!(data.to_vec(), b"Pull request review.");
+}
+
+#[actix_rt::test]
 async fn test_push() {
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
