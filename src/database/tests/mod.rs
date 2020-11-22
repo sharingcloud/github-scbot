@@ -6,9 +6,9 @@ use super::models::*;
 #[test]
 fn create_repository() {
     let conn = establish_connection().unwrap().get().unwrap();
-    let repo = Repository::create(
+    let repo = RepositoryModel::create(
         &conn,
-        NewRepository {
+        &RepositoryCreation {
             name: "TestRepo",
             owner: "me",
         },
@@ -23,24 +23,53 @@ fn create_repository() {
 #[test]
 fn list_repositories() {
     let conn = establish_connection().unwrap().get().unwrap();
-    Repository::create(
+    RepositoryModel::create(
         &conn,
-        NewRepository {
+        &RepositoryCreation {
             name: "TestRepo",
             owner: "me",
         },
     )
     .unwrap();
 
-    Repository::create(
+    RepositoryModel::create(
         &conn,
-        NewRepository {
+        &RepositoryCreation {
             name: "AnotherRepo",
             owner: "me",
         },
     )
     .unwrap();
 
-    let repos = Repository::list(&conn).unwrap();
+    let repos = RepositoryModel::list(&conn).unwrap();
     assert_eq!(repos.len(), 2);
+}
+
+#[test]
+fn create_pull_request() {
+    let conn = establish_connection().unwrap().get().unwrap();
+    let repo = RepositoryModel::create(
+        &conn,
+        &RepositoryCreation {
+            name: "TestRepo",
+            owner: "me",
+        },
+    )
+    .unwrap();
+
+    let pr = PullRequestModel::create(
+        &conn,
+        &PullRequestCreation {
+            repository_id: repo.id,
+            number: 1234,
+            name: "Toto",
+            automerge: false,
+            step: "none",
+        },
+    )
+    .unwrap();
+
+    assert_eq!(pr.id, 1);
+    assert_eq!(pr.repository_id, repo.id);
+    assert_eq!(pr.number, 1234);
 }

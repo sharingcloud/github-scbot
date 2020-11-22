@@ -13,6 +13,7 @@ use futures::StreamExt;
 
 use super::handlers::event_handler;
 use super::types::EventType;
+use crate::database::establish_connection;
 
 async fn read_body<B>(mut res: HttpResponse<B>) -> Bytes
 where
@@ -28,13 +29,14 @@ where
 
 #[actix_rt::test]
 async fn test_ping_event() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::Ping.as_str())
         .set_payload(fixtures::PUSH_EVENT_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -45,13 +47,14 @@ async fn test_ping_event() {
 
 #[actix_rt::test]
 async fn test_check_suite_completed() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::CheckSuite.as_str())
         .set_payload(fixtures::CHECK_SUITE_COMPLETED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -62,13 +65,14 @@ async fn test_check_suite_completed() {
 
 #[actix_rt::test]
 async fn test_check_run_created() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::CheckRun.as_str())
         .set_payload(fixtures::CHECK_RUN_CREATED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -79,13 +83,14 @@ async fn test_check_run_created() {
 
 #[actix_rt::test]
 async fn test_check_run_completed() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::CheckRun.as_str())
         .set_payload(fixtures::CHECK_RUN_COMPLETED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -96,13 +101,14 @@ async fn test_check_run_completed() {
 
 #[actix_rt::test]
 async fn test_issue_comment_created() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::IssueComment.as_str())
         .set_payload(fixtures::ISSUE_COMMENT_CREATED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -113,13 +119,14 @@ async fn test_issue_comment_created() {
 
 #[actix_rt::test]
 async fn test_pull_request_opened() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::PullRequest.as_str())
         .set_payload(fixtures::PULL_REQUEST_OPENED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -130,13 +137,14 @@ async fn test_pull_request_opened() {
 
 #[actix_rt::test]
 async fn test_pull_request_labeled() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::PullRequest.as_str())
         .set_payload(fixtures::PULL_REQUEST_LABELED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -147,6 +155,7 @@ async fn test_pull_request_labeled() {
 
 #[actix_rt::test]
 async fn test_pull_request_review_comment_created() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header(
@@ -156,7 +165,7 @@ async fn test_pull_request_review_comment_created() {
         .set_payload(fixtures::PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -167,13 +176,14 @@ async fn test_pull_request_review_comment_created() {
 
 #[actix_rt::test]
 async fn test_pull_request_review_submitted() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::PullRequestReview.as_str())
         .set_payload(fixtures::PULL_REQUEST_REVIEW_SUBMITTED_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);
@@ -184,13 +194,14 @@ async fn test_pull_request_review_submitted() {
 
 #[actix_rt::test]
 async fn test_push() {
+    let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::Push.as_str())
         .set_payload(fixtures::PUSH_DATA)
         .to_http_parts();
 
-    let resp = event_handler(req, web::Payload(payload))
+    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
     assert_eq!(resp.status(), http::StatusCode::OK);

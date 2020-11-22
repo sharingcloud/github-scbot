@@ -35,17 +35,17 @@ pub struct VerifySignature {
 impl VerifySignature {
     pub fn new() -> Self {
         let mut enabled = env::var(ENV_DISABLE_SIGNATURE).ok().is_none();
-        let mut secret = None;
-        if enabled {
-            secret = env::var(ENV_GITHUB_SECRET).ok().or_else(|| {
+        let secret = if enabled {
+            env::var(ENV_GITHUB_SECRET).ok().or_else(|| {
                 // Disable signature verification on empty secret
                 warn!("Environment variable '{}' is invalid or not set. Disabling signature verification.", ENV_GITHUB_SECRET);
                 enabled = false;
                 None
-            });
+            })
         } else {
             warn!("Signature verification is disabled. This can be a security concern.");
-        }
+            None
+        };
 
         Self { enabled, secret }
     }
@@ -122,7 +122,7 @@ where
                         body.extend_from_slice(&chunk?);
                     }
 
-                    if !is_valid_signature(&sig, &body, &secret) {
+                    if !is_valid_signature(sig, &body, &secret) {
                         println!("Invalid signature.");
                         return Err(ErrorUnauthorized(ParseError::Header));
                     }
