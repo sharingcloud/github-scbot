@@ -64,6 +64,7 @@ fn create_pull_request() {
             number: 1234,
             name: "Toto",
             automerge: false,
+            check_status: CheckStatus::Pass.as_str(),
             step: "none",
         },
     )

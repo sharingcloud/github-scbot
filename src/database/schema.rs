@@ -6,6 +6,7 @@ table! {
         name -> Text,
         automerge -> Bool,
         step -> Text,
+        check_status -> Text,
     }
 }
 

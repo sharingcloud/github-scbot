@@ -1,0 +1,1 @@
+ALTER TABLE pull_request ADD check_status VARCHAR NOT NULL DEFAULT "pass";

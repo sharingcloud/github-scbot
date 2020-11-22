@@ -87,6 +87,8 @@ pub async fn check_suite_event(
 ) -> Result<HttpResponse, Error> {
     process_repository(conn, &event.repository).map_err(|_| HttpResponse::InternalServerError())?;
 
+    println!("{:#?}", event);
+
     Ok(HttpResponse::Ok().body("Check suite."))
 }
 

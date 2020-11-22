@@ -7,6 +7,33 @@ use serde::{Deserialize, Serialize};
 use super::super::schema::pull_request::{self, dsl};
 use super::DbConn;
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CheckStatus {
+    Waiting,
+    Pass,
+    Fail,
+}
+
+impl CheckStatus {
+    pub fn from_str(value: &str) -> Result<Self> {
+        Ok(match value {
+            "pass" => Self::Pass,
+            "waiting" => Self::Waiting,
+            "fail" => Self::Fail,
+            e => return Err(eyre!("Bad check status: {}", e)),
+        })
+    }
+
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Waiting => "waiting",
+            Self::Pass => "pass",
+            Self::Fail => "fail",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Queryable, Insertable)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
@@ -15,6 +42,7 @@ pub struct PullRequestModel {
     pub number: i32,
     pub name: String,
     pub automerge: bool,
+    pub check_status: String,
     pub step: String,
 }
 
@@ -25,10 +53,15 @@ pub struct PullRequestCreation<'a> {
     pub number: i32,
     pub name: &'a str,
     pub automerge: bool,
+    pub check_status: &'a str,
     pub step: &'a str,
 }
 
 impl PullRequestModel {
+    pub fn check_status_enum(&self) -> Result<CheckStatus> {
+        CheckStatus::from_str(&self.check_status)
+    }
+
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         dsl::pull_request.load::<Self>(conn).map_err(Into::into)
     }

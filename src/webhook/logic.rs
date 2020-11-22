@@ -4,7 +4,7 @@ use eyre::Result;
 
 use super::types::{PullRequest, Repository};
 use crate::database::models::{
-    DbConn, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
+    CheckStatus, DbConn, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
 };
 
 pub fn process_repository(conn: &DbConn, repo: &Repository) -> Result<()> {
@@ -35,6 +35,7 @@ pub fn process_pull_request(conn: &DbConn, repo: &Repository, pull: &PullRequest
             name: &pull.title,
             number: pull.number,
             automerge: false,
+            check_status: CheckStatus::Pass.as_str(),
             step: "none",
         },
     )?;

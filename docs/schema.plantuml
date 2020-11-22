@@ -10,6 +10,7 @@ class PullRequest {
     number: Integer
     name: String
     automerge: Boolean
+    check_status: String
     step: String
 }
 
