@@ -8,13 +8,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Get just
       run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to .
-    - name: Build
-      run: ./just build
     - name: Check lints
-      run: ./just lint
-    - name: Check format
-      run: ./just fmt-check
+      run: ./just lint fmt-check
     - name: Run tests
       run: ./just test
