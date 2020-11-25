@@ -54,6 +54,12 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
         .await?;
     }
 
+    if let PullRequestAction::Synchronize = event.action {
+        // Reset status check
+        pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
+        PullRequestModel::update(conn, &pr_model)?;
+    }
+
     let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
 
     let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;

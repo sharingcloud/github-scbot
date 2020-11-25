@@ -27,6 +27,8 @@ async fn post_comment(
             .create_comment(pr_number, final_body)
             .await?;
 
+        eprintln!("Github comment: {:?}", comment);
+
         Ok(comment.id)
     }
 }

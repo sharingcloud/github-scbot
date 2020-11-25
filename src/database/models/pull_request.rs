@@ -94,6 +94,8 @@ impl PullRequestModel {
     }
 
     pub fn update(conn: &DbConn, entry: &Self) -> Result<()> {
+        eprintln!("Trying to save model in DB: {:?}", entry);
+
         diesel::update(dsl::pull_request)
             .filter(dsl::id.eq(entry.id))
             .set(entry)
