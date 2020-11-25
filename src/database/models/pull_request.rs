@@ -44,6 +44,7 @@ pub struct PullRequestModel {
     pub automerge: bool,
     pub check_status: String,
     pub step: String,
+    pub status_comment_id: i32,
 }
 
 #[derive(Insertable)]
@@ -86,5 +87,20 @@ impl PullRequestModel {
     pub fn get_or_create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
         Self::get_by_number(conn, entry.repository_id, entry.number)
             .map_or_else(|| Self::create(conn, entry), Ok)
+    }
+
+    pub fn set_status_comment_id(
+        conn: &DbConn,
+        repo_id: i32,
+        pr_number: i32,
+        status_comment_id: i32,
+    ) -> Result<()> {
+        diesel::update(dsl::pull_request)
+            .set(dsl::status_comment_id.eq(status_comment_id))
+            .filter(dsl::repository_id.eq(repo_id))
+            .filter(dsl::number.eq(pr_number))
+            .execute(conn)?;
+
+        Ok(())
     }
 }

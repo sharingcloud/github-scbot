@@ -10,7 +10,7 @@ use super::comments::post_welcome_comment;
 pub struct WelcomeMessageData {
     pub repo_owner: String,
     pub repo_name: String,
-    pub pr_number: i32,
+    pub pr_number: u64,
     pub pr_author: String,
 }
 

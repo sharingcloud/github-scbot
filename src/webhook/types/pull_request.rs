@@ -60,7 +60,7 @@ pub enum PullRequestReviewState {
 
 #[derive(Debug, Deserialize)]
 pub struct PullRequestReview {
-    pub id: i32,
+    pub id: u64,
     pub node_id: String,
     pub user: User,
     pub body: String,
@@ -71,9 +71,9 @@ pub struct PullRequestReview {
 
 #[derive(Debug, Deserialize)]
 pub struct PullRequest {
-    pub id: i32,
+    pub id: u64,
     pub node_id: String,
-    pub number: i32,
+    pub number: u64,
     pub state: PullRequestState,
     pub locked: bool,
     pub title: String,
@@ -95,16 +95,16 @@ pub struct PullRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct PullRequestShort {
-    pub id: i32,
-    pub number: i32,
+    pub id: u64,
+    pub number: u64,
     pub head: BranchShort,
     pub base: BranchShort,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct PullRequestReviewComment {
-    pub pull_request_review_id: i32,
-    pub id: i32,
+    pub pull_request_review_id: u64,
+    pub id: u64,
     pub node_id: String,
     pub diff_hunk: String,
     pub path: String,
@@ -123,7 +123,7 @@ pub struct PullRequestReviewComment {
 #[derive(Debug, Deserialize)]
 pub struct PullRequestEvent {
     pub action: PullRequestAction,
-    pub number: i32,
+    pub number: u64,
     pub pull_request: PullRequest,
     pub label: Option<Label>,
     pub requested_reviewer: Option<User>,

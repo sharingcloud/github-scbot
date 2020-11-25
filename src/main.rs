@@ -4,10 +4,18 @@ use color_eyre::eyre::Result;
 use dotenv::dotenv;
 use github_scbot::run_server;
 
-#[actix_web::main]
-async fn main() -> Result<(), std::io::Error> {
-    dotenv().ok();
-    color_eyre::install().expect("Error installing color-eyre");
+use actix_web::rt;
 
-    run_server("127.0.0.1:8008").await
+fn main() -> Result<()> {
+    dotenv().ok();
+    color_eyre::install()?;
+
+    run_bot_server()?;
+
+    Ok(())
+}
+
+fn run_bot_server() -> Result<(), std::io::Error> {
+    let mut sys = rt::System::new("app");
+    sys.block_on(run_server("127.0.0.1:8008"))
 }

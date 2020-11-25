@@ -1,5 +1,7 @@
 //! Webhook logic
 
+use std::convert::TryInto;
+
 use eyre::Result;
 
 use super::types::{PullRequest, Repository};
@@ -19,7 +21,11 @@ pub fn process_repository(conn: &DbConn, repo: &Repository) -> Result<()> {
     Ok(())
 }
 
-pub fn process_pull_request(conn: &DbConn, repo: &Repository, pull: &PullRequest) -> Result<()> {
+pub fn process_pull_request(
+    conn: &DbConn,
+    repo: &Repository,
+    pull: &PullRequest,
+) -> Result<PullRequestModel> {
     let repo = RepositoryModel::get_or_create(
         conn,
         &RepositoryCreation {
@@ -33,12 +39,10 @@ pub fn process_pull_request(conn: &DbConn, repo: &Repository, pull: &PullRequest
         &PullRequestCreation {
             repository_id: repo.id,
             name: &pull.title,
-            number: pull.number,
+            number: pull.number.try_into()?,
             automerge: false,
             check_status: CheckStatus::Pass.as_str(),
             step: "none",
         },
-    )?;
-
-    Ok(())
+    )
 }

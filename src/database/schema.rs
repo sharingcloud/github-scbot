@@ -7,6 +7,7 @@ table! {
         automerge -> Bool,
         step -> Text,
         check_status -> Text,
+        status_comment_id -> Integer,
     }
 }
 
