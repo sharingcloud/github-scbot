@@ -5,9 +5,10 @@ use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 
 use super::super::schema::pull_request::{self, dsl};
+use super::repository::RepositoryModel;
 use super::DbConn;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum CheckStatus {
     Waiting,
@@ -34,7 +35,7 @@ impl CheckStatus {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable)]
+#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, AsChangeset)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
     pub id: i32,
@@ -67,7 +68,7 @@ impl PullRequestModel {
         dsl::pull_request.load::<Self>(conn).map_err(Into::into)
     }
 
-    pub fn get_by_number(conn: &DbConn, repo_id: i32, pr_number: i32) -> Option<Self> {
+    pub fn get_from_number(conn: &DbConn, repo_id: i32, pr_number: i32) -> Option<Self> {
         dsl::pull_request
             .filter(dsl::repository_id.eq(repo_id))
             .filter(dsl::number.eq(pr_number))
@@ -80,27 +81,26 @@ impl PullRequestModel {
             .values(entry)
             .execute(conn)?;
 
-        Self::get_by_number(conn, entry.repository_id, entry.number)
+        Self::get_from_number(conn, entry.repository_id, entry.number)
             .ok_or_else(|| eyre!("Error while fetching created pull request"))
     }
 
     pub fn get_or_create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
-        Self::get_by_number(conn, entry.repository_id, entry.number)
+        Self::get_from_number(conn, entry.repository_id, entry.number)
             .map_or_else(|| Self::create(conn, entry), Ok)
     }
 
-    pub fn set_status_comment_id(
-        conn: &DbConn,
-        repo_id: i32,
-        pr_number: i32,
-        status_comment_id: i32,
-    ) -> Result<()> {
+    pub fn update(conn: &DbConn, entry: &Self) -> Result<()> {
         diesel::update(dsl::pull_request)
-            .set(dsl::status_comment_id.eq(status_comment_id))
-            .filter(dsl::repository_id.eq(repo_id))
-            .filter(dsl::number.eq(pr_number))
+            .filter(dsl::id.eq(entry.id))
+            .set(entry)
             .execute(conn)?;
 
         Ok(())
+    }
+
+    pub fn get_repository_model(conn: &DbConn, entry: &Self) -> Result<RepositoryModel> {
+        RepositoryModel::get_from_id(conn, entry.repository_id)
+            .ok_or_else(|| eyre!("Missing repository."))
     }
 }

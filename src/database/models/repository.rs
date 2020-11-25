@@ -27,7 +27,11 @@ impl RepositoryModel {
         dsl::repository.load::<Self>(conn).map_err(Into::into)
     }
 
-    pub fn get_by_name(conn: &DbConn, name: &str, owner: &str) -> Option<Self> {
+    pub fn get_from_id(conn: &DbConn, id: i32) -> Option<Self> {
+        dsl::repository.filter(dsl::id.eq(id)).first(conn).ok()
+    }
+
+    pub fn get_from_name(conn: &DbConn, name: &str, owner: &str) -> Option<Self> {
         dsl::repository
             .filter(dsl::name.eq(name))
             .filter(dsl::owner.eq(owner))
@@ -40,12 +44,12 @@ impl RepositoryModel {
             .values(entry)
             .execute(conn)?;
 
-        Self::get_by_name(conn, entry.name, entry.owner)
+        Self::get_from_name(conn, entry.name, entry.owner)
             .ok_or_else(|| eyre!("Error while fetching created repository"))
     }
 
     pub fn get_or_create(conn: &DbConn, entry: &RepositoryCreation) -> Result<Self> {
-        Self::get_by_name(conn, entry.name, entry.owner)
+        Self::get_from_name(conn, entry.name, entry.owner)
             .map_or_else(|| Self::create(conn, entry), Ok)
     }
 }

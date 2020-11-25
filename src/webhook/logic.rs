@@ -9,32 +9,23 @@ use crate::database::models::{
     CheckStatus, DbConn, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
 };
 
-pub fn process_repository(conn: &DbConn, repo: &Repository) -> Result<()> {
+pub fn process_repository(conn: &DbConn, repo: &Repository) -> Result<RepositoryModel> {
     RepositoryModel::get_or_create(
         conn,
         &RepositoryCreation {
             name: &repo.name,
             owner: &repo.owner.login,
         },
-    )?;
-
-    Ok(())
+    )
 }
 
 pub fn process_pull_request(
     conn: &DbConn,
     repo: &Repository,
     pull: &PullRequest,
-) -> Result<PullRequestModel> {
-    let repo = RepositoryModel::get_or_create(
-        conn,
-        &RepositoryCreation {
-            name: &repo.name,
-            owner: &repo.owner.login,
-        },
-    )?;
-
-    PullRequestModel::get_or_create(
+) -> Result<(RepositoryModel, PullRequestModel)> {
+    let repo = process_repository(conn, repo)?;
+    let pr = PullRequestModel::get_or_create(
         conn,
         &PullRequestCreation {
             repository_id: repo.id,
@@ -44,5 +35,7 @@ pub fn process_pull_request(
             check_status: CheckStatus::Pass.as_str(),
             step: "none",
         },
-    )
+    )?;
+
+    Ok((repo, pr))
 }

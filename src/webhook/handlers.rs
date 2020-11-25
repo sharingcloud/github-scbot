@@ -14,11 +14,8 @@ use super::types::{
     PullRequestReviewCommentEvent, PullRequestReviewEvent, PushEvent,
 };
 use super::utils::convert_payload_to_string;
-use crate::api::comments::{
-    create_or_update_status_comment, post_check_suite_failure_comment,
-    post_check_suite_success_comment, post_welcome_comment,
-};
-use crate::database::models::PullRequestModel;
+use crate::api::comments::{create_or_update_status_comment, post_welcome_comment};
+use crate::database::models::{CheckStatus, PullRequestModel};
 use crate::database::{models::DbConn, DbPool};
 
 pub async fn ping_event(conn: &DbConn, event: PingEvent) -> Result<HttpResponse> {
@@ -44,7 +41,8 @@ pub async fn push_event(conn: &DbConn, event: PushEvent) -> Result<HttpResponse>
 }
 
 pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Result<HttpResponse> {
-    let pr_model = process_pull_request(conn, &event.repository, &event.pull_request)?;
+    let (repo_model, mut pr_model) =
+        process_pull_request(conn, &event.repository, &event.pull_request)?;
 
     if let PullRequestAction::Opened = event.action {
         post_welcome_comment(
@@ -56,27 +54,21 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
         .await?;
     }
 
-    let comment_id = create_or_update_status_comment(
-        &event.repository.owner.login,
-        &event.repository.name,
-        event.pull_request.number,
-        pr_model.status_comment_id.try_into()?,
-    )
-    .await?;
+    let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
 
     let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;
     if comment_id != pr_status_comment_id {
-        PullRequestModel::set_status_comment_id(
-            conn,
-            pr_model.repository_id,
-            pr_model.number,
-            comment_id.try_into()?,
-        )?;
+        pr_model.status_comment_id = pr_status_comment_id.try_into()?;
+
+        PullRequestModel::update(conn, &pr_model)?;
     }
 
     info!(
-        "Pull request event from repository '{}', PR number #{} (from '{}')",
-        event.repository.full_name, event.pull_request.number, event.pull_request.user.login
+        "Pull request event from repository '{}', PR number #{}, action '{:?}' (from '{}')",
+        event.repository.full_name,
+        event.pull_request.number,
+        event.action,
+        event.pull_request.user.login
     );
 
     Ok(HttpResponse::Ok().body("Pull request."))
@@ -89,8 +81,8 @@ pub async fn pull_request_review_event(
     process_pull_request(conn, &event.repository, &event.pull_request)?;
 
     info!(
-        "Pull request review event from repository '{}', PR number #{} (review from '{}')",
-        event.repository.full_name, event.pull_request.number, event.review.user.login
+        "Pull request review event from repository '{}', PR number #{}, action '{:?}', (review from '{}')",
+        event.repository.full_name, event.pull_request.number, event.action, event.review.user.login
     );
 
     Ok(HttpResponse::Ok().body("Pull request review."))
@@ -124,37 +116,40 @@ pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Res
 pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;
 
-    info!("Check run event from repository '{}', name '{}', action '{:?}', status '{:?}', conclusion '{:?}", event.repository.full_name, event.check_run.name, event.action, event.check_run.status, event.check_run.conclusion);
+    info!("Check run event from repository '{}', name '{}', action '{:?}', status '{:?}', conclusion '{:?}'", event.repository.full_name, event.check_run.name, event.action, event.check_run.status, event.check_run.conclusion);
 
     Ok(HttpResponse::Ok().body("Check run."))
 }
 
 pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<HttpResponse> {
-    process_repository(conn, &event.repository)?;
+    let repo_model = process_repository(conn, &event.repository)?;
 
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
-        if let CheckSuiteAction::Completed = event.action {
-            match event.check_suite.conclusion {
-                Some(CheckConclusion::Success) => {
-                    post_check_suite_success_comment(
-                        &event.repository.owner.login,
-                        &event.repository.name,
-                        pr_number,
-                        &event.sender.login,
-                    )
-                    .await?;
+        let pr_model =
+            PullRequestModel::get_from_number(conn, repo_model.id, pr_number.try_into()?);
+        if let Some(mut pr_model) = pr_model {
+            if let CheckSuiteAction::Completed = event.action {
+                match event.check_suite.conclusion {
+                    Some(CheckConclusion::Success) => {
+                        // Update check status
+                        pr_model.check_status = CheckStatus::Pass.as_str().to_string();
+                        PullRequestModel::update(conn, &pr_model)?;
+                    }
+                    Some(CheckConclusion::Failure) => {
+                        // Update check status
+                        pr_model.check_status = CheckStatus::Fail.as_str().to_string();
+                        PullRequestModel::update(conn, &pr_model)?;
+                    }
+                    _ => (),
                 }
-                Some(CheckConclusion::Failure) => {
-                    post_check_suite_failure_comment(
-                        &event.repository.owner.login,
-                        &event.repository.name,
-                        pr_number,
-                        &event.sender.login,
-                    )
-                    .await?;
-                }
-                _ => (),
+            } else {
+                // Requested/re-requested
+                pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
+                PullRequestModel::update(conn, &pr_model)?;
             }
+
+            // Update status message
+            create_or_update_status_comment(&repo_model, &pr_model).await?;
         }
     }
 
