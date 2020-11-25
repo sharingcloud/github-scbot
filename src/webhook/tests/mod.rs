@@ -129,6 +129,7 @@ async fn test_pull_request_opened() {
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
         .expect("Call should work");
+
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;

@@ -11,6 +11,7 @@ use super::DbConn;
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum CheckStatus {
+    None,
     Waiting,
     Pass,
     Fail,
@@ -19,6 +20,7 @@ pub enum CheckStatus {
 impl CheckStatus {
     pub fn from_str(value: &str) -> Result<Self> {
         Ok(match value {
+            "none" => Self::None,
             "pass" => Self::Pass,
             "waiting" => Self::Waiting,
             "fail" => Self::Fail,
@@ -31,6 +33,7 @@ impl CheckStatus {
             Self::Waiting => "waiting",
             Self::Pass => "pass",
             Self::Fail => "fail",
+            Self::None => "none",
         }
     }
 }

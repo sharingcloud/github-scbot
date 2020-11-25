@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use eyre::Result;
 use log::{error, info};
 
@@ -207,11 +207,8 @@ pub async fn event_handler(
                 ))),
             }
             .map_err(|e| {
-                error!("{:?}", e);
-
-                HttpResponse::InternalServerError()
-                    .body(e.to_string())
-                    .into()
+                eprintln!("ERROR: {:?}", e);
+                error::ErrorInternalServerError(e)
             })
         } else {
             Ok(HttpResponse::BadRequest()
