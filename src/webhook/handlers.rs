@@ -81,7 +81,7 @@ pub async fn pull_request_review_event(
     process_pull_request(conn, &event.repository, &event.pull_request)?;
 
     info!(
-        "Pull request review event from repository '{}', PR number #{}, action '{:?}', (review from '{}')",
+        "Pull request review event from repository '{}', PR number #{}, action '{:?}' (review from '{}')",
         event.repository.full_name, event.pull_request.number, event.action, event.review.user.login
     );
 
@@ -95,8 +95,8 @@ pub async fn pull_request_review_comment_event(
     process_pull_request(conn, &event.repository, &event.pull_request)?;
 
     info!(
-        "Pull request review comment event from repository '{}', PR number #{} (comment from '{}')",
-        event.repository.full_name, event.pull_request.number, event.comment.user.login
+        "Pull request review comment event from repository '{}', PR number #{}, action '{:?}' (comment from '{}')",
+        event.repository.full_name, event.pull_request.number, event.action, event.comment.user.login
     );
 
     Ok(HttpResponse::Ok().body("Pull request review comment."))
@@ -106,8 +106,8 @@ pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Res
     process_repository(conn, &event.repository)?;
 
     info!(
-        "Issue comment event from repository '{}', issue number #{} (comment from '{}')",
-        event.repository.full_name, event.issue.number, event.comment.user.login
+        "Issue comment event from repository '{}', issue number #{}, action '{:?}' (comment from '{}')",
+        event.repository.full_name, event.issue.number, event.action, event.comment.user.login
     );
 
     Ok(HttpResponse::Ok().body("Issue comment."))
@@ -207,6 +207,8 @@ pub async fn event_handler(
                 ))),
             }
             .map_err(|e| {
+                error!("{:?}", e);
+
                 HttpResponse::InternalServerError()
                     .body(e.to_string())
                     .into()
