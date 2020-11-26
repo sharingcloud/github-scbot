@@ -64,6 +64,13 @@ impl PullRequestModel {
         CheckStatus::from_str(&self.check_status)
     }
 
+    pub fn get_checks_url(&self, repo: &RepositoryModel) -> String {
+        return format!(
+            "https://github.com/{}/{}/pull/{}/checks",
+            repo.owner, repo.name, self.number
+        );
+    }
+
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         dsl::pull_request.load::<Self>(conn).map_err(Into::into)
     }

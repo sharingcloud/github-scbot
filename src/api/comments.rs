@@ -84,7 +84,7 @@ pub async fn create_or_update_status_comment(
         CheckStatus::Fail => (false, "failed. :boom:"),
     };
 
-    let status_comment = format!(
+    let mut status_comment = format!(
         "**Status comment**\n\
         - [{}] Checks: {}\n\
         - [{}] Code reviews: waiting\n\
@@ -94,6 +94,15 @@ pub async fn create_or_update_status_comment(
         " ",
         " "
     );
+
+    if !checks_passed {
+        status_comment = format!(
+            "{}\n\n\
+            [_See checks output by clicking this link_]({})",
+            status_comment,
+            pr_model.get_checks_url(repo_model)
+        );
+    }
 
     if comment_id > 0 {
         update_comment(
