@@ -62,12 +62,9 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
     }
 
     let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
-
-    let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;
-    if comment_id != pr_status_comment_id {
-        pr_model.status_comment_id = pr_status_comment_id.try_into()?;
-        pr_model.save_changes::<PullRequestModel>(conn)?;
-    }
+    println!("Comment ID post-creation (pr): {}", comment_id);
+    pr_model.status_comment_id = comment_id.try_into()?;
+    pr_model.save_changes::<PullRequestModel>(conn)?;
 
     info!(
         "Pull request event from repository '{}', PR number #{}, action '{:?}' (from '{}')",
@@ -158,29 +155,18 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
                     }
                     _ => (),
                 }
-            } else {
-                // Requested/re-requested
-                pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
-                let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
-
-                eprintln!(
-                    "PR #{} check status changed to {:?}",
-                    pr_model.number, pr_model.check_status
-                );
             }
 
             // Update status message
             let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
-            let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;
-            if comment_id != pr_status_comment_id {
-                pr_model.status_comment_id = pr_status_comment_id.try_into()?;
-                let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
+            println!("Comment ID post-creation (status): {}", comment_id);
+            pr_model.status_comment_id = comment_id.try_into()?;
+            let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
 
-                eprintln!(
-                    "PR #{} status comment ID changed to {:?}",
-                    pr_model.number, pr_model.status_comment_id
-                );
-            }
+            eprintln!(
+                "PR #{} status comment ID changed to {:?}",
+                pr_model.number, pr_model.status_comment_id
+            );
         }
     }
 
