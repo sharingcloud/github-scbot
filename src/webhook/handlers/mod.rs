@@ -28,9 +28,9 @@ pub async fn event_handler(
         .map_or(Ok(None), |r| r.map(Some))
     {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
-            let conn = pool.get().map_err(|_| {
-                error!("Error while getting connection from database pool.");
-                HttpResponse::InternalServerError()
+            let conn = pool.get().map_err(|e| {
+                error!("Error while getting connection from database pool: {}", e);
+                error::ErrorInternalServerError(e)
             })?;
 
             info!("Incoming event: {:?}", event_type);
