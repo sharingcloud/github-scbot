@@ -78,21 +78,18 @@ pub async fn create_or_update_status_comment(
 ) -> Result<u64> {
     let comment_id = pr_model.status_comment_id;
     let check_status = pr_model.check_status_enum()?;
-    let (checks_passed, checks_message) = match check_status {
-        CheckStatus::Pass => (true, "_passed!_ :tada:"),
-        CheckStatus::Waiting => (false, "_running..._ :clock2:"),
-        CheckStatus::Fail => (false, "_failed._ :boom:"),
+    let (checks_passed, checks_icon, checks_message) = match check_status {
+        CheckStatus::Pass => (true, ":heavy_check_mark:", "_passed!_ :tada:"),
+        CheckStatus::Waiting => (false, ":clock2:", "_running..._ :clock2:"),
+        CheckStatus::Fail => (false, ":x:", "_failed._ :boom:"),
     };
 
     let mut status_comment = format!(
-        "**Status comment**\n\
-        - [{}] :checkered_flag: **Checks**: {}\n\
-        - [{}] :mag: **Code reviews**: _waiting_\n\
-        - [{}] :test_tube: **QA**: _waiting_\n",
-        if checks_passed { "x" } else { " " },
-        checks_message,
-        " ",
-        " "
+        "**Status comment**\n\n\
+        {} &mdash; :checkered_flag: **Checks**: {}\n\
+        {} &mdash; :mag: **Code reviews**: _waiting_\n\
+        {} &mdash; :test_tube: **QA**: _waiting_\n",
+        checks_icon, checks_message, ":clock2:", ":clock2:",
     );
 
     if !checks_passed {
