@@ -79,16 +79,16 @@ pub async fn create_or_update_status_comment(
     let comment_id = pr_model.status_comment_id;
     let check_status = pr_model.check_status_enum()?;
     let (checks_passed, checks_message) = match check_status {
-        CheckStatus::Pass => (true, "passed! :tada:"),
-        CheckStatus::Waiting => (false, "running... :clock2:"),
-        CheckStatus::Fail => (false, "failed. :boom:"),
+        CheckStatus::Pass => (true, "_passed!_ :tada:"),
+        CheckStatus::Waiting => (false, "_running..._ :clock2:"),
+        CheckStatus::Fail => (false, "_failed._ :boom:"),
     };
 
     let mut status_comment = format!(
         "**Status comment**\n\
-        - [{}] Checks: {}\n\
-        - [{}] Code reviews: waiting\n\
-        - [{}] QA: waiting\n",
+        - [{}] :checkered_flag: **Checks**: {}\n\
+        - [{}] :mag: **Code reviews**: _waiting_\n\
+        - [{}] :test_tube: **QA**: _waiting_\n",
         if checks_passed { "x" } else { " " },
         checks_message,
         " ",
@@ -98,7 +98,7 @@ pub async fn create_or_update_status_comment(
     if !checks_passed {
         status_comment = format!(
             "{}\n\n\
-            [_See checks output by clicking this link_]({})",
+            [_See checks output by clicking this link :triangular_flag_on_post:_]({})",
             status_comment,
             pr_model.get_checks_url(repo_model)
         );
