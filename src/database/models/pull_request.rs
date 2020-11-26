@@ -11,7 +11,6 @@ use super::DbConn;
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum CheckStatus {
-    None,
     Waiting,
     Pass,
     Fail,
@@ -20,7 +19,6 @@ pub enum CheckStatus {
 impl CheckStatus {
     pub fn from_str(value: &str) -> Result<Self> {
         Ok(match value {
-            "none" => Self::None,
             "pass" => Self::Pass,
             "waiting" => Self::Waiting,
             "fail" => Self::Fail,
@@ -33,12 +31,11 @@ impl CheckStatus {
             Self::Waiting => "waiting",
             Self::Pass => "pass",
             Self::Fail => "fail",
-            Self::None => "none",
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, AsChangeset)]
+#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
     pub id: i32,
@@ -46,8 +43,8 @@ pub struct PullRequestModel {
     pub number: i32,
     pub name: String,
     pub automerge: bool,
-    pub check_status: String,
     pub step: String,
+    pub check_status: String,
     pub status_comment_id: i32,
 }
 
@@ -91,17 +88,6 @@ impl PullRequestModel {
     pub fn get_or_create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
         Self::get_from_number(conn, entry.repository_id, entry.number)
             .map_or_else(|| Self::create(conn, entry), Ok)
-    }
-
-    pub fn update(conn: &DbConn, entry: &Self) -> Result<()> {
-        eprintln!("Trying to save model in DB: {:?}", entry);
-
-        diesel::update(dsl::pull_request)
-            .filter(dsl::id.eq(entry.id))
-            .set(entry)
-            .execute(conn)?;
-
-        Ok(())
     }
 
     pub fn get_repository_model(conn: &DbConn, entry: &Self) -> Result<RepositoryModel> {

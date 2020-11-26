@@ -83,7 +83,6 @@ pub async fn create_or_update_status_comment(
 
     let check_status = pr_model.check_status_enum()?;
     let (checks_passed, checks_message) = match check_status {
-        CheckStatus::None => (true, "no checks, passing :flag:"),
         CheckStatus::Pass => (true, "passed! :tada:"),
         CheckStatus::Waiting => (false, "running... :clock2:"),
         CheckStatus::Fail => (false, "failed. :boom:"),

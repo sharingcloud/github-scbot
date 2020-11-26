@@ -3,6 +3,7 @@
 use std::convert::TryInto;
 
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
+use diesel::prelude::*;
 use eyre::Result;
 use log::{error, info};
 
@@ -57,7 +58,7 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
     if let PullRequestAction::Synchronize = event.action {
         // Reset status check
         pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
-        PullRequestModel::update(conn, &pr_model)?;
+        pr_model.save_changes::<PullRequestModel>(conn)?;
     }
 
     let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
@@ -65,8 +66,7 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
     let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;
     if comment_id != pr_status_comment_id {
         pr_model.status_comment_id = pr_status_comment_id.try_into()?;
-
-        PullRequestModel::update(conn, &pr_model)?;
+        pr_model.save_changes::<PullRequestModel>(conn)?;
     }
 
     info!(
@@ -139,7 +139,7 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
                     Some(CheckConclusion::Success) => {
                         // Update check status
                         pr_model.check_status = CheckStatus::Pass.as_str().to_string();
-                        PullRequestModel::update(conn, &pr_model)?;
+                        let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
 
                         eprintln!(
                             "PR #{} check status changed to {:?}",
@@ -149,7 +149,7 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
                     Some(CheckConclusion::Failure) => {
                         // Update check status
                         pr_model.check_status = CheckStatus::Fail.as_str().to_string();
-                        PullRequestModel::update(conn, &pr_model)?;
+                        let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
 
                         eprintln!(
                             "PR #{} check status changed to {:?}",
@@ -161,7 +161,7 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
             } else {
                 // Requested/re-requested
                 pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
-                PullRequestModel::update(conn, &pr_model)?;
+                let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
 
                 eprintln!(
                     "PR #{} check status changed to {:?}",
@@ -174,8 +174,7 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
             let pr_status_comment_id: u64 = pr_model.status_comment_id.try_into()?;
             if comment_id != pr_status_comment_id {
                 pr_model.status_comment_id = pr_status_comment_id.try_into()?;
-
-                PullRequestModel::update(conn, &pr_model)?;
+                let pr_model = pr_model.save_changes::<PullRequestModel>(conn)?;
 
                 eprintln!(
                     "PR #{} status comment ID changed to {:?}",

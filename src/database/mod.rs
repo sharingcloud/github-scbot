@@ -32,7 +32,7 @@ pub fn establish_connection() -> Result<DbPool> {
         if let Ok(conn) = pool.get() {
             run_migrations(&conn)?;
         } else {
-            return Err(eyre!("Error while establising connection to database."));
+            return Err(eyre!("Error while establishing connection to database."));
         }
 
         Ok(pool)
