@@ -1,0 +1,1 @@
+ALTER TABLE pull_request ADD status_comment_id INTEGER NOT NULL DEFAULT 0;

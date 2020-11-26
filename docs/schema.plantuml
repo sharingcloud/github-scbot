@@ -1,0 +1,18 @@
+@startuml Schema
+class Repository {
+    #id: Integer
+    name: String
+    owner: String
+}
+class PullRequest {
+    #id: Integer
+    *repository_id: Integer
+    number: Integer
+    name: String
+    automerge: Boolean
+    check_status: String
+    step: String
+}
+
+Repository *-- PullRequest : has
+@enduml

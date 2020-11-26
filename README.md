@@ -13,5 +13,5 @@ Experimental GitHub Bot to manage our development workflows.
 
 ## Building
 
-This project use the **just** command runner (https://github.com/casey/just).
+This project use the **just** command runner (https://github.com/casey/just).  
 To install, use `cargo install just`.

@@ -18,30 +18,30 @@ pub enum EventType {
 impl EventType {
     pub fn try_from_str(name: &str) -> Result<Self, Box<dyn Error>> {
         match name {
-            "check_run" => Ok(EventType::CheckRun),
-            "check_suite" => Ok(EventType::CheckSuite),
-            "issue_comment" => Ok(EventType::IssueComment),
-            "ping" => Ok(EventType::Ping),
-            "pull_request" => Ok(EventType::PullRequest),
-            "pull_request_review" => Ok(EventType::PullRequestReview),
-            "pull_request_review_comment" => Ok(EventType::PullRequestReviewComment),
-            "push" => Ok(EventType::Push),
-            "status" => Ok(EventType::Status),
+            "check_run" => Ok(Self::CheckRun),
+            "check_suite" => Ok(Self::CheckSuite),
+            "issue_comment" => Ok(Self::IssueComment),
+            "ping" => Ok(Self::Ping),
+            "pull_request" => Ok(Self::PullRequest),
+            "pull_request_review" => Ok(Self::PullRequestReview),
+            "pull_request_review_comment" => Ok(Self::PullRequestReviewComment),
+            "push" => Ok(Self::Push),
+            "status" => Ok(Self::Status),
             name => Err(format!("Unsupported event name {}", name).into()),
         }
     }
 
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            EventType::CheckRun => "check_run",
-            EventType::CheckSuite => "check_suite",
-            EventType::IssueComment => "issue_comment",
-            EventType::Ping => "ping",
-            EventType::PullRequest => "pull_request",
-            EventType::PullRequestReview => "pull_request_review",
-            EventType::PullRequestReviewComment => "pull_request_review_comment",
-            EventType::Push => "push",
-            EventType::Status => "status",
+            Self::CheckRun => "check_run",
+            Self::CheckSuite => "check_suite",
+            Self::IssueComment => "issue_comment",
+            Self::Ping => "ping",
+            Self::PullRequest => "pull_request",
+            Self::PullRequestReview => "pull_request_review",
+            Self::PullRequestReviewComment => "pull_request_review_comment",
+            Self::Push => "push",
+            Self::Status => "status",
         }
     }
 }
