@@ -5,8 +5,8 @@ table! {
         number -> Integer,
         name -> Text,
         automerge -> Bool,
-        step -> Text,
-        check_status -> Text,
+        step -> Nullable<Text>,
+        check_status -> Nullable<Text>,
         status_comment_id -> Integer,
     }
 }

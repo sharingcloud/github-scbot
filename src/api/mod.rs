@@ -7,6 +7,7 @@ use octocrab::Octocrab;
 pub mod comments;
 mod constants;
 mod handlers;
+pub mod labels;
 
 use constants::{ENV_API_DEBUG_MODE, ENV_GITHUB_API_TOKEN};
 

@@ -4,7 +4,7 @@ use actix_web::web;
 
 mod constants;
 mod handlers;
-mod logic;
+pub mod logic;
 mod middlewares;
 mod types;
 mod utils;

@@ -939,6 +939,7 @@ dependencies = [
  "hex",
  "log",
  "octocrab",
+ "once_cell",
  "r2d2",
  "r2d2-diesel",
  "rust-crypto",

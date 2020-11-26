@@ -4,8 +4,8 @@ use diesel::prelude::*;
 use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 
-use super::super::schema::repository::{self, dsl};
 use super::DbConn;
+use crate::database::schema::repository::{self, dsl};
 
 #[derive(Debug, Deserialize, Serialize, Queryable, Insertable)]
 #[table_name = "repository"]

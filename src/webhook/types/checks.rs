@@ -23,7 +23,7 @@ pub enum CheckSuiteAction {
     Rerequested,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum CheckStatus {
     Completed,

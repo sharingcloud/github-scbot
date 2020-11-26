@@ -1,15 +1,13 @@
 //! Webhook pull request handlers
 
-use std::convert::TryInto;
-
 use actix_web::HttpResponse;
-use diesel::prelude::*;
 use eyre::Result;
 use log::info;
 
-use crate::api::comments::{create_or_update_status_comment, post_welcome_comment};
-use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
-use crate::webhook::logic::process_pull_request;
+use crate::database::models::{CheckStatus, DbConn};
+use crate::webhook::logic::{
+    apply_pull_request_step, post_status_comment, post_welcome_comment, process_pull_request,
+};
 use crate::webhook::types::{
     PullRequestAction, PullRequestEvent, PullRequestReviewCommentEvent, PullRequestReviewEvent,
 };
@@ -19,24 +17,17 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
         process_pull_request(conn, &event.repository, &event.pull_request)?;
 
     if let PullRequestAction::Opened = event.action {
-        post_welcome_comment(
-            &event.repository.owner.login,
-            &event.repository.name,
-            event.pull_request.number,
-            &event.pull_request.user.login,
-        )
-        .await?;
+        post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
     }
 
     if let PullRequestAction::Synchronize = event.action {
         // Reset status check
-        pr_model.check_status = CheckStatus::Waiting.as_str().to_string();
-        pr_model.save_changes::<PullRequestModel>(conn)?;
+        pr_model.update_check_status(conn, Some(CheckStatus::Waiting))?;
     }
 
-    let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
-    pr_model.status_comment_id = comment_id.try_into()?;
-    pr_model.save_changes::<PullRequestModel>(conn)?;
+    let comment_id = post_status_comment(&repo_model, &pr_model).await?;
+    apply_pull_request_step(&repo_model, &pr_model).await?;
+    pr_model.update_status_comment(conn, comment_id)?;
 
     info!(
         "Pull request event from repository '{}', PR number #{}, action '{:?}' (from '{}')",

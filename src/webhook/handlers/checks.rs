@@ -3,14 +3,15 @@
 use std::convert::TryInto;
 
 use actix_web::HttpResponse;
-use diesel::prelude::*;
 use eyre::Result;
 use log::info;
 
-use crate::api::comments::create_or_update_status_comment;
-use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
-use crate::webhook::logic::process_repository;
+use crate::webhook::logic::{apply_pull_request_step, post_status_comment, process_repository};
 use crate::webhook::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
+use crate::{
+    api::labels::StepLabel,
+    database::models::{CheckStatus, DbConn, PullRequestModel},
+};
 
 pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;
@@ -32,22 +33,23 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
                 match event.check_suite.conclusion {
                     Some(CheckConclusion::Success) => {
                         // Update check status
-                        pr_model.check_status = CheckStatus::Pass.as_str().to_string();
-                        pr_model.save_changes::<PullRequestModel>(conn)?;
+                        pr_model.update_check_status(conn, Some(CheckStatus::Pass))?;
+                        pr_model.update_step(conn, Some(StepLabel::AwaitingReview))?;
                     }
                     Some(CheckConclusion::Failure) => {
                         // Update check status
-                        pr_model.check_status = CheckStatus::Fail.as_str().to_string();
-                        pr_model.save_changes::<PullRequestModel>(conn)?;
+                        pr_model.update_check_status(conn, Some(CheckStatus::Fail))?;
+                        pr_model.update_step(conn, Some(StepLabel::AwaitingChecksChanges))?;
                     }
                     _ => (),
                 }
             }
 
             // Update status message
-            let comment_id = create_or_update_status_comment(&repo_model, &pr_model).await?;
-            pr_model.status_comment_id = comment_id.try_into()?;
-            pr_model.save_changes::<PullRequestModel>(conn)?;
+            let comment_id = post_status_comment(&repo_model, &pr_model).await?;
+            apply_pull_request_step(&repo_model, &pr_model).await?;
+
+            pr_model.update_status_comment(conn, comment_id)?;
         }
     }
 
