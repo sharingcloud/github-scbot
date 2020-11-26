@@ -27,8 +27,6 @@ async fn post_comment(
             .create_comment(pr_number, final_body)
             .await?;
 
-        eprintln!("Github comment: {:?}", comment);
-
         Ok(comment.id)
     }
 }
@@ -79,8 +77,6 @@ pub async fn create_or_update_status_comment(
     pr_model: &PullRequestModel,
 ) -> Result<u64> {
     let comment_id = pr_model.status_comment_id;
-    println!("Comment ID: {}", comment_id);
-
     let check_status = pr_model.check_status_enum()?;
     let (checks_passed, checks_message) = match check_status {
         CheckStatus::Pass => (true, "passed! :tada:"),

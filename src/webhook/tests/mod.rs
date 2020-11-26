@@ -209,4 +209,6 @@ async fn test_push() {
 
     let data = read_body(resp).await;
     assert_eq!(data.to_vec(), b"Push.");
+
+    assert_eq!(1, 0, "this test should fail");
 }
