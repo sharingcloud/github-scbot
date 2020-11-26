@@ -6,6 +6,21 @@ jobs:
   checks:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DATABASE: test-bot-data
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -21,3 +36,5 @@ jobs:
       run: ./just lint fmt-check
     - name: Run tests
       run: ./just test
+      env:
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/test-bot-data
