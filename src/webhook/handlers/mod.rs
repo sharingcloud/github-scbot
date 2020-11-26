@@ -33,7 +33,7 @@ pub async fn event_handler(
                 HttpResponse::InternalServerError()
             })?;
 
-            info!("Incoming event: {:?}, payload: {:?}", event_type, body);
+            info!("Incoming event: {:?}", event_type);
 
             match event_type {
                 EventType::CheckRun => {
