@@ -74,6 +74,7 @@ impl PullRequestModel {
     }
 
     pub fn update_step(&mut self, conn: &DbConn, step: Option<StepLabel>) -> Result<()> {
+        println!("Updating step for PR #{}: {:?}", self.number, step);
         self.step = step.map(|x| x.as_str().to_string());
         self.save_changes::<Self>(conn)?;
 
@@ -85,6 +86,10 @@ impl PullRequestModel {
         conn: &DbConn,
         check_status: Option<CheckStatus>,
     ) -> Result<()> {
+        println!(
+            "Updating check status for PR #{}: {:?}",
+            self.number, check_status
+        );
         self.check_status = check_status.map(|x| x.as_str().to_string());
         self.save_changes::<Self>(conn)?;
 

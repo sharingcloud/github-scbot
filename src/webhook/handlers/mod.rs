@@ -8,7 +8,7 @@ mod push;
 
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use eyre::Result;
-use log::error;
+use log::{error, info};
 
 use super::constants::GITHUB_EVENT_HEADER;
 use super::types::EventType;
@@ -32,6 +32,8 @@ pub async fn event_handler(
                 error!("Error while getting connection from database pool.");
                 HttpResponse::InternalServerError()
             })?;
+
+            info!("Incoming event: {:?}, payload: {:?}", event_type, body);
 
             match event_type {
                 EventType::CheckRun => {
