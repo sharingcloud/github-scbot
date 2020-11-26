@@ -37,4 +37,4 @@ jobs:
     - name: Run tests
       run: ./just test
       env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/test-bot-data
+        TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test-bot-data
