@@ -38,6 +38,7 @@ pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<Http
         step: None,
         name: "Test".to_string(),
         status_comment_id: 0,
+        qa_status: None,
     };
 
     post_welcome_comment(&repo_model, &pr_model, &data.pr_author)

@@ -8,6 +8,7 @@ table! {
         step -> Nullable<Varchar>,
         check_status -> Nullable<Varchar>,
         status_comment_id -> Int4,
+        qa_status -> Nullable<Varchar>,
     }
 }
 

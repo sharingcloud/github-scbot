@@ -38,6 +38,33 @@ impl CheckStatus {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum QAStatus {
+    Waiting,
+    Pass,
+    Fail,
+}
+
+impl QAStatus {
+    pub fn from_str(value: &str) -> Result<Self> {
+        Ok(match value {
+            "pass" => Self::Pass,
+            "waiting" => Self::Waiting,
+            "fail" => Self::Fail,
+            e => return Err(eyre!("Bad QA status: {}", e)),
+        })
+    }
+
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Waiting => "waiting",
+            Self::Pass => "pass",
+            Self::Fail => "fail",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
@@ -49,6 +76,7 @@ pub struct PullRequestModel {
     pub step: Option<String>,
     pub check_status: Option<String>,
     pub status_comment_id: i32,
+    pub qa_status: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -86,10 +114,6 @@ impl PullRequestModel {
         conn: &DbConn,
         check_status: Option<CheckStatus>,
     ) -> Result<()> {
-        println!(
-            "Updating check status for PR #{}: {:?}",
-            self.number, check_status
-        );
         self.check_status = check_status.map(|x| x.as_str().to_string());
         self.save_changes::<Self>(conn)?;
 
@@ -98,6 +122,20 @@ impl PullRequestModel {
 
     pub fn update_status_comment(&mut self, conn: &DbConn, status_comment_id: u64) -> Result<()> {
         self.status_comment_id = status_comment_id.try_into()?;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_automerge(&mut self, conn: &DbConn, automerge: bool) -> Result<()> {
+        self.automerge = automerge;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_qa_status(&mut self, conn: &DbConn, status: Option<QAStatus>) -> Result<()> {
+        self.qa_status = status.map(|x| x.as_str().to_string());
         self.save_changes::<Self>(conn)?;
 
         Ok(())

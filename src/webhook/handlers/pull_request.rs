@@ -17,20 +17,26 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
     let (repo_model, mut pr_model) =
         process_pull_request(conn, &event.repository, &event.pull_request)?;
 
+    // Welcome message
+    if let PullRequestAction::Opened = event.action {
+        post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
+    }
+
+    // Status update
     match event.action {
-        PullRequestAction::Opened => {
-            post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
-        }
-        PullRequestAction::ReadyForReview | PullRequestAction::Synchronize => {
+        PullRequestAction::Opened
+        | PullRequestAction::ReadyForReview
+        | PullRequestAction::Synchronize
+        | PullRequestAction::Reopened => {
             pr_model.update_check_status(conn, Some(CheckStatus::Waiting))?;
             pr_model.update_step(conn, Some(StepLabel::AwaitingChecks))?;
+
+            let comment_id = post_status_comment(&repo_model, &pr_model).await?;
+            apply_pull_request_step(&repo_model, &pr_model).await?;
+            pr_model.update_status_comment(conn, comment_id)?;
         }
         _ => (),
     }
-
-    let comment_id = post_status_comment(&repo_model, &pr_model).await?;
-    apply_pull_request_step(&repo_model, &pr_model).await?;
-    pr_model.update_status_comment(conn, comment_id)?;
 
     info!(
         "Pull request event from repository '{}', PR number #{}, action '{:?}' (from '{}')",

@@ -5,7 +5,8 @@
 #![allow(
     clippy::module_name_repetitions,
     clippy::match_wildcard_for_single_variants,
-    clippy::future_not_send
+    clippy::future_not_send,
+    clippy::pub_enum_variant_names
 )]
 
 #[macro_use]
