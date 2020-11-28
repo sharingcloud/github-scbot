@@ -9,6 +9,7 @@ table! {
         check_status -> Nullable<Varchar>,
         status_comment_id -> Int4,
         qa_status -> Nullable<Varchar>,
+        wip -> Bool,
     }
 }
 

@@ -92,7 +92,9 @@ pub async fn post_status_comment(
     };
 
     let status_comment = format!(
-        ":speech_balloon: &mdash; **Status comment**\n\
+        "_This is an auto-generated message summaring this pull request._\n\
+        \n\
+        :speech_balloon: &mdash; **Status comment**\n\
         \n\
         > {} &mdash; :checkered_flag: **Checks**: {}\n\
         > {} &mdash; :mag: **Code reviews**: _waiting_\n\
@@ -142,6 +144,7 @@ pub async fn apply_pull_request_step(
 pub enum CommentAction {
     SkipQAStatus(bool),
     QAStatus(bool),
+    ChecksStatus(bool),
     AutoMergeStatus(bool),
     Ping,
 }
@@ -153,6 +156,8 @@ impl CommentAction {
             "noqa-" => Self::SkipQAStatus(false),
             "qa+" => Self::QAStatus(true),
             "qa-" => Self::QAStatus(false),
+            "checks+" => Self::ChecksStatus(true),
+            "checks-" => Self::ChecksStatus(false),
             "automerge+" => Self::AutoMergeStatus(true),
             "automerge-" => Self::AutoMergeStatus(false),
             "ping" => Self::Ping,
@@ -202,8 +207,22 @@ pub async fn parse_comment(
                 };
 
                 pr_model.update_qa_status(conn, Some(status))?;
+                pr_model.update_step_auto(conn)?;
                 status_updated = true;
                 let comment = format!("QA is {} by @{}", status_text, comment_author);
+                post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+            }
+            Some(CommentAction::ChecksStatus(s)) => {
+                let (status, status_text) = if s {
+                    (CheckStatus::Pass, "marked as pass")
+                } else {
+                    (CheckStatus::Fail, "marked as fail")
+                };
+
+                pr_model.update_check_status(conn, Some(status))?;
+                pr_model.update_step_auto(conn)?;
+                status_updated = true;
+                let comment = format!("Checks are {} by @{}", status_text, comment_author);
                 post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
             }
             Some(CommentAction::Ping) => {

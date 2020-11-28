@@ -1,0 +1,1 @@
+ALTER TABLE pull_request ADD COLUMN wip BOOLEAN NOT NULL DEFAULT false;

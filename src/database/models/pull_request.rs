@@ -77,6 +77,7 @@ pub struct PullRequestModel {
     pub check_status: Option<String>,
     pub status_comment_id: i32,
     pub qa_status: Option<String>,
+    pub wip: bool,
 }
 
 #[derive(Insertable)]
@@ -115,12 +116,33 @@ impl PullRequestModel {
         Ok(())
     }
 
+    pub fn update_step_auto(&mut self, conn: &DbConn) -> Result<()> {
+        let step = if self.wip {
+            Some(StepLabel::Wip)
+        } else {
+            match self.check_status_enum() {
+                Some(CheckStatus::Pass) | None => Some(StepLabel::AwaitingReview),
+                Some(CheckStatus::Waiting) => Some(StepLabel::AwaitingChecks),
+                Some(CheckStatus::Fail) => Some(StepLabel::AwaitingChecksChanges),
+            }
+        };
+
+        self.update_step(conn, step)
+    }
+
     pub fn update_check_status(
         &mut self,
         conn: &DbConn,
         check_status: Option<CheckStatus>,
     ) -> Result<()> {
         self.check_status = check_status.map(|x| x.as_str().to_string());
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_wip(&mut self, conn: &DbConn, wip: bool) -> Result<()> {
+        self.wip = wip;
         self.save_changes::<Self>(conn)?;
 
         Ok(())

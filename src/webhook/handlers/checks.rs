@@ -6,12 +6,9 @@ use actix_web::HttpResponse;
 use eyre::Result;
 use log::info;
 
+use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
 use crate::webhook::logic::{apply_pull_request_step, post_status_comment, process_repository};
 use crate::webhook::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
-use crate::{
-    api::labels::StepLabel,
-    database::models::{CheckStatus, DbConn, PullRequestModel},
-};
 
 pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;
@@ -34,12 +31,12 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
                     Some(CheckConclusion::Success) => {
                         // Update check status
                         pr_model.update_check_status(conn, Some(CheckStatus::Pass))?;
-                        pr_model.update_step(conn, Some(StepLabel::AwaitingReview))?;
+                        pr_model.update_step_auto(conn)?;
                     }
                     Some(CheckConclusion::Failure) => {
                         // Update check status
                         pr_model.update_check_status(conn, Some(CheckStatus::Fail))?;
-                        pr_model.update_step(conn, Some(StepLabel::AwaitingChecksChanges))?;
+                        pr_model.update_step_auto(conn)?;
                     }
                     _ => (),
                 }

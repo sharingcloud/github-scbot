@@ -4,7 +4,6 @@ use actix_web::HttpResponse;
 use eyre::Result;
 use log::info;
 
-use crate::api::labels::StepLabel;
 use crate::database::models::{CheckStatus, DbConn};
 use crate::webhook::logic::{
     apply_pull_request_step, post_status_comment, post_welcome_comment, process_pull_request,
@@ -22,20 +21,33 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
         post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
     }
 
+    let mut status_changed = false;
+
     // Status update
     match event.action {
-        PullRequestAction::Opened
-        | PullRequestAction::ReadyForReview
-        | PullRequestAction::Synchronize
-        | PullRequestAction::Reopened => {
+        PullRequestAction::Opened | PullRequestAction::Synchronize => {
+            pr_model.update_wip(conn, event.pull_request.draft)?;
             pr_model.update_check_status(conn, Some(CheckStatus::Waiting))?;
-            pr_model.update_step(conn, Some(StepLabel::AwaitingChecks))?;
-
-            let comment_id = post_status_comment(&repo_model, &pr_model).await?;
-            apply_pull_request_step(&repo_model, &pr_model).await?;
-            pr_model.update_status_comment(conn, comment_id)?;
+            pr_model.update_step_auto(conn)?;
+            status_changed = true;
+        }
+        PullRequestAction::Reopened | PullRequestAction::ReadyForReview => {
+            pr_model.update_wip(conn, event.pull_request.draft)?;
+            pr_model.update_step_auto(conn)?;
+            status_changed = true;
+        }
+        PullRequestAction::ConvertedToDraft => {
+            pr_model.update_wip(conn, true)?;
+            pr_model.update_step_auto(conn)?;
+            status_changed = true;
         }
         _ => (),
+    }
+
+    if status_changed {
+        let comment_id = post_status_comment(&repo_model, &pr_model).await?;
+        apply_pull_request_step(&repo_model, &pr_model).await?;
+        pr_model.update_status_comment(conn, comment_id)?;
     }
 
     info!(
