@@ -109,7 +109,6 @@ impl PullRequestModel {
     }
 
     pub fn update_step(&mut self, conn: &DbConn, step: Option<StepLabel>) -> Result<()> {
-        println!("Updating step for PR #{}: {:?}", self.number, step);
         self.step = step.map(|x| x.as_str().to_string());
         self.save_changes::<Self>(conn)?;
 

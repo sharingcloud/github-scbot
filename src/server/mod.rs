@@ -2,7 +2,7 @@
 
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use color_eyre::Result;
-use log::info;
+use log::{error, info};
 use sentry_actix::Sentry;
 
 mod constants;
@@ -55,7 +55,7 @@ async fn run_bot_server_internal(ip: String) -> Result<()> {
         .await
         .map_err(Into::into)
     } else {
-        eprintln!("Error while establishing connection to database.");
+        error!("Error while establishing connection to database.");
         std::process::exit(1);
     }
 }

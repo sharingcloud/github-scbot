@@ -94,16 +94,11 @@ pub async fn event_handler(
     {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
             let conn = pool.get().map_err(error::ErrorInternalServerError)?;
-
             info!("Incoming event: {:?}", event_type);
 
             parse_event(&conn, &event_type, &body).await.map_err(|e| {
-                // eprintln!("{}", e);
-                // let source = e.source();
-
                 let error: WebhookError = e.into();
                 error.into()
-                // error::ErrorInternalServerError(inner_error)
             })
         } else {
             Ok(HttpResponse::BadRequest()
