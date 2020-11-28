@@ -11,7 +11,7 @@ use crate::database::models::{
     CheckStatus, DbConn, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
 };
 use crate::{
-    api::comments::{post_comment, update_comment},
+    api::comments::{post_comment_for_repo, update_comment},
     database::models::QAStatus,
 };
 
@@ -52,9 +52,8 @@ pub async fn post_welcome_comment(
     pr_author: &str,
 ) -> Result<()> {
     if std::env::var(ENV_DISABLE_WELCOME_COMMENTS).ok().is_none() {
-        post_comment(
-            &repo_model.owner,
-            &repo_model.name,
+        post_comment_for_repo(
+            repo_model,
             pr_model.number.try_into()?,
             &format!(
                 ":tada: Welcome, _{}_ ! :tada:\n\
@@ -73,30 +72,45 @@ pub async fn post_status_comment(
     pr_model: &PullRequestModel,
 ) -> Result<u64> {
     let comment_id = pr_model.status_comment_id;
-    let check_status = pr_model.check_status_enum();
-    let (checks_passed, checks_icon, checks_message) = match check_status {
-        Some(CheckStatus::Pass) => (true, ":heavy_check_mark:", "_passed!_ :tada:"),
-        Some(CheckStatus::Waiting) => (false, ":clock2:", "_running..._ :gear:"),
-        Some(CheckStatus::Fail) => (false, ":x:", "_failed._ :boom:"),
-        _ => (true, ":heavy_check_mark:", "_skipped._"),
+    let (checks_icon, checks_message) = match pr_model.check_status_enum() {
+        Some(CheckStatus::Pass) => (":heavy_check_mark:", "_passed!_ :tada:"),
+        Some(CheckStatus::Waiting) => (":clock2:", "_running..._ :gear:"),
+        Some(CheckStatus::Fail) => (":x:", "_failed._ :boom:"),
+        None => (":heavy_check_mark:", "_skipped._"),
     };
 
-    let mut status_comment = format!(
-        "**Status comment**\n\n\
-        {} &mdash; :checkered_flag: **Checks**: {}\n\
-        {} &mdash; :mag: **Code reviews**: _waiting_\n\
-        {} &mdash; :test_tube: **QA**: _waiting_\n",
-        checks_icon, checks_message, ":clock2:", ":clock2:",
-    );
+    let (qa_icon, qa_message) = match pr_model.qa_status_enum() {
+        Some(QAStatus::Pass) => (":heavy_check_mark:", "_passed!_ :tada:"),
+        None | Some(QAStatus::Waiting) => (":clock2:", "_waiting..._ :clock2:"),
+        Some(QAStatus::Fail) => (":x:", "_failed._ :boom:"),
+    };
 
-    if !checks_passed {
-        status_comment = format!(
-            "{}\n\n\
-            [_See checks output by clicking this link :triangular_flag_on_post:_]({})",
-            status_comment,
-            pr_model.get_checks_url(repo_model)
-        );
-    }
+    let automerge_message = if pr_model.automerge {
+        ":heavy_check_mark:"
+    } else {
+        ":x:"
+    };
+
+    let status_comment = format!(
+        ":speech_balloon: &mdash; **Status comment**\n\
+        \n\
+        > {} &mdash; :checkered_flag: **Checks**: {}\n\
+        > {} &mdash; :mag: **Code reviews**: _waiting_\n\
+        > {} &mdash; :test_tube: **QA**: {}\n\
+        \n\
+        :gear: &mdash; **Configuration**\n\
+        \n\
+        > :twisted_rightwards_arrows: Automerge: {}\n\
+        \n\
+        [_See checks output by clicking this link :triangular_flag_on_post:_]({})",
+        checks_icon,
+        checks_message,
+        ":clock2:",
+        qa_icon,
+        qa_message,
+        automerge_message,
+        pr_model.get_checks_url(repo_model)
+    );
 
     if comment_id > 0 {
         update_comment(
@@ -107,13 +121,7 @@ pub async fn post_status_comment(
         )
         .await
     } else {
-        post_comment(
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.number.try_into()?,
-            &status_comment,
-        )
-        .await
+        post_comment_for_repo(repo_model, pr_model.number.try_into()?, &status_comment).await
     }
 }
 
@@ -135,6 +143,7 @@ pub enum CommentAction {
     SkipQAStatus(bool),
     QAStatus(bool),
     AutoMergeStatus(bool),
+    Ping,
 }
 
 impl CommentAction {
@@ -146,6 +155,7 @@ impl CommentAction {
             "qa-" => Self::QAStatus(false),
             "automerge+" => Self::AutoMergeStatus(true),
             "automerge-" => Self::AutoMergeStatus(false),
+            "ping" => Self::Ping,
             _ => return None,
         })
     }
@@ -182,13 +192,7 @@ pub async fn parse_comment(
                 status_updated = true;
                 let status_text = if s { "enabled" } else { "disabled" };
                 let comment = format!("Automerge {} by @{}", status_text, comment_author);
-                post_comment(
-                    &repo_model.owner,
-                    &repo_model.name,
-                    pr_model.number.try_into()?,
-                    &comment,
-                )
-                .await?;
+                post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
             }
             Some(CommentAction::QAStatus(s)) => {
                 let (status, status_text) = if s {
@@ -200,11 +204,13 @@ pub async fn parse_comment(
                 pr_model.update_qa_status(conn, Some(status))?;
                 status_updated = true;
                 let comment = format!("QA is {} by @{}", status_text, comment_author);
-                post_comment(
-                    &repo_model.owner,
-                    &repo_model.name,
+                post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+            }
+            Some(CommentAction::Ping) => {
+                post_comment_for_repo(
+                    repo_model,
                     pr_model.number.try_into()?,
-                    &comment,
+                    &format!("@{} pong!", comment_author),
                 )
                 .await?;
             }
@@ -220,11 +226,12 @@ pub async fn parse_comment(
 }
 
 pub fn parse_command_string_from_comment_line(comment: &str) -> Option<&str> {
-    let bot_username = std::env::var(ENV_BOT_USERNAME).unwrap_or_else(|_| "SCBot".to_string());
-
-    if comment.starts_with(&bot_username) {
-        let (_, command) = comment.split_at(bot_username.len());
-        return Some(command.trim());
+    if let Ok(bot_username) = std::env::var(ENV_BOT_USERNAME) {
+        if comment.starts_with(&format!("@{}", bot_username)) {
+            // Plus one for the '@' symbol
+            let (_, command) = comment.split_at(bot_username.len() + 1);
+            return Some(command.trim());
+        }
     }
 
     None

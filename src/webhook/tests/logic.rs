@@ -3,16 +3,16 @@
 use crate::webhook::logic::parse_command_string_from_comment_line;
 use crate::webhook::{constants::ENV_BOT_USERNAME, logic::CommentAction};
 
-fn get_bot_username() -> String {
-    std::env::var(ENV_BOT_USERNAME).unwrap_or_else(|_| "SCBot".to_string())
-}
+const TEST_BOT_USERNAME: &str = "SC-GitBot-Test";
 
 #[actix_rt::test]
 async fn test_parse_command_string_from_comment_line() {
+    std::env::set_var(ENV_BOT_USERNAME, TEST_BOT_USERNAME);
+
     assert_eq!(
         parse_command_string_from_comment_line(&format!(
-            "{} this-is-a-command",
-            get_bot_username()
+            "@{} this-is-a-command",
+            std::env::var(ENV_BOT_USERNAME).expect("Empty bot username")
         )),
         Some("this-is-a-command")
     );

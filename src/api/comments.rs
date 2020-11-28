@@ -2,6 +2,8 @@
 
 use eyre::Result;
 
+use crate::database::models::RepositoryModel;
+
 use super::get_client;
 
 pub async fn post_comment(
@@ -25,6 +27,14 @@ pub async fn post_comment(
 
         Ok(comment.id)
     }
+}
+
+pub async fn post_comment_for_repo(
+    repo: &RepositoryModel,
+    pr_number: u64,
+    body: &str,
+) -> Result<u64> {
+    post_comment(&repo.owner, &repo.name, pr_number, body).await
 }
 
 pub async fn update_comment(

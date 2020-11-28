@@ -97,6 +97,12 @@ impl PullRequestModel {
             .and_then(|x| CheckStatus::from_str(x).ok())
     }
 
+    pub fn qa_status_enum(&self) -> Option<QAStatus> {
+        self.qa_status
+            .as_ref()
+            .and_then(|x| QAStatus::from_str(x).ok())
+    }
+
     pub fn step_enum(&self) -> Option<StepLabel> {
         self.step.as_ref().and_then(|x| StepLabel::from_str(x).ok())
     }

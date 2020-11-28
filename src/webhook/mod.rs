@@ -3,6 +3,7 @@
 use actix_web::web;
 
 mod constants;
+mod errors;
 mod handlers;
 pub mod logic;
 mod middlewares;

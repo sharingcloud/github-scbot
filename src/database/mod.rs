@@ -18,7 +18,8 @@ use constants::{ENV_DATABASE_URL, ENV_TEST_DATABASE_URL};
 
 embed_migrations!();
 
-pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+pub type DbConn = PgConnection;
+pub type DbPool = Pool<ConnectionManager<DbConn>>;
 
 pub fn run_migrations(conn: &PgConnection) -> Result<()> {
     diesel_migrations::run_pending_migrations(conn).map_err(Into::into)
