@@ -92,7 +92,7 @@ pub async fn post_status_comment(
     };
 
     let status_comment = format!(
-        "_This is an auto-generated message summaring this pull request._\n\
+        "_This is an auto-generated message summarizing this pull request._\n\
         \n\
         :speech_balloon: &mdash; **Status comment**\n\
         \n\
