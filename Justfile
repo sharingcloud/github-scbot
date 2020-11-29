@@ -12,3 +12,6 @@ fmt-check:
 
 test:
 	cargo test --all
+
+server:
+	cargo run -- server

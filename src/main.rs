@@ -1,11 +1,7 @@
 //! SC Bot entrypoint
 
-use color_eyre::eyre::Result;
-use github_scbot::{configure_startup, run_bot_server};
+use color_eyre::Result;
 
 fn main() -> Result<()> {
-    configure_startup()?;
-
-    // Run bot
-    run_bot_server()
+    github_scbot::initialize_command_line()
 }

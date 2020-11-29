@@ -17,8 +17,8 @@ extern crate diesel_migrations;
 mod api;
 mod database;
 mod server;
+mod shell;
 mod utils;
 mod webhook;
 
-pub use server::run_bot_server;
-pub use utils::configure_startup;
+pub use shell::initialize_command_line;
