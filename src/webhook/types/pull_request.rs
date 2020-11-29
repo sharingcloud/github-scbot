@@ -8,20 +8,21 @@ use super::common::{Branch, BranchShort, Label, Repository, User};
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PullRequestAction {
-    Opened,
-    Edited,
-    Closed,
     Assigned,
-    Unassigned,
+    Closed,
+    ConvertedToDraft,
+    Edited,
+    Labeled,
+    Locked,
+    Opened,
+    Reopened,
+    ReadyForReview,
     ReviewRequested,
     ReviewRequestRemoved,
-    ReadyForReview,
-    Labeled,
-    Unlabeled,
     Synchronize,
-    Locked,
+    Unassigned,
+    Unlabeled,
     Unlocked,
-    Reopened,
 }
 
 #[derive(Debug, Deserialize)]

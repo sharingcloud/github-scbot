@@ -1,10 +1,15 @@
 //! API handlers
 
-use actix_web::{web, Error, HttpResponse};
+use std::convert::TryInto;
+
+use actix_web::{error, web, Error, HttpResponse};
 use eyre::Result;
 use serde::Deserialize;
 
-use super::comments::post_welcome_comment;
+use crate::{
+    database::models::{PullRequestModel, RepositoryModel},
+    webhook::logic::post_welcome_comment,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct WelcomeMessageData {
@@ -15,14 +20,31 @@ pub struct WelcomeMessageData {
 }
 
 pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<HttpResponse, Error> {
-    post_welcome_comment(
-        &data.repo_owner,
-        &data.repo_name,
-        data.pr_number,
-        &data.pr_author,
-    )
-    .await
-    .map_err(|e| HttpResponse::InternalServerError().body(e.to_string()))?;
+    let repo_model = RepositoryModel {
+        id: 1,
+        name: data.repo_name.clone(),
+        owner: data.repo_owner.clone(),
+    };
+
+    let pr_model = PullRequestModel {
+        id: 1,
+        repository_id: repo_model.id,
+        number: data
+            .pr_number
+            .try_into()
+            .map_err(error::ErrorInternalServerError)?,
+        automerge: false,
+        check_status: None,
+        step: None,
+        name: "Test".to_string(),
+        status_comment_id: 0,
+        qa_status: None,
+        wip: false,
+    };
+
+    post_welcome_comment(&repo_model, &pr_model, &data.pr_author)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
 
     Ok(HttpResponse::Ok().body("Welcome comment ok."))
 }

@@ -1,1 +1,1 @@
-ALTER TABLE pull_request ADD status_comment_id INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pull_request ADD COLUMN status_comment_id INT NOT NULL DEFAULT 0;

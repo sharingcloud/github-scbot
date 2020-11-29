@@ -123,7 +123,6 @@ where
                     }
 
                     if !is_valid_signature(sig, &body, &secret) {
-                        println!("Invalid signature.");
                         return Err(ErrorUnauthorized(ParseError::Header));
                     }
                 }

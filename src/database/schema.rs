@@ -1,21 +1,23 @@
 table! {
     pull_request (id) {
-        id -> Integer,
-        repository_id -> Integer,
-        number -> Integer,
-        name -> Text,
+        id -> Int4,
+        repository_id -> Int4,
+        number -> Int4,
+        name -> Varchar,
         automerge -> Bool,
-        step -> Text,
-        check_status -> Text,
-        status_comment_id -> Integer,
+        step -> Nullable<Varchar>,
+        check_status -> Nullable<Varchar>,
+        status_comment_id -> Int4,
+        qa_status -> Nullable<Varchar>,
+        wip -> Bool,
     }
 }
 
 table! {
     repository (id) {
-        id -> Integer,
-        name -> Text,
-        owner -> Text,
+        id -> Int4,
+        name -> Varchar,
+        owner -> Varchar,
     }
 }
 

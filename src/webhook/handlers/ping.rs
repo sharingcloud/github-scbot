@@ -9,12 +9,13 @@ use crate::webhook::logic::process_repository;
 use crate::webhook::types::PingEvent;
 
 pub async fn ping_event(conn: &DbConn, event: PingEvent) -> Result<HttpResponse> {
-    process_repository(conn, &event.repository)?;
+    if let Some(repo) = &event.repository {
+        process_repository(conn, repo)?;
 
-    info!(
-        "Ping event from repository '{}'",
-        event.repository.full_name
-    );
+        info!("Ping event from repository '{}'", repo.full_name);
+    } else {
+        info!("Ping event without repository",);
+    }
 
     Ok(HttpResponse::Ok().body("Ping."))
 }

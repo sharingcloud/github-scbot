@@ -1,18 +1,18 @@
-CREATE TABLE repository (
-    id INTEGER NOT NULL PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    owner VARCHAR NOT NULL,
+CREATE TABLE IF NOT EXISTS repository (
+    id serial PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    owner VARCHAR(255) NOT NULL,
 
     UNIQUE(name, owner)
 );
 
-CREATE TABLE pull_request (
-    id INTEGER NOT NULL PRIMARY KEY,
-    repository_id INTEGER NOT NULL,
-    number INTEGER NOT NULL,
-    name VARCHAR NOT NULL,
+CREATE TABLE IF NOT EXISTS pull_request (
+    id serial PRIMARY KEY,
+    repository_id INT NOT NULL,
+    number INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
     automerge BOOLEAN NOT NULL,
-    step VARCHAR NOT NULL,
+    step VARCHAR(255) NOT NULL DEFAULT 'none',
 
     FOREIGN KEY(repository_id) REFERENCES repository(id),
     UNIQUE(repository_id, number)

@@ -1,12 +1,15 @@
 //! Database pull request models
 
+use std::convert::TryInto;
+
 use diesel::prelude::*;
 use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 
-use super::super::schema::pull_request::{self, dsl};
 use super::repository::RepositoryModel;
 use super::DbConn;
+use crate::api::labels::StepLabel;
+use crate::database::schema::pull_request::{self, dsl};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -35,6 +38,33 @@ impl CheckStatus {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum QAStatus {
+    Waiting,
+    Pass,
+    Fail,
+}
+
+impl QAStatus {
+    pub fn from_str(value: &str) -> Result<Self> {
+        Ok(match value {
+            "pass" => Self::Pass,
+            "waiting" => Self::Waiting,
+            "fail" => Self::Fail,
+            e => return Err(eyre!("Bad QA status: {}", e)),
+        })
+    }
+
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Waiting => "waiting",
+            Self::Pass => "pass",
+            Self::Fail => "fail",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
@@ -43,9 +73,11 @@ pub struct PullRequestModel {
     pub number: i32,
     pub name: String,
     pub automerge: bool,
-    pub step: String,
-    pub check_status: String,
+    pub step: Option<String>,
+    pub check_status: Option<String>,
     pub status_comment_id: i32,
+    pub qa_status: Option<String>,
+    pub wip: bool,
 }
 
 #[derive(Insertable)]
@@ -60,8 +92,80 @@ pub struct PullRequestCreation<'a> {
 }
 
 impl PullRequestModel {
-    pub fn check_status_enum(&self) -> Result<CheckStatus> {
-        CheckStatus::from_str(&self.check_status)
+    pub fn check_status_enum(&self) -> Option<CheckStatus> {
+        self.check_status
+            .as_ref()
+            .and_then(|x| CheckStatus::from_str(x).ok())
+    }
+
+    pub fn qa_status_enum(&self) -> Option<QAStatus> {
+        self.qa_status
+            .as_ref()
+            .and_then(|x| QAStatus::from_str(x).ok())
+    }
+
+    pub fn step_enum(&self) -> Option<StepLabel> {
+        self.step.as_ref().and_then(|x| StepLabel::from_str(x).ok())
+    }
+
+    pub fn update_step(&mut self, conn: &DbConn, step: Option<StepLabel>) -> Result<()> {
+        self.step = step.map(|x| x.as_str().to_string());
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_step_auto(&mut self, conn: &DbConn) -> Result<()> {
+        let step = if self.wip {
+            Some(StepLabel::Wip)
+        } else {
+            match self.check_status_enum() {
+                Some(CheckStatus::Pass) | None => Some(StepLabel::AwaitingReview),
+                Some(CheckStatus::Waiting) => Some(StepLabel::AwaitingChecks),
+                Some(CheckStatus::Fail) => Some(StepLabel::AwaitingChecksChanges),
+            }
+        };
+
+        self.update_step(conn, step)
+    }
+
+    pub fn update_check_status(
+        &mut self,
+        conn: &DbConn,
+        check_status: Option<CheckStatus>,
+    ) -> Result<()> {
+        self.check_status = check_status.map(|x| x.as_str().to_string());
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_wip(&mut self, conn: &DbConn, wip: bool) -> Result<()> {
+        self.wip = wip;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_status_comment(&mut self, conn: &DbConn, status_comment_id: u64) -> Result<()> {
+        self.status_comment_id = status_comment_id.try_into()?;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_automerge(&mut self, conn: &DbConn, automerge: bool) -> Result<()> {
+        self.automerge = automerge;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_qa_status(&mut self, conn: &DbConn, status: Option<QAStatus>) -> Result<()> {
+        self.qa_status = status.map(|x| x.as_str().to_string());
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
     }
 
     pub fn get_checks_url(&self, repo: &RepositoryModel) -> String {
