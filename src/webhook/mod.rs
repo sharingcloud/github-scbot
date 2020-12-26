@@ -2,8 +2,7 @@
 
 use actix_web::web;
 
-mod constants;
-mod errors;
+pub mod constants;
 mod handlers;
 pub mod logic;
 mod middlewares;

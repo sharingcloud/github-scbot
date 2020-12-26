@@ -1,8 +1,7 @@
 //! Labels API module
 
-use eyre::{eyre, Result};
-
 use super::get_client;
+use crate::errors::{BotError, Result};
 
 #[derive(Debug, Copy, Clone)]
 pub enum StepLabel {
@@ -37,7 +36,7 @@ impl StepLabel {
             "step/awaiting-review-changes" => Self::AwaitingReviewChanges,
             "step/awaiting-qa" => Self::AwaitingQA,
             "step/awaiting-merge" => Self::AwaitingMerge,
-            e => return Err(eyre!("Unknown label name: {}", e)),
+            e => return Err(BotError::UnknownLabelName(e.to_string())),
         })
     }
 }

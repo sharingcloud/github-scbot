@@ -1,10 +1,14 @@
 //! Database tests
 
+use crate::utils::test_init;
+
 use super::establish_connection;
-use super::models::*;
+use super::models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel};
 
 #[test]
 fn create_repository() {
+    test_init();
+
     let conn = establish_connection().unwrap().get().unwrap();
     let repo = RepositoryModel::create(
         &conn,
@@ -22,6 +26,8 @@ fn create_repository() {
 
 #[test]
 fn list_repositories() {
+    test_init();
+
     let conn = establish_connection().unwrap().get().unwrap();
     RepositoryModel::create(
         &conn,
@@ -47,6 +53,8 @@ fn list_repositories() {
 
 #[test]
 fn create_pull_request() {
+    test_init();
+
     let conn = establish_connection().unwrap().get().unwrap();
     let repo = RepositoryModel::create(
         &conn,
@@ -64,8 +72,8 @@ fn create_pull_request() {
             number: 1234,
             name: "Toto",
             automerge: false,
-            check_status: CheckStatus::Pass.as_str(),
-            step: "none",
+            check_status: None,
+            step: None,
         },
     )
     .unwrap();

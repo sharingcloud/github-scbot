@@ -10,6 +10,7 @@ table! {
         status_comment_id -> Int4,
         qa_status -> Nullable<Varchar>,
         wip -> Bool,
+        required_reviewers -> Text,
     }
 }
 
@@ -18,6 +19,7 @@ table! {
         id -> Int4,
         name -> Varchar,
         owner -> Varchar,
+        pr_title_validation_regex -> Text,
     }
 }
 

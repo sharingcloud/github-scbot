@@ -1,12 +1,10 @@
 //! Sentry module
 
-use eyre::Result;
-use log::info;
+use tracing::info;
 
 mod constants;
-mod eyre_integration;
 
-pub use eyre_integration::capture_eyre;
+use crate::errors::Result;
 
 pub fn with_sentry_configuration<T>(func: T) -> Result<()>
 where
@@ -16,8 +14,7 @@ where
         info!("Sentry integration enabled.");
 
         // Create client options
-        let mut options =
-            sentry::ClientOptions::new().add_integration(eyre_integration::EyreIntegration::new());
+        let mut options = sentry::ClientOptions::new();
         options.attach_stacktrace = true;
 
         let _guard = sentry::init((url, options));

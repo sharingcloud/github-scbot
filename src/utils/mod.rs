@@ -2,4 +2,10 @@
 
 mod sentry_utils;
 
-pub use sentry_utils::{capture_eyre, with_sentry_configuration};
+#[cfg(test)]
+mod test;
+
+pub use sentry_utils::with_sentry_configuration;
+
+#[cfg(test)]
+pub(crate) use test::test_init;

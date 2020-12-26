@@ -1,12 +1,15 @@
 //! Webhook pull request handlers
 
 use actix_web::HttpResponse;
-use eyre::Result;
-use log::info;
+use tracing::info;
 
+use crate::api::status::update_status_for_repo;
 use crate::database::models::{CheckStatus, DbConn};
+use crate::errors::Result;
 use crate::webhook::logic::{
-    apply_pull_request_step, post_status_comment, post_welcome_comment, process_pull_request,
+    database::{apply_pull_request_step, process_pull_request},
+    status::{generate_pr_status, post_status_comment},
+    welcome::post_welcome_comment,
 };
 use crate::webhook::types::{
     PullRequestAction, PullRequestEvent, PullRequestReviewCommentEvent, PullRequestReviewEvent,
@@ -44,10 +47,27 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
         _ => (),
     }
 
+    if let PullRequestAction::Edited = event.action {
+        // Update PR title
+        pr_model.update_name(conn, &event.pull_request.title)?;
+        status_changed = true;
+    }
+
     if status_changed {
-        let comment_id = post_status_comment(&repo_model, &pr_model).await?;
         apply_pull_request_step(&repo_model, &pr_model).await?;
-        pr_model.update_status_comment(conn, comment_id)?;
+        post_status_comment(conn, &repo_model, &mut pr_model).await?;
+
+        // Create or update status
+        let (status_state, status_title, status_message) =
+            generate_pr_status(&repo_model, &pr_model)?;
+        update_status_for_repo(
+            &repo_model,
+            &event.pull_request.head.sha,
+            status_state,
+            status_title,
+            status_message,
+        )
+        .await?;
     }
 
     info!(

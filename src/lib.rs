@@ -1,7 +1,7 @@
 //! SC Bot library
 
 #![deny(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![warn(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
     clippy::match_wildcard_for_single_variants,
@@ -15,7 +15,9 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 mod api;
+mod core;
 mod database;
+mod errors;
 mod server;
 mod shell;
 mod utils;
