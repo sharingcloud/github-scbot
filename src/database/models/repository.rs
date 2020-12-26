@@ -4,8 +4,8 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::DbConn;
+use crate::database::errors::{DatabaseError, Result};
 use crate::database::schema::repository::{self, dsl};
-use crate::errors::{BotError, Result};
 
 #[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
 #[table_name = "repository"]
@@ -25,9 +25,7 @@ pub struct RepositoryCreation<'a> {
 
 impl RepositoryModel {
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        dsl::repository
-            .load::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))
+        dsl::repository.load::<Self>(conn).map_err(Into::into)
     }
 
     pub fn get_from_id(conn: &DbConn, id: i32) -> Option<Self> {
@@ -44,8 +42,14 @@ impl RepositoryModel {
 
     pub fn update_title_pr_validation_regex(&mut self, conn: &DbConn, regex: &str) -> Result<()> {
         self.pr_title_validation_regex = regex.to_owned();
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
+    pub fn update_from_instance(&mut self, conn: &DbConn, other: &Self) -> Result<()> {
+        self.pr_title_validation_regex = other.pr_title_validation_regex.clone();
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
@@ -58,11 +62,11 @@ impl RepositoryModel {
     pub fn create(conn: &DbConn, entry: &RepositoryCreation) -> Result<Self> {
         diesel::insert_into(dsl::repository)
             .values(entry)
-            .execute(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+            .execute(conn)?;
 
-        Self::get_from_name(conn, entry.name, entry.owner)
-            .ok_or_else(|| BotError::DBError("Error while fetching created repository".to_string()))
+        Self::get_from_name(conn, entry.name, entry.owner).ok_or_else(|| {
+            DatabaseError::UnknownRepositoryError(format!("{}/{}", entry.owner, entry.name))
+        })
     }
 
     pub fn get_or_create(conn: &DbConn, entry: &RepositoryCreation) -> Result<Self> {
@@ -81,9 +85,6 @@ impl RepositoryModel {
             }
         }
 
-        Err(BotError::FormatError(format!(
-            "Badly formatted repository path: {}",
-            path
-        )))
+        Err(DatabaseError::BadRepositoryPathError(path.to_string()))
     }
 }

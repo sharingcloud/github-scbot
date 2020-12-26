@@ -3,6 +3,7 @@ class Repository {
     #id: Integer
     name: String
     owner: String
+    pr_title_validation_regex: String
 }
 class PullRequest {
     #id: Integer
@@ -10,8 +11,12 @@ class PullRequest {
     number: Integer
     name: String
     automerge: Boolean
-    check_status: String
     step: String
+    check_status: String
+    status_comment_id: Integer
+    qa_status: String
+    wip: Boolean
+    required_reviewers: String
 }
 
 Repository *-- PullRequest : has

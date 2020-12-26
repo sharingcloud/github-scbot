@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum EventType {
     CheckRun,
     CheckSuite,
@@ -31,7 +31,7 @@ impl EventType {
         }
     }
 
-    pub const fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::CheckRun => "check_run",
             Self::CheckSuite => "check_suite",

@@ -1,8 +1,8 @@
 //! Status API module
 
 use crate::database::models::RepositoryModel;
-use crate::errors::Result;
 
+use super::errors::Result;
 use super::get_client;
 
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;

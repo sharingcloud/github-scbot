@@ -7,14 +7,16 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
 pub mod constants;
+pub mod errors;
+pub mod import_export;
 pub mod models;
 pub mod schema;
 
 #[cfg(test)]
 mod tests;
 
-use crate::errors::{BotError, Result};
 use constants::{ENV_DATABASE_URL, ENV_TEST_DATABASE_URL};
+use errors::Result;
 
 embed_migrations!();
 
@@ -40,9 +42,7 @@ impl ConnectionBuilder {
             Self::configure_for_test()
         } else {
             Ok(Self {
-                database_url: env::var(ENV_DATABASE_URL).map_err(|_e| {
-                    BotError::ConfigurationError(format!("{} must be set", ENV_DATABASE_URL))
-                })?,
+                database_url: env::var(ENV_DATABASE_URL).unwrap(),
                 test_mode: false,
             })
         }
@@ -50,16 +50,13 @@ impl ConnectionBuilder {
 
     fn configure_for_test() -> Result<Self> {
         Ok(Self {
-            database_url: env::var(ENV_TEST_DATABASE_URL).map_err(|_e| {
-                BotError::ConfigurationError(format!("{} must be set", ENV_TEST_DATABASE_URL))
-            })?,
+            database_url: env::var(ENV_TEST_DATABASE_URL).unwrap(),
             test_mode: true,
         })
     }
 
     fn build(self) -> Result<DbConn> {
-        let conn = PgConnection::establish(&self.database_url)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        let conn = PgConnection::establish(&self.database_url)?;
 
         if self.test_mode {
             Self::prepare_connection_for_testing(&conn)?;
@@ -70,10 +67,8 @@ impl ConnectionBuilder {
 
     fn build_pool(self) -> Result<DbPool> {
         let manager = ConnectionManager::<PgConnection>::new(&self.database_url);
-        let pool = Pool::builder()
-            .build(manager)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
-        let conn = pool.get().map_err(|e| BotError::DBError(e.to_string()))?;
+        let pool = Pool::builder().build(manager)?;
+        let conn = pool.get()?;
 
         if self.test_mode {
             Self::prepare_connection_for_testing(&conn)?;
@@ -83,10 +78,8 @@ impl ConnectionBuilder {
     }
 
     fn prepare_connection_for_testing(conn: &DbConn) -> Result<()> {
-        conn.begin_test_transaction()
-            .map_err(|e| BotError::DBError(e.to_string()))?;
-        diesel_migrations::run_pending_migrations(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        conn.begin_test_transaction()?;
+        diesel_migrations::run_pending_migrations(conn)?;
 
         Ok(())
     }

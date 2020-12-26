@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use tracing::info;
 
 use crate::database::models::DbConn;
-use crate::errors::Result;
+use crate::webhook::errors::Result;
 use crate::webhook::logic::database::process_repository;
 use crate::webhook::types::PushEvent;
 

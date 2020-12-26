@@ -1,15 +1,14 @@
 //! Webhook issue handlers
 
-use std::convert::TryInto;
-
 use actix_web::HttpResponse;
 use tracing::{info, warn};
 
 use crate::database::models::{DbConn, PullRequestModel};
-use crate::errors::Result;
+use crate::webhook::errors::Result;
 use crate::webhook::logic::{commands::parse_issue_comment, database::process_repository};
 use crate::webhook::types::{IssueCommentAction, IssueCommentEvent};
 
+#[allow(clippy::cast_possible_truncation)]
 pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Result<HttpResponse> {
     let repo_model = process_repository(conn, &event.repository)?;
 
@@ -22,7 +21,7 @@ pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Res
     if let IssueCommentAction::Created = event.action {
         // Try fetching pull request
         if let Some(mut pr_model) =
-            PullRequestModel::get_from_number(conn, repo_model.id, event.issue.number.try_into()?)
+            PullRequestModel::get_from_number(conn, repo_model.id, event.issue.number as i32)
         {
             parse_issue_comment(
                 conn,

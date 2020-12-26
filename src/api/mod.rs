@@ -5,20 +5,19 @@ use octocrab::Octocrab;
 
 pub mod comments;
 pub mod constants;
+pub mod errors;
 mod handlers;
 pub mod labels;
 pub mod pulls;
 pub mod reviews;
 pub mod status;
 
-use crate::errors::{BotError, Result};
 use constants::{ENV_API_DEBUG_MODE, ENV_GITHUB_API_TOKEN};
+use errors::Result;
 
 pub async fn get_client() -> Result<Octocrab> {
     let client = Octocrab::builder()
-        .personal_token(std::env::var(ENV_GITHUB_API_TOKEN).map_err(|_e| {
-            BotError::ConfigurationError(format!("Missing {} env var", ENV_GITHUB_API_TOKEN))
-        })?)
+        .personal_token(std::env::var(ENV_GITHUB_API_TOKEN).unwrap())
         .build()?;
 
     Ok(client)
