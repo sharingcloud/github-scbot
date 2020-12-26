@@ -2,13 +2,15 @@
 
 use thiserror::Error;
 
+use super::import_export;
+
 #[derive(Debug, Error)]
 pub enum DatabaseError {
     #[error("Export error: {0}")]
-    ExportError(String),
+    ExportError(#[from] import_export::ExportError),
 
     #[error("Import error: {0}")]
-    ImportError(String),
+    ImportError(#[from] import_export::ImportError),
 
     #[error("Repository `{0}` not found")]
     UnknownRepositoryError(String),
