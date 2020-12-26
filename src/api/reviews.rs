@@ -1,8 +1,8 @@
 //! Reviews API module
 
 use crate::database::models::{PullRequestModel, RepositoryModel};
-use crate::errors::Result;
 
+use super::errors::Result;
 use super::get_client;
 
 pub async fn request_reviewers_for_pr(

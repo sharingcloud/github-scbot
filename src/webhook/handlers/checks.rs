@@ -1,12 +1,10 @@
 //! Webhook check handlers
 
-use std::convert::TryInto;
-
 use actix_web::HttpResponse;
 use tracing::info;
 
 use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
-use crate::errors::Result;
+use crate::webhook::errors::Result;
 use crate::webhook::logic::{
     database::{apply_pull_request_step, process_repository},
     status::post_status_comment,
@@ -21,13 +19,13 @@ pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<Http
     Ok(HttpResponse::Ok().body("Check run."))
 }
 
+#[allow(clippy::cast_possible_truncation)]
 pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<HttpResponse> {
     let repo_model = process_repository(conn, &event.repository)?;
 
     // Only look for first PR
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
-        let pr_model =
-            PullRequestModel::get_from_number(conn, repo_model.id, pr_number.try_into()?);
+        let pr_model = PullRequestModel::get_from_number(conn, repo_model.id, pr_number as i32);
         if let Some(mut pr_model) = pr_model {
             if let CheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {

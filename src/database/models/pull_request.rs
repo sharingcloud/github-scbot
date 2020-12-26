@@ -1,16 +1,51 @@
 //! Database pull request models
 
-use std::convert::TryInto;
-
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::repository::RepositoryModel;
 use super::DbConn;
-use crate::api::labels::StepLabel;
+use crate::database::errors::{DatabaseError, Result};
 use crate::database::schema::pull_request::{self, dsl};
 use crate::database::schema::repository;
-use crate::errors::{BotError, Result};
+
+#[derive(Debug, Copy, Clone)]
+pub enum StepLabel {
+    Wip,
+    AwaitingChecks,
+    AwaitingChecksChanges,
+    AwaitingReview,
+    AwaitingReviewChanges,
+    AwaitingQA,
+    AwaitingMerge,
+}
+
+impl StepLabel {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Wip => "step/wip",
+            Self::AwaitingChecks => "step/awaiting-checks",
+            Self::AwaitingChecksChanges => "step/awaiting-checks-changes",
+            Self::AwaitingReview => "step/awaiting-review",
+            Self::AwaitingReviewChanges => "step/awaiting-review-changes",
+            Self::AwaitingQA => "step/awaiting-qa",
+            Self::AwaitingMerge => "step/awaiting-merge",
+        }
+    }
+
+    pub fn from_str(value: &str) -> Result<Self> {
+        Ok(match value {
+            "step/wip" => Self::Wip,
+            "step/awaiting-checks" => Self::AwaitingChecks,
+            "step/awaiting-checks-changes" => Self::AwaitingChecksChanges,
+            "step/awaiting-review" => Self::AwaitingReview,
+            "step/awaiting-review-changes" => Self::AwaitingReviewChanges,
+            "step/awaiting-qa" => Self::AwaitingQA,
+            "step/awaiting-merge" => Self::AwaitingMerge,
+            e => return Err(DatabaseError::UnknownStepLabelError(e.to_string())),
+        })
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -28,7 +63,7 @@ impl CheckStatus {
             "waiting" => Self::Waiting,
             "skipped" => Self::Skipped,
             "fail" => Self::Fail,
-            e => return Err(BotError::BadCheckStatus(e.to_string())),
+            e => return Err(DatabaseError::UnknownCheckStatusError(e.to_string())),
         })
     }
 
@@ -58,7 +93,7 @@ impl QAStatus {
             "waiting" => Self::Waiting,
             "fail" => Self::Fail,
             "skipped" => Self::Skipped,
-            e => return Err(BotError::BadQAStatus(e.to_string())),
+            e => return Err(DatabaseError::UnknownQAStatusError(e.to_string())),
         })
     }
 
@@ -116,10 +151,23 @@ impl PullRequestModel {
         self.step.as_ref().and_then(|x| StepLabel::from_str(x).ok())
     }
 
+    pub fn update_from_instance(&mut self, conn: &DbConn, other: &Self) -> Result<()> {
+        self.name = other.name.clone();
+        self.automerge = other.automerge;
+        self.step = other.step.clone();
+        self.check_status = other.check_status.clone();
+        self.status_comment_id = other.status_comment_id;
+        self.qa_status = other.qa_status.clone();
+        self.wip = other.wip;
+        self.required_reviewers = other.required_reviewers.clone();
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
+    }
+
     pub fn update_step(&mut self, conn: &DbConn, step: Option<StepLabel>) -> Result<()> {
         self.step = step.map(|x| x.as_str().to_string());
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
@@ -146,48 +194,43 @@ impl PullRequestModel {
         check_status: Option<CheckStatus>,
     ) -> Result<()> {
         self.check_status = check_status.map(|x| x.as_str().to_string());
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
 
     pub fn update_wip(&mut self, conn: &DbConn, wip: bool) -> Result<()> {
         self.wip = wip;
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
 
     pub fn update_name(&mut self, conn: &DbConn, name: &str) -> Result<()> {
         self.name = name.to_string();
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub fn update_status_comment(&mut self, conn: &DbConn, status_comment_id: u64) -> Result<()> {
-        self.status_comment_id = status_comment_id.try_into()?;
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.status_comment_id = status_comment_id as i32;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
 
     pub fn update_automerge(&mut self, conn: &DbConn, automerge: bool) -> Result<()> {
         self.automerge = automerge;
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
 
     pub fn update_qa_status(&mut self, conn: &DbConn, status: Option<QAStatus>) -> Result<()> {
         self.qa_status = status.map(|x| x.as_str().to_string());
-        self.save_changes::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+        self.save_changes::<Self>(conn)?;
 
         Ok(())
     }
@@ -200,9 +243,7 @@ impl PullRequestModel {
     }
 
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        dsl::pull_request
-            .load::<Self>(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))
+        dsl::pull_request.load::<Self>(conn).map_err(Into::into)
     }
 
     pub fn get_from_number(conn: &DbConn, repo_id: i32, pr_number: i32) -> Option<Self> {
@@ -240,17 +281,20 @@ impl PullRequestModel {
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
             .get_results(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))
+            .map_err(Into::into)
     }
 
+    #[allow(clippy::cast_sign_loss)]
     pub fn create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
         diesel::insert_into(dsl::pull_request)
             .values(entry)
-            .execute(conn)
-            .map_err(|e| BotError::DBError(e.to_string()))?;
+            .execute(conn)?;
 
         Self::get_from_number(conn, entry.repository_id, entry.number).ok_or_else(|| {
-            BotError::DBError("Could not get created repository from DB".to_string())
+            DatabaseError::UnknownPullRequestError(
+                entry.number as u64,
+                entry.repository_id.to_string(),
+            )
         })
     }
 
@@ -260,11 +304,7 @@ impl PullRequestModel {
     }
 
     pub fn get_repository_model(conn: &DbConn, entry: &Self) -> Result<RepositoryModel> {
-        RepositoryModel::get_from_id(conn, entry.repository_id).ok_or_else(|| {
-            BotError::DBError(format!(
-                "Could not get repository from id {}",
-                entry.repository_id
-            ))
-        })
+        RepositoryModel::get_from_id(conn, entry.repository_id)
+            .ok_or_else(|| DatabaseError::UnknownRepositoryError(entry.repository_id.to_string()))
     }
 }

@@ -1,45 +1,9 @@
 //! Labels API module
 
+use super::errors::Result;
 use super::get_client;
-use crate::errors::{BotError, Result};
 
-#[derive(Debug, Copy, Clone)]
-pub enum StepLabel {
-    Wip,
-    AwaitingChecks,
-    AwaitingChecksChanges,
-    AwaitingReview,
-    AwaitingReviewChanges,
-    AwaitingQA,
-    AwaitingMerge,
-}
-
-impl StepLabel {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Wip => "step/wip",
-            Self::AwaitingChecks => "step/awaiting-checks",
-            Self::AwaitingChecksChanges => "step/awaiting-checks-changes",
-            Self::AwaitingReview => "step/awaiting-review",
-            Self::AwaitingReviewChanges => "step/awaiting-review-changes",
-            Self::AwaitingQA => "step/awaiting-qa",
-            Self::AwaitingMerge => "step/awaiting-merge",
-        }
-    }
-
-    pub fn from_str(value: &str) -> Result<Self> {
-        Ok(match value {
-            "step/wip" => Self::Wip,
-            "step/awaiting-checks" => Self::AwaitingChecks,
-            "step/awaiting-checks-changes" => Self::AwaitingChecksChanges,
-            "step/awaiting-review" => Self::AwaitingReview,
-            "step/awaiting-review-changes" => Self::AwaitingReviewChanges,
-            "step/awaiting-qa" => Self::AwaitingQA,
-            "step/awaiting-merge" => Self::AwaitingMerge,
-            e => return Err(BotError::UnknownLabelName(e.to_string())),
-        })
-    }
-}
+use crate::database::models::StepLabel;
 
 fn add_step_in_existing_labels(existing_labels: &[String], step: Option<StepLabel>) -> Vec<String> {
     let mut preserved_labels: Vec<String> = existing_labels

@@ -1,24 +1,30 @@
 //! Shell module
 
-use std::convert::TryInto;
+mod commands;
 
-use actix_web::rt;
+use std::path::PathBuf;
+
 use structopt::StructOpt;
 
-use crate::{
-    core::configure_startup,
-    database::models::{PullRequestCreation, RepositoryCreation},
-};
-
-use crate::api::pulls::get_pull_request;
-use crate::database::{establish_single_connection, models::PullRequestModel};
-use crate::errors::{BotError, Result};
-use crate::{database::models::RepositoryModel, server::run_bot_server};
+use crate::core::configure_startup;
+use crate::server::run_bot_server;
 
 #[derive(StructOpt, Debug)]
 enum Command {
     /// Start bot server
     Server,
+
+    /// Export data
+    Export {
+        /// Output file, stdout if not precised
+        output_file: Option<PathBuf>,
+    },
+
+    /// Import data
+    Import {
+        /// Input file
+        input_file: PathBuf,
+    },
 
     /// Configure pull request
     PullRequest {
@@ -102,100 +108,32 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
         Command::Server => {
             run_bot_server()?;
         }
+        Command::Export { output_file } => {
+            commands::common::export_json(output_file)?;
+        }
+        Command::Import { input_file } => {
+            commands::common::import_json(&input_file)?;
+        }
         Command::Repository { cmd } => match cmd {
             RepositoryCommand::SetTitleRegex { repo_path, value } => {
-                let conn = establish_single_connection()?;
-
-                if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repo_path)? {
-                    println!("Accessing repository {}", repo_path);
-                    println!("Setting value '{}' as PR title validation regex", value);
-                    repo.update_title_pr_validation_regex(&conn, &value)?;
-                } else {
-                    eprintln!("Unknown repository {}.", repo_path);
-                }
+                commands::repository::command_set_title_regex(&repo_path, &value)?;
             }
             RepositoryCommand::Show { repo_path } => {
-                let conn = establish_single_connection()?;
-
-                if let Some(repo) = RepositoryModel::get_from_path(&conn, &repo_path)? {
-                    println!("Accessing repository {}", repo_path);
-                    println!("{:#?}", repo);
-                } else {
-                    eprintln!("Unknown repository {}.", repo_path);
-                }
+                commands::repository::command_show(&repo_path)?;
             }
             RepositoryCommand::List => {
-                let conn = establish_single_connection()?;
-
-                let repos = RepositoryModel::list(&conn)?;
-                if repos.is_empty() {
-                    println!("No repository known.");
-                } else {
-                    for repo in repos {
-                        println!("- {}/{}", repo.owner, repo.name);
-                    }
-                }
+                commands::repository::command_list()?;
             }
         },
         Command::PullRequest { cmd } => match cmd {
             PullRequestCommand::Show { repo_path, number } => {
-                let conn = establish_single_connection()?;
-
-                if let Some((pr, _repo)) = PullRequestModel::get_from_path_and_number(
-                    &conn,
-                    &repo_path,
-                    number.try_into()?,
-                )? {
-                    println!(
-                        "Accessing pull request #{} on repository {}",
-                        number, repo_path
-                    );
-                    println!("{:#?}", pr);
-                } else {
-                    println!(
-                        "No PR found for number #{} and repository {}",
-                        number, repo_path
-                    );
-                }
+                commands::pull_request::command_show(&repo_path, number)?;
             }
             PullRequestCommand::List { repo_path } => {
-                let conn = establish_single_connection()?;
-
-                let prs = PullRequestModel::list_from_path(&conn, &repo_path)?;
-                if prs.is_empty() {
-                    println!("No PR found for repository {}", repo_path);
-                } else {
-                    for (pr, _repo) in prs {
-                        println!("- #{}: {}", pr.number, pr.name);
-                    }
-                }
+                commands::pull_request::command_list(&repo_path)?;
             }
             PullRequestCommand::Sync { repo_path, number } => {
-                async fn sync(repo_path: String, number: u64) -> Result<()> {
-                    let (owner, name) = RepositoryModel::extract_name_from_path(&repo_path)?;
-                    let target_pr = get_pull_request(owner, name, number)
-                        .await
-                        .map_err(|_e| BotError::UnknownPullRequest(repo_path.clone(), number))?;
-
-                    let conn = establish_single_connection()?;
-                    let repository =
-                        RepositoryModel::get_or_create(&conn, &RepositoryCreation { name, owner })?;
-
-                    PullRequestModel::get_or_create(
-                        &conn,
-                        &PullRequestCreation {
-                            repository_id: repository.id,
-                            name: &target_pr.title,
-                            number: number.try_into()?,
-                            ..PullRequestCreation::default()
-                        },
-                    )?;
-
-                    Ok(())
-                }
-
-                let mut sys = rt::System::new("sync");
-                sys.block_on(sync(repo_path, number))?;
+                commands::pull_request::command_sync(repo_path, number)?;
             }
         },
     }

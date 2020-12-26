@@ -24,14 +24,14 @@ pub fn run_bot_server() -> Result<()> {
 
     with_sentry_configuration(|| {
         let mut sys = rt::System::new("app");
-        sys.block_on(run_bot_server_internal(get_bind_address()?))
+        sys.block_on(run_bot_server_internal(get_bind_address()))
     })
 }
 
-fn get_bind_address() -> Result<String> {
-    let ip = std::env::var(constants::ENV_BIND_IP)?;
-    let port = std::env::var(constants::ENV_BIND_PORT)?;
-    Ok(format!("{}:{}", ip, port))
+fn get_bind_address() -> String {
+    let ip = std::env::var(constants::ENV_BIND_IP).unwrap();
+    let port = std::env::var(constants::ENV_BIND_PORT).unwrap();
+    format!("{}:{}", ip, port)
 }
 
 async fn run_bot_server_internal(ip_with_port: String) -> Result<()> {

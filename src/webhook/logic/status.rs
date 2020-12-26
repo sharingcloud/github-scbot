@@ -1,11 +1,9 @@
 //! Status
 
-use std::convert::TryInto;
-
 use regex::Regex;
 use tracing::info;
 
-use crate::errors::Result;
+use crate::webhook::errors::Result;
 use crate::{
     api::comments::{post_comment_for_repo, update_comment},
     database::models::QAStatus,
@@ -15,6 +13,7 @@ use crate::{
     database::models::{CheckStatus, DbConn, PullRequestModel, RepositoryModel},
 };
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn post_status_comment(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -78,13 +77,14 @@ pub async fn post_status_comment(
         update_comment(
             &repo_model.owner,
             &repo_model.name,
-            comment_id.try_into()?,
+            comment_id as u64,
             &status_comment,
         )
         .await
+        .map_err(Into::into)
     } else {
         let comment_id =
-            post_comment_for_repo(repo_model, pr_model.number.try_into()?, &status_comment).await?;
+            post_comment_for_repo(repo_model, pr_model.number as u64, &status_comment).await?;
         pr_model.update_status_comment(conn, comment_id)?;
         Ok(comment_id)
     }

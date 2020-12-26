@@ -1,7 +1,6 @@
 //! Pull requests API module
 
-use crate::errors::Result;
-
+use super::errors::Result;
 use super::get_client;
 
 pub async fn get_pull_request(

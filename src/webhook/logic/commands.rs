@@ -1,12 +1,10 @@
 //! Commands
 
-use std::convert::TryInto;
-
 use tracing::info;
 
 use crate::database::models::{CheckStatus, DbConn, PullRequestModel, RepositoryModel};
-use crate::errors::Result;
 use crate::webhook::constants::ENV_BOT_USERNAME;
+use crate::webhook::errors::Result;
 use crate::webhook::logic::status::{generate_pr_status, post_status_comment};
 use crate::{
     api::{
@@ -71,6 +69,7 @@ pub async fn parse_issue_comment(
     Ok(())
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn handle_auto_merge_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -81,7 +80,7 @@ pub async fn handle_auto_merge_command(
     pr_model.update_automerge(conn, status)?;
     let status_text = if status { "enabled" } else { "disabled" };
     let comment = format!("Automerge {} by @{}", status_text, comment_author);
-    post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+    post_comment_for_repo(repo_model, pr_model.number as u64, &comment).await?;
 
     Ok(true)
 }
@@ -102,6 +101,7 @@ pub fn handle_skip_qa_command(
     Ok(true)
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn handle_qa_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -119,11 +119,12 @@ pub async fn handle_qa_command(
     pr_model.update_step_auto(conn)?;
 
     let comment = format!("QA is {} by @{}", status_text, comment_author);
-    post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+    post_comment_for_repo(repo_model, pr_model.number as u64, &comment).await?;
 
     Ok(true)
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn handle_checks_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -140,11 +141,12 @@ pub async fn handle_checks_command(
     pr_model.update_check_status(conn, Some(status))?;
     pr_model.update_step_auto(conn)?;
     let comment = format!("Checks are {} by @{}", status_text, comment_author);
-    post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+    post_comment_for_repo(repo_model, pr_model.number as u64, &comment).await?;
 
     Ok(true)
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn handle_ping_command(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -152,7 +154,7 @@ pub async fn handle_ping_command(
 ) -> Result<bool> {
     post_comment_for_repo(
         repo_model,
-        pr_model.number.try_into()?,
+        pr_model.number as u64,
         &format!("@{} pong!", comment_author),
     )
     .await?;
@@ -202,6 +204,7 @@ pub async fn handle_sync_command(
     Ok(true)
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn handle_help_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -229,11 +232,12 @@ pub async fn handle_help_command(
         std::env::var(ENV_BOT_USERNAME).unwrap()
     );
 
-    post_comment_for_repo(repo_model, pr_model.number.try_into()?, &comment).await?;
+    post_comment_for_repo(repo_model, pr_model.number as u64, &comment).await?;
 
     Ok(false)
 }
 
+#[allow(clippy::cast_sign_loss)]
 pub async fn parse_comment(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -276,12 +280,9 @@ pub async fn parse_comment(
             post_status_comment(conn, repo_model, pr_model).await?;
 
             // Update status checks
-            let sha = get_pull_request_sha(
-                &repo_model.owner,
-                &repo_model.name,
-                pr_model.number.try_into()?,
-            )
-            .await?;
+            let sha =
+                get_pull_request_sha(&repo_model.owner, &repo_model.name, pr_model.number as u64)
+                    .await?;
 
             // Create or update status
             let (status_state, status_title, status_message) =

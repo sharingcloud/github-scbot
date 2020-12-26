@@ -1,8 +1,8 @@
 //! Comments API module
 
 use crate::database::models::RepositoryModel;
-use crate::errors::Result;
 
+use super::errors::Result;
 use super::get_client;
 
 pub async fn post_comment(
