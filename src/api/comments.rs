@@ -1,8 +1,7 @@
 //! Comments API module
 
-use eyre::Result;
-
 use crate::database::models::RepositoryModel;
+use crate::errors::Result;
 
 use super::get_client;
 
@@ -17,7 +16,6 @@ pub async fn post_comment(
         Ok(0)
     } else {
         let client = get_client().await?;
-
         let final_body = format!("{}\n\n_Beep boop, i'm a bot!_ :robot:", body);
 
         let comment = client
@@ -45,10 +43,11 @@ pub async fn update_comment(
 ) -> Result<u64> {
     if !cfg!(test) {
         let client = get_client().await?;
+        let final_body = format!("{}\n\n_Beep boop, i'm a bot!_ :robot:", body);
 
         client
             .issues(repo_owner, repo_name)
-            .update_comment(comment_id, body)
+            .update_comment(comment_id, final_body)
             .await?;
     }
 

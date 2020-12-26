@@ -7,71 +7,99 @@ mod pull_request;
 mod push;
 
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
-use color_eyre::eyre::{Result, WrapErr};
-use log::info;
+use tracing::info;
 
 use super::constants::GITHUB_EVENT_HEADER;
-use super::errors::WebhookError;
 use super::types::EventType;
 use super::utils::convert_payload_to_string;
 use crate::database::{DbConn, DbPool};
+use crate::errors::{BotError, Result};
 
 async fn parse_event(conn: &DbConn, event_type: &EventType, body: &str) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckRun => {
             checks::check_run_event(
                 conn,
-                serde_json::from_str(body).wrap_err("Malformed 'check_run' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!("Malformed 'check_run' event payload: {}", e))
+                })?,
             )
             .await
         }
         EventType::CheckSuite => {
             checks::check_suite_event(
                 conn,
-                serde_json::from_str(body).wrap_err("Malformed 'check_suite' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!(
+                        "Malformed 'check_suite' event payload: {}",
+                        e
+                    ))
+                })?,
             )
             .await
         }
         EventType::IssueComment => {
             issues::issue_comment_event(
                 conn,
-                serde_json::from_str(body).wrap_err("Malformed 'issue_comment' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!(
+                        "Malformed 'issue_comment' event payload: {}",
+                        e
+                    ))
+                })?,
             )
             .await
         }
         EventType::Ping => ping::ping_event(
             conn,
-            serde_json::from_str(body).wrap_err("Malformed 'ping' event payload")?,
+            serde_json::from_str(body).map_err(|e| {
+                BotError::EventParseError(format!("Malformed 'ping' event payload: {}", e))
+            })?,
         )
         .await
         .map_err(Into::into),
         EventType::PullRequest => {
             pull_request::pull_request_event(
                 conn,
-                serde_json::from_str(body).wrap_err("Malformed 'pull_request' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!(
+                        "Malformed 'pull_request' event payload: {}",
+                        e
+                    ))
+                })?,
             )
             .await
         }
         EventType::PullRequestReview => {
             pull_request::pull_request_review_event(
                 conn,
-                serde_json::from_str(body)
-                    .wrap_err("Malformed 'pull_request_review' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!(
+                        "Malformed 'pull_request_review' event payload: {}",
+                        e
+                    ))
+                })?,
             )
             .await
         }
         EventType::PullRequestReviewComment => {
             pull_request::pull_request_review_comment_event(
                 conn,
-                serde_json::from_str(body)
-                    .wrap_err("Malformed 'pull_request_review_comment' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!(
+                        "Malformed 'pull_request_review_comment' event payload: {}",
+                        e
+                    ))
+                })?,
             )
             .await
         }
         EventType::Push => {
             push::push_event(
                 conn,
-                serde_json::from_str(body).wrap_err("Malformed 'push' event payload")?,
+                serde_json::from_str(body).map_err(|e| {
+                    BotError::EventParseError(format!("Malformed 'push' event payload: {}", e))
+                })?,
             )
             .await
         }
@@ -96,10 +124,9 @@ pub async fn event_handler(
             let conn = pool.get().map_err(error::ErrorInternalServerError)?;
             info!("Incoming event: {:?}", event_type);
 
-            parse_event(&conn, &event_type, &body).await.map_err(|e| {
-                let error: WebhookError = e.into();
-                error.into()
-            })
+            parse_event(&conn, &event_type, &body)
+                .await
+                .map_err(Into::into)
         } else {
             Ok(HttpResponse::BadRequest()
                 .body(format!("Bad payload for event '{}'.", event_type.as_str())))

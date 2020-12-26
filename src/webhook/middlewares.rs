@@ -16,7 +16,7 @@ use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
 use futures::future::{ok, Ready};
 use futures::stream::StreamExt;
 use futures::Future;
-use log::warn;
+use tracing::warn;
 
 use super::constants::{
     ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET, GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH,

@@ -3,11 +3,11 @@
 use std::convert::TryInto;
 
 use actix_web::HttpResponse;
-use eyre::Result;
-use log::info;
+use tracing::{info, warn};
 
 use crate::database::models::{DbConn, PullRequestModel};
-use crate::webhook::logic::{parse_issue_comment, process_repository};
+use crate::errors::Result;
+use crate::webhook::logic::{commands::parse_issue_comment, database::process_repository};
 use crate::webhook::types::{IssueCommentAction, IssueCommentEvent};
 
 pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Result<HttpResponse> {
@@ -32,6 +32,11 @@ pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Res
                 &event.comment.body,
             )
             .await?;
+        } else {
+            warn!(
+                "Unknown PR #{} for repository {}",
+                event.issue.number, event.repository.full_name
+            );
         }
     }
 

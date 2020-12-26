@@ -3,11 +3,14 @@
 use std::convert::TryInto;
 
 use actix_web::HttpResponse;
-use eyre::Result;
-use log::info;
+use tracing::info;
 
 use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
-use crate::webhook::logic::{apply_pull_request_step, post_status_comment, process_repository};
+use crate::errors::Result;
+use crate::webhook::logic::{
+    database::{apply_pull_request_step, process_repository},
+    status::post_status_comment,
+};
 use crate::webhook::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
 
 pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
@@ -43,10 +46,8 @@ pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<
             }
 
             // Update status message
-            let comment_id = post_status_comment(&repo_model, &pr_model).await?;
+            post_status_comment(conn, &repo_model, &mut pr_model).await?;
             apply_pull_request_step(&repo_model, &pr_model).await?;
-
-            pr_model.update_status_comment(conn, comment_id)?;
         }
     }
 

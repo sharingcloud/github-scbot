@@ -3,12 +3,12 @@
 use std::convert::TryInto;
 
 use actix_web::{error, web, Error, HttpResponse};
-use eyre::Result;
 use serde::Deserialize;
 
 use crate::{
     database::models::{PullRequestModel, RepositoryModel},
-    webhook::logic::post_welcome_comment,
+    errors::Result,
+    webhook::logic::welcome::post_welcome_comment,
 };
 
 #[derive(Debug, Deserialize)]
@@ -24,6 +24,7 @@ pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<Http
         id: 1,
         name: data.repo_name.clone(),
         owner: data.repo_owner.clone(),
+        pr_title_validation_regex: "".to_string(),
     };
 
     let pr_model = PullRequestModel {
@@ -40,6 +41,7 @@ pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<Http
         status_comment_id: 0,
         qa_status: None,
         wip: false,
+        required_reviewers: "".to_string(),
     };
 
     post_welcome_comment(&repo_model, &pr_model, &data.pr_author)

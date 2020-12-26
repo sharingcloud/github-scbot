@@ -33,11 +33,8 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - name: Get just
-      run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to .
-    - name: Check lints
-      run: ./just lint fmt-check
-    - name: Run tests
-      run: ./just test
+    - uses: extractions/setup-just@v1
+    - name: Lint, test, build and run
+      run: just fmt-check lint-err test build
       env:
         TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test-bot-data

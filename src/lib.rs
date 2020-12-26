@@ -1,7 +1,7 @@
 //! SC Bot library
 
 #![deny(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![warn(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
     clippy::match_wildcard_for_single_variants,
@@ -15,10 +15,12 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 mod api;
+mod core;
 mod database;
+mod errors;
 mod server;
+mod shell;
 mod utils;
 mod webhook;
 
-pub use server::run_bot_server;
-pub use utils::configure_startup;
+pub use shell::initialize_command_line;
