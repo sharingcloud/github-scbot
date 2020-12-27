@@ -4,9 +4,9 @@ use actix_web::HttpResponse;
 use tracing::{info, warn};
 
 use crate::database::models::{DbConn, PullRequestModel};
+use crate::types::{IssueCommentAction, IssueCommentEvent};
 use crate::webhook::errors::Result;
 use crate::webhook::logic::{commands::parse_issue_comment, database::process_repository};
-use crate::webhook::types::{IssueCommentAction, IssueCommentEvent};
 
 #[allow(clippy::cast_possible_truncation)]
 pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Result<HttpResponse> {

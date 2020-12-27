@@ -2,7 +2,6 @@
 
 use super::errors::Result;
 use super::get_client;
-
 use crate::database::models::StepLabel;
 
 fn add_step_in_existing_labels(existing_labels: &[String], step: Option<StepLabel>) -> Vec<String> {

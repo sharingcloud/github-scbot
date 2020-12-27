@@ -1,7 +1,8 @@
 //! Webhook push types
 
-use super::common::{Commit, CommitUser, Repository};
 use serde::Deserialize;
+
+use super::common::{Commit, CommitUser, Repository};
 
 #[derive(Debug, Deserialize)]
 pub struct PushEvent {

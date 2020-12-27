@@ -4,12 +4,12 @@ use actix_web::HttpResponse;
 use tracing::info;
 
 use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
+use crate::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
 use crate::webhook::errors::Result;
 use crate::webhook::logic::{
     database::{apply_pull_request_step, process_repository},
     status::post_status_comment,
 };
-use crate::webhook::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
 
 pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;

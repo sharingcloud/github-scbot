@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use super::types::EventType;
+use crate::types::EventType;
 
 #[derive(Debug, Error)]
 pub enum WebhookError {

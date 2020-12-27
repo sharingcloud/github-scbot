@@ -7,7 +7,6 @@ pub mod errors;
 mod handlers;
 pub mod logic;
 mod middlewares;
-mod types;
 mod utils;
 
 #[cfg(test)]

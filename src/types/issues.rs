@@ -23,7 +23,6 @@ pub enum IssueState {
 #[derive(Debug, Deserialize)]
 pub struct Issue {
     pub id: u64,
-    pub node_id: String,
     pub number: u64,
     pub title: String,
     pub user: User,
@@ -48,7 +47,6 @@ pub struct IssueCommentChanges {
 #[derive(Debug, Deserialize)]
 pub struct IssueComment {
     pub id: u64,
-    pub node_id: String,
     pub user: User,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

@@ -25,6 +25,7 @@ pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<Http
         name: data.repo_name.clone(),
         owner: data.repo_owner.clone(),
         pr_title_validation_regex: "".to_string(),
+        ..Default::default()
     };
 
     let pr_model = PullRequestModel {
@@ -41,7 +42,7 @@ pub async fn welcome_comment(data: web::Json<WelcomeMessageData>) -> Result<Http
         status_comment_id: 0,
         qa_status: None,
         wip: false,
-        required_reviewers: "".to_string(),
+        ..Default::default()
     };
 
     post_welcome_comment(&repo_model, &pr_model, &data.pr_author)

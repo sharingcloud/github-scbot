@@ -3,8 +3,8 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::repository::RepositoryModel;
 use super::DbConn;
+use super::{repository::RepositoryModel, ReviewModel};
 use crate::database::errors::{DatabaseError, Result};
 use crate::database::schema::pull_request::{self, dsl};
 use crate::database::schema::repository;
@@ -120,7 +120,25 @@ pub struct PullRequestModel {
     pub status_comment_id: i32,
     pub qa_status: Option<String>,
     pub wip: bool,
-    pub required_reviewers: String,
+    pub needed_reviewers_count: i32,
+}
+
+impl Default for PullRequestModel {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            repository_id: 0,
+            number: 0,
+            name: String::new(),
+            automerge: false,
+            step: None,
+            check_status: None,
+            status_comment_id: 0,
+            qa_status: None,
+            wip: false,
+            needed_reviewers_count: 2,
+        }
+    }
 }
 
 #[derive(Default, Insertable)]
@@ -159,7 +177,6 @@ impl PullRequestModel {
         self.status_comment_id = other.status_comment_id;
         self.qa_status = other.qa_status.clone();
         self.wip = other.wip;
-        self.required_reviewers = other.required_reviewers.clone();
         self.save_changes::<Self>(conn)?;
 
         Ok(())
@@ -284,10 +301,10 @@ impl PullRequestModel {
             .map_err(Into::into)
     }
 
-    #[allow(clippy::cast_sign_loss)]
-    pub fn create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
+    #[allow(clippy::cast_sign_loss, clippy::needless_pass_by_value)]
+    pub fn create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
         diesel::insert_into(dsl::pull_request)
-            .values(entry)
+            .values(&entry)
             .execute(conn)?;
 
         Self::get_from_number(conn, entry.repository_id, entry.number).ok_or_else(|| {
@@ -298,7 +315,7 @@ impl PullRequestModel {
         })
     }
 
-    pub fn get_or_create(conn: &DbConn, entry: &PullRequestCreation) -> Result<Self> {
+    pub fn get_or_create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
         Self::get_from_number(conn, entry.repository_id, entry.number)
             .map_or_else(|| Self::create(conn, entry), Ok)
     }
@@ -306,5 +323,53 @@ impl PullRequestModel {
     pub fn get_repository_model(conn: &DbConn, entry: &Self) -> Result<RepositoryModel> {
         RepositoryModel::get_from_id(conn, entry.repository_id)
             .ok_or_else(|| DatabaseError::UnknownRepositoryError(entry.repository_id.to_string()))
+    }
+
+    pub fn get_reviews(&self, conn: &DbConn) -> Result<Vec<ReviewModel>> {
+        ReviewModel::list_for_pull_request_id(conn, self.id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PullRequestCreation, PullRequestModel};
+    use crate::{
+        database::{
+            establish_single_connection,
+            models::{RepositoryCreation, RepositoryModel},
+        },
+        utils::test_init,
+    };
+
+    #[test]
+    fn create_pull_request() {
+        test_init();
+
+        let conn = establish_single_connection().unwrap();
+        let repo = RepositoryModel::create(
+            &conn,
+            RepositoryCreation {
+                name: "TestRepo",
+                owner: "me",
+            },
+        )
+        .unwrap();
+
+        let pr = PullRequestModel::create(
+            &conn,
+            PullRequestCreation {
+                repository_id: repo.id,
+                number: 1234,
+                name: "Toto",
+                automerge: false,
+                check_status: None,
+                step: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(pr.id, 1);
+        assert_eq!(pr.repository_id, repo.id);
+        assert_eq!(pr.number, 1234);
     }
 }

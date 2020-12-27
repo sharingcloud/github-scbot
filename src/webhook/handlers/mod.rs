@@ -10,9 +10,9 @@ use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use tracing::info;
 
 use super::constants::GITHUB_EVENT_HEADER;
-use super::types::EventType;
 use super::utils::convert_payload_to_string;
 use crate::database::{DbConn, DbPool};
+use crate::types::EventType;
 use crate::webhook::errors::{Result, WebhookError};
 
 async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result<HttpResponse> {

@@ -1,7 +1,7 @@
 //! Webhook pull request types
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::common::{Branch, BranchShort, Label, Repository, User};
 
@@ -49,7 +49,7 @@ pub enum PullRequestReviewCommentAction {
     Deleted,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PullRequestReviewState {
     Approved,
@@ -59,10 +59,21 @@ pub enum PullRequestReviewState {
     Pending,
 }
 
+impl ToString for PullRequestReviewState {
+    fn to_string(&self) -> String {
+        serde_plain::to_string(&self).unwrap()
+    }
+}
+
+impl From<&str> for PullRequestReviewState {
+    fn from(input: &str) -> Self {
+        serde_plain::from_str(input).unwrap()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct PullRequestReview {
     pub id: u64,
-    pub node_id: String,
     pub user: User,
     pub body: String,
     pub commit_id: String,
@@ -73,7 +84,6 @@ pub struct PullRequestReview {
 #[derive(Debug, Deserialize)]
 pub struct PullRequest {
     pub id: u64,
-    pub node_id: String,
     pub number: u64,
     pub state: PullRequestState,
     pub locked: bool,
@@ -106,7 +116,6 @@ pub struct PullRequestShort {
 pub struct PullRequestReviewComment {
     pub pull_request_review_id: u64,
     pub id: u64,
-    pub node_id: String,
     pub diff_hunk: String,
     pub path: String,
     pub position: usize,

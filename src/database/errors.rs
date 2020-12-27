@@ -21,6 +21,12 @@ pub enum DatabaseError {
     #[error("Pull request `#{0}` not found for repository `{1}`")]
     UnknownPullRequestError(u64, String),
 
+    #[error("Unknown pull request review for PR id {0} and username {1}")]
+    UnknownReviewError(i32, String),
+
+    #[error("Unknown review state: {0}")]
+    UnknownReviewStateError(String),
+
     #[error("Unknown check status: {0}")]
     UnknownCheckStatusError(String),
 

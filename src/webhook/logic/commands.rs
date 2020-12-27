@@ -2,7 +2,9 @@
 
 use tracing::info;
 
-use crate::database::models::{CheckStatus, DbConn, PullRequestModel, RepositoryModel};
+use crate::database::models::{
+    CheckStatus, DbConn, PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel,
+};
 use crate::webhook::constants::ENV_BOT_USERNAME;
 use crate::webhook::errors::Result;
 use crate::webhook::logic::status::{generate_pr_status, post_status_comment};
@@ -20,8 +22,8 @@ pub enum CommentAction {
     QAStatus(bool),
     ChecksStatus(bool),
     AutoMergeStatus(bool),
-    AddReviewers(Vec<String>),
-    RemoveReviewers(Vec<String>),
+    AssignRequiredReviewers(Vec<String>),
+    UnassignRequiredReviewers(Vec<String>),
     Ping,
     Help,
     Synchronize,
@@ -45,8 +47,8 @@ impl CommentAction {
             "checks-" => Self::ChecksStatus(false),
             "automerge+" => Self::AutoMergeStatus(true),
             "automerge-" => Self::AutoMergeStatus(false),
-            "req+" => Self::AddReviewers(Self::parse_reviewers(args)),
-            "req-" => Self::RemoveReviewers(Self::parse_reviewers(args)),
+            "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)),
+            "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)),
             "help" => Self::Help,
             "ping" => Self::Ping,
             "sync" => Self::Synchronize,
@@ -162,7 +164,8 @@ pub async fn handle_ping_command(
     Ok(false)
 }
 
-pub async fn handle_assign_reviewers_command(
+pub async fn handle_assign_required_reviewers_command(
+    conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     reviewers: Vec<String>,
@@ -170,15 +173,35 @@ pub async fn handle_assign_reviewers_command(
     use crate::api::reviews::request_reviewers_for_pr;
 
     info!(
-        "Request reviewers for PR #{}: {:#?}",
+        "Request required reviewers for PR #{}: {:#?}",
         pr_model.number, reviewers
     );
-    request_reviewers_for_pr(repo_model, pr_model, &reviewers).await?;
+
+    // Communicate to GitHub
+    request_reviewers_for_pr(repo_model, pr_model, &reviewers)
+        .await
+        .and_then(|()| {
+            for reviewer in &reviewers {
+                let mut entry = ReviewModel::get_or_create(
+                    conn,
+                    ReviewCreation {
+                        pull_request_id: pr_model.id,
+                        username: reviewer,
+                        ..Default::default()
+                    },
+                )?;
+
+                entry.update_required(conn, true)?;
+            }
+
+            Ok(())
+        })?;
 
     Ok(false)
 }
 
-pub async fn handle_unassign_reviewers_command(
+pub async fn handle_unassign_required_reviewers_command(
+    conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     reviewers: Vec<String>,
@@ -186,10 +209,27 @@ pub async fn handle_unassign_reviewers_command(
     use crate::api::reviews::remove_reviewers_for_pr;
 
     info!(
-        "Remove reviewers for PR #{}: {:#?}",
+        "Remove required reviewers for PR #{}: {:#?}",
         pr_model.number, reviewers
     );
-    remove_reviewers_for_pr(repo_model, pr_model, &reviewers).await?;
+    remove_reviewers_for_pr(repo_model, pr_model, &reviewers)
+        .await
+        .and_then(|()| {
+            for reviewer in &reviewers {
+                let mut entry = ReviewModel::get_or_create(
+                    conn,
+                    ReviewCreation {
+                        pull_request_id: pr_model.id,
+                        username: reviewer,
+                        ..Default::default()
+                    },
+                )?;
+
+                entry.update_required(conn, false)?;
+            }
+
+            Ok(())
+        })?;
 
     Ok(false)
 }
@@ -223,8 +263,8 @@ pub async fn handle_help_command(
         - `checks-`: _Mark checks as failed_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
         - `automerge-`: _Disable auto-merge for this PR_\n\
-        - `req+`: _Assign reviewers (you can assign multiple reviewers)_\n\
-        - `req-`: _Unassign reviewers (you can unassign multiple reviewers)_\n\
+        - `req+`: _Assign required reviewers (you can assign multiple reviewers)_\n\
+        - `req-`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
         - `help`: _Show this comment_\n\
         - `ping`: _Ping me._\n\
         - `sync`: _Update status comment if needed (maintenance-type command)_\n",
@@ -264,11 +304,13 @@ pub async fn parse_comment(
             Some(CommentAction::Synchronize) => {
                 handle_sync_command(conn, repo_model, pr_model).await?
             }
-            Some(CommentAction::AddReviewers(reviewers)) => {
-                handle_assign_reviewers_command(repo_model, pr_model, reviewers).await?
+            Some(CommentAction::AssignRequiredReviewers(reviewers)) => {
+                handle_assign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
+                    .await?
             }
-            Some(CommentAction::RemoveReviewers(reviewers)) => {
-                handle_unassign_reviewers_command(repo_model, pr_model, reviewers).await?
+            Some(CommentAction::UnassignRequiredReviewers(reviewers)) => {
+                handle_unassign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
+                    .await?
             }
             Some(CommentAction::Help) => {
                 handle_help_command(repo_model, pr_model, comment_author).await?
@@ -286,13 +328,13 @@ pub async fn parse_comment(
 
             // Create or update status
             let (status_state, status_title, status_message) =
-                generate_pr_status(&repo_model, &pr_model)?;
+                generate_pr_status(conn, &repo_model, &pr_model)?;
             update_status_for_repo(
                 &repo_model,
                 &sha,
                 status_state,
                 status_title,
-                status_message,
+                &status_message,
             )
             .await?;
         }

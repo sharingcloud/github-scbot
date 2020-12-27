@@ -6,7 +6,8 @@
     clippy::module_name_repetitions,
     clippy::match_wildcard_for_single_variants,
     clippy::future_not_send,
-    clippy::pub_enum_variant_names
+    clippy::pub_enum_variant_names,
+    clippy::default_trait_access
 )]
 
 #[macro_use]
@@ -20,6 +21,7 @@ mod database;
 mod errors;
 mod server;
 mod shell;
+mod types;
 mod utils;
 mod webhook;
 

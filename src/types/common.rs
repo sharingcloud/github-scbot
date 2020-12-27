@@ -7,7 +7,6 @@ use serde::Deserialize;
 pub struct User {
     pub login: String,
     pub id: u64,
-    pub node_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,7 +49,6 @@ pub struct BranchShort {
 #[derive(Debug, Deserialize)]
 pub struct Repository {
     pub id: u64,
-    pub node_id: String,
     pub name: String,
     pub full_name: String,
     pub private: bool,
@@ -66,7 +64,6 @@ pub struct Repository {
 #[derive(Debug, Deserialize)]
 pub struct Label {
     pub id: u64,
-    pub node_id: String,
     pub name: String,
     pub color: String,
     pub description: String,
@@ -76,7 +73,6 @@ pub struct Label {
 pub struct Application {
     pub id: u64,
     pub slug: String,
-    pub node_id: String,
     pub owner: User,
     pub name: String,
     pub description: String,

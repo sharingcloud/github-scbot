@@ -11,8 +11,8 @@ use futures::StreamExt;
 
 use super::fixtures;
 use crate::database::establish_connection;
+use crate::types::EventType;
 use crate::webhook::handlers::event_handler;
-use crate::webhook::types::EventType;
 
 async fn read_body<B>(mut res: HttpResponse<B>) -> Bytes
 where
@@ -37,7 +37,7 @@ async fn test_ping_event() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -55,7 +55,7 @@ async fn test_check_suite_completed() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -73,7 +73,7 @@ async fn test_check_run_created() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -91,7 +91,7 @@ async fn test_check_run_completed() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -109,7 +109,7 @@ async fn test_issue_comment_created() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -127,7 +127,7 @@ async fn test_pull_request_opened() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
 
     assert_eq!(resp.status(), http::StatusCode::OK);
 
@@ -146,7 +146,7 @@ async fn test_pull_request_labeled() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -167,7 +167,7 @@ async fn test_pull_request_review_comment_created() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -185,7 +185,7 @@ async fn test_pull_request_review_submitted() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;
@@ -203,7 +203,7 @@ async fn test_push() {
 
     let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
         .await
-        .expect("Call should work");
+        .unwrap();
     assert_eq!(resp.status(), http::StatusCode::OK);
 
     let data = read_body(resp).await;

@@ -4,6 +4,7 @@ class Repository {
     name: String
     owner: String
     pr_title_validation_regex: String
+    default_needed_reviewers_count: Integer
 }
 class PullRequest {
     #id: Integer
@@ -16,8 +17,16 @@ class PullRequest {
     status_comment_id: Integer
     qa_status: String
     wip: Boolean
-    required_reviewers: String
+    needed_reviewers_count: Integer
+}
+class Review {
+    #id: Integer
+    *pull_request_id: Integer
+    username: String
+    state: String
+    required: Boolean
 }
 
 Repository *-- PullRequest : has
+PullRequest *-- Review : has
 @enduml

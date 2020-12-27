@@ -14,6 +14,19 @@ pub struct RepositoryModel {
     pub name: String,
     pub owner: String,
     pub pr_title_validation_regex: String,
+    pub default_needed_reviewers_count: i32,
+}
+
+impl Default for RepositoryModel {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            name: String::new(),
+            owner: String::new(),
+            pr_title_validation_regex: String::new(),
+            default_needed_reviewers_count: 2,
+        }
+    }
 }
 
 #[derive(Insertable)]
@@ -59,9 +72,10 @@ impl RepositoryModel {
         Ok(Self::get_from_name(conn, name, owner))
     }
 
-    pub fn create(conn: &DbConn, entry: &RepositoryCreation) -> Result<Self> {
+    #[allow(clippy::clippy::needless_pass_by_value)]
+    pub fn create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
         diesel::insert_into(dsl::repository)
-            .values(entry)
+            .values(&entry)
             .execute(conn)?;
 
         Self::get_from_name(conn, entry.name, entry.owner).ok_or_else(|| {
@@ -69,7 +83,7 @@ impl RepositoryModel {
         })
     }
 
-    pub fn get_or_create(conn: &DbConn, entry: &RepositoryCreation) -> Result<Self> {
+    pub fn get_or_create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
         Self::get_from_name(conn, entry.name, entry.owner)
             .map_or_else(|| Self::create(conn, entry), Ok)
     }
@@ -86,5 +100,57 @@ impl RepositoryModel {
         }
 
         Err(DatabaseError::BadRepositoryPathError(path.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RepositoryCreation, RepositoryModel};
+    use crate::{database::establish_single_connection, utils::test_init};
+
+    #[test]
+    fn create_repository() {
+        test_init();
+
+        let conn = establish_single_connection().unwrap();
+        let repo = RepositoryModel::create(
+            &conn,
+            RepositoryCreation {
+                name: "TestRepo",
+                owner: "me",
+            },
+        )
+        .unwrap();
+
+        assert_eq!(repo.id, 1);
+        assert_eq!(repo.name, "TestRepo");
+        assert_eq!(repo.owner, "me");
+    }
+
+    #[test]
+    fn list_repositories() {
+        test_init();
+
+        let conn = establish_single_connection().unwrap();
+        RepositoryModel::create(
+            &conn,
+            RepositoryCreation {
+                name: "TestRepo",
+                owner: "me",
+            },
+        )
+        .unwrap();
+
+        RepositoryModel::create(
+            &conn,
+            RepositoryCreation {
+                name: "AnotherRepo",
+                owner: "me",
+            },
+        )
+        .unwrap();
+
+        let repos = RepositoryModel::list(&conn).unwrap();
+        assert_eq!(repos.len(), 2);
     }
 }

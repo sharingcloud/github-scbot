@@ -1,16 +1,14 @@
 //! Database
 
-use crate::api::labels::set_step_label;
-use crate::database::models::{
-    DbConn, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
-};
+use crate::database::models::{DbConn, PullRequestCreation, PullRequestModel, RepositoryModel};
+use crate::types::{PullRequest, Repository};
 use crate::webhook::errors::Result;
-use crate::webhook::types::{PullRequest, Repository};
+use crate::{api::labels::set_step_label, database::models::RepositoryCreation};
 
 pub fn process_repository(conn: &DbConn, repo: &Repository) -> Result<RepositoryModel> {
     RepositoryModel::get_or_create(
         conn,
-        &RepositoryCreation {
+        RepositoryCreation {
             name: &repo.name,
             owner: &repo.owner.login,
         },
@@ -27,7 +25,7 @@ pub fn process_pull_request(
     let repo = process_repository(conn, repo)?;
     let pr = PullRequestModel::get_or_create(
         conn,
-        &PullRequestCreation {
+        PullRequestCreation {
             repository_id: repo.id,
             name: &pull.title,
             number: pull.number as i32,

@@ -12,9 +12,6 @@ pub mod import_export;
 pub mod models;
 pub mod schema;
 
-#[cfg(test)]
-mod tests;
-
 use constants::{ENV_DATABASE_URL, ENV_TEST_DATABASE_URL};
 use errors::Result;
 

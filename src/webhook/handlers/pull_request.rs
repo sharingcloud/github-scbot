@@ -3,17 +3,17 @@
 use actix_web::HttpResponse;
 use tracing::info;
 
-use crate::api::status::update_status_for_repo;
 use crate::database::models::{CheckStatus, DbConn};
+use crate::types::{
+    PullRequestAction, PullRequestEvent, PullRequestReviewCommentEvent, PullRequestReviewEvent,
+};
 use crate::webhook::errors::Result;
 use crate::webhook::logic::{
     database::{apply_pull_request_step, process_pull_request},
     status::{generate_pr_status, post_status_comment},
     welcome::post_welcome_comment,
 };
-use crate::webhook::types::{
-    PullRequestAction, PullRequestEvent, PullRequestReviewCommentEvent, PullRequestReviewEvent,
-};
+use crate::{api::status::update_status_for_repo, webhook::logic::reviews::handle_review};
 
 pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Result<HttpResponse> {
     let (repo_model, mut pr_model) =
@@ -59,13 +59,13 @@ pub async fn pull_request_event(conn: &DbConn, event: PullRequestEvent) -> Resul
 
         // Create or update status
         let (status_state, status_title, status_message) =
-            generate_pr_status(&repo_model, &pr_model)?;
+            generate_pr_status(conn, &repo_model, &pr_model)?;
         update_status_for_repo(
             &repo_model,
             &event.pull_request.head.sha,
             status_state,
             status_title,
-            status_message,
+            &status_message,
         )
         .await?;
     }
@@ -85,7 +85,8 @@ pub async fn pull_request_review_event(
     conn: &DbConn,
     event: PullRequestReviewEvent,
 ) -> Result<HttpResponse> {
-    process_pull_request(conn, &event.repository, &event.pull_request)?;
+    let (_repo, pr) = process_pull_request(conn, &event.repository, &event.pull_request)?;
+    handle_review(conn, &pr, &event.review).await?;
 
     info!(
         "Pull request review event from repository '{}', PR number #{}, action '{:?}' (review from '{}')",

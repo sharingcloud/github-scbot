@@ -55,7 +55,6 @@ pub struct CheckRunOutput {
 #[derive(Debug, Deserialize)]
 pub struct CheckSuite {
     pub id: u64,
-    pub node_id: String,
     pub head_branch: String,
     pub head_sha: String,
     pub status: CheckStatus,
@@ -69,7 +68,6 @@ pub struct CheckSuite {
 #[derive(Debug, Deserialize)]
 pub struct CheckRun {
     pub id: u64,
-    pub node_id: String,
     pub head_sha: String,
     pub external_id: String,
     pub status: CheckStatus,

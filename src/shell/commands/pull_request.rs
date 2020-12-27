@@ -2,15 +2,15 @@
 
 use actix_web::rt;
 
-use crate::errors::Result;
 use crate::{
     api::pulls::get_pull_request,
     database::{
         errors::DatabaseError,
         establish_single_connection,
-        models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
+        models::{PullRequestCreation, PullRequestModel, RepositoryModel},
     },
 };
+use crate::{database::models::RepositoryCreation, errors::Result};
 
 #[allow(clippy::cast_possible_truncation)]
 pub fn command_show(repo_path: &str, number: u64) -> Result<()> {
@@ -58,12 +58,11 @@ pub fn command_sync(repo_path: String, number: u64) -> Result<()> {
             .map_err(|_e| DatabaseError::UnknownPullRequestError(number, repo_path.clone()))?;
 
         let conn = establish_single_connection()?;
-        let repository =
-            RepositoryModel::get_or_create(&conn, &RepositoryCreation { name, owner })?;
+        let repository = RepositoryModel::get_or_create(&conn, RepositoryCreation { name, owner })?;
 
         PullRequestModel::get_or_create(
             &conn,
-            &PullRequestCreation {
+            PullRequestCreation {
                 repository_id: repository.id,
                 name: &target_pr.title,
                 number: number as i32,
