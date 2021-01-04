@@ -8,11 +8,15 @@ use structopt::StructOpt;
 
 use crate::core::configure_startup;
 use crate::server::run_bot_server;
+use crate::ui::run_tui;
 
 #[derive(StructOpt, Debug)]
 enum Command {
     /// Start bot server
     Server,
+
+    /// Start TUI
+    Ui,
 
     /// Export data
     Export {
@@ -107,6 +111,9 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
     match opt.cmd {
         Command::Server => {
             run_bot_server()?;
+        }
+        Command::Ui => {
+            run_tui()?;
         }
         Command::Export { output_file } => {
             commands::common::export_json(output_file)?;

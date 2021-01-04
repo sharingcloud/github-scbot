@@ -10,7 +10,9 @@ use crate::{
     },
     types::{PullRequestReview, PullRequestReviewState, User},
     utils::test_init,
-    webhook::logic::{commands::parse_comment, reviews::handle_review},
+    webhook::logic::{
+        commands::parse_comment, reviews::handle_review, status::generate_status_comment,
+    },
 };
 
 fn arrange(conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
@@ -95,4 +97,9 @@ async fn test_review_creation() {
     // Retrieve "him" review
     let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
     assert_eq!(review.required, false);
+
+    // Generate status comment
+    let comment = generate_status_comment(&conn, &repo, &mut pr).unwrap();
+    println!("{}", comment);
+    assert!(false);
 }

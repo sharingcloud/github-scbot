@@ -107,7 +107,7 @@ impl QAStatus {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
+#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, Clone, AsChangeset)]
 #[table_name = "pull_request"]
 pub struct PullRequestModel {
     pub id: i32,

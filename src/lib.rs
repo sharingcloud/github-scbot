@@ -22,6 +22,7 @@ mod errors;
 mod server;
 mod shell;
 mod types;
+mod ui;
 mod utils;
 mod webhook;
 

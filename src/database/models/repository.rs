@@ -7,7 +7,7 @@ use super::DbConn;
 use crate::database::errors::{DatabaseError, Result};
 use crate::database::schema::repository::{self, dsl};
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
+#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset, Hash, PartialEq, Clone, Eq)]
 #[table_name = "repository"]
 pub struct RepositoryModel {
     pub id: i32,
@@ -39,6 +39,10 @@ pub struct RepositoryCreation<'a> {
 impl RepositoryModel {
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         dsl::repository.load::<Self>(conn).map_err(Into::into)
+    }
+
+    pub fn full_name(&self) -> String {
+        format!("{}/{}", self.owner, self.name)
     }
 
     pub fn get_from_id(conn: &DbConn, id: i32) -> Option<Self> {

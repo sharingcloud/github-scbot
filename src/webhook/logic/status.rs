@@ -39,60 +39,8 @@ pub async fn post_status_comment(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<u64> {
-    let review_status = get_review_status(conn, pr_model)?;
     let comment_id = pr_model.status_comment_id;
-    let checks_message = match pr_model.check_status_enum() {
-        Some(CheckStatus::Pass) => "_passed!_ :heavy_check_mark:",
-        None | Some(CheckStatus::Waiting) => "_running..._ :clock2:",
-        Some(CheckStatus::Fail) => "_failed._ :x:",
-        Some(CheckStatus::Skipped) => "_skipped._ :heavy_check_mark:",
-    };
-
-    let qa_message = match pr_model.qa_status_enum() {
-        Some(QAStatus::Pass) => "_passed!_ :heavy_check_mark:",
-        None | Some(QAStatus::Waiting) => "_waiting..._ :clock2:",
-        Some(QAStatus::Fail) => "_failed._ :x:",
-        Some(QAStatus::Skipped) => "_skipped._ :heavy_check_mark:",
-    };
-
-    let automerge_message = if pr_model.automerge {
-        ":heavy_check_mark:"
-    } else {
-        ":x:"
-    };
-
-    let validation_regex = if repo_model.pr_title_validation_regex.is_empty() {
-        "None".to_owned()
-    } else {
-        format!("`{}`", repo_model.pr_title_validation_regex)
-    };
-
-    let status_comment = format!(
-        "_This is an auto-generated message summarizing this pull request._\n\
-        \n\
-        :pencil: &mdash; **Rules**\n\
-        \n\
-        > - :speech_balloon: **Title validation**: ???\n\
-        >   - _Rule:_ {}\n\
-        \n\
-        :speech_balloon: &mdash; **Status comment**\n\
-        \n\
-        > - :checkered_flag: **Checks**: {}\n\
-        > - :mag: **Code reviews**: {}\n\
-        > - :test_tube: **QA**: {}\n\
-        \n\
-        :gear: &mdash; **Configuration**\n\
-        \n\
-        > - :twisted_rightwards_arrows: **Automerge**: {}\n\
-        \n\
-        [_See checks output by clicking this link :triangular_flag_on_post:_]({})",
-        validation_regex,
-        checks_message,
-        review_status.get_review_message(),
-        qa_message,
-        automerge_message,
-        pr_model.get_checks_url(repo_model)
-    );
+    let status_comment = generate_status_comment(conn, repo_model, pr_model)?;
 
     if comment_id > 0 {
         update_comment(
@@ -135,6 +83,144 @@ fn get_review_status(conn: &DbConn, pr_model: &PullRequestModel) -> Result<Revie
     })
 }
 
+fn generate_status_comment_rule_section(
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> Result<String> {
+    let validation_regex = if repo_model.pr_title_validation_regex.is_empty() {
+        "None".to_owned()
+    } else {
+        format!("`{}`", repo_model.pr_title_validation_regex)
+    };
+
+    let title_validation_status = if check_pr_title(repo_model, pr_model)? {
+        "_valid!_ :heavy_check_mark:"
+    } else {
+        "_invalid!_ :x:"
+    };
+
+    Ok(format!(
+        ":pencil: &mdash; **Rules**\n\
+        \n\
+        > - :speech_balloon: **Title validation**: {status}\n\
+        >   - _Rule:_ {rule}",
+        status = title_validation_status,
+        rule = validation_regex
+    ))
+}
+
+fn generate_status_comment_checks_section(
+    review_status: &ReviewStatus,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> String {
+    let checks_message = match pr_model.check_status_enum() {
+        Some(CheckStatus::Pass) => "_passed!_ :heavy_check_mark:",
+        None | Some(CheckStatus::Waiting) => "_running..._ :clock2:",
+        Some(CheckStatus::Fail) => "_failed._ :x:",
+        Some(CheckStatus::Skipped) => "_skipped._ :heavy_check_mark:",
+    };
+
+    let qa_message = match pr_model.qa_status_enum() {
+        Some(QAStatus::Pass) => "_passed!_ :heavy_check_mark:",
+        None | Some(QAStatus::Waiting) => "_waiting..._ :clock2:",
+        Some(QAStatus::Fail) => "_failed._ :x:",
+        Some(QAStatus::Skipped) => "_skipped._ :heavy_check_mark:",
+    };
+
+    let code_review_section = if review_status.still_required_reviewers.is_empty() {
+        if review_status.approved_reviewers.len() >= review_status.needed_count {
+            format!(
+                "_passed! ({} given / {} required)_ :heavy_check_mark:",
+                review_status.approved_reviewers.len(),
+                review_status.needed_count
+            )
+        } else {
+            format!(
+                "_waiting..._ ({} given / {} required) :clock2:",
+                review_status.approved_reviewers.len(),
+                review_status.needed_count
+            )
+        }
+    } else {
+        format!(
+            "_waiting on mandatory reviews..._ ({:?}) :clock2:",
+            review_status.still_required_reviewers
+        )
+    };
+
+    format!(
+        ":speech_balloon: &mdash; **Status comment**\n\
+        \n\
+        > - :checkered_flag: **Checks**: {checks_message}\n\
+        > - :mag: **Code reviews**: {reviews_message}\n\
+        > - :test_tube: **QA**: {qa_message}",
+        checks_message = checks_message,
+        reviews_message = code_review_section,
+        qa_message = qa_message
+    )
+}
+
+fn generate_status_comment_config_section(pr_model: &PullRequestModel) -> String {
+    let automerge_message = if pr_model.automerge {
+        ":heavy_check_mark:"
+    } else {
+        ":x:"
+    };
+
+    format!(
+        ":gear: &mdash; **Configuration**\n\
+        \n\
+        > - :twisted_rightwards_arrows: **Automerge**: {automerge}",
+        automerge = automerge_message
+    )
+}
+
+fn generate_status_comment_footer(
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> String {
+    format!(
+        "[_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
+        checks_url = pr_model.get_checks_url(repo_model)
+    )
+}
+
+pub fn generate_status_comment(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+) -> Result<String> {
+    let review_status = get_review_status(conn, pr_model)?;
+
+    Ok(format!(
+        "_This is an auto-generated message summarizing this pull request._\n\
+        \n\
+        {rules_section}\n\
+        \n\
+        {checks_section}\n\
+        \n\
+        {config_section}\n\
+        \n\
+        {footer}",
+        rules_section = generate_status_comment_rule_section(repo_model, pr_model)?,
+        checks_section =
+            generate_status_comment_checks_section(&review_status, repo_model, pr_model),
+        config_section = generate_status_comment_config_section(pr_model),
+        footer = generate_status_comment_footer(repo_model, pr_model)
+    ))
+}
+
+pub fn check_pr_title(repo_model: &RepositoryModel, pr_model: &PullRequestModel) -> Result<bool> {
+    if repo_model.pr_title_validation_regex.is_empty() {
+        Ok(true)
+    } else {
+        Regex::new(&repo_model.pr_title_validation_regex)
+            .map(|rgx| rgx.is_match(&pr_model.name))
+            .map_err(Into::into)
+    }
+}
+
 pub fn generate_pr_status(
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -145,12 +231,9 @@ pub fn generate_pr_status(
     let mut status_message = "All good.".to_string();
 
     // Try to validate PR title
-    if !repo_model.pr_title_validation_regex.is_empty() {
-        let rgx = Regex::new(&repo_model.pr_title_validation_regex)?;
-        if !rgx.is_match(&pr_model.name) {
-            status_message = "PR title does not match regex.".to_string();
-            status_state = StatusState::Failure;
-        }
+    if !check_pr_title(repo_model, pr_model)? {
+        status_message = "PR title does not match regex.".to_string();
+        status_state = StatusState::Failure;
     }
 
     if status_state == StatusState::Success {
