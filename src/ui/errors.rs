@@ -11,7 +11,7 @@ pub enum UIError {
     RecvError(#[from] std::sync::mpsc::RecvError),
 
     #[error(transparent)]
-    DatabaseError(#[from] crate::database::errors::DatabaseError)
+    DatabaseError(#[from] crate::database::errors::DatabaseError),
 }
 
 pub type Result<T> = core::result::Result<T, UIError>;

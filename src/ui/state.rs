@@ -1,98 +1,45 @@
 //! UI state utils
 
-use std::collections::HashMap;
-
 use termion::event::Key;
 use tui::widgets::ListState;
 
-pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
+use crate::database::models::{PullRequestModel, RepositoryModel};
+
+pub enum SelectionMode {
+    Repository,
+    PullRequest,
 }
 
-impl<T> StatefulList<T> {
-    pub fn new() -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items: Vec::new(),
-        }
-    }
-
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
-    pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    pub fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    pub fn unselect(&mut self) {
-        self.state.select(None);
-    }
+pub struct AppState {
+    pub repositories_state: ListState,
+    pub pull_requests_state: ListState,
+    pub data: Vec<(RepositoryModel, Vec<PullRequestModel>)>,
+    pub selection_mode: SelectionMode,
 }
 
-pub enum MapListSelectionMode {
-    Key,
-    Value
-}
-
-pub struct StatefulMapList<K, V> {
-    pub key_state: ListState,
-    pub value_state: ListState,
-    pub keyvalues: Vec<(K, Vec<V>)>,
-    pub selection_mode: MapListSelectionMode
-}
-
-impl<'a, K, V> StatefulMapList<K, V> {
+impl AppState {
     pub fn new() -> Self {
         Self {
-            key_state: ListState::default(),
-            value_state: ListState::default(),
-            keyvalues: Vec::new(),
-            selection_mode: MapListSelectionMode::Key
+            repositories_state: ListState::default(),
+            pull_requests_state: ListState::default(),
+            data: Vec::new(),
+            selection_mode: SelectionMode::Repository,
         }
     }
 
-    pub fn with_items(keyvalues: Vec<(K, Vec<V>)>) -> Self {
+    pub fn with_items(data: Vec<(RepositoryModel, Vec<PullRequestModel>)>) -> Self {
         Self {
-            key_state: ListState::default(),
-            value_state: ListState::default(),
-            keyvalues,
-            selection_mode: MapListSelectionMode::Key
+            repositories_state: ListState::default(),
+            pull_requests_state: ListState::default(),
+            data,
+            selection_mode: SelectionMode::Repository,
         }
     }
 
-    pub fn next_key(&mut self) {
-        let i = match self.key_state.selected() {
+    pub fn next_repository(&mut self) {
+        let i = match self.repositories_state.selected() {
             Some(i) => {
-                if i >= self.keyvalues.len() - 1 {
+                if i >= self.data.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -100,29 +47,40 @@ impl<'a, K, V> StatefulMapList<K, V> {
             }
             None => 0,
         };
-        self.key_state.select(Some(i));
+        self.pull_requests_state.select(None);
+        self.repositories_state.select(Some(i));
     }
 
-    pub fn previous_key(&mut self) {
-        let i = match self.key_state.selected() {
+    pub fn previous_repository(&mut self) {
+        let i = match self.repositories_state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.keyvalues.len() - 1
+                    self.data.len() - 1
                 } else {
                     i - 1
                 }
             }
             None => 0,
         };
-        self.key_state.select(Some(i));
+        self.pull_requests_state.select(None);
+        self.repositories_state.select(Some(i));
     }
 
-    pub fn next_value(&mut self) {
-        match self.key_state.selected() {
-            Some(i) => {
-                let j = match self.value_state.selected() {
+    pub fn pull_requests_for_repository(&self) -> Vec<&PullRequestModel> {
+        self.repositories_state
+            .selected()
+            .map_or_else(Vec::new, |k| self.data[k].1.iter().collect())
+    }
+
+    pub fn next_pull_request(&mut self) {
+        if let Some(i) = self.repositories_state.selected() {
+            let values = &self.data[i].1;
+            if values.is_empty() {
+                self.pull_requests_state.select(None)
+            } else {
+                let j = match self.pull_requests_state.selected() {
                     Some(j) => {
-                        if j >= self.keyvalues[i].1.len() - 1 {
+                        if j >= self.data[i].1.len() - 1 {
                             0
                         } else {
                             j + 1
@@ -130,37 +88,75 @@ impl<'a, K, V> StatefulMapList<K, V> {
                     }
                     None => 0,
                 };
-                self.value_state.select(Some(j));
+                self.pull_requests_state.select(Some(j));
             }
-            None => ()
         }
     }
 
-    pub fn previous_value(&mut self) {
-        todo!()
+    pub fn previous_pull_request(&mut self) {
+        if let Some(i) = self.repositories_state.selected() {
+            let values = &self.data[i].1;
+            if values.is_empty() {
+                self.pull_requests_state.select(None)
+            } else {
+                let j = match self.pull_requests_state.selected() {
+                    Some(j) => {
+                        if j == 0 {
+                            self.data[i].1.len() - 1
+                        } else {
+                            j - 1
+                        }
+                    }
+                    None => 0,
+                };
+                self.pull_requests_state.select(Some(j));
+            }
+        }
     }
 
-    pub fn unselect_key(&mut self) {
-        self.key_state.select(None);
+    pub fn unselect_repository(&mut self) {
+        self.repositories_state.select(None);
+        self.pull_requests_state.select(None);
     }
 
     pub fn unselect_value(&mut self) {
-        self.value_state.select(None);
+        self.pull_requests_state.select(None);
     }
 
     pub fn on_ui_key(&mut self, key: Key) {
         match key {
-            Key::Char(c) =>
-                match c {
-                    '\n' => {
-                        self.selection_mode = match self.selection_mode {
-                            MapListSelectionMode::Key => MapListSelectionMode::Value,
-                            MapListSelectionMode::Value => MapListSelectionMode::Key
-                        }
-                    },
-                    _ => ()
+            Key::Char(c) => match c {
+                '\n' => {
+                    if matches!(self.selection_mode, SelectionMode::Repository)
+                        && !self.pull_requests_for_repository().is_empty()
+                    {
+                        self.selection_mode = SelectionMode::PullRequest;
+                        self.pull_requests_state.select(Some(0));
+                    }
                 }
-            _ => ()
+                _ => (),
+            },
+            Key::Esc => {
+                self.selection_mode = SelectionMode::Repository;
+                self.unselect_value();
+            }
+            Key::Up => match self.selection_mode {
+                SelectionMode::Repository => {
+                    self.previous_repository();
+                }
+                SelectionMode::PullRequest => {
+                    self.previous_pull_request();
+                }
+            },
+            Key::Down => match self.selection_mode {
+                SelectionMode::Repository => {
+                    self.next_repository();
+                }
+                SelectionMode::PullRequest => {
+                    self.next_pull_request();
+                }
+            },
+            _ => (),
         }
     }
 }

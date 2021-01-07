@@ -7,7 +7,18 @@ use super::DbConn;
 use crate::database::errors::{DatabaseError, Result};
 use crate::database::schema::repository::{self, dsl};
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset, Hash, PartialEq, Clone, Eq)]
+#[derive(
+    Debug,
+    Deserialize,
+    Serialize,
+    Queryable,
+    Insertable,
+    Identifiable,
+    AsChangeset,
+    PartialEq,
+    Clone,
+    Eq,
+)]
 #[table_name = "repository"]
 pub struct RepositoryModel {
     pub id: i32,
