@@ -1,32 +1,23 @@
-//! Status API module
+//! Status API module.
 
-use super::errors::Result;
-use super::get_client;
-use crate::database::models::RepositoryModel;
+use super::{errors::Result, get_client};
+use crate::types::status::StatusState;
 
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum StatusState {
-    Error,
-    Failure,
-    Pending,
-    Success,
-}
-
-impl StatusState {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Error => "error",
-            Self::Failure => "failure",
-            Self::Pending => "pending",
-            Self::Success => "success",
-        }
-    }
-}
-
-pub async fn update_status_for_repo(
-    repo: &RepositoryModel,
+/// Update status for repository.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `commit_sha` - Commit SHA
+/// * `status` - Status state
+/// * `title` - Status title
+/// * `body` - Status body
+pub async fn update_status_for_repository(
+    repository_owner: &str,
+    repository_name: &str,
     commit_sha: &str,
     status: StatusState,
     title: &str,
@@ -35,7 +26,7 @@ pub async fn update_status_for_repo(
     if !cfg!(test) {
         let client = get_client().await?;
         let body = serde_json::json!({
-            "state": status.as_str(),
+            "state": status.to_str(),
             "description": body.chars().take(MAX_STATUS_DESCRIPTION_LEN).collect::<String>(),
             "context": title
         });
@@ -44,7 +35,7 @@ pub async fn update_status_for_repo(
             ._post(
                 client.absolute_url(format!(
                     "/repos/{}/{}/statuses/{}",
-                    &repo.owner, &repo.name, commit_sha
+                    repository_owner, repository_name, commit_sha
                 ))?,
                 Some(&body),
             )

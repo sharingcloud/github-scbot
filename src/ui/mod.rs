@@ -1,4 +1,4 @@
-//! Ui
+//! UI module.
 
 mod app;
 mod errors;
@@ -11,11 +11,10 @@ use events::Events;
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
 
-use self::errors::Result;
-use self::{app::App, events::Event};
+use self::{app::App, errors::Result, events::Event};
 use crate::database::establish_single_connection;
 
-#[allow(clippy::too_many_lines)]
+/// Run TUI interface.
 pub fn run_tui() -> Result<()> {
     // Terminal initialization
     let stdout = io::stdout().into_raw_mode()?;

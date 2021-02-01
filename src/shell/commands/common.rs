@@ -1,8 +1,10 @@
-//! Common commands
+//! Common commands.
 
-use std::io::BufWriter;
-use std::path::PathBuf;
-use std::{fs::File, io::BufReader};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::{Path, PathBuf},
+};
 
 use crate::database::{
     errors::Result,
@@ -10,6 +12,11 @@ use crate::database::{
     import_export::{export_models_to_json, import_models_from_json, ExportError, ImportError},
 };
 
+/// Export database as JSON.
+///
+/// # Arguments
+///
+/// * `output_path` - Optional output path.
 pub fn export_json(output_path: Option<PathBuf>) -> Result<()> {
     let conn = establish_single_connection()?;
 
@@ -24,11 +31,16 @@ pub fn export_json(output_path: Option<PathBuf>) -> Result<()> {
     }
 }
 
-pub fn import_json(input_path: &PathBuf) -> Result<()> {
+/// Import database from JSON.
+///
+/// # Arguments
+///
+/// * `input_path` - Input path.
+pub fn import_json(input_path: &Path) -> Result<()> {
     let conn = establish_single_connection()?;
 
-    let file =
-        File::open(input_path.clone()).map_err(|e| ImportError::IOError(input_path.clone(), e))?;
+    let file = File::open(input_path.to_path_buf())
+        .map_err(|e| ImportError::IOError(input_path.to_path_buf(), e))?;
     let reader = BufReader::new(file);
     import_models_from_json(&conn, reader)?;
 

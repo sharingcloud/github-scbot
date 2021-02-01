@@ -1,4 +1,4 @@
-//! SC Bot entrypoint
+//! Entrypoint.
 
 use owo_colors::OwoColorize;
 

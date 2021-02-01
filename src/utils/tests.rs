@@ -1,4 +1,4 @@
-//! Test utils
+//! Test utils.
 
 const TEST_BOT_USERNAME: &str = "test-bot";
 

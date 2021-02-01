@@ -1,7 +1,10 @@
 //! Webhook logic tests
 
-use crate::webhook::logic::commands::{parse_command_string_from_comment_line, CommentAction};
-use crate::{utils::test_init, webhook::constants::ENV_BOT_USERNAME};
+use crate::{
+    logic::commands::{parse_command_string_from_comment_line, CommentAction},
+    utils::test_init,
+    webhook::constants::ENV_BOT_USERNAME,
+};
 
 #[actix_rt::test]
 async fn test_parse_command_string_from_comment_line() {
@@ -43,11 +46,11 @@ async fn test_comment_action_from_comment() {
     );
     assert_eq!(
         CommentAction::from_comment("automerge+", &Vec::new()),
-        Some(CommentAction::AutoMergeStatus(true))
+        Some(CommentAction::Automerge(true))
     );
     assert_eq!(
         CommentAction::from_comment("automerge-", &Vec::new()),
-        Some(CommentAction::AutoMergeStatus(false))
+        Some(CommentAction::Automerge(false))
     );
     assert_eq!(
         CommentAction::from_comment("this-is-a-command", &Vec::new()),

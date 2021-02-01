@@ -1,11 +1,11 @@
-//! Core module
+//! Core module.
 
 use crate::errors::{BotError, Result};
 
+/// Configure application startup.
 pub fn configure_startup() -> Result<()> {
     dotenv::dotenv().ok();
     std::env::set_var("RUST_LOG", "info");
-
     tracing_subscriber::fmt::init();
 
     validate_configuration()
@@ -13,7 +13,7 @@ pub fn configure_startup() -> Result<()> {
 
 fn check_env_var(name: &str) -> Option<String> {
     let entry: String = std::env::var(name).unwrap_or_default();
-    if entry == "" {
+    if entry.is_empty() {
         None
     } else {
         Some(entry)

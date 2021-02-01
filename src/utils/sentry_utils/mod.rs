@@ -1,11 +1,16 @@
-//! Sentry module
+//! Sentry module.
 
 use tracing::info;
 
-mod constants;
+pub mod constants;
 
 use crate::errors::Result;
 
+/// Configure Sentry integration by wrapping a function.
+///
+/// # Arguments
+///
+/// * `func` - Function to wrap.
 pub fn with_sentry_configuration<T>(func: T) -> Result<()>
 where
     T: FnOnce() -> Result<()>,

@@ -1,32 +1,44 @@
-//! Database review models
+//! Database review models.
 
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::DbConn;
-use crate::database::schema::review::{self, dsl};
-use crate::types::PullRequestReviewState;
 use crate::{
-    database::errors::{DatabaseError, Result},
-    types::PullRequestReview,
+    database::{
+        errors::{DatabaseError, Result},
+        schema::review::{self, dsl},
+        DbConn,
+    },
+    types::pull_requests::{GHPullRequestReview, GHPullRequestReviewState},
 };
 
-#[derive(Debug, Deserialize, Serialize, Queryable, Insertable, Identifiable, AsChangeset)]
+/// Review model.
+#[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, AsChangeset)]
 #[table_name = "review"]
 pub struct ReviewModel {
+    /// Database ID.
     pub id: i32,
+    /// Pull request database ID.
     pub pull_request_id: i32,
+    /// Username.
     pub username: String,
-    pub state: String,
+    /// Review state.
+    state: String,
+    /// Is the review required?
     pub required: bool,
 }
 
+/// Review creation.
 #[derive(Insertable)]
 #[table_name = "review"]
 pub struct ReviewCreation<'a> {
+    /// Pull request database ID.
     pub pull_request_id: i32,
+    /// Username.
     pub username: &'a str,
+    /// Review state.
     pub state: String,
+    /// Is the review required?
     pub required: bool,
 }
 
@@ -35,61 +47,19 @@ impl Default for ReviewCreation<'_> {
         Self {
             pull_request_id: 0,
             username: "",
-            state: PullRequestReviewState::Pending.to_string(),
+            state: GHPullRequestReviewState::Pending.to_string(),
             required: false,
         }
     }
 }
 
 impl ReviewModel {
-    pub fn state_enum(&self) -> PullRequestReviewState {
-        self.state.as_str().into()
-    }
-
-    pub fn update_from_instance(&mut self, conn: &DbConn, other: &Self) -> Result<()> {
-        self.username = other.username.clone();
-        self.state = other.state.clone();
-        self.required = other.required;
-        self.save_changes::<Self>(conn)?;
-
-        Ok(())
-    }
-
-    pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        review::table.load::<Self>(conn).map_err(Into::into)
-    }
-
-    pub fn list_for_pull_request_id(
-        conn: &DbConn,
-        pull_request_id: i32,
-    ) -> Result<Vec<ReviewModel>> {
-        review::table
-            .filter(review::pull_request_id.eq(pull_request_id))
-            .order_by(review::id)
-            .get_results(conn)
-            .map_err(Into::into)
-    }
-
-    pub fn get_from_pull_request_and_username(
-        conn: &DbConn,
-        pull_request_id: i32,
-        username: &str,
-    ) -> Option<Self> {
-        review::table
-            .filter(review::pull_request_id.eq(pull_request_id))
-            .filter(review::username.eq(username))
-            .first(conn)
-            .ok()
-    }
-
-    pub fn update_required(&mut self, conn: &DbConn, value: bool) -> Result<()> {
-        self.required = value;
-        self.save_changes::<Self>(conn)?;
-
-        Ok(())
-    }
-
-    #[allow(clippy::clippy::needless_pass_by_value)]
+    /// Create a review.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `entry` - Review creation entry
     pub fn create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
         diesel::insert_into(dsl::review)
             .values(&entry)
@@ -101,10 +71,17 @@ impl ReviewModel {
             })
     }
 
-    pub fn create_or_update_from_review(
+    /// Create or update from GitHub review.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `pull_request_id` - Pull request database ID
+    /// * `review` - GitHub review
+    pub fn create_or_update_from_github_review(
         conn: &DbConn,
         pull_request_id: i32,
-        review: &PullRequestReview,
+        review: &GHPullRequestReview,
     ) -> Result<Self> {
         let entry = ReviewCreation {
             pull_request_id,
@@ -120,8 +97,75 @@ impl ReviewModel {
         Ok(model)
     }
 
+    /// List reviews.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
+        review::table.load::<Self>(conn).map_err(Into::into)
+    }
+
+    /// List reviews for pull request database ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `pull_request_id` - Pull request database ID
+    pub fn list_for_pull_request_id(
+        conn: &DbConn,
+        pull_request_id: i32,
+    ) -> Result<Vec<ReviewModel>> {
+        review::table
+            .filter(review::pull_request_id.eq(pull_request_id))
+            .order_by(review::id)
+            .get_results(conn)
+            .map_err(Into::into)
+    }
+
+    /// Get review for pull request database ID and reviewer username.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `pull_request_id` - Pull request database ID
+    /// * `username` - Reviewer username
+    pub fn get_from_pull_request_and_username(
+        conn: &DbConn,
+        pull_request_id: i32,
+        username: &str,
+    ) -> Option<Self> {
+        review::table
+            .filter(review::pull_request_id.eq(pull_request_id))
+            .filter(review::username.eq(username))
+            .first(conn)
+            .ok()
+    }
+
+    /// Get or create review.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `entry` - Review creation entry
     pub fn get_or_create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
         Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
             .map_or_else(|| Self::create(conn, entry), Ok)
+    }
+
+    /// Get review state.
+    pub fn get_review_state(&self) -> GHPullRequestReviewState {
+        self.state.as_str().into()
+    }
+
+    /// Save model instance to database.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn save(&mut self, conn: &DbConn) -> Result<()> {
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
     }
 }

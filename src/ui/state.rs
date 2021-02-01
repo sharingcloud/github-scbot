@@ -1,4 +1,4 @@
-//! UI state utils
+//! UI state utils.
 
 use termion::event::Key;
 use tui::widgets::ListState;
@@ -114,28 +114,21 @@ impl AppState {
         }
     }
 
-    pub fn unselect_repository(&mut self) {
-        self.repositories_state.select(None);
-        self.pull_requests_state.select(None);
-    }
-
     pub fn unselect_value(&mut self) {
         self.pull_requests_state.select(None);
     }
 
     pub fn on_ui_key(&mut self, key: Key) {
         match key {
-            Key::Char(c) => match c {
-                '\n' => {
-                    if matches!(self.selection_mode, SelectionMode::Repository)
-                        && !self.pull_requests_for_repository().is_empty()
-                    {
-                        self.selection_mode = SelectionMode::PullRequest;
-                        self.pull_requests_state.select(Some(0));
-                    }
+            Key::Char(c) => {
+                if c == '\n'
+                    && matches!(self.selection_mode, SelectionMode::Repository)
+                    && !self.pull_requests_for_repository().is_empty()
+                {
+                    self.selection_mode = SelectionMode::PullRequest;
+                    self.pull_requests_state.select(Some(0));
                 }
-                _ => (),
-            },
+            }
             Key::Esc => {
                 self.selection_mode = SelectionMode::Repository;
                 self.unselect_value();

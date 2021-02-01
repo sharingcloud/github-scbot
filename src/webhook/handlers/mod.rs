@@ -1,19 +1,22 @@
-//! Webhook handlers
+//! Webhook handlers.
 
 mod checks;
 mod issues;
 mod ping;
-mod pull_request;
+mod pull_requests;
 mod push;
+
+use std::convert::TryFrom;
 
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use tracing::info;
 
-use super::constants::GITHUB_EVENT_HEADER;
-use super::utils::convert_payload_to_string;
-use crate::database::{DbConn, DbPool};
-use crate::types::EventType;
-use crate::webhook::errors::{Result, WebhookError};
+use super::{constants::GITHUB_EVENT_HEADER, utils::convert_payload_to_string};
+use crate::{
+    database::{DbConn, DbPool},
+    types::events::EventType,
+    webhook::errors::{Result, WebhookError},
+};
 
 async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result<HttpResponse> {
     match event_type {
@@ -48,7 +51,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         .await
         .map_err(Into::into),
         EventType::PullRequest => {
-            pull_request::pull_request_event(
+            pull_requests::pull_request_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| WebhookError::EventParseError(event_type, e))?,
@@ -56,7 +59,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             .await
         }
         EventType::PullRequestReview => {
-            pull_request::pull_request_review_event(
+            pull_requests::pull_request_review_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| WebhookError::EventParseError(event_type, e))?,
@@ -64,7 +67,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             .await
         }
         EventType::PullRequestReviewComment => {
-            pull_request::pull_request_review_comment_event(
+            pull_requests::pull_request_review_comment_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| WebhookError::EventParseError(event_type, e))?,
@@ -84,18 +87,20 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
     }
 }
 
-pub async fn event_handler(
+fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
+    req.headers()
+        .get(GITHUB_EVENT_HEADER)
+        .and_then(|x| x.to_str().ok())
+        .and_then(|x| EventType::try_from(x).ok())
+}
+
+pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
     pool: web::Data<DbPool>,
 ) -> core::result::Result<HttpResponse, Error> {
     // Route event depending on header
-    if let Ok(Some(event_type)) = req
-        .headers()
-        .get(GITHUB_EVENT_HEADER)
-        .map(|x| EventType::try_from_str(x.to_str()?))
-        .map_or(Ok(None), |r| r.map(Some))
-    {
+    if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
             let conn = pool.get().map_err(error::ErrorInternalServerError)?;
             info!("Incoming event: {:?}", event_type);
@@ -104,8 +109,8 @@ pub async fn event_handler(
                 .await
                 .map_err(Into::into)
         } else {
-            Ok(HttpResponse::BadRequest()
-                .body(format!("Bad payload for event '{}'.", event_type.as_str())))
+            let event_type: &str = event_type.into();
+            Ok(HttpResponse::BadRequest().body(format!("Bad payload for event '{}'.", event_type)))
         }
     } else {
         Ok(HttpResponse::BadRequest().body("Unhandled event."))

@@ -1,13 +1,18 @@
-//! Webhook ping types
+//! Ping types.
 
 use serde::Deserialize;
 
-use super::common::{Repository, User};
+use super::common::{GHRepository, GHUser};
 
+/// GitHub Ping event.
 #[derive(Debug, Deserialize)]
-pub struct PingEvent {
+pub struct GHPingEvent {
+    /// Zen text.
     pub zen: String,
+    /// Hook ID.
     pub hook_id: u64,
-    pub repository: Option<Repository>,
-    pub sender: Option<User>,
+    /// Repository.
+    pub repository: Option<GHRepository>,
+    /// Sender.
+    pub sender: Option<GHUser>,
 }

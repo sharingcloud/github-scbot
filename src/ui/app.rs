@@ -1,3 +1,5 @@
+//! Application module.
+
 use termion::event::Key;
 use tui::{
     backend::Backend,
@@ -8,14 +10,14 @@ use tui::{
     Frame,
 };
 
-use crate::database::{
-    models::{PullRequestModel, RepositoryModel},
-    DbConn,
-};
-
-use crate::ui::errors::Result;
-
 use super::state::AppState;
+use crate::{
+    database::{
+        models::{PullRequestModel, RepositoryModel},
+        DbConn,
+    },
+    ui::errors::Result,
+};
 
 pub struct App<'a> {
     pub title: &'a str,
@@ -62,7 +64,7 @@ impl<'a> App<'a> {
                 .data
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(i.0.full_name())];
+                    let lines = vec![Spans::from(i.0.get_path())];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -88,7 +90,7 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(format!("#{} - {}", i.number, i.name))];
+                    let lines = vec![Spans::from(format!("#{} - {}", i.get_number(), i.name))];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -152,6 +154,7 @@ impl<'a> App<'a> {
         }
     }
 
+    #[allow(clippy::unused_self)]
     pub fn on_tick(&mut self) {
         // TICK
     }

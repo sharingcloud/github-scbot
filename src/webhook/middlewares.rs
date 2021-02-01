@@ -1,39 +1,50 @@
-//! Webhook middlewares
+//! Webhook middlewares.
 
-#![allow(clippy::type_complexity)]
-
-use std::cell::RefCell;
-use std::env;
-use std::pin::Pin;
-use std::rc::Rc;
-use std::task::{Context, Poll};
+use std::{
+    cell::RefCell,
+    env,
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
+};
 
 use actix_service::{Service, Transform};
-use actix_web::error::{ErrorUnauthorized, ParseError};
-use actix_web::http::Method;
-use actix_web::web::BytesMut;
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
-use futures::future::{ok, Ready};
-use futures::stream::StreamExt;
-use futures::Future;
+use actix_web::{
+    dev::{ServiceRequest, ServiceResponse},
+    error::{ErrorUnauthorized, ParseError},
+    http::Method,
+    web::BytesMut,
+    Error, HttpMessage,
+};
+use futures::{
+    future::{ok, Ready},
+    stream::StreamExt,
+    Future,
+};
 use tracing::warn;
 
-use super::constants::{
-    ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET, GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH,
+use super::{
+    constants::{
+        ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET, GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH,
+    },
+    utils::is_valid_signature,
 };
-use super::utils::is_valid_signature;
 
-// There are two steps in middleware processing.
-// 1. Middleware initialization, middleware factory gets called with
-//    next service in chain as parameter.
-// 2. Middleware's call method gets called with normal request.
+/// Signature verification configuration.
 pub struct VerifySignature {
     enabled: bool,
     secret: Option<String>,
 }
 
 impl VerifySignature {
+    /// Create a new configuration.
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for VerifySignature {
+    fn default() -> Self {
         let mut enabled = env::var(ENV_DISABLE_SIGNATURE).ok().is_none();
         let secret = if enabled {
             env::var(ENV_GITHUB_SECRET).ok().or_else(|| {
@@ -76,6 +87,7 @@ where
     }
 }
 
+/// Signature verification middleware.
 pub struct VerifySignatureMiddleware<S> {
     enabled: bool,
     secret: Option<String>,
@@ -128,7 +140,7 @@ where
                 }
             }
 
-            Ok(svc.call(req).await?)
+            svc.call(req).await
         })
     }
 }

@@ -1,18 +1,17 @@
 //! Webhook handler tests
 
-use actix_web::test;
 use actix_web::{
     dev::MessageBody,
-    http,
+    http, test,
     web::{self, Bytes, BytesMut},
     HttpResponse,
 };
 use futures::StreamExt;
 
 use super::fixtures;
-use crate::database::establish_connection;
-use crate::types::EventType;
-use crate::webhook::handlers::event_handler;
+use crate::{
+    database::establish_connection, types::events::EventType, webhook::handlers::event_handler,
+};
 
 async fn read_body<B>(mut res: HttpResponse<B>) -> Bytes
 where
@@ -31,7 +30,7 @@ async fn test_ping_event() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::Ping.as_str())
+        .header("X-GitHub-Event", EventType::Ping.to_str())
         .set_payload(fixtures::PUSH_EVENT_DATA)
         .to_http_parts();
 
@@ -49,7 +48,7 @@ async fn test_check_suite_completed() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::CheckSuite.as_str())
+        .header("X-GitHub-Event", EventType::CheckSuite.to_str())
         .set_payload(fixtures::CHECK_SUITE_COMPLETED_DATA)
         .to_http_parts();
 
@@ -67,7 +66,7 @@ async fn test_check_run_created() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::CheckRun.as_str())
+        .header("X-GitHub-Event", EventType::CheckRun.to_str())
         .set_payload(fixtures::CHECK_RUN_CREATED_DATA)
         .to_http_parts();
 
@@ -85,7 +84,7 @@ async fn test_check_run_completed() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::CheckRun.as_str())
+        .header("X-GitHub-Event", EventType::CheckRun.to_str())
         .set_payload(fixtures::CHECK_RUN_COMPLETED_DATA)
         .to_http_parts();
 
@@ -103,7 +102,7 @@ async fn test_issue_comment_created() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::IssueComment.as_str())
+        .header("X-GitHub-Event", EventType::IssueComment.to_str())
         .set_payload(fixtures::ISSUE_COMMENT_CREATED_DATA)
         .to_http_parts();
 
@@ -121,7 +120,7 @@ async fn test_pull_request_opened() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::PullRequest.as_str())
+        .header("X-GitHub-Event", EventType::PullRequest.to_str())
         .set_payload(fixtures::PULL_REQUEST_OPENED_DATA)
         .to_http_parts();
 
@@ -140,7 +139,7 @@ async fn test_pull_request_labeled() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::PullRequest.as_str())
+        .header("X-GitHub-Event", EventType::PullRequest.to_str())
         .set_payload(fixtures::PULL_REQUEST_LABELED_DATA)
         .to_http_parts();
 
@@ -160,7 +159,7 @@ async fn test_pull_request_review_comment_created() {
         .header("Content-Type", "application/json")
         .header(
             "X-GitHub-Event",
-            EventType::PullRequestReviewComment.as_str(),
+            EventType::PullRequestReviewComment.to_str(),
         )
         .set_payload(fixtures::PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA)
         .to_http_parts();
@@ -179,7 +178,7 @@ async fn test_pull_request_review_submitted() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::PullRequestReview.as_str())
+        .header("X-GitHub-Event", EventType::PullRequestReview.to_str())
         .set_payload(fixtures::PULL_REQUEST_REVIEW_SUBMITTED_DATA)
         .to_http_parts();
 
@@ -197,7 +196,7 @@ async fn test_push() {
     let pool = establish_connection().unwrap();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::Push.as_str())
+        .header("X-GitHub-Event", EventType::Push.to_str())
         .set_payload(fixtures::PUSH_DATA)
         .to_http_parts();
 

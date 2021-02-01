@@ -1,15 +1,19 @@
-//! Webhook issue handlers
+//! Issues webhook handlers.
 
 use actix_web::HttpResponse;
 use tracing::{info, warn};
 
-use crate::database::models::{DbConn, PullRequestModel};
-use crate::types::{IssueCommentAction, IssueCommentEvent};
-use crate::webhook::errors::Result;
-use crate::webhook::logic::{commands::parse_issue_comment, database::process_repository};
+use crate::{
+    database::{models::PullRequestModel, DbConn},
+    logic::{commands::parse_comment, database::process_repository},
+    types::issues::{GHIssueCommentAction, GHIssueCommentEvent},
+    webhook::errors::Result,
+};
 
-#[allow(clippy::cast_possible_truncation)]
-pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Result<HttpResponse> {
+pub(crate) async fn issue_comment_event(
+    conn: &DbConn,
+    event: GHIssueCommentEvent,
+) -> Result<HttpResponse> {
     let repo_model = process_repository(conn, &event.repository)?;
 
     info!(
@@ -18,12 +22,14 @@ pub async fn issue_comment_event(conn: &DbConn, event: IssueCommentEvent) -> Res
     );
 
     // Only handle comments creation
-    if let IssueCommentAction::Created = event.action {
+    if let GHIssueCommentAction::Created = event.action {
         // Try fetching pull request
-        if let Some(mut pr_model) =
-            PullRequestModel::get_from_number(conn, repo_model.id, event.issue.number as i32)
-        {
-            parse_issue_comment(
+        if let Some(mut pr_model) = PullRequestModel::get_from_repository_id_and_number(
+            conn,
+            repo_model.id,
+            event.issue.number as i32,
+        ) {
+            parse_comment(
                 conn,
                 &repo_model,
                 &mut pr_model,

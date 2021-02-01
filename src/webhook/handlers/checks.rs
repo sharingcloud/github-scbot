@@ -1,17 +1,22 @@
-//! Webhook check handlers
+//! Checks webhook handlers.
 
 use actix_web::HttpResponse;
 use tracing::info;
 
-use crate::database::models::{CheckStatus, DbConn, PullRequestModel};
-use crate::types::{CheckConclusion, CheckRunEvent, CheckSuiteAction, CheckSuiteEvent};
-use crate::webhook::errors::Result;
-use crate::webhook::logic::{
-    database::{apply_pull_request_step, process_repository},
-    status::post_status_comment,
+use crate::{
+    database::{models::PullRequestModel, DbConn},
+    logic::{
+        database::{apply_pull_request_step, process_repository},
+        status::post_status_comment,
+    },
+    types::{
+        checks::{GHCheckConclusion, GHCheckRunEvent, GHCheckSuiteAction, GHCheckSuiteEvent},
+        status::CheckStatus,
+    },
+    webhook::errors::Result,
 };
 
-pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<HttpResponse> {
+pub(crate) async fn check_run_event(conn: &DbConn, event: GHCheckRunEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;
 
     info!("Check run event from repository '{}', name '{}', action '{:?}', status '{:?}', conclusion '{:?}'", event.repository.full_name, event.check_run.name, event.action, event.check_run.status, event.check_run.conclusion);
@@ -19,25 +24,33 @@ pub async fn check_run_event(conn: &DbConn, event: CheckRunEvent) -> Result<Http
     Ok(HttpResponse::Ok().body("Check run."))
 }
 
-#[allow(clippy::cast_possible_truncation)]
-pub async fn check_suite_event(conn: &DbConn, event: CheckSuiteEvent) -> Result<HttpResponse> {
+pub(crate) async fn check_suite_event(
+    conn: &DbConn,
+    event: GHCheckSuiteEvent,
+) -> Result<HttpResponse> {
     let repo_model = process_repository(conn, &event.repository)?;
 
     // Only look for first PR
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
-        let pr_model = PullRequestModel::get_from_number(conn, repo_model.id, pr_number as i32);
+        let pr_model = PullRequestModel::get_from_repository_id_and_number(
+            conn,
+            repo_model.id,
+            pr_number as i32,
+        );
         if let Some(mut pr_model) = pr_model {
-            if let CheckSuiteAction::Completed = event.action {
+            if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
-                    Some(CheckConclusion::Success) => {
+                    Some(GHCheckConclusion::Success) => {
                         // Update check status
-                        pr_model.update_check_status(conn, Some(CheckStatus::Pass))?;
-                        pr_model.update_step_auto(conn)?;
+                        pr_model.set_checks_status(CheckStatus::Pass);
+                        pr_model.set_step_auto();
+                        pr_model.save(conn)?;
                     }
-                    Some(CheckConclusion::Failure) => {
+                    Some(GHCheckConclusion::Failure) => {
                         // Update check status
-                        pr_model.update_check_status(conn, Some(CheckStatus::Fail))?;
-                        pr_model.update_step_auto(conn)?;
+                        pr_model.set_checks_status(CheckStatus::Fail);
+                        pr_model.set_step_auto();
+                        pr_model.save(conn)?;
                     }
                     _ => (),
                 }

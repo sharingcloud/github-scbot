@@ -18,6 +18,7 @@ class PullRequest {
     qa_status: String
     wip: Boolean
     needed_reviewers_count: Integer
+    locked: Boolean
 }
 class Review {
     #id: Integer

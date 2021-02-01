@@ -1,14 +1,14 @@
-//! Webhook push handlers
+//! Push webhook handlers.
 
 use actix_web::HttpResponse;
 use tracing::info;
 
-use crate::database::models::DbConn;
-use crate::types::PushEvent;
-use crate::webhook::errors::Result;
-use crate::webhook::logic::database::process_repository;
+use crate::{
+    database::DbConn, logic::database::process_repository, types::push::GHPushEvent,
+    webhook::errors::Result,
+};
 
-pub async fn push_event(conn: &DbConn, event: PushEvent) -> Result<HttpResponse> {
+pub(crate) async fn push_event(conn: &DbConn, event: GHPushEvent) -> Result<HttpResponse> {
     process_repository(conn, &event.repository)?;
 
     info!(

@@ -1,12 +1,19 @@
-//! Reviews API module
+//! Reviews API module.
 
-use super::errors::Result;
-use super::get_client;
-use crate::database::models::{PullRequestModel, RepositoryModel};
+use super::{errors::Result, get_client};
 
-pub async fn request_reviewers_for_pr(
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
+/// Request reviewers for a pull request.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `pr_number` - Pull request number
+/// * `reviewers` - Reviewers names
+pub async fn request_reviewers_for_pull_request(
+    repository_owner: &str,
+    repository_name: &str,
+    pr_number: u64,
     reviewers: &[String],
 ) -> Result<()> {
     if !cfg!(test) {
@@ -17,7 +24,7 @@ pub async fn request_reviewers_for_pr(
             ._post(
                 client.absolute_url(format!(
                     "/repos/{}/{}/pulls/{}/requested_reviewers",
-                    &repo_model.owner, &repo_model.name, pr_model.number
+                    repository_owner, repository_name, pr_number
                 ))?,
                 Some(&body),
             )
@@ -27,9 +34,18 @@ pub async fn request_reviewers_for_pr(
     Ok(())
 }
 
-pub async fn remove_reviewers_for_pr(
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
+/// Remove requested reviewers for a pull request.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `pr_number` - Pull request number
+/// * `reviewers` - Reviewers names
+pub async fn remove_reviewers_for_pull_request(
+    repository_owner: &str,
+    repository_name: &str,
+    pr_number: u64,
     reviewers: &[String],
 ) -> Result<()> {
     if !cfg!(test) {
@@ -40,7 +56,7 @@ pub async fn remove_reviewers_for_pr(
             ._delete(
                 client.absolute_url(format!(
                     "/repos/{}/{}/pulls/{}/requested_reviewers",
-                    &repo_model.owner, &repo_model.name, pr_model.number
+                    repository_owner, repository_name, pr_number
                 ))?,
                 Some(&body),
             )

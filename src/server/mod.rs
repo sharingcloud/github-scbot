@@ -1,4 +1,4 @@
-//! Server module
+//! Server module.
 
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use sentry_actix::Sentry;
@@ -6,18 +6,14 @@ use tracing::{error, info};
 
 pub mod constants;
 
-use crate::api::configure_debug_api;
-use crate::database::establish_connection;
-use crate::errors::Result;
-use crate::utils::with_sentry_configuration;
-use crate::webhook::{configure_webhooks, VerifySignature};
+use crate::{
+    database::establish_connection,
+    errors::Result,
+    utils::sentry_utils::with_sentry_configuration,
+    webhook::{configure_webhooks, VerifySignature},
+};
 
 /// Run bot server.
-///
-/// # Errors
-///
-/// - `HttpServer` bind error
-///
 pub fn run_bot_server() -> Result<()> {
     // Intro message
     info!("Starting bot server v{} ...", env!("CARGO_PKG_VERSION"));
@@ -43,7 +39,6 @@ async fn run_bot_server_internal(ip_with_port: String) -> Result<()> {
                 .wrap(VerifySignature::new())
                 .wrap(Logger::default())
                 .service(web::scope("/webhook").configure(configure_webhooks))
-                .service(web::scope("/debug").configure(configure_debug_api))
                 .route("/", web::get().to(|| async { "Welcome on SC Bot!" }))
         })
         .bind(ip_with_port)?

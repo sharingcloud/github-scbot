@@ -1,4 +1,4 @@
-//! Pull request commands
+//! Pull request commands.
 
 use actix_web::rt;
 
@@ -7,66 +7,90 @@ use crate::{
     database::{
         errors::DatabaseError,
         establish_single_connection,
-        models::{PullRequestCreation, PullRequestModel, RepositoryModel},
+        models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
     },
+    errors::Result,
 };
-use crate::{database::models::RepositoryCreation, errors::Result};
 
-#[allow(clippy::cast_possible_truncation)]
-pub fn command_show(repo_path: &str, number: u64) -> Result<()> {
+/// Show pull request data stored in database for a repository.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path (<owner>/<name>)
+/// * `number` - Pull request number
+pub fn show_pull_request(repository_path: &str, number: u64) -> Result<()> {
     let conn = establish_single_connection()?;
 
-    if let Some((pr, _repo)) =
-        PullRequestModel::get_from_path_and_number(&conn, &repo_path, number as i32)?
-    {
+    if let Some((pr, _repo)) = PullRequestModel::get_from_repository_path_and_number(
+        &conn,
+        &repository_path,
+        number as i32,
+    )? {
         println!(
             "Accessing pull request #{} on repository {}",
-            number, repo_path
+            number, repository_path
         );
         println!("{:#?}", pr);
     } else {
         println!(
             "No PR found for number #{} and repository {}",
-            number, repo_path
+            number, repository_path
         );
     }
 
     Ok(())
 }
 
-pub fn command_list(repo_path: &str) -> Result<()> {
+/// List known pull requests from database for a repository.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path (<owner>/<name>)
+pub fn list_pull_requests(repository_path: &str) -> Result<()> {
     let conn = establish_single_connection()?;
 
-    let prs = PullRequestModel::list_from_path(&conn, &repo_path)?;
+    let prs = PullRequestModel::list_for_repository_path(&conn, &repository_path)?;
     if prs.is_empty() {
-        println!("No PR found for repository {}", repo_path);
+        println!("No PR found for repository {}", repository_path);
     } else {
         for (pr, _repo) in prs {
-            println!("- #{}: {}", pr.number, pr.name);
+            println!("- #{}: {}", pr.get_number(), pr.name);
         }
     }
 
     Ok(())
 }
 
-pub fn command_sync(repo_path: String, number: u64) -> Result<()> {
-    #[allow(clippy::cast_possible_truncation)]
-    async fn sync(repo_path: String, number: u64) -> Result<()> {
-        let (owner, name) = RepositoryModel::extract_name_from_path(&repo_path)?;
-        let target_pr = get_pull_request(owner, name, number)
-            .await
-            .map_err(|_e| DatabaseError::UnknownPullRequestError(number, repo_path.clone()))?;
+/// Synchronize a pull request from GitHub.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path (<owner>/<name>)
+/// * `number` - Pull request number
+pub fn sync_pull_request(repository_path: String, number: u64) -> Result<()> {
+    async fn sync(repository_path: String, number: u64) -> Result<()> {
+        let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
+        let target_pr = get_pull_request(owner, name, number).await.map_err(|_e| {
+            DatabaseError::UnknownPullRequestError(number, repository_path.clone())
+        })?;
 
         let conn = establish_single_connection()?;
-        let repository = RepositoryModel::get_or_create(&conn, RepositoryCreation { name, owner })?;
+        let repository = RepositoryModel::get_or_create(
+            &conn,
+            RepositoryCreation {
+                name: name.into(),
+                owner: owner.into(),
+                ..Default::default()
+            },
+        )?;
 
         PullRequestModel::get_or_create(
             &conn,
             PullRequestCreation {
                 repository_id: repository.id,
-                name: &target_pr.title,
+                name: target_pr.title,
                 number: number as i32,
-                ..PullRequestCreation::default()
+                ..Default::default()
             },
         )?;
 
@@ -74,5 +98,5 @@ pub fn command_sync(repo_path: String, number: u64) -> Result<()> {
     }
 
     let mut sys = rt::System::new("sync");
-    sys.block_on(sync(repo_path, number))
+    sys.block_on(sync(repository_path, number))
 }

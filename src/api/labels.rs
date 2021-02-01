@@ -1,27 +1,44 @@
-//! Labels API module
+//! Labels API module.
 
-use super::errors::Result;
-use super::get_client;
-use crate::database::models::StepLabel;
+use std::convert::TryFrom;
 
-fn add_step_in_existing_labels(existing_labels: &[String], step: Option<StepLabel>) -> Vec<String> {
+use super::{errors::Result, get_client};
+use crate::types::labels::StepLabel;
+
+/// Add pull request step label in existing labels by returning a new vector.
+///
+/// # Arguments
+///
+/// * `existing_labels` - Existing labels
+/// * `step` - Optional step label
+pub fn add_step_in_existing_labels(
+    existing_labels: &[String],
+    step: Option<StepLabel>,
+) -> Vec<String> {
     let mut preserved_labels: Vec<String> = existing_labels
         .iter()
         .cloned()
-        .filter(|x| StepLabel::from_str(x).is_err())
+        .filter(|x| StepLabel::try_from(&x[..]).is_err())
         .collect();
 
     if let Some(step) = step {
-        preserved_labels.push(step.as_str().to_string());
+        preserved_labels.push(step.to_str().to_string());
     }
 
     preserved_labels
 }
 
-async fn get_issue_labels(
-    repo_owner: &str,
-    repo_name: &str,
-    pr_number: u64,
+/// Get existing labels from an issue.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `issue_number` - Issue number
+pub async fn get_issue_labels(
+    repository_owner: &str,
+    repository_name: &str,
+    issue_number: u64,
 ) -> Result<Vec<String>> {
     if cfg!(test) {
         Ok(vec![])
@@ -29,8 +46,8 @@ async fn get_issue_labels(
         let client = get_client().await?;
 
         Ok(client
-            .issues(repo_owner, repo_name)
-            .list_labels_for_issue(pr_number)
+            .issues(repository_owner, repository_name)
+            .list_labels_for_issue(issue_number)
             .send()
             .await?
             .take_items()
@@ -40,21 +57,30 @@ async fn get_issue_labels(
     }
 }
 
+/// Apply or remove a step label on a pull request.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `pr_number` - Pull request number
+/// * `label` - Optional step label
 pub async fn set_step_label(
-    repo_owner: &str,
-    repo_name: &str,
+    repository_owner: &str,
+    repository_name: &str,
     pr_number: u64,
     label: Option<StepLabel>,
 ) -> Result<()> {
     if cfg!(test) {
         Ok(())
     } else {
-        let existing_labels = get_issue_labels(repo_owner, repo_name, pr_number).await?;
+        let existing_labels =
+            get_issue_labels(repository_owner, repository_name, pr_number).await?;
         let existing_labels = add_step_in_existing_labels(&existing_labels, label);
 
         let client = get_client().await?;
         client
-            .issues(repo_owner, repo_name)
+            .issues(repository_owner, repository_name)
             .replace_all_labels(pr_number, &existing_labels)
             .await?;
 

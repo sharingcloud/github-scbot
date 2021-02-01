@@ -1,4 +1,4 @@
-//! Database module
+//! Database module.
 
 use std::env;
 
@@ -10,22 +10,29 @@ pub mod constants;
 pub mod errors;
 pub mod import_export;
 pub mod models;
-pub mod schema;
+mod schema;
+
+#[cfg(test)]
+mod tests;
 
 use constants::{ENV_DATABASE_URL, ENV_TEST_DATABASE_URL};
-use errors::Result;
+pub use errors::{DatabaseError, Result};
+
+/// Database connection alias.
+pub type DbConn = PgConnection;
+/// Database pool alias.
+pub type DbPool = Pool<ConnectionManager<DbConn>>;
 
 embed_migrations!();
 
-pub type DbConn = PgConnection;
-pub type DbPool = Pool<ConnectionManager<DbConn>>;
-
+/// Establish a single database connection.
 pub fn establish_single_connection() -> Result<DbConn> {
-    ConnectionBuilder::configure()?.build()
+    ConnectionBuilder::configure().build()
 }
 
+/// Establish a connection to a database pool.
 pub fn establish_connection() -> Result<DbPool> {
-    ConnectionBuilder::configure()?.build_pool()
+    ConnectionBuilder::configure().build_pool()
 }
 
 struct ConnectionBuilder {
@@ -34,22 +41,22 @@ struct ConnectionBuilder {
 }
 
 impl ConnectionBuilder {
-    fn configure() -> Result<Self> {
+    fn configure() -> Self {
         if cfg!(test) {
             Self::configure_for_test()
         } else {
-            Ok(Self {
+            Self {
                 database_url: env::var(ENV_DATABASE_URL).unwrap(),
                 test_mode: false,
-            })
+            }
         }
     }
 
-    fn configure_for_test() -> Result<Self> {
-        Ok(Self {
+    fn configure_for_test() -> Self {
+        Self {
             database_url: env::var(ENV_TEST_DATABASE_URL).unwrap(),
             test_mode: true,
-        })
+        }
     }
 
     fn build(self) -> Result<DbConn> {

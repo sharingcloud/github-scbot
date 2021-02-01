@@ -1,14 +1,12 @@
-//! Shell module
+//! Shell module.
 
-mod commands;
+pub mod commands;
 
 use std::path::PathBuf;
 
 use structopt::StructOpt;
 
-use crate::core::configure_startup;
-use crate::server::run_bot_server;
-use crate::ui::run_tui;
+use crate::{core::configure_startup, server::run_bot_server, ui::run_tui};
 
 #[derive(StructOpt, Debug)]
 enum Command {
@@ -50,7 +48,7 @@ enum PullRequestCommand {
     /// Show pull request stored data
     Show {
         /// Repository path (e.g. 'MyOrganization/my-project')
-        repo_path: String,
+        repository_path: String,
         /// Pull request number
         number: u64,
     },
@@ -58,13 +56,13 @@ enum PullRequestCommand {
     /// Synchronize pull request from upstream
     Sync {
         /// Repository path (e.g. 'MyOrganization/my-project')
-        repo_path: String,
+        repository_path: String,
         // Pull request number
         number: u64,
     },
 
     /// List known pull requests for repository
-    List { repo_path: String },
+    List { repository_path: String },
 }
 
 #[derive(StructOpt, Debug)]
@@ -72,7 +70,7 @@ enum RepositoryCommand {
     /// Set title validation regex
     SetTitleRegex {
         /// Repository path (e.g. 'MyOrganization/my-project')
-        repo_path: String,
+        repository_path: String,
         /// Regex value
         value: String,
     },
@@ -80,7 +78,7 @@ enum RepositoryCommand {
     /// Show repository info
     Show {
         /// Repository path (e.g. 'MyOrganization/my-project')
-        repo_path: String,
+        repository_path: String,
     },
 
     /// List known repositories
@@ -97,12 +95,7 @@ struct Opt {
     cmd: Command,
 }
 
-/// Initialize command line
-///
-/// # Errors
-///
-/// - Startup error
-///
+/// Initialize command line.
 pub fn initialize_command_line() -> anyhow::Result<()> {
     // Prepare startup
     configure_startup()?;
@@ -122,25 +115,34 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             commands::common::import_json(&input_file)?;
         }
         Command::Repository { cmd } => match cmd {
-            RepositoryCommand::SetTitleRegex { repo_path, value } => {
-                commands::repository::command_set_title_regex(&repo_path, &value)?;
+            RepositoryCommand::SetTitleRegex {
+                repository_path,
+                value,
+            } => {
+                commands::repository::set_pull_request_title_regex(&repository_path, &value)?;
             }
-            RepositoryCommand::Show { repo_path } => {
-                commands::repository::command_show(&repo_path)?;
+            RepositoryCommand::Show { repository_path } => {
+                commands::repository::show_repository(&repository_path)?;
             }
             RepositoryCommand::List => {
-                commands::repository::command_list()?;
+                commands::repository::list_repositories()?;
             }
         },
         Command::PullRequest { cmd } => match cmd {
-            PullRequestCommand::Show { repo_path, number } => {
-                commands::pull_request::command_show(&repo_path, number)?;
+            PullRequestCommand::Show {
+                repository_path,
+                number,
+            } => {
+                commands::pull_request::show_pull_request(&repository_path, number)?;
             }
-            PullRequestCommand::List { repo_path } => {
-                commands::pull_request::command_list(&repo_path)?;
+            PullRequestCommand::List { repository_path } => {
+                commands::pull_request::list_pull_requests(&repository_path)?;
             }
-            PullRequestCommand::Sync { repo_path, number } => {
-                commands::pull_request::command_sync(repo_path, number)?;
+            PullRequestCommand::Sync {
+                repository_path,
+                number,
+            } => {
+                commands::pull_request::sync_pull_request(repository_path, number)?;
             }
         },
     }

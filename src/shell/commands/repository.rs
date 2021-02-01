@@ -1,38 +1,51 @@
-//! Repository commands
+//! Repository commands.
 
 use crate::{
     database::{establish_single_connection, models::RepositoryModel},
     errors::Result,
 };
 
-pub fn command_set_title_regex(repo_path: &str, value: &str) -> Result<()> {
+/// Set the pull request title validation regex for a repository.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path (<owner>/<name>)
+/// * `value` - Regex value
+pub fn set_pull_request_title_regex(repository_path: &str, value: &str) -> Result<()> {
     let conn = establish_single_connection()?;
 
-    if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repo_path)? {
-        println!("Accessing repository {}", repo_path);
+    if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
+        println!("Accessing repository {}", repository_path);
         println!("Setting value '{}' as PR title validation regex", value);
-        repo.update_title_pr_validation_regex(&conn, &value)?;
+        repo.pr_title_validation_regex = value.to_owned();
+        repo.save(&conn)?;
     } else {
-        eprintln!("Unknown repository {}.", repo_path);
+        eprintln!("Unknown repository {}.", repository_path);
     }
 
     Ok(())
 }
 
-pub fn command_show(repo_path: &str) -> Result<()> {
+/// Show repository data stored in database.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path (<owner>/<name>)
+pub fn show_repository(repository_path: &str) -> Result<()> {
     let conn = establish_single_connection()?;
 
-    if let Some(repo) = RepositoryModel::get_from_path(&conn, &repo_path)? {
-        println!("Accessing repository {}", repo_path);
+    if let Some(repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
+        println!("Accessing repository {}", repository_path);
         println!("{:#?}", repo);
     } else {
-        eprintln!("Unknown repository {}.", repo_path);
+        eprintln!("Unknown repository {}.", repository_path);
     }
 
     Ok(())
 }
 
-pub fn command_list() -> Result<()> {
+/// List known repositories from database.
+pub fn list_repositories() -> Result<()> {
     let conn = establish_single_connection()?;
 
     let repos = RepositoryModel::list(&conn)?;
