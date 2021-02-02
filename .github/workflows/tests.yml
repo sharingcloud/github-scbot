@@ -24,7 +24,7 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:
-        rust-version: stable
+        rust-version: nightly-2021-01-27
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
