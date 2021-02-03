@@ -49,18 +49,19 @@ pub async fn remove_reviewers_for_pull_request(
     reviewers: &[String],
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client()?;
         let body = serde_json::json!({ "reviewers": reviewers });
 
-        client
-            ._delete(
-                client.absolute_url(format!(
-                    "/repos/{}/{}/pulls/{}/requested_reviewers",
-                    repository_owner, repository_name, pr_number
-                ))?,
-                Some(&body),
-            )
-            .await?;
+        let client = get_client()?;
+        let url = client.absolute_url(format!(
+            "/repos/{}/{}/pulls/{}/requested_reviewers",
+            repository_owner, repository_name, pr_number
+        ))?;
+        let builder = client
+            .request_builder(&url.into_string(), http::Method::DELETE)
+            .json(&body)
+            .header(http::header::ACCEPT, octocrab::format_media_type("json"));
+
+        client.execute(builder).await?;
     }
 
     Ok(())

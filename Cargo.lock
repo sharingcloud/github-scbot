@@ -936,6 +936,7 @@ version = "0.1.0"
 dependencies = [
  "github-scbot-core",
  "github-scbot-types",
+ "http",
  "octocrab",
  "serde_json",
  "thiserror",
