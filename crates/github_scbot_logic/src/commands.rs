@@ -143,6 +143,14 @@ pub async fn parse_comment_line(
 ) -> Result<()> {
     if let Some((command_line, args)) = parse_command_string_from_comment_line(line) {
         let action = CommentAction::from_comment(command_line, &args);
+        info!(
+            "Interpreting action {:?} from author {} on repository {}, PR #{}",
+            action,
+            comment_author,
+            repo_model.get_path(),
+            pr_model.get_number()
+        );
+
         let status_updated = match action {
             Some(CommentAction::Automerge(s)) => {
                 handle_auto_merge_command(conn, repo_model, pr_model, comment_author, s).await?
