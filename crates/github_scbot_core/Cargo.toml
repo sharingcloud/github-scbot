@@ -1,0 +1,10 @@
+[package]
+name = "github-scbot-core"
+version = "0.1.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2018"
+
+[dependencies]
+dotenv = "0.15"
+thiserror = "1.0"
+tracing-subscriber = "0.2"

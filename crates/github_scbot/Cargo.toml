@@ -1,0 +1,17 @@
+[package]
+name = "github-scbot"
+version = "0.1.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2018"
+
+[dependencies]
+github-scbot-api = { path = "../github_scbot_api" }
+github-scbot-core = { path = "../github_scbot_core" }
+github-scbot-database = { path = "../github_scbot_database" }
+github-scbot-tui = { path = "../github_scbot_tui" }
+github-scbot-webhook = { path = "../github_scbot_webhook" }
+actix-rt = "1"
+anyhow = "1.0"
+owo-colors = "1.2"
+structopt = "0.3"
+thiserror = "1.0"

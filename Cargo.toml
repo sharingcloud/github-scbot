@@ -1,43 +1,7 @@
-[package]
-name = "github-scbot"
-version = "0.1.0"
-authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-actix-rt = "1"
-actix-service = "1"
-actix-web = "3"
-anyhow = "1.0"
-chrono = { version = "0.4.19", features = ["serde"] }
-derive_more = "0.99.11"
-diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
-diesel_migrations = "1.4"
-dotenv = "0.15"
-futures = "0.3"
-hex = "0.4"
-indexmap = "1.6.1"
-octocrab = "0.8"
-owo-colors = "1.2"
-r2d2 = "0.8"
-r2d2-diesel = "1"
-regex = "1.4"
-rust-crypto = "0.2"
-sentry = { version = "0.21.0", features = ["log"] }
-sentry-actix = "0.21.0"
-sentry-core = "0.21.0"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_plain = "0.3.0"
-structopt = "0.3"
-termion = "1.5.5"
-thiserror = "1.0"
-toml = "0.5"
-tracing = "0.1"
-tracing-subscriber = "0.2"
-tui = "0.13"
+[workspace]
+members = [
+    "crates/*"
+]
 
 [profile.dev.package.backtrace]
 opt-level = 3

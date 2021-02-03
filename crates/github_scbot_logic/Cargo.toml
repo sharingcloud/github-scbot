@@ -1,0 +1,20 @@
+[package]
+name = "github-scbot-logic"
+version = "0.1.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2018"
+
+[dependencies]
+github-scbot-api = { path = "../github_scbot_api" }
+github-scbot-core = { path = "../github_scbot_core" }
+github-scbot-database = { path = "../github_scbot_database" }
+github-scbot-types = { path = "../github_scbot_types" }
+github-scbot-utils = { path = "../github_scbot_utils" }
+actix-rt = "1"
+chrono = { version = "0.4.19", features = ["serde"] }
+regex = "1.4"
+thiserror = "1.0"
+tracing = "0.1"
+
+[dev-dependencies]
+dotenv = "0.15"

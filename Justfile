@@ -18,7 +18,7 @@ fmt-check:
 
 # Lint files
 lint:
-	touch src/lib.rs && cargo clippy --tests {{ if opt_lint_err == "true" { "-- -D warnings" } else { "" } }}
+	touch crates/github_scbot/lib.rs && cargo clippy --tests {{ if opt_lint_err == "true" { "-- -D warnings" } else { "" } }}
 
 # Lint files and error on warnings
 lint-err:
