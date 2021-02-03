@@ -14,9 +14,9 @@ pub enum BotError {
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
-    /// Wraps [`github_scbot_webhook::WebhookError`].
+    /// Wraps [`github_scbot_server::ServerError`].
     #[error(transparent)]
-    WebhookError(#[from] github_scbot_webhook::WebhookError),
+    ServerError(#[from] github_scbot_server::ServerError),
 }
 
 /// Result alias for `BotError`.

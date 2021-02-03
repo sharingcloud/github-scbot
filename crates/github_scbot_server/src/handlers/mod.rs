@@ -15,7 +15,7 @@ use tracing::info;
 
 use crate::{
     constants::GITHUB_EVENT_HEADER,
-    errors::{Result, WebhookError},
+    errors::{Result, ServerError},
     utils::convert_payload_to_string,
 };
 
@@ -25,7 +25,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             checks::check_run_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
@@ -33,7 +33,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             checks::check_suite_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
@@ -41,13 +41,13 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             issues::issue_comment_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
         EventType::Ping => ping::ping_event(
             conn,
-            serde_json::from_str(body).map_err(|e| WebhookError::EventParseError(event_type, e))?,
+            serde_json::from_str(body).map_err(|e| ServerError::EventParseError(event_type, e))?,
         )
         .await
         .map_err(Into::into),
@@ -55,7 +55,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             pull_requests::pull_request_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
@@ -63,7 +63,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             pull_requests::pull_request_review_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
@@ -71,7 +71,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             pull_requests::pull_request_review_comment_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }
@@ -79,7 +79,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             push::push_event(
                 conn,
                 serde_json::from_str(body)
-                    .map_err(|e| WebhookError::EventParseError(event_type, e))?,
+                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
             .await
         }

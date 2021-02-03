@@ -923,8 +923,8 @@ dependencies = [
  "github-scbot-api",
  "github-scbot-core",
  "github-scbot-database",
+ "github-scbot-server",
  "github-scbot-tui",
- "github-scbot-webhook",
  "owo-colors",
  "structopt",
  "thiserror",
@@ -961,7 +961,6 @@ dependencies = [
  "dotenv",
  "github-scbot-core",
  "github-scbot-types",
- "github-scbot-utils",
  "r2d2",
  "r2d2-diesel",
  "serde",
@@ -980,8 +979,30 @@ dependencies = [
  "github-scbot-core",
  "github-scbot-database",
  "github-scbot-types",
- "github-scbot-utils",
  "regex",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "github-scbot-server"
+version = "0.1.0"
+dependencies = [
+ "actix-rt",
+ "actix-service",
+ "actix-web",
+ "dotenv",
+ "futures",
+ "github-scbot-core",
+ "github-scbot-database",
+ "github-scbot-logic",
+ "github-scbot-types",
+ "hex",
+ "regex",
+ "rust-crypto",
+ "sentry",
+ "sentry-actix",
+ "serde_json",
  "thiserror",
  "tracing",
 ]
@@ -1004,38 +1025,6 @@ dependencies = [
  "serde",
  "serde_plain",
  "thiserror",
-]
-
-[[package]]
-name = "github-scbot-utils"
-version = "0.1.0"
-dependencies = [
- "sentry",
- "tracing",
-]
-
-[[package]]
-name = "github-scbot-webhook"
-version = "0.1.0"
-dependencies = [
- "actix-rt",
- "actix-service",
- "actix-web",
- "dotenv",
- "futures",
- "github-scbot-api",
- "github-scbot-core",
- "github-scbot-database",
- "github-scbot-logic",
- "github-scbot-types",
- "github-scbot-utils",
- "hex",
- "regex",
- "rust-crypto",
- "sentry-actix",
- "serde_json",
- "thiserror",
- "tracing",
 ]
 
 [[package]]

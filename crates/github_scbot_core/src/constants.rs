@@ -12,3 +12,5 @@ pub const ENV_BIND_PORT: &str = "BOT_BIND_PORT";
 pub const ENV_DATABASE_URL: &str = "DATABASE_URL";
 /// Disable welcome comments.
 pub const ENV_DISABLE_WELCOME_COMMENTS: &str = "BOT_DISABLE_WELCOME_COMMENTS";
+/// Disable API client.
+pub const ENV_API_DISABLE_CLIENT: &str = "BOT_API_DISABLE_CLIENT";

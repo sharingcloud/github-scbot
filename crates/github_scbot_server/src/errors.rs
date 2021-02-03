@@ -5,7 +5,7 @@ use thiserror::Error;
 
 /// Webhook error.
 #[derive(Debug, Error)]
-pub enum WebhookError {
+pub enum ServerError {
     /// Event parsing error.
     #[error("Error while parsing webhook event {0:?}: {1}")]
     EventParseError(EventType, serde_json::Error),
@@ -18,10 +18,6 @@ pub enum WebhookError {
     #[error(transparent)]
     RegexError(#[from] regex::Error),
 
-    /// Wraps [`github_scbot_api::APIError`].
-    #[error(transparent)]
-    APIError(#[from] github_scbot_api::APIError),
-
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
@@ -31,7 +27,7 @@ pub enum WebhookError {
     LogicError(#[from] github_scbot_logic::LogicError),
 }
 
-impl actix_web::ResponseError for WebhookError {}
+impl actix_web::ResponseError for ServerError {}
 
-/// Result alias for `WebhookError`.
-pub type Result<T> = core::result::Result<T, WebhookError>;
+/// Result alias for `ServerError`.
+pub type Result<T> = core::result::Result<T, ServerError>;

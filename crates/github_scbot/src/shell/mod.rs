@@ -5,8 +5,8 @@ pub mod commands;
 use std::path::PathBuf;
 
 use github_scbot_core::configure_startup;
+use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
-use github_scbot_webhook::server::run_bot_server;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]

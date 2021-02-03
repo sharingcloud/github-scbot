@@ -6,13 +6,14 @@ pub mod constants;
 pub mod errors;
 mod handlers;
 pub mod middlewares;
+pub mod sentry_utils;
 pub mod server;
 pub mod utils;
 
 #[cfg(test)]
 mod tests;
 
-pub use errors::{Result, WebhookError};
+pub use errors::{Result, ServerError};
 pub use middlewares::VerifySignature;
 
 /// Configure webhooks.

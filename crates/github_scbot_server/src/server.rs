@@ -2,11 +2,10 @@
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use github_scbot_core::constants::{ENV_BIND_IP, ENV_BIND_PORT};
 use github_scbot_database::establish_connection;
-use github_scbot_utils::sentry_utils::with_sentry_configuration;
 use sentry_actix::Sentry;
 use tracing::{error, info};
 
-use crate::{configure_webhooks, Result, VerifySignature};
+use crate::{configure_webhooks, sentry_utils::with_sentry_configuration, Result, VerifySignature};
 
 /// Run bot server.
 pub fn run_bot_server() -> Result<()> {

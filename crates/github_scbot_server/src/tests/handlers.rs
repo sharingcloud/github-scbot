@@ -7,7 +7,7 @@ use actix_web::{
     HttpResponse,
 };
 use futures::StreamExt;
-use github_scbot_api::constants::ENV_API_DISABLE_CLIENT;
+use github_scbot_core::constants::ENV_API_DISABLE_CLIENT;
 use github_scbot_database::establish_test_connection;
 use github_scbot_types::events::EventType;
 

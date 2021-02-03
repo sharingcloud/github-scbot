@@ -1,9 +1,0 @@
-[package]
-name = "github-scbot-utils"
-version = "0.1.0"
-authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
-edition = "2018"
-
-[dependencies]
-sentry = { version = "0.21.0", features = ["log"] }
-tracing = "0.1"

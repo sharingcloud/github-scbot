@@ -1,12 +1,9 @@
 //! Pull requests webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_api::status::update_status_for_repository;
 use github_scbot_database::DbConn;
 use github_scbot_logic::{
-    database::{apply_pull_request_step, process_pull_request},
-    reviews::handle_review,
-    status::{generate_pr_status_message, post_status_comment},
+    database::process_pull_request, reviews::handle_review, status::update_pull_request_status,
     welcome::post_welcome_comment,
 };
 use github_scbot_types::{
@@ -66,20 +63,11 @@ pub(crate) async fn pull_request_event(
     }
 
     if status_changed {
-        apply_pull_request_step(&repo_model, &pr_model).await?;
-        post_status_comment(conn, &repo_model, &mut pr_model).await?;
-
-        // Create or update status
-        let reviews = pr_model.get_reviews(conn)?;
-        let (status_state, status_title, status_message) =
-            generate_pr_status_message(&repo_model, &pr_model, &reviews)?;
-        update_status_for_repository(
-            &repo_model.owner,
-            &repo_model.name,
+        update_pull_request_status(
+            conn,
+            &repo_model,
+            &mut pr_model,
             &event.pull_request.head.sha,
-            status_state,
-            status_title,
-            &status_message,
         )
         .await?;
     }

@@ -1,6 +1,9 @@
 //! Status module.
 
-use github_scbot_api::comments::{post_comment, update_comment};
+use github_scbot_api::{
+    comments::{post_comment, update_comment},
+    status::update_status_for_repository,
+};
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
@@ -11,7 +14,7 @@ use github_scbot_types::{
 };
 use regex::Regex;
 
-use crate::errors::Result;
+use crate::{database::apply_pull_request_step, errors::Result};
 
 /// Pull request status.
 pub struct PullRequestStatus {
@@ -114,6 +117,32 @@ pub async fn post_status_comment(
         pr_model.save(conn)?;
         Ok(comment_id)
     }
+}
+
+pub async fn update_pull_request_status(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    commit_sha: &str,
+) -> Result<()> {
+    apply_pull_request_step(repo_model, pr_model).await?;
+    post_status_comment(conn, repo_model, pr_model).await?;
+
+    // Create or update status
+    let reviews = pr_model.get_reviews(conn)?;
+    let (status_state, status_title, status_message) =
+        generate_pr_status_message(&repo_model, &pr_model, &reviews)?;
+    update_status_for_repository(
+        &repo_model.owner,
+        &repo_model.name,
+        commit_sha,
+        status_state,
+        status_title,
+        &status_message,
+    )
+    .await?;
+
+    Ok(())
 }
 
 /// Generate status comment.

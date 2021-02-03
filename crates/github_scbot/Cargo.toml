@@ -9,7 +9,7 @@ github-scbot-api = { path = "../github_scbot_api" }
 github-scbot-core = { path = "../github_scbot_core" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-tui = { path = "../github_scbot_tui" }
-github-scbot-webhook = { path = "../github_scbot_webhook" }
+github-scbot-server = { path = "../github_scbot_server" }
 actix-rt = "1"
 anyhow = "1.0"
 owo-colors = "1.2"

@@ -9,7 +9,6 @@ github-scbot-api = { path = "../github_scbot_api" }
 github-scbot-core = { path = "../github_scbot_core" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
-github-scbot-utils = { path = "../github_scbot_utils" }
 actix-rt = "1"
 chrono = { version = "0.4.19", features = ["serde"] }
 regex = "1.4"

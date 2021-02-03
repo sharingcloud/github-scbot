@@ -1,8 +1,7 @@
 mod logic;
 mod reviews;
 
-use github_scbot_api::constants::ENV_API_DISABLE_CLIENT;
-use github_scbot_core::constants::ENV_BOT_USERNAME;
+use github_scbot_core::constants::{ENV_API_DISABLE_CLIENT, ENV_BOT_USERNAME};
 
 fn test_init() {
     dotenv::dotenv().unwrap();
