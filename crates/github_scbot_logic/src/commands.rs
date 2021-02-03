@@ -1,7 +1,7 @@
 //! Commands module.
 
 use github_scbot_api::{
-    comments::post_comment,
+    comments::{add_reaction_to_comment, post_comment},
     pulls::get_pull_request_sha,
     reviews::{remove_reviewers_for_pull_request, request_reviewers_for_pull_request},
     status::update_status_for_repository,
@@ -11,7 +11,10 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel},
     DbConn,
 };
-use github_scbot_types::status::{CheckStatus, QAStatus};
+use github_scbot_types::{
+    issues::GHReactionType,
+    status::{CheckStatus, QAStatus},
+};
 use tracing::info;
 
 use super::{
@@ -19,6 +22,15 @@ use super::{
     status::{generate_pr_status_message, post_status_comment},
 };
 use crate::database::get_or_fetch_pull_request;
+
+/// Command handling status.
+#[derive(Debug, Clone, Copy)]
+pub enum CommandHandlingStatus {
+    /// Command handled.
+    Handled,
+    /// Command ignored.
+    Ignored,
+}
 
 /// Comment action.
 #[derive(Debug, PartialEq)]
@@ -82,23 +94,37 @@ impl CommentAction {
 }
 
 /// Handle comment creation.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `issue_number` - Issue number
+/// * `issue_body` - Issue body
+/// * `comment_id` - Comment ID
+/// * `comment_author` - Comment author
 pub async fn handle_comment_creation(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     issue_number: u64,
-    issue_commenter_username: &str,
     issue_body: &str,
+    comment_id: u64,
+    comment_author: &str,
 ) -> Result<()> {
     let mut pr_model = get_or_fetch_pull_request(conn, repo_model, issue_number).await?;
 
-    parse_comment(
-        conn,
-        &repo_model,
-        &mut pr_model,
-        issue_commenter_username,
-        issue_body,
-    )
-    .await?;
+    let status =
+        parse_comment(conn, &repo_model, &mut pr_model, comment_author, issue_body).await?;
+
+    if matches!(status, CommandHandlingStatus::Handled) {
+        add_reaction_to_comment(
+            &repo_model.owner,
+            &repo_model.name,
+            comment_id,
+            GHReactionType::Eyes,
+        )
+        .await?;
+    }
 
     Ok(())
 }
@@ -118,12 +144,18 @@ pub async fn parse_comment(
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     comment: &str,
-) -> Result<()> {
+) -> Result<CommandHandlingStatus> {
+    let mut command_handling = CommandHandlingStatus::Ignored;
+
     for line in comment.lines() {
-        parse_comment_line(conn, repo_model, pr_model, comment_author, line).await?;
+        let line_handling =
+            parse_comment_line(conn, repo_model, pr_model, comment_author, line).await?;
+        if matches!(line_handling, CommandHandlingStatus::Handled) {
+            command_handling = line_handling;
+        }
     }
 
-    Ok(())
+    Ok(command_handling)
 }
 
 /// Parse comment line.
@@ -140,7 +172,9 @@ pub async fn parse_comment_line(
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     line: &str,
-) -> Result<()> {
+) -> Result<CommandHandlingStatus> {
+    let mut command_handled = CommandHandlingStatus::Ignored;
+
     if let Some((command_line, args)) = parse_command_string_from_comment_line(line) {
         let action = CommentAction::from_comment(command_line, &args);
         info!(
@@ -151,6 +185,7 @@ pub async fn parse_comment_line(
             pr_model.get_number()
         );
 
+        command_handled = CommandHandlingStatus::Handled;
         let status_updated = match action {
             Some(CommentAction::Automerge(s)) => {
                 handle_auto_merge_command(conn, repo_model, pr_model, comment_author, s).await?
@@ -182,7 +217,10 @@ pub async fn parse_comment_line(
             Some(CommentAction::Help) => {
                 handle_help_command(repo_model, pr_model, comment_author).await?
             }
-            _ => false,
+            _ => {
+                command_handled = CommandHandlingStatus::Ignored;
+                false
+            }
         };
 
         if status_updated {
@@ -209,7 +247,7 @@ pub async fn parse_comment_line(
         }
     }
 
-    Ok(())
+    Ok(command_handled)
 }
 
 /// Parse command string from comment line.

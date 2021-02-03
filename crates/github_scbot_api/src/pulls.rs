@@ -15,7 +15,7 @@ pub async fn get_pull_request(
     pr_number: u64,
 ) -> Result<octocrab::models::pulls::PullRequest> {
     if is_client_enabled() {
-        let client = get_client().await?;
+        let client = get_client()?;
 
         client
             .pulls(repository_owner, repository_name)
@@ -39,7 +39,7 @@ pub async fn get_pull_request_sha(
 ) -> Result<String> {
     if is_client_enabled() {
         tracing::info!("Will get_client");
-        let client = get_client().await?;
+        let client = get_client()?;
 
         tracing::info!("Will get PR data");
         let data = client

@@ -25,8 +25,9 @@ pub(crate) async fn issue_comment_event(
             conn,
             &repo_model,
             event.issue.number,
-            &event.issue.user.login,
             &event.comment.body,
+            event.comment.id,
+            &event.issue.user.login,
         )
         .await?;
     }

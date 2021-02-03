@@ -17,7 +17,7 @@ pub async fn request_reviewers_for_pull_request(
     reviewers: &[String],
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client().await?;
+        let client = get_client()?;
         let body = serde_json::json!({ "reviewers": reviewers });
 
         client
@@ -49,7 +49,7 @@ pub async fn remove_reviewers_for_pull_request(
     reviewers: &[String],
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client().await?;
+        let client = get_client()?;
         let body = serde_json::json!({ "reviewers": reviewers });
 
         client

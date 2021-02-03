@@ -42,7 +42,7 @@ pub async fn get_issue_labels(
     issue_number: u64,
 ) -> Result<Vec<String>> {
     if is_client_enabled() {
-        let client = get_client().await?;
+        let client = get_client()?;
 
         Ok(client
             .issues(repository_owner, repository_name)
@@ -77,7 +77,7 @@ pub async fn set_step_label(
             get_issue_labels(repository_owner, repository_name, pr_number).await?;
         let existing_labels = add_step_in_existing_labels(&existing_labels, label);
 
-        let client = get_client().await?;
+        let client = get_client()?;
         client
             .issues(repository_owner, repository_name)
             .replace_all_labels(pr_number, &existing_labels)

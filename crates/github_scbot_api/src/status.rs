@@ -25,7 +25,7 @@ pub async fn update_status_for_repository(
     body: &str,
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client().await?;
+        let client = get_client()?;
         let body = serde_json::json!({
             "state": status.to_str(),
             "description": body.chars().take(MAX_STATUS_DESCRIPTION_LEN).collect::<String>(),

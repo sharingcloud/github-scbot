@@ -5,6 +5,49 @@ use serde::Deserialize;
 
 use super::common::{GHLabel, GHRepository, GHUser};
 
+/// GitHub Reaction type.
+#[derive(Debug, Clone, Copy)]
+pub enum GHReactionType {
+    /// 👍
+    PlusOne,
+    /// 👎
+    MinusOne,
+    /// 😄
+    Laugh,
+    /// 😕
+    Confused,
+    /// ❤️
+    Heart,
+    /// 🎉
+    Hooray,
+    /// 🚀
+    Rocket,
+    /// 👀
+    Eyes,
+}
+
+impl GHReactionType {
+    /// Convert reaction type to static str.
+    pub fn to_str(self) -> &'static str {
+        self.into()
+    }
+}
+
+impl From<GHReactionType> for &'static str {
+    fn from(reaction_type: GHReactionType) -> &'static str {
+        match reaction_type {
+            GHReactionType::PlusOne => "+1",
+            GHReactionType::MinusOne => "-1",
+            GHReactionType::Laugh => "laugh",
+            GHReactionType::Confused => "confused",
+            GHReactionType::Heart => "heart",
+            GHReactionType::Hooray => "hooray",
+            GHReactionType::Rocket => "rocket",
+            GHReactionType::Eyes => "eyes",
+        }
+    }
+}
+
 /// GitHub Issue comment action.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
