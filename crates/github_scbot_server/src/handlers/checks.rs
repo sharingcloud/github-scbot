@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use github_scbot_database::{models::PullRequestModel, DbConn};
 use github_scbot_logic::{
     database::{apply_pull_request_step, process_repository},
-    status::post_status_comment,
+    status::{post_status_comment, update_pull_request_status},
 };
 use github_scbot_types::{
     checks::{GHCheckConclusion, GHCheckRunEvent, GHCheckSuiteAction, GHCheckSuiteEvent},
@@ -55,8 +55,15 @@ pub(crate) async fn check_suite_event(
             }
 
             // Update status message
-            post_status_comment(conn, &repo_model, &mut pr_model).await?;
             apply_pull_request_step(&repo_model, &pr_model).await?;
+            post_status_comment(conn, &repo_model, &mut pr_model).await?;
+            update_pull_request_status(
+                conn,
+                &repo_model,
+                &mut pr_model,
+                &event.check_suite.head_sha,
+            )
+            .await?;
         }
     }
 
