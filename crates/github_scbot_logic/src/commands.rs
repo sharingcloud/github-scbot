@@ -18,6 +18,7 @@ use super::{
     errors::Result,
     status::{generate_pr_status_message, post_status_comment},
 };
+use crate::database::get_or_fetch_pull_request;
 
 /// Comment action.
 #[derive(Debug, PartialEq)]
@@ -78,6 +79,28 @@ impl CommentAction {
             .filter_map(|x| x.strip_prefix('@').map(str::to_string))
             .collect()
     }
+}
+
+/// Handle comment creation.
+pub async fn handle_comment_creation(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    issue_number: u64,
+    issue_commenter_username: &str,
+    issue_body: &str,
+) -> Result<()> {
+    let mut pr_model = get_or_fetch_pull_request(conn, repo_model, issue_number).await?;
+
+    parse_comment(
+        conn,
+        &repo_model,
+        &mut pr_model,
+        issue_commenter_username,
+        issue_body,
+    )
+    .await?;
+
+    Ok(())
 }
 
 /// Parse comment body.

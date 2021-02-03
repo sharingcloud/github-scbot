@@ -1,10 +1,10 @@
 //! Issues webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_database::{models::PullRequestModel, DbConn};
-use github_scbot_logic::{commands::parse_comment, database::process_repository};
+use github_scbot_database::DbConn;
+use github_scbot_logic::{commands::handle_comment_creation, database::process_repository};
 use github_scbot_types::issues::{GHIssueCommentAction, GHIssueCommentEvent};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::errors::Result;
 
@@ -21,26 +21,14 @@ pub(crate) async fn issue_comment_event(
 
     // Only handle comments creation
     if let GHIssueCommentAction::Created = event.action {
-        // Try fetching pull request
-        if let Some(mut pr_model) = PullRequestModel::get_from_repository_id_and_number(
+        handle_comment_creation(
             conn,
-            repo_model.id,
-            event.issue.number as i32,
-        ) {
-            parse_comment(
-                conn,
-                &repo_model,
-                &mut pr_model,
-                &event.comment.user.login,
-                &event.comment.body,
-            )
-            .await?;
-        } else {
-            warn!(
-                "Unknown PR #{} for repository {}",
-                event.issue.number, event.repository.full_name
-            );
-        }
+            &repo_model,
+            event.issue.number,
+            &event.issue.user.login,
+            &event.issue.body,
+        )
+        .await?;
     }
 
     Ok(HttpResponse::Ok().body("Issue comment."))
