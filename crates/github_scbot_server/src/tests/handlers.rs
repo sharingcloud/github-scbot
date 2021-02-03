@@ -15,7 +15,6 @@ use super::fixtures;
 use crate::handlers::event_handler;
 
 fn test_init() {
-    dotenv::dotenv().unwrap();
     std::env::set_var(ENV_API_DISABLE_CLIENT, "1");
 }
 

@@ -9,9 +9,7 @@ use crate::{
     },
 };
 
-fn test_init() {
-    dotenv::dotenv().unwrap();
-}
+fn test_init() {}
 
 #[test]
 fn create_repository() {

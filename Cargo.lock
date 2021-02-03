@@ -958,7 +958,6 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel_migrations",
- "dotenv",
  "github-scbot-core",
  "github-scbot-types",
  "r2d2",
@@ -974,7 +973,6 @@ version = "0.1.0"
 dependencies = [
  "actix-rt",
  "chrono",
- "dotenv",
  "github-scbot-api",
  "github-scbot-core",
  "github-scbot-database",
@@ -991,7 +989,6 @@ dependencies = [
  "actix-rt",
  "actix-service",
  "actix-web",
- "dotenv",
  "futures",
  "github-scbot-core",
  "github-scbot-database",
