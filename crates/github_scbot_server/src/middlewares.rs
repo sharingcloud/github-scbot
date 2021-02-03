@@ -23,12 +23,11 @@ use futures::{
     stream::StreamExt,
     Future,
 };
+use github_scbot_core::constants::{ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET};
 use tracing::warn;
 
 use super::{
-    constants::{
-        ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET, GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH,
-    },
+    constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH},
     utils::is_valid_signature,
 };
 

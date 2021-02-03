@@ -11,7 +11,6 @@ use diesel::prelude::*;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
-pub mod constants;
 pub mod errors;
 pub mod import_export;
 pub mod models;
@@ -21,9 +20,7 @@ mod schema;
 mod tests;
 
 pub use errors::{DatabaseError, Result};
-use github_scbot_core::constants::ENV_DATABASE_URL;
-
-use self::constants::ENV_TEST_DATABASE_URL;
+use github_scbot_core::constants::{ENV_DATABASE_URL, ENV_TEST_DATABASE_URL};
 
 /// Database connection alias.
 pub type DbConn = PgConnection;

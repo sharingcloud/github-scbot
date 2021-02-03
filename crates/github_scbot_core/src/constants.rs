@@ -14,3 +14,9 @@ pub const ENV_DATABASE_URL: &str = "DATABASE_URL";
 pub const ENV_DISABLE_WELCOME_COMMENTS: &str = "BOT_DISABLE_WELCOME_COMMENTS";
 /// Disable API client.
 pub const ENV_API_DISABLE_CLIENT: &str = "BOT_API_DISABLE_CLIENT";
+/// GitHub secret.
+pub const ENV_GITHUB_SECRET: &str = "BOT_GITHUB_SECRET";
+/// Disable signature verification.
+pub const ENV_DISABLE_SIGNATURE: &str = "BOT_DISABLE_SIGNATURE_VERIFICATION";
+/// Database URL for tests.
+pub const ENV_TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
