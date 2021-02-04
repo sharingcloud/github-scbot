@@ -96,27 +96,39 @@ pub async fn post_status_comment(
     let status_comment = generate_pr_status_comment(repo_model, pr_model, &reviews)?;
 
     if comment_id > 0 {
-        update_comment(
+        if let Ok(comment_id) = update_comment(
             &repo_model.owner,
             &repo_model.name,
             comment_id,
             &status_comment,
         )
         .await
-        .map_err(Into::into)
-    } else {
-        let comment_id = post_comment(
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
-            &status_comment,
-        )
-        .await?;
-
-        pr_model.set_status_comment_id(comment_id);
-        pr_model.save(conn)?;
-        Ok(comment_id)
+        {
+            return Ok(comment_id);
+        }
     }
+
+    // Handle invalid comment ID
+    post_new_status_comment(conn, repo_model, pr_model, &status_comment).await
+}
+
+async fn post_new_status_comment(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    comment: &str,
+) -> Result<u64> {
+    let comment_id = post_comment(
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        comment,
+    )
+    .await?;
+
+    pr_model.set_status_comment_id(comment_id);
+    pr_model.save(conn)?;
+    Ok(comment_id)
 }
 
 /// Update pull request status.
