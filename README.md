@@ -43,8 +43,22 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
     - [x] Override checks status
     - [x] Set QA status (or skip)
     - [x] Require reviewers
-    - [ ] Require mandatory reviewers
-    - [ ] Enable auto-merge
+- [x] Require mandatory reviewers
+- [ ] Enable auto-merge
+
+## Step labels
+
+Process can be followed with labels, which are auto applied depending on the current pull request state, in this order:
+
+- PR is WIP? **step/wip**
+- Waiting for checks? **step/awaiting-checks**
+- Checks failed? **step/awaiting-changes**
+- Waiting for required reviews? **step/awaiting-required-review**
+- Waiting for reviews? **step/awaiting-reviews**
+- Waiting for QA? **step/awaiting-qa**
+- QA failed? **step/awaiting-checks**
+- PR is locked? **step/locked**
+- All good? **step/awaiting-merge**
 
 ## Building
 

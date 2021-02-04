@@ -184,8 +184,23 @@ impl ReviewModel {
     }
 
     /// Set review state.
+    ///
+    /// # Arguments
+    ///
+    /// * `review_state` - Review state
     pub fn set_review_state(&mut self, review_state: GHPullRequestReviewState) {
         self.state = review_state.to_string();
+    }
+
+    /// Remove review.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn remove(&mut self, conn: &DbConn) -> Result<()> {
+        diesel::delete(review::table.filter(review::id.eq(self.id))).execute(conn)?;
+
+        Ok(())
     }
 
     /// Save model instance to database.

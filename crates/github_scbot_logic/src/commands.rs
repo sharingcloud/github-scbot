@@ -522,7 +522,7 @@ pub async fn handle_help_command(
         - `noqa-`: _Enable QA validation_\n\
         - `qa+`: _Mark QA as passed_\n\
         - `qa-`: _Mark QA as failed_\n\
-        - `qa?`: _Mark QA as waiting\n\
+        - `qa?`: _Mark QA as waiting_\n\
         - `checks+`: _Mark checks as passed_\n\
         - `checks-`: _Mark checks as failed_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
