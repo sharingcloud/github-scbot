@@ -265,8 +265,11 @@ pub fn generate_pr_status_message(
                             status_message = "Waiting for QA".to_string();
                             status_state = StatusState::Pending;
                         }
-                        _ => {
-                            // All good
+                        Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
+                            if pr_status.locked {
+                                status_message = "PR is locked".to_string();
+                                status_state = StatusState::Failure;
+                            }
                         }
                     }
                 }
