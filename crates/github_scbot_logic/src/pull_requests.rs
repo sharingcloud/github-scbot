@@ -42,7 +42,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             status_changed = true;
 
             // Only for synchronize
-            rerequest_existing_reviews(conn, &pr_model)?;
+            rerequest_existing_reviews(conn, &repo_model, &pr_model).await?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             pr_model.wip = event.pull_request.draft;

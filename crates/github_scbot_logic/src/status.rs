@@ -330,8 +330,8 @@ fn generate_status_comment_checks_section(
         }
     } else {
         format!(
-            "_waiting on mandatory reviews..._ ({:?}) :clock2:",
-            pull_request_status.missing_required_reviewers
+            "_waiting on mandatory reviews..._ ({}) :clock2:",
+            pull_request_status.missing_required_reviewers.join(", ")
         )
     };
 

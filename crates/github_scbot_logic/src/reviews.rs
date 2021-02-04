@@ -1,7 +1,8 @@
 //! Reviews module.
 
+use github_scbot_api::reviews::request_reviewers_for_pull_request;
 use github_scbot_database::{
-    models::{PullRequestModel, ReviewModel},
+    models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
 };
 use github_scbot_types::pull_requests::{
@@ -65,13 +66,29 @@ pub fn handle_review_request(
 /// # Arguments
 ///
 /// * `conn` - Database connection
+/// * `repo_model` -Repository model
 /// * `pr_model` - Pull request model
-pub fn rerequest_existing_reviews(conn: &DbConn, pr_model: &PullRequestModel) -> Result<()> {
+pub async fn rerequest_existing_reviews(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> Result<()> {
     let reviews = pr_model.get_reviews(conn)?;
 
-    for mut review in reviews {
-        review.set_review_state(GHPullRequestReviewState::Pending);
-        review.save(conn)?;
+    if !reviews.is_empty() {
+        let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
+        request_reviewers_for_pull_request(
+            &repo_model.owner,
+            &repo_model.name,
+            pr_model.get_number(),
+            &reviewers,
+        )
+        .await?;
+
+        for mut review in reviews {
+            review.set_review_state(GHPullRequestReviewState::Pending);
+            review.save(conn)?;
+        }
     }
 
     Ok(())
