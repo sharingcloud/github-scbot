@@ -26,7 +26,7 @@ pub async fn handle_issue_comment_event(conn: &DbConn, event: &GHIssueCommentEve
             event.issue.number,
             &event.comment.body,
             event.comment.id,
-            &event.issue.user.login,
+            &event.comment.user.login,
         )
         .await?;
     }
