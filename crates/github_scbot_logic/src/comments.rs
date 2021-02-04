@@ -3,9 +3,10 @@
 use github_scbot_api::comments::add_reaction_to_comment;
 use github_scbot_database::{models::RepositoryModel, DbConn};
 use github_scbot_types::issues::{GHIssueCommentAction, GHIssueCommentEvent, GHReactionType};
+use tracing::error;
 
 use crate::{
-    commands::{parse_comment, CommandHandlingStatus},
+    commands::{parse_commands, CommandHandlingStatus},
     database::{get_or_fetch_pull_request, process_repository},
     Result,
 };
@@ -51,19 +52,23 @@ pub async fn handle_comment_creation(
     comment_id: u64,
     comment_author: &str,
 ) -> Result<()> {
-    let mut pr_model = get_or_fetch_pull_request(conn, repo_model, issue_number).await?;
+    match get_or_fetch_pull_request(conn, repo_model, issue_number).await {
+        Ok(mut pr_model) => {
+            let status =
+                parse_commands(conn, &repo_model, &mut pr_model, comment_author, issue_body)
+                    .await?;
 
-    let status =
-        parse_comment(conn, &repo_model, &mut pr_model, comment_author, issue_body).await?;
-
-    if matches!(status, CommandHandlingStatus::Handled) {
-        add_reaction_to_comment(
-            &repo_model.owner,
-            &repo_model.name,
-            comment_id,
-            GHReactionType::Eyes,
-        )
-        .await?;
+            if matches!(status, CommandHandlingStatus::Handled) {
+                add_reaction_to_comment(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    GHReactionType::Eyes,
+                )
+                .await?;
+            }
+        }
+        Err(e) => error!("{}", e),
     }
 
     Ok(())

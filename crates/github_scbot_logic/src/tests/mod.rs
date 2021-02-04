@@ -1,4 +1,4 @@
-mod logic;
+mod commands;
 mod reviews;
 
 use github_scbot_core::constants::{ENV_API_DISABLE_CLIENT, ENV_BOT_USERNAME};

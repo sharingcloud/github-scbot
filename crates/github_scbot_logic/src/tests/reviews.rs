@@ -14,7 +14,7 @@ use github_scbot_types::{
 
 use super::test_init;
 use crate::{
-    commands::parse_comment,
+    commands::parse_commands,
     reviews::handle_review,
     status::{generate_pr_status_comment, PullRequestStatus},
 };
@@ -86,7 +86,7 @@ async fn test_review_creation() {
     assert_eq!(reviews[1].required, false);
 
     // Parse comment
-    parse_comment(&conn, &repo, &mut pr, "me", "test-bot req+ @him")
+    parse_commands(&conn, &repo, &mut pr, "me", "test-bot req+ @him")
         .await
         .unwrap();
 
@@ -95,12 +95,12 @@ async fn test_review_creation() {
     assert_eq!(review.required, true);
 
     // Parse comment
-    parse_comment(&conn, &repo, &mut pr, "me", "test-bot req- @him")
+    parse_commands(&conn, &repo, &mut pr, "me", "test-bot req- @him")
         .await
         .unwrap();
 
     // Lock PR
-    parse_comment(&conn, &repo, &mut pr, "me", "test-bot lock+")
+    parse_commands(&conn, &repo, &mut pr, "me", "test-bot lock+")
         .await
         .unwrap();
 

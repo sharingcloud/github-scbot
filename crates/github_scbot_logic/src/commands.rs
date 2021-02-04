@@ -28,9 +28,9 @@ pub enum CommandHandlingStatus {
     Ignored,
 }
 
-/// Comment action.
+/// Command.
 #[derive(Debug, PartialEq)]
-pub enum CommentAction {
+pub enum Command {
     /// Skip QA status.
     SkipQAStatus(bool),
     /// Enable/Disable QA status.
@@ -43,8 +43,8 @@ pub enum CommentAction {
     AssignRequiredReviewers(Vec<String>),
     /// Unassign required reviewers.
     UnassignRequiredReviewers(Vec<String>),
-    /// Add/Remove lock.
-    Lock(bool),
+    /// Add/Remove lock with optional reason.
+    Lock(bool, Option<String>),
     /// Ping the bot.
     Ping,
     /// Show help message.
@@ -53,8 +53,8 @@ pub enum CommentAction {
     Synchronize,
 }
 
-impl CommentAction {
-    /// Create a comment action from a comment and arguments.
+impl Command {
+    /// Create a command from a comment and arguments.
     ///
     /// # Arguments
     ///
@@ -72,13 +72,21 @@ impl CommentAction {
             "automerge-" => Self::Automerge(false),
             "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)),
             "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)),
-            "lock+" => Self::Lock(true),
-            "lock-" => Self::Lock(false),
+            "lock+" => Self::Lock(true, Self::parse_message(args)),
+            "lock-" => Self::Lock(false, Self::parse_message(args)),
             "help" => Self::Help,
             "ping" => Self::Ping,
             "sync" => Self::Synchronize,
             _ => return None,
         })
+    }
+
+    fn parse_message(args: &[&str]) -> Option<String> {
+        if args.is_empty() {
+            None
+        } else {
+            Some(args.join(" "))
+        }
     }
 
     fn parse_reviewers(reviewers: &[&str]) -> Vec<String> {
@@ -89,7 +97,7 @@ impl CommentAction {
     }
 }
 
-/// Parse comment body.
+/// Parse commands from comment body.
 ///
 /// # Arguments
 ///
@@ -98,7 +106,7 @@ impl CommentAction {
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author
 /// * `comment` - Comment body
-pub async fn parse_comment(
+pub async fn parse_commands(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -109,7 +117,7 @@ pub async fn parse_comment(
 
     for line in comment.lines() {
         let line_handling =
-            parse_comment_line(conn, repo_model, pr_model, comment_author, line).await?;
+            parse_single_command(conn, repo_model, pr_model, comment_author, line).await?;
         if matches!(line_handling, CommandHandlingStatus::Handled) {
             command_handling = line_handling;
         }
@@ -118,7 +126,7 @@ pub async fn parse_comment(
     Ok(command_handling)
 }
 
-/// Parse comment line.
+/// Parse command from a single comment line.
 ///
 /// # Arguments
 /// * `conn` - Database connection
@@ -126,7 +134,7 @@ pub async fn parse_comment(
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author
 /// * `line` - Comment line
-pub async fn parse_comment_line(
+pub async fn parse_single_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -136,7 +144,7 @@ pub async fn parse_comment_line(
     let mut command_handled = CommandHandlingStatus::Ignored;
 
     if let Some((command_line, args)) = parse_command_string_from_comment_line(line) {
-        let action = CommentAction::from_comment(command_line, &args);
+        let action = Command::from_comment(command_line, &args);
         info!(
             "Interpreting action {:?} from author {} on repository {}, PR #{}",
             action,
@@ -147,34 +155,32 @@ pub async fn parse_comment_line(
 
         command_handled = CommandHandlingStatus::Handled;
         let status_updated = match action {
-            Some(CommentAction::Automerge(s)) => {
+            Some(Command::Automerge(s)) => {
                 handle_auto_merge_command(conn, repo_model, pr_model, comment_author, s).await?
             }
-            Some(CommentAction::SkipQAStatus(s)) => handle_skip_qa_command(conn, pr_model, s)?,
-            Some(CommentAction::QAStatus(s)) => {
+            Some(Command::SkipQAStatus(s)) => handle_skip_qa_command(conn, pr_model, s)?,
+            Some(Command::QAStatus(s)) => {
                 handle_qa_command(conn, repo_model, pr_model, comment_author, s).await?
             }
-            Some(CommentAction::ChecksStatus(s)) => {
+            Some(Command::ChecksStatus(s)) => {
                 handle_checks_command(conn, repo_model, pr_model, comment_author, s).await?
             }
-            Some(CommentAction::Lock(s)) => {
-                handle_lock_command(conn, repo_model, pr_model, comment_author, s).await?
+            Some(Command::Lock(s, reason)) => {
+                handle_lock_command(conn, repo_model, pr_model, comment_author, s, reason).await?
             }
-            Some(CommentAction::Ping) => {
+            Some(Command::Ping) => {
                 handle_ping_command(repo_model, pr_model, comment_author).await?
             }
-            Some(CommentAction::Synchronize) => {
-                handle_sync_command(conn, repo_model, pr_model).await?
-            }
-            Some(CommentAction::AssignRequiredReviewers(reviewers)) => {
+            Some(Command::Synchronize) => handle_sync_command(conn, repo_model, pr_model).await?,
+            Some(Command::AssignRequiredReviewers(reviewers)) => {
                 handle_assign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
                     .await?
             }
-            Some(CommentAction::UnassignRequiredReviewers(reviewers)) => {
+            Some(Command::UnassignRequiredReviewers(reviewers)) => {
                 handle_unassign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
                     .await?
             }
-            Some(CommentAction::Help) => {
+            Some(Command::Help) => {
                 handle_help_command(repo_model, pr_model, comment_author).await?
             }
             _ => {
@@ -186,7 +192,6 @@ pub async fn parse_comment_line(
         if status_updated {
             post_status_comment(conn, repo_model, pr_model).await?;
 
-            // Update status checks
             let sha =
                 get_pull_request_sha(&repo_model.owner, &repo_model.name, pr_model.get_number())
                     .await?;
@@ -384,7 +389,7 @@ pub async fn handle_ping_command(
     )
     .await?;
 
-    Ok(false)
+    Ok(true)
 }
 
 /// Handle `AssignRequiredReviewers` command.
@@ -430,7 +435,7 @@ pub async fn handle_assign_required_reviewers_command(
         entry.save(conn)?;
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 /// Handle `UnassignRequiredReviewers` command.
@@ -475,7 +480,7 @@ pub async fn handle_unassign_required_reviewers_command(
         entry.save(conn)?;
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 /// Handle `Synchronize` command.
@@ -504,12 +509,14 @@ pub async fn handle_sync_command(
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author
 /// * `status` - Lock status
+/// * `reason` - Optional lock motivation
 pub async fn handle_lock_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     status: bool,
+    reason: Option<String>,
 ) -> Result<bool> {
     let status_text = if status { "locked" } else { "unlocked" };
 
@@ -517,7 +524,11 @@ pub async fn handle_lock_command(
     pr_model.set_step_auto();
     pr_model.save(conn)?;
 
-    let comment = format!("Pull request {} by @{}", status_text, comment_author);
+    let mut comment = format!("Pull request {} by @{}", status_text, comment_author);
+    if let Some(reason) = reason {
+        comment = format!("{}\n**Reason**: {}", comment, reason);
+    }
+
     post_comment(
         &repo_model.owner,
         &repo_model.name,
@@ -554,10 +565,10 @@ pub async fn handle_help_command(
         - `checks-`: _Mark checks as failed_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
         - `automerge-`: _Disable auto-merge for this PR_\n\
-        - `lock+`: _Lock a pull-request (block merge)_\n\
-        - `lock-`: _Unlock a pull-request (unblock merge)_\n\
-        - `req+`: _Assign required reviewers (you can assign multiple reviewers)_\n\
-        - `req-`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
+        - `lock+ <reason?>`: _Lock a pull-request (block merge)_\n\
+        - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
+        - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
+        - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
         - `help`: _Show this comment_\n\
         - `ping`: _Ping me._\n\
         - `sync`: _Update status comment if needed (maintenance-type command)_\n",

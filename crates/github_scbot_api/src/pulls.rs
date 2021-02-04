@@ -1,6 +1,7 @@
 //! Pull request API module.
 
 use super::{errors::Result, get_client, is_client_enabled};
+use crate::APIError;
 
 /// Get pull request from ID.
 ///
@@ -21,9 +22,17 @@ pub async fn get_pull_request(
             .pulls(repository_owner, repository_name)
             .get(pr_number)
             .await
-            .map_err(Into::into)
+            .map_err(|_e| {
+                APIError::MissingPullRequest(
+                    format!("{}/{}", repository_owner, repository_name),
+                    pr_number,
+                )
+            })
     } else {
-        panic!("get_pull_request disabled in test mode")
+        Err(APIError::MissingPullRequest(
+            format!("{}/{}", repository_owner, repository_name),
+            pr_number,
+        ))
     }
 }
 
