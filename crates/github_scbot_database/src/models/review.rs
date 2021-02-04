@@ -183,6 +183,11 @@ impl ReviewModel {
         self.state.as_str().into()
     }
 
+    /// Set review state.
+    pub fn set_review_state(&mut self, review_state: GHPullRequestReviewState) {
+        self.state = review_state.to_string();
+    }
+
     /// Save model instance to database.
     ///
     /// # Arguments

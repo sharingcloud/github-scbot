@@ -8,8 +8,11 @@ use github_scbot_types::{
 };
 
 use crate::{
-    database::process_pull_request, reviews::handle_review_request,
-    status::update_pull_request_status, welcome::post_welcome_comment, Result,
+    database::process_pull_request,
+    reviews::{handle_review_request, rerequest_existing_reviews},
+    status::update_pull_request_status,
+    welcome::post_welcome_comment,
+    Result,
 };
 
 /// Handle GitHub pull request event.
@@ -37,6 +40,9 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             pr_model.set_step_auto();
             pr_model.save(conn)?;
             status_changed = true;
+
+            // Only for synchronize
+            rerequest_existing_reviews(conn, &pr_model)?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             pr_model.wip = event.pull_request.draft;

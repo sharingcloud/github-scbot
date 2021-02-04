@@ -1,5 +1,7 @@
 //! Reviews API module.
 
+use tracing::error;
+
 use super::{errors::Result, get_client, is_client_enabled};
 
 /// Request reviewers for a pull request.
@@ -61,7 +63,16 @@ pub async fn remove_reviewers_for_pull_request(
             .json(&body)
             .header(http::header::ACCEPT, octocrab::format_media_type("json"));
 
-        client.execute(builder).await?;
+        let response = client.execute(builder).await?;
+        if response.status() != 200 {
+            error!(
+                "Could not remove reviewers {:?} for pull request {}/{}: status code: {}",
+                reviewers,
+                repository_owner,
+                repository_name,
+                response.status()
+            );
+        }
     }
 
     Ok(())

@@ -59,3 +59,20 @@ pub fn handle_review_request(
 
     Ok(())
 }
+
+/// Re-request existing reviews.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `pr_model` - Pull request model
+pub fn rerequest_existing_reviews(conn: &DbConn, pr_model: &PullRequestModel) -> Result<()> {
+    let reviews = pr_model.get_reviews(conn)?;
+
+    for mut review in reviews {
+        review.set_review_state(GHPullRequestReviewState::Pending);
+        review.save(conn)?;
+    }
+
+    Ok(())
+}

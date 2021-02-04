@@ -229,8 +229,8 @@ pub fn generate_pr_status_message(
                 // Check review status
                 if !pr_status.missing_required_reviewers.is_empty() {
                     status_message = format!(
-                        "Waiting on mandatory reviews ({:?})",
-                        pr_status.missing_required_reviewers
+                        "Waiting on mandatory reviews ({})",
+                        pr_status.missing_required_reviewers.join(", ")
                     );
                     status_state = StatusState::Pending;
                 } else if pr_status.needed_reviewers_count > pr_status.approved_reviewers.len() {
