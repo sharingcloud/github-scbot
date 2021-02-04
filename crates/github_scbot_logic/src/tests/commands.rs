@@ -45,11 +45,15 @@ async fn test_command_from_comment() {
     );
     assert_eq!(
         Command::from_comment("qa+", &Vec::new()),
-        Some(Command::QAStatus(true))
+        Some(Command::QAStatus(Some(true)))
     );
     assert_eq!(
         Command::from_comment("qa-", &Vec::new()),
-        Some(Command::QAStatus(false))
+        Some(Command::QAStatus(Some(false)))
+    );
+    assert_eq!(
+        Command::from_comment("qa?", &Vec::new()),
+        Some(Command::QAStatus(None))
     );
     assert_eq!(
         Command::from_comment("automerge+", &Vec::new()),

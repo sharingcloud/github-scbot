@@ -109,7 +109,7 @@ pub struct GHLabel {
     /// Color.
     pub color: String,
     /// Description.
-    pub description: String,
+    pub description: Option<String>,
 }
 
 /// GitHub Application.

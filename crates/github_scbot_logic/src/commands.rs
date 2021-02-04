@@ -30,7 +30,7 @@ pub enum Command {
     /// Skip QA status.
     SkipQAStatus(bool),
     /// Enable/Disable QA status.
-    QAStatus(bool),
+    QAStatus(Option<bool>),
     /// Enable/Disable checks status.
     ChecksStatus(bool),
     /// Enable/Disable automerge.
@@ -60,8 +60,9 @@ impl Command {
         Some(match comment {
             "noqa+" => Self::SkipQAStatus(true),
             "noqa-" => Self::SkipQAStatus(false),
-            "qa+" => Self::QAStatus(true),
-            "qa-" => Self::QAStatus(false),
+            "qa+" => Self::QAStatus(Some(true)),
+            "qa-" => Self::QAStatus(Some(false)),
+            "qa?" => Self::QAStatus(None),
             "checks+" => Self::ChecksStatus(true),
             "checks-" => Self::ChecksStatus(false),
             "automerge+" => Self::Automerge(true),
@@ -287,12 +288,12 @@ pub async fn handle_qa_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
-    status: bool,
+    status: Option<bool>,
 ) -> Result<bool> {
-    let (status, status_text) = if status {
-        (QAStatus::Pass, "marked as pass")
-    } else {
-        (QAStatus::Fail, "marked as fail")
+    let (status, status_text) = match status {
+        Some(true) => (QAStatus::Pass, "marked as pass"),
+        Some(false) => (QAStatus::Fail, "marked as fail"),
+        None => (QAStatus::Waiting, "marked as waiting"),
     };
 
     pr_model.set_qa_status(status);
@@ -521,6 +522,7 @@ pub async fn handle_help_command(
         - `noqa-`: _Enable QA validation_\n\
         - `qa+`: _Mark QA as passed_\n\
         - `qa-`: _Mark QA as failed_\n\
+        - `qa?`: _Mark QA as waiting\n\
         - `checks+`: _Mark checks as passed_\n\
         - `checks-`: _Mark checks as failed_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
