@@ -63,7 +63,7 @@ async fn test_review_creation() {
             login: "me".to_string(),
         },
     };
-    handle_review(&conn, &pr, &review).await.unwrap();
+    handle_review(&conn, &pr, &review).unwrap();
 
     // Simulate another review
     let review2 = GHPullRequestReview {
@@ -77,7 +77,7 @@ async fn test_review_creation() {
             login: "him".to_string(),
         },
     };
-    handle_review(&conn, &pr, &review2).await.unwrap();
+    handle_review(&conn, &pr, &review2).unwrap();
 
     // List reviews
     let reviews = pr.get_reviews(&conn).unwrap();

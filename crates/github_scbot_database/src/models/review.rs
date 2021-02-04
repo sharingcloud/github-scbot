@@ -95,6 +95,33 @@ impl ReviewModel {
         Ok(model)
     }
 
+    /// Create or update from review state and username.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `pull_request_id` - Pull request database ID
+    /// * `review` - GitHub review
+    pub fn create_or_update(
+        conn: &DbConn,
+        pull_request_id: i32,
+        review_state: GHPullRequestReviewState,
+        username: &str,
+    ) -> Result<Self> {
+        let entry = ReviewCreation {
+            pull_request_id,
+            required: false,
+            state: review_state.to_string(),
+            username,
+        };
+
+        let mut model = Self::get_or_create(conn, entry)?;
+        model.state = review_state.to_string();
+        model.save_changes::<Self>(conn)?;
+
+        Ok(model)
+    }
+
     /// List reviews.
     ///
     /// # Arguments

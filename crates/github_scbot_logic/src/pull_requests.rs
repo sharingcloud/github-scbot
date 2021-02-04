@@ -2,13 +2,14 @@
 
 use github_scbot_database::DbConn;
 use github_scbot_types::{
-    pull_requests::{GHPullRequestAction, GHPullRequestEvent},
+    common::GHUser,
+    pull_requests::{GHPullRequestAction, GHPullRequestEvent, GHPullRequestReviewState},
     status::CheckStatus,
 };
 
 use crate::{
-    database::process_pull_request, status::update_pull_request_status,
-    welcome::post_welcome_comment, Result,
+    database::process_pull_request, reviews::handle_review_request,
+    status::update_pull_request_status, welcome::post_welcome_comment, Result,
 };
 
 /// Handle GitHub pull request event.
@@ -49,6 +50,24 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             pr_model.save(conn)?;
             status_changed = true;
         }
+        GHPullRequestAction::ReviewRequested => {
+            handle_review_request(
+                conn,
+                &pr_model,
+                GHPullRequestReviewState::Pending,
+                &extract_usernames(&event.pull_request.requested_reviewers),
+            )?;
+            status_changed = true;
+        }
+        GHPullRequestAction::ReviewRequestRemoved => {
+            handle_review_request(
+                conn,
+                &pr_model,
+                GHPullRequestReviewState::Dismissed,
+                &extract_usernames(&event.pull_request.requested_reviewers),
+            )?;
+            status_changed = true;
+        }
         _ => (),
     }
 
@@ -70,4 +89,8 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
     }
 
     Ok(())
+}
+
+fn extract_usernames(users: &[GHUser]) -> Vec<&str> {
+    users.iter().map(|r| &r.login[..]).collect()
 }

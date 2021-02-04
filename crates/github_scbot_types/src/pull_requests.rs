@@ -78,7 +78,7 @@ pub enum GHPullRequestReviewCommentAction {
 }
 
 /// GitHub Pull request review state.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GHPullRequestReviewState {
     /// Approved.
