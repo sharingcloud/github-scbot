@@ -1,5 +1,8 @@
 //! Core module.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 pub mod constants;
 pub mod errors;
 

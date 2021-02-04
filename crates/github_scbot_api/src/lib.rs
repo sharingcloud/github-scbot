@@ -2,6 +2,9 @@
 //!
 //! Contains functions to communicate with GitHub API.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 pub mod comments;
 pub mod errors;
 pub mod labels;

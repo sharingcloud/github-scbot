@@ -1,5 +1,8 @@
 //! Types module.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 pub mod checks;
 pub mod common;
 pub mod errors;

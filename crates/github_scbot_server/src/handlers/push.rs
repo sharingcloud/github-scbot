@@ -9,12 +9,11 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn push_event(conn: &DbConn, event: GHPushEvent) -> Result<HttpResponse> {
-    process_repository(conn, &event.repository)?;
-
     info!(
         "Push event from repository '{}', reference '{}' (from '{}')",
         event.repository.full_name, event.reference, event.pusher.name
     );
 
+    process_repository(conn, &event.repository)?;
     Ok(HttpResponse::Ok().body("Push."))
 }

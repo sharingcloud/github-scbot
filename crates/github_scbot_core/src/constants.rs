@@ -1,4 +1,4 @@
-/// Core constants.
+//! Core constants.
 
 /// Bot username.
 pub const ENV_BOT_USERNAME: &str = "BOT_USERNAME";

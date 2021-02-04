@@ -119,6 +119,14 @@ pub async fn post_status_comment(
     }
 }
 
+/// Update pull request status.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+/// * `commit_sha` - Commit SHA.
 pub async fn update_pull_request_status(
     conn: &DbConn,
     repo_model: &RepositoryModel,

@@ -1,4 +1,5 @@
-/// Server module.
+//! Server module.
+
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use github_scbot_core::constants::{ENV_BIND_IP, ENV_BIND_PORT};
 use github_scbot_database::establish_connection;

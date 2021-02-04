@@ -1,5 +1,8 @@
 //! Webhook module.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 use actix_web::web;
 
 pub mod constants;

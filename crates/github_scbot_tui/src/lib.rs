@@ -1,5 +1,8 @@
 //! UI module.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 mod app;
 mod errors;
 mod events;

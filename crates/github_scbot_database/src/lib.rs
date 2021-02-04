@@ -1,5 +1,8 @@
 //! Database module.
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 use std::env;
 
 #[macro_use]

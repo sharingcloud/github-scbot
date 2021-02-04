@@ -10,9 +10,8 @@ use crate::errors::Result;
 
 pub(crate) async fn ping_event(conn: &DbConn, event: GHPingEvent) -> Result<HttpResponse> {
     if let Some(repo) = &event.repository {
-        process_repository(conn, repo)?;
-
         info!("Ping event from repository '{}'", repo.full_name);
+        process_repository(conn, repo)?;
     } else {
         info!("Ping event without repository",);
     }
