@@ -272,23 +272,6 @@ impl PullRequestModel {
         );
     }
 
-    /// Set step label depending on checks.
-    pub fn set_step_auto(&mut self) {
-        let step = if self.wip {
-            Some(StepLabel::Wip)
-        } else {
-            match self.get_checks_status() {
-                Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
-                    Some(StepLabel::AwaitingReview)
-                }
-                Some(CheckStatus::Waiting) => Some(StepLabel::AwaitingChecks),
-                Some(CheckStatus::Fail) => Some(StepLabel::AwaitingChecksChanges),
-            }
-        };
-
-        self.step = step.map(|x| x.to_str().to_string());
-    }
-
     /// Set checks status.
     ///
     /// # Arguments
@@ -296,6 +279,15 @@ impl PullRequestModel {
     /// * `checks_status` - Checks status
     pub fn set_checks_status(&mut self, checks_status: CheckStatus) {
         self.check_status = Some(checks_status.to_str().to_string());
+    }
+
+    /// Set step label.
+    ///
+    /// # Arguments
+    ///
+    /// * `step_label` - Step label
+    pub fn set_step_label(&mut self, step_label: StepLabel) {
+        self.step = Some(step_label.to_str().to_string());
     }
 
     /// Set QA status.

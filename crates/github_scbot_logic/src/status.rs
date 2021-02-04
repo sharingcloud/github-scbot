@@ -14,7 +14,9 @@ use github_scbot_types::{
 };
 use regex::Regex;
 
-use crate::{database::apply_pull_request_step, errors::Result};
+use crate::{
+    database::apply_pull_request_step, errors::Result, pull_requests::determine_automatic_step,
+};
 
 /// Pull request status.
 pub struct PullRequestStatus {
@@ -76,6 +78,17 @@ impl PullRequestStatus {
             valid_pr_title: check_pr_title(repo_model, pr_model)?,
             locked: pr_model.locked,
         })
+    }
+
+    /// Check if there are missing required reviews.
+    pub fn missing_required_reviews(&self) -> bool {
+        !self.missing_required_reviewers.is_empty()
+    }
+
+    /// Check if there are missing reviews.
+    pub fn missing_reviews(&self) -> bool {
+        self.missing_required_reviews()
+            && self.needed_reviewers_count > self.approved_reviewers.len()
     }
 }
 
@@ -145,11 +158,16 @@ pub async fn update_pull_request_status(
     pr_model: &mut PullRequestModel,
     commit_sha: &str,
 ) -> Result<()> {
+    // Update step label.
+    let reviews = pr_model.get_reviews(conn)?;
+    let step_label = determine_automatic_step(repo_model, pr_model, &reviews)?;
+    pr_model.set_step_label(step_label);
     apply_pull_request_step(repo_model, pr_model).await?;
+
+    // Post status.
     post_status_comment(conn, repo_model, pr_model).await?;
 
-    // Create or update status
-    let reviews = pr_model.get_reviews(conn)?;
+    // Create or update status.
     let (status_state, status_title, status_message) =
         generate_pr_status_message(&repo_model, &pr_model, &reviews)?;
     update_status_for_repository(
@@ -312,26 +330,22 @@ fn generate_status_comment_checks_section(
         "No :heavy_check_mark:"
     };
 
-    let code_review_section = if pull_request_status.missing_required_reviewers.is_empty() {
-        if pull_request_status.approved_reviewers.len()
-            >= pull_request_status.needed_reviewers_count
-        {
-            format!(
-                "_passed! ({} given / {} required)_ :heavy_check_mark:",
-                pull_request_status.approved_reviewers.len(),
-                pull_request_status.needed_reviewers_count
-            )
-        } else {
-            format!(
-                "_waiting..._ ({} given / {} required) :clock2:",
-                pull_request_status.approved_reviewers.len(),
-                pull_request_status.needed_reviewers_count
-            )
-        }
-    } else {
+    let code_review_section = if pull_request_status.missing_required_reviews() {
         format!(
             "_waiting on mandatory reviews..._ ({}) :clock2:",
             pull_request_status.missing_required_reviewers.join(", ")
+        )
+    } else if pull_request_status.missing_reviews() {
+        format!(
+            "_waiting..._ ({} given / {} required) :clock2:",
+            pull_request_status.approved_reviewers.len(),
+            pull_request_status.needed_reviewers_count
+        )
+    } else {
+        format!(
+            "_passed! ({} given / {} required)_ :heavy_check_mark:",
+            pull_request_status.approved_reviewers.len(),
+            pull_request_status.needed_reviewers_count
         )
     };
 

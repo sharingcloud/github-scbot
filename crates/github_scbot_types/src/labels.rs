@@ -9,16 +9,18 @@ use super::errors::TypeError;
 pub enum StepLabel {
     /// Work in progress.
     Wip,
+    /// Awaiting changes.
+    AwaitingChanges,
     /// Awaiting checks.
     AwaitingChecks,
-    /// Awaiting checks changes.
-    AwaitingChecksChanges,
     /// Awaiting review.
     AwaitingReview,
-    /// Awaiting review changes.
-    AwaitingReviewChanges,
+    /// Awaiting required review.
+    AwaitingRequiredReview,
     /// Awaiting QA.
     AwaitingQA,
+    /// Locked
+    Locked,
     /// Awaiting merge.
     AwaitingMerge,
 }
@@ -37,11 +39,12 @@ impl TryFrom<&str> for StepLabel {
         match value {
             "step/wip" => Ok(Self::Wip),
             "step/awaiting-checks" => Ok(Self::AwaitingChecks),
-            "step/awaiting-checks-changes" => Ok(Self::AwaitingChecksChanges),
+            "step/awaiting-changes" => Ok(Self::AwaitingChanges),
             "step/awaiting-review" => Ok(Self::AwaitingReview),
-            "step/awaiting-review-changes" => Ok(Self::AwaitingReviewChanges),
+            "step/awaiting-required-review" => Ok(Self::AwaitingRequiredReview),
             "step/awaiting-qa" => Ok(Self::AwaitingQA),
             "step/awaiting-merge" => Ok(Self::AwaitingMerge),
+            "step/locked" => Ok(Self::Locked),
             name => Err(TypeError::UnknownStepLabelError(name.to_string())),
         }
     }
@@ -52,11 +55,12 @@ impl From<StepLabel> for &'static str {
         match label {
             StepLabel::Wip => "step/wip",
             StepLabel::AwaitingChecks => "step/awaiting-checks",
-            StepLabel::AwaitingChecksChanges => "step/awaiting-checks-changes",
+            StepLabel::AwaitingChanges => "step/awaiting-changes",
             StepLabel::AwaitingReview => "step/awaiting-review",
-            StepLabel::AwaitingReviewChanges => "step/awaiting-review-changes",
+            StepLabel::AwaitingRequiredReview => "step/awaiting-required-review",
             StepLabel::AwaitingQA => "step/awaiting-qa",
             StepLabel::AwaitingMerge => "step/awaiting-merge",
+            StepLabel::Locked => "step/locked",
         }
     }
 }

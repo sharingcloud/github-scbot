@@ -6,11 +6,7 @@ use github_scbot_types::{
     status::CheckStatus,
 };
 
-use crate::{
-    database::{apply_pull_request_step, process_repository},
-    status::{post_status_comment, update_pull_request_status},
-    Result,
-};
+use crate::{database::process_repository, status::update_pull_request_status, Result};
 
 /// Handle GitHub check syite event.
 ///
@@ -35,22 +31,18 @@ pub async fn handle_check_suite_event(conn: &DbConn, event: &GHCheckSuiteEvent) 
                     Some(GHCheckConclusion::Success) => {
                         // Update check status
                         pr_model.set_checks_status(CheckStatus::Pass);
-                        pr_model.set_step_auto();
                         pr_model.save(conn)?;
                     }
                     Some(GHCheckConclusion::Failure) => {
                         // Update check status
                         pr_model.set_checks_status(CheckStatus::Fail);
-                        pr_model.set_step_auto();
                         pr_model.save(conn)?;
                     }
                     _ => (),
                 }
             }
 
-            // Update status message
-            apply_pull_request_step(&repo_model, &pr_model).await?;
-            post_status_comment(conn, &repo_model, &mut pr_model).await?;
+            // Update status
             update_pull_request_status(
                 conn,
                 &repo_model,

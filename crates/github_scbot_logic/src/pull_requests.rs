@@ -1,16 +1,20 @@
 //! Pull requests logic.
 
-use github_scbot_database::DbConn;
+use github_scbot_database::{
+    models::{PullRequestModel, RepositoryModel, ReviewModel},
+    DbConn,
+};
 use github_scbot_types::{
     common::GHUser,
+    labels::StepLabel,
     pull_requests::{GHPullRequestAction, GHPullRequestEvent, GHPullRequestReviewState},
-    status::CheckStatus,
+    status::{CheckStatus, QAStatus},
 };
 
 use crate::{
     database::process_pull_request,
     reviews::{handle_review_request, rerequest_existing_reviews},
-    status::update_pull_request_status,
+    status::{update_pull_request_status, PullRequestStatus},
     welcome::post_welcome_comment,
     Result,
 };
@@ -37,7 +41,6 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
         GHPullRequestAction::Opened | GHPullRequestAction::Synchronize => {
             pr_model.wip = event.pull_request.draft;
             pr_model.set_checks_status(CheckStatus::Waiting);
-            pr_model.set_step_auto();
             pr_model.save(conn)?;
             status_changed = true;
 
@@ -46,13 +49,11 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             pr_model.wip = event.pull_request.draft;
-            pr_model.set_step_auto();
             pr_model.save(conn)?;
             status_changed = true;
         }
         GHPullRequestAction::ConvertedToDraft => {
             pr_model.wip = true;
-            pr_model.set_step_auto();
             pr_model.save(conn)?;
             status_changed = true;
         }
@@ -95,6 +96,49 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
     }
 
     Ok(())
+}
+
+/// Determine automatic step for a pull request.
+///
+/// # Arguments
+///
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+/// * `reviews` - Reviews
+pub fn determine_automatic_step(
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+    reviews: &[ReviewModel],
+) -> Result<StepLabel> {
+    let status = PullRequestStatus::from_pull_request(repo_model, pr_model, reviews)?;
+
+    Ok(if pr_model.wip {
+        StepLabel::Wip
+    } else {
+        match pr_model.get_checks_status() {
+            Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
+                if status.missing_required_reviews() {
+                    StepLabel::AwaitingRequiredReview
+                } else if status.missing_reviews() {
+                    StepLabel::AwaitingReview
+                } else {
+                    match status.qa_status {
+                        Some(QAStatus::Fail) => StepLabel::AwaitingChanges,
+                        Some(QAStatus::Waiting) | None => StepLabel::AwaitingQA,
+                        Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
+                            if status.locked {
+                                StepLabel::Locked
+                            } else {
+                                StepLabel::AwaitingMerge
+                            }
+                        }
+                    }
+                }
+            }
+            Some(CheckStatus::Waiting) => StepLabel::AwaitingChecks,
+            Some(CheckStatus::Fail) => StepLabel::AwaitingChanges,
+        }
+    })
 }
 
 fn extract_usernames(users: &[GHUser]) -> Vec<&str> {

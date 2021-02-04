@@ -4,7 +4,6 @@ use github_scbot_api::{
     comments::post_comment,
     pulls::get_pull_request_sha,
     reviews::{remove_reviewers_for_pull_request, request_reviewers_for_pull_request},
-    status::update_status_for_repository,
 };
 use github_scbot_core::constants::ENV_BOT_USERNAME;
 use github_scbot_database::{
@@ -14,10 +13,7 @@ use github_scbot_database::{
 use github_scbot_types::status::{CheckStatus, QAStatus};
 use tracing::info;
 
-use super::{
-    errors::Result,
-    status::{generate_pr_status_message, post_status_comment},
-};
+use super::{errors::Result, status::update_pull_request_status};
 
 /// Command handling status.
 #[derive(Debug, Clone, Copy)]
@@ -171,7 +167,7 @@ pub async fn parse_single_command(
             Some(Command::Ping) => {
                 handle_ping_command(repo_model, pr_model, comment_author).await?
             }
-            Some(Command::Synchronize) => handle_sync_command(conn, repo_model, pr_model).await?,
+            Some(Command::Synchronize) => true,
             Some(Command::AssignRequiredReviewers(reviewers)) => {
                 handle_assign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
                     .await?
@@ -190,25 +186,10 @@ pub async fn parse_single_command(
         };
 
         if status_updated {
-            post_status_comment(conn, repo_model, pr_model).await?;
-
             let sha =
                 get_pull_request_sha(&repo_model.owner, &repo_model.name, pr_model.get_number())
                     .await?;
-
-            // Create or update status
-            let reviews = pr_model.get_reviews(conn)?;
-            let (status_state, status_title, status_message) =
-                generate_pr_status_message(&repo_model, &pr_model, &reviews)?;
-            update_status_for_repository(
-                &repo_model.owner,
-                &repo_model.name,
-                &sha,
-                status_state,
-                status_title,
-                &status_message,
-            )
-            .await?;
+            update_pull_request_status(conn, repo_model, pr_model, &sha).await?;
         }
     }
 
@@ -287,7 +268,6 @@ pub fn handle_skip_qa_command(
         pr_model.set_qa_status(QAStatus::Waiting);
     }
 
-    pr_model.set_step_auto();
     pr_model.save(conn)?;
 
     Ok(true)
@@ -316,7 +296,6 @@ pub async fn handle_qa_command(
     };
 
     pr_model.set_qa_status(status);
-    pr_model.set_step_auto();
     pr_model.save(conn)?;
 
     let comment = format!("QA is {} by @{}", status_text, comment_author);
@@ -354,7 +333,6 @@ pub async fn handle_checks_command(
     };
 
     pr_model.set_checks_status(status);
-    pr_model.set_step_auto();
     pr_model.save(conn)?;
 
     let comment = format!("Checks are {} by @{}", status_text, comment_author);
@@ -483,23 +461,6 @@ pub async fn handle_unassign_required_reviewers_command(
     Ok(true)
 }
 
-/// Handle `Synchronize` command.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-pub async fn handle_sync_command(
-    conn: &DbConn,
-    repo_model: &RepositoryModel,
-    pr_model: &mut PullRequestModel,
-) -> Result<bool> {
-    post_status_comment(conn, repo_model, pr_model).await?;
-
-    Ok(true)
-}
-
 /// Handle `Lock` command.
 ///
 /// # Arguments
@@ -521,7 +482,6 @@ pub async fn handle_lock_command(
     let status_text = if status { "locked" } else { "unlocked" };
 
     pr_model.locked = status;
-    pr_model.set_step_auto();
     pr_model.save(conn)?;
 
     let mut comment = format!("Pull request {} by @{}", status_text, comment_author);
