@@ -18,7 +18,7 @@ fmt-check:
 
 # Lint files
 lint:
-	touch src/lib.rs && cargo clippy --tests {{ if opt_lint_err == "true" { "-- -D warnings" } else { "" } }}
+	ls -d crates/*/src/lib.rs | xargs touch && cargo clippy --tests {{ if opt_lint_err == "true" { "-- -D warnings" } else { "" } }}
 
 # Lint files and error on warnings
 lint-err:
@@ -29,11 +29,7 @@ lint-err:
 
 # Execute tests
 test:
-	cargo test --all
-
-# Execute tests with coverage analysis
-cov:
-	cargo tarpaulin --out Lcov
+	cargo test --all -- --test-threads 1
 
 ###############
 # Documentation
