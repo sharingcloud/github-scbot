@@ -256,7 +256,7 @@ pub async fn handle_auto_merge_command(
     pr_model.save(conn)?;
 
     let status_text = if status { "enabled" } else { "disabled" };
-    let comment = format!("Automerge {} by @{}", status_text, comment_author);
+    let comment = format!("Automerge {} by **{}**", status_text, comment_author);
     post_comment(
         &repo_model.owner,
         &repo_model.name,
@@ -312,7 +312,7 @@ pub async fn handle_merge_command(
                     &repo_model.owner,
                     &repo_model.name,
                     pr_model.get_number(),
-                    &format!("Could not merge this pull request: {}", e),
+                    &format!("Could not merge this pull request: _{}_", e),
                 )
                 .await?;
             }
@@ -328,7 +328,7 @@ pub async fn handle_merge_command(
                     &repo_model.owner,
                     &repo_model.name,
                     pr_model.get_number(),
-                    &format!("Pull request successfully merged by @{}!", comment_author),
+                    &format!("Pull request successfully merged by {}!", comment_author),
                 )
                 .await?;
             }
@@ -401,7 +401,7 @@ pub async fn handle_qa_command(
     pr_model.set_qa_status(status);
     pr_model.save(conn)?;
 
-    let comment = format!("QA is {} by @{}", status_text, comment_author);
+    let comment = format!("QA is {} by **{}**", status_text, comment_author);
     post_comment(
         &repo_model.owner,
         &repo_model.name,
@@ -438,7 +438,7 @@ pub async fn handle_checks_command(
     pr_model.set_checks_status(status);
     pr_model.save(conn)?;
 
-    let comment = format!("Checks are {} by @{}", status_text, comment_author);
+    let comment = format!("Checks are {} by **{}**", status_text, comment_author);
     post_comment(
         &repo_model.owner,
         &repo_model.name,
@@ -466,7 +466,7 @@ pub async fn handle_ping_command(
         &repo_model.owner,
         &repo_model.name,
         pr_model.get_number(),
-        &format!("@{} pong!", comment_author),
+        &format!("**{}** pong!", comment_author),
     )
     .await?;
 
@@ -587,7 +587,7 @@ pub async fn handle_lock_command(
     pr_model.locked = status;
     pr_model.save(conn)?;
 
-    let mut comment = format!("Pull request {} by @{}", status_text, comment_author);
+    let mut comment = format!("Pull request {} by **{}**", status_text, comment_author);
     if let Some(reason) = reason {
         comment = format!("{}\n**Reason**: {}", comment, reason);
     }
@@ -616,7 +616,7 @@ pub async fn handle_help_command(
     comment_author: &str,
 ) -> Result<bool> {
     let comment = format!(
-        "Hello @{} ! I am a GitHub helper bot ! :robot:\n\
+        "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
         You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
         \n\
         Supported commands:\n\
@@ -633,8 +633,9 @@ pub async fn handle_help_command(
         - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
         - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
         - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
+        - `merge`: _Try to merge the pull request_\n\
+        - `ping`: _Ping me_\n\
         - `help`: _Show this comment_\n\
-        - `ping`: _Ping me._\n\
         - `sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author,
         std::env::var(ENV_BOT_USERNAME).unwrap()

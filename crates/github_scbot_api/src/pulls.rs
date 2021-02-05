@@ -89,7 +89,7 @@ pub async fn merge_pull_request(
         });
 
         let response = client
-            ._post(
+            ._put(
                 client.absolute_url(format!(
                     "/repos/{}/{}/pulls/{}/merge",
                     repository_owner, repository_name, pr_number
