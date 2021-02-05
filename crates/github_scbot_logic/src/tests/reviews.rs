@@ -86,7 +86,7 @@ async fn test_review_creation() {
     assert_eq!(reviews[1].required, false);
 
     // Parse comment
-    parse_commands(&conn, &repo, &mut pr, "me", "test-bot req+ @him")
+    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot req+ @him")
         .await
         .unwrap();
 
@@ -95,12 +95,12 @@ async fn test_review_creation() {
     assert_eq!(review.required, true);
 
     // Parse comment
-    parse_commands(&conn, &repo, &mut pr, "me", "test-bot req- @him")
+    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot req- @him")
         .await
         .unwrap();
 
     // Lock PR
-    parse_commands(&conn, &repo, &mut pr, "me", "test-bot lock+")
+    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot lock+")
         .await
         .unwrap();
 

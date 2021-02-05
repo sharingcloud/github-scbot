@@ -3,8 +3,10 @@
 use github_scbot_types::issues::GHReactionType;
 use tracing::error;
 
-use super::{errors::Result, get_client, is_client_enabled};
-use crate::get_client_builder;
+use crate::{
+    utils::{get_client, get_client_builder, is_client_enabled},
+    Result,
+};
 
 const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 
@@ -23,7 +25,7 @@ pub async fn post_comment(
     body: &str,
 ) -> Result<u64> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
         let final_body = format!("{}\n\n{}", body, BOT_COMMENT_SIGNATURE);
 
         let comment = client
@@ -51,7 +53,7 @@ pub async fn update_comment(
     body: &str,
 ) -> Result<u64> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
         let final_body = format!("{}\n\n{}", body, BOT_COMMENT_SIGNATURE);
 
         client
@@ -78,7 +80,10 @@ pub async fn add_reaction_to_comment(
     reaction_type: GHReactionType,
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client_builder().add_preview("squirrel-girl").build()?;
+        let client = get_client_builder()
+            .await?
+            .add_preview("squirrel-girl")
+            .build()?;
         let body = serde_json::json!({
             "content": reaction_type.to_str()
         });

@@ -4,6 +4,12 @@
 pub const ENV_BOT_USERNAME: &str = "BOT_USERNAME";
 /// GitHub API Token environment variable.
 pub const ENV_GITHUB_API_TOKEN: &str = "BOT_GITHUB_API_TOKEN";
+/// GitHub App Private key.
+pub const ENV_GITHUB_APP_PRIVATE_KEY: &str = "BOT_GITHUB_APP_PRIVATE_KEY";
+/// GitHub App ID.
+pub const ENV_GITHUB_APP_ID: &str = "BOT_GITHUB_APP_ID";
+/// GitHub App Installation ID
+pub const ENV_GITHUB_APP_INSTALLATION_ID: &str = "BOT_GITHUB_APP_INSTALLATION_ID";
 /// Server bind IP.
 pub const ENV_BIND_IP: &str = "BOT_BIND_IP";
 /// Server bind port.

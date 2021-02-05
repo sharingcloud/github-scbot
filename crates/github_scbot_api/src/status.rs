@@ -2,7 +2,10 @@
 
 use github_scbot_types::status::StatusState;
 
-use super::{errors::Result, get_client, is_client_enabled};
+use crate::{
+    utils::{get_client, is_client_enabled},
+    Result,
+};
 
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 
@@ -25,7 +28,7 @@ pub async fn update_status_for_repository(
     body: &str,
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
         let body = serde_json::json!({
             "state": status.to_str(),
             "description": body.chars().take(MAX_STATUS_DESCRIPTION_LEN).collect::<String>(),

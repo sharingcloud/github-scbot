@@ -7,8 +7,10 @@ edition = "2018"
 [dependencies]
 github-scbot-core = { path = "../github_scbot_core" }
 github-scbot-types = { path = "../github_scbot_types" }
+jsonwebtoken = "7.2.0"
 octocrab = "0.8"
 http = "0.2"
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1.0"
 tracing = "0.1"

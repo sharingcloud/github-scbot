@@ -1,7 +1,11 @@
 //! Pull request API module.
 
-use super::{errors::Result, get_client, is_client_enabled};
-use crate::APIError;
+use github_scbot_types::pull_requests::GHMergeStrategy;
+
+use crate::{
+    utils::{get_client, is_client_enabled},
+    APIError, Result,
+};
 
 /// Get pull request from ID.
 ///
@@ -16,7 +20,7 @@ pub async fn get_pull_request(
     pr_number: u64,
 ) -> Result<octocrab::models::pulls::PullRequest> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
 
         client
             .pulls(repository_owner, repository_name)
@@ -47,10 +51,7 @@ pub async fn get_pull_request_sha(
     pr_number: u64,
 ) -> Result<String> {
     if is_client_enabled() {
-        tracing::info!("Will get_client");
-        let client = get_client()?;
-
-        tracing::info!("Will get PR data");
+        let client = get_client().await?;
         let data = client
             .pulls(repository_owner, repository_name)
             .get(pr_number)
@@ -59,4 +60,53 @@ pub async fn get_pull_request_sha(
     } else {
         Ok("abcdef".to_string())
     }
+}
+
+/// Merge pull request.
+///
+/// # Arguments
+///
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `pr_number` - PR number
+/// * `commit_title` - Commit title
+/// * `commit_message` - Commit message
+/// * `commit_message` - Commit message
+pub async fn merge_pull_request(
+    repository_owner: &str,
+    repository_name: &str,
+    pr_number: u64,
+    commit_title: &str,
+    commit_message: &str,
+    merge_strategy: GHMergeStrategy,
+) -> Result<()> {
+    if is_client_enabled() {
+        let client = get_client().await?;
+        let body = serde_json::json!({
+            "commit_title": commit_title,
+            "commit_message": commit_message,
+            "merge_method": merge_strategy.to_string()
+        });
+
+        let response = client
+            ._post(
+                client.absolute_url(format!(
+                    "/repos/{}/{}/pulls/{}/merge",
+                    repository_owner, repository_name, pr_number
+                ))?,
+                Some(&body),
+            )
+            .await?;
+
+        let code: u16 = response.status().into();
+        return match code {
+            403 => Err(APIError::MergeError("Forbidden".to_string())),
+            404 => Err(APIError::MergeError("Not found".to_string())),
+            405 => Err(APIError::MergeError("Not mergeable".to_string())),
+            409 => Err(APIError::MergeError("Conflicts".to_string())),
+            _ => Ok(()),
+        };
+    }
+
+    Ok(())
 }

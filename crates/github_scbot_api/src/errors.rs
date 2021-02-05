@@ -9,6 +9,14 @@ pub enum APIError {
     #[error("Could not get pull-request #{1} from repository {0}")]
     MissingPullRequest(String, u64),
 
+    /// JWT creation error.
+    #[error("JWT creation error: {0}")]
+    JWTCreationError(String),
+
+    /// Merge error.
+    #[error("Merge error: {0}")]
+    MergeError(String),
+
     /// Wraps [`octocrab::Error`].
     #[error(transparent)]
     OctocrabError(#[from] octocrab::Error),

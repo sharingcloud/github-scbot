@@ -2,7 +2,10 @@
 
 use tracing::error;
 
-use super::{errors::Result, get_client, is_client_enabled};
+use crate::{
+    utils::{get_client, is_client_enabled},
+    Result,
+};
 
 /// Request reviewers for a pull request.
 ///
@@ -19,7 +22,7 @@ pub async fn request_reviewers_for_pull_request(
     reviewers: &[String],
 ) -> Result<()> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
         let body = serde_json::json!({ "reviewers": reviewers });
 
         client
@@ -53,7 +56,7 @@ pub async fn remove_reviewers_for_pull_request(
     if is_client_enabled() {
         let body = serde_json::json!({ "reviewers": reviewers });
 
-        let client = get_client()?;
+        let client = get_client().await?;
         let url = client.absolute_url(format!(
             "/repos/{}/{}/pulls/{}/requested_reviewers",
             repository_owner, repository_name, pr_number

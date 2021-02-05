@@ -5,6 +5,30 @@ use serde::{Deserialize, Serialize};
 
 use super::common::{GHBranch, GHBranchShort, GHLabel, GHRepository, GHUser};
 
+/// GitHub Merge strategy.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GHMergeStrategy {
+    /// Merge
+    Merge,
+    /// Squash
+    Squash,
+    /// Rebase
+    Rebase,
+}
+
+impl ToString for GHMergeStrategy {
+    fn to_string(&self) -> String {
+        serde_plain::to_string(&self).unwrap()
+    }
+}
+
+impl From<&str> for GHMergeStrategy {
+    fn from(input: &str) -> Self {
+        serde_plain::from_str(input).unwrap()
+    }
+}
+
 /// GitHub Pull request action.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]

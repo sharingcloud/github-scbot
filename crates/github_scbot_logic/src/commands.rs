@@ -1,8 +1,8 @@
 //! Commands module.
 
 use github_scbot_api::{
-    comments::post_comment,
-    pulls::get_pull_request_sha,
+    comments::{add_reaction_to_comment, post_comment},
+    pulls::{get_pull_request_sha, merge_pull_request},
     reviews::{remove_reviewers_for_pull_request, request_reviewers_for_pull_request},
 };
 use github_scbot_core::constants::ENV_BOT_USERNAME;
@@ -10,10 +10,16 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel},
     DbConn,
 };
-use github_scbot_types::status::{CheckStatus, QAStatus};
+use github_scbot_types::{
+    issues::GHReactionType,
+    labels::StepLabel,
+    pull_requests::GHMergeStrategy,
+    status::{CheckStatus, QAStatus},
+};
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
+use crate::pull_requests::determine_automatic_step;
 
 /// Command handling status.
 #[derive(Debug, Clone, Copy)]
@@ -41,6 +47,8 @@ pub enum Command {
     UnassignRequiredReviewers(Vec<String>),
     /// Add/Remove lock with optional reason.
     Lock(bool, Option<String>),
+    /// Merge pull request.
+    Merge,
     /// Ping the bot.
     Ping,
     /// Show help message.
@@ -67,6 +75,7 @@ impl Command {
             "checks-" => Self::ChecksStatus(false),
             "automerge+" => Self::Automerge(true),
             "automerge-" => Self::Automerge(false),
+            "merge" => Self::Merge,
             "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)),
             "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)),
             "lock+" => Self::Lock(true, Self::parse_message(args)),
@@ -101,20 +110,23 @@ impl Command {
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
+/// * `comment_id` - Comment ID
 /// * `comment_author` - Comment author
-/// * `comment` - Comment body
+/// * `comment_body` - Comment body
 pub async fn parse_commands(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
+    comment_id: u64,
     comment_author: &str,
-    comment: &str,
+    comment_body: &str,
 ) -> Result<CommandHandlingStatus> {
     let mut command_handling = CommandHandlingStatus::Ignored;
 
-    for line in comment.lines() {
+    for line in comment_body.lines() {
         let line_handling =
-            parse_single_command(conn, repo_model, pr_model, comment_author, line).await?;
+            parse_single_command(conn, repo_model, pr_model, comment_id, comment_author, line)
+                .await?;
         if matches!(line_handling, CommandHandlingStatus::Handled) {
             command_handling = line_handling;
         }
@@ -129,12 +141,14 @@ pub async fn parse_commands(
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
+/// * `comment_id` - Comment ID
 /// * `comment_author` - Comment author
 /// * `line` - Comment line
 pub async fn parse_single_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
+    comment_id: u64,
     comment_author: &str,
     line: &str,
 ) -> Result<CommandHandlingStatus> {
@@ -167,6 +181,9 @@ pub async fn parse_single_command(
             }
             Some(Command::Ping) => {
                 handle_ping_command(repo_model, pr_model, comment_author).await?
+            }
+            Some(Command::Merge) => {
+                handle_merge_command(conn, repo_model, pr_model, comment_id, comment_author).await?
             }
             Some(Command::Synchronize) => true,
             Some(Command::AssignRequiredReviewers(reviewers)) => {
@@ -247,6 +264,91 @@ pub async fn handle_auto_merge_command(
         &comment,
     )
     .await?;
+
+    Ok(true)
+}
+
+/// Handle `Merge` command.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+/// * `comment_id` - Comment ID
+/// * `comment_author` - Comment author
+pub async fn handle_merge_command(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    comment_id: u64,
+    comment_author: &str,
+) -> Result<bool> {
+    // Use step to determine merge possibility
+    let reviews = pr_model.get_reviews(conn)?;
+    let step = determine_automatic_step(repo_model, pr_model, &reviews)?;
+    let commit_title = format!("{} (#{})", pr_model.name, pr_model.get_number());
+
+    if matches!(step, StepLabel::AwaitingMerge) {
+        match merge_pull_request(
+            &repo_model.owner,
+            &repo_model.name,
+            pr_model.get_number(),
+            &commit_title,
+            "",
+            GHMergeStrategy::Squash,
+        )
+        .await
+        {
+            Err(e) => {
+                add_reaction_to_comment(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    GHReactionType::MinusOne,
+                )
+                .await?;
+                post_comment(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    pr_model.get_number(),
+                    &format!("Could not merge this pull request: {}", e),
+                )
+                .await?;
+            }
+            _ => {
+                add_reaction_to_comment(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    GHReactionType::PlusOne,
+                )
+                .await?;
+                post_comment(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    pr_model.get_number(),
+                    &format!("Pull request successfully merged by @{}!", comment_author),
+                )
+                .await?;
+            }
+        }
+    } else {
+        add_reaction_to_comment(
+            &repo_model.owner,
+            &repo_model.name,
+            comment_id,
+            GHReactionType::MinusOne,
+        )
+        .await?;
+        post_comment(
+            &repo_model.owner,
+            &repo_model.name,
+            pr_model.get_number(),
+            "Pull request is not ready to merge.",
+        )
+        .await?;
+    }
 
     Ok(true)
 }

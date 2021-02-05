@@ -24,9 +24,9 @@ pub async fn handle_issue_comment_event(conn: &DbConn, event: &GHIssueCommentEve
             conn,
             &repo_model,
             event.issue.number,
-            &event.comment.body,
             event.comment.id,
             &event.comment.user.login,
+            &event.comment.body,
         )
         .await?;
     }
@@ -41,22 +41,28 @@ pub async fn handle_issue_comment_event(conn: &DbConn, event: &GHIssueCommentEve
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `issue_number` - Issue number
-/// * `issue_body` - Issue body
 /// * `comment_id` - Comment ID
 /// * `comment_author` - Comment author
+/// * `comment_body` - Comment body
 pub async fn handle_comment_creation(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     issue_number: u64,
-    issue_body: &str,
     comment_id: u64,
     comment_author: &str,
+    comment_body: &str,
 ) -> Result<()> {
     match get_or_fetch_pull_request(conn, repo_model, issue_number).await {
         Ok(mut pr_model) => {
-            let status =
-                parse_commands(conn, &repo_model, &mut pr_model, comment_author, issue_body)
-                    .await?;
+            let status = parse_commands(
+                conn,
+                &repo_model,
+                &mut pr_model,
+                comment_id,
+                comment_author,
+                comment_body,
+            )
+            .await?;
 
             if matches!(status, CommandHandlingStatus::Handled) {
                 add_reaction_to_comment(

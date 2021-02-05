@@ -4,7 +4,10 @@ use std::convert::TryFrom;
 
 use github_scbot_types::labels::StepLabel;
 
-use super::{errors::Result, get_client, is_client_enabled};
+use crate::{
+    utils::{get_client, is_client_enabled},
+    Result,
+};
 
 /// Add pull request step label in existing labels by returning a new vector.
 ///
@@ -42,7 +45,7 @@ pub async fn get_issue_labels(
     issue_number: u64,
 ) -> Result<Vec<String>> {
     if is_client_enabled() {
-        let client = get_client()?;
+        let client = get_client().await?;
 
         Ok(client
             .issues(repository_owner, repository_name)
@@ -77,7 +80,7 @@ pub async fn set_step_label(
             get_issue_labels(repository_owner, repository_name, pr_number).await?;
         let existing_labels = add_step_in_existing_labels(&existing_labels, label);
 
-        let client = get_client()?;
+        let client = get_client().await?;
         client
             .issues(repository_owner, repository_name)
             .replace_all_labels(pr_number, &existing_labels)

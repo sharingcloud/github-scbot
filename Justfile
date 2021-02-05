@@ -29,11 +29,7 @@ lint-err:
 
 # Execute tests
 test:
-	cargo test --all
-
-# Execute tests with coverage analysis
-cov:
-	cargo tarpaulin --out Lcov
+	cargo test --all -- --test-threads 1
 
 ###############
 # Documentation

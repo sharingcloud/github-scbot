@@ -11,4 +11,4 @@ pub enum CoreError {
 }
 
 /// Result alias for `CoreError`.
-pub type Result<T> = core::result::Result<T, CoreError>;
+pub type Result<T, E = CoreError> = core::result::Result<T, E>;
