@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use super::{
     common::{GHApplication, GHRepository, GHUser},
-    pull_requests::GHPullRequestShort,
+    pulls::GHPullRequestShort,
 };
 
 /// GitHub Check run action.
@@ -84,8 +84,6 @@ pub struct GHCheckRunOutput {
 /// GitHub Check suite.
 #[derive(Debug, Deserialize)]
 pub struct GHCheckSuite {
-    /// ID.
-    pub id: u64,
     /// Head branch.
     pub head_branch: String,
     /// Head commit SHA.
@@ -107,8 +105,6 @@ pub struct GHCheckSuite {
 /// GitHub Check run.
 #[derive(Debug, Deserialize)]
 pub struct GHCheckRun {
-    /// ID.
-    pub id: u64,
     /// Head commit SHA.
     pub head_sha: String,
     /// External ID.

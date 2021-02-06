@@ -3,8 +3,9 @@
 mod checks;
 mod issues;
 mod ping;
-mod pull_requests;
+mod pulls;
 mod push;
+mod reviews;
 
 use std::convert::TryFrom;
 
@@ -52,7 +53,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         .await
         .map_err(Into::into),
         EventType::PullRequest => {
-            pull_requests::pull_request_event(
+            pulls::pull_request_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -60,7 +61,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             .await
         }
         EventType::PullRequestReview => {
-            pull_requests::pull_request_review_event(
+            reviews::review_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -68,7 +69,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             .await
         }
         EventType::PullRequestReviewComment => {
-            pull_requests::pull_request_review_comment_event(
+            reviews::review_comment_event(
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,

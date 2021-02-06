@@ -11,15 +11,12 @@ use github_scbot_database::{
     DbConn,
 };
 use github_scbot_types::{
-    issues::GHReactionType,
-    labels::StepLabel,
-    pull_requests::GHMergeStrategy,
-    status::{CheckStatus, QAStatus},
+    issues::GHReactionType, labels::StepLabel, pulls::GHMergeStrategy, status::QAStatus,
 };
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
-use crate::pull_requests::determine_automatic_step;
+use crate::pulls::{determine_automatic_step, synchronize_pull_request};
 
 /// Command handling status.
 #[derive(Debug, Clone, Copy)]
@@ -37,8 +34,6 @@ pub enum Command {
     SkipQAStatus(bool),
     /// Enable/Disable QA status.
     QAStatus(Option<bool>),
-    /// Enable/Disable checks status.
-    ChecksStatus(bool),
     /// Enable/Disable automerge.
     Automerge(bool),
     /// Assign required reviewers.
@@ -71,8 +66,6 @@ impl Command {
             "qa+" => Self::QAStatus(Some(true)),
             "qa-" => Self::QAStatus(Some(false)),
             "qa?" => Self::QAStatus(None),
-            "checks+" => Self::ChecksStatus(true),
-            "checks-" => Self::ChecksStatus(false),
             "automerge+" => Self::Automerge(true),
             "automerge-" => Self::Automerge(false),
             "merge" => Self::Merge,
@@ -173,9 +166,6 @@ pub async fn parse_single_command(
             Some(Command::QAStatus(s)) => {
                 handle_qa_command(conn, repo_model, pr_model, comment_author, s).await?
             }
-            Some(Command::ChecksStatus(s)) => {
-                handle_checks_command(conn, repo_model, pr_model, comment_author, s).await?
-            }
             Some(Command::Lock(s, reason)) => {
                 handle_lock_command(conn, repo_model, pr_model, comment_author, s, reason).await?
             }
@@ -185,7 +175,7 @@ pub async fn parse_single_command(
             Some(Command::Merge) => {
                 handle_merge_command(conn, repo_model, pr_model, comment_id, comment_author).await?
             }
-            Some(Command::Synchronize) => true,
+            Some(Command::Synchronize) => handle_sync_command(conn, repo_model, pr_model).await?,
             Some(Command::AssignRequiredReviewers(reviewers)) => {
                 handle_assign_required_reviewers_command(conn, repo_model, pr_model, reviewers)
                     .await?
@@ -353,6 +343,27 @@ pub async fn handle_merge_command(
     Ok(true)
 }
 
+/// Handle `Sync` command.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+pub async fn handle_sync_command(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+) -> Result<bool> {
+    let pr = synchronize_pull_request(
+        conn,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+    )
+    .await?;
+    *pr_model = pr;
+    Ok(true)
+}
+
 /// Handle `SkipQA` command.
 ///
 /// # Arguments
@@ -402,43 +413,6 @@ pub async fn handle_qa_command(
     pr_model.save(conn)?;
 
     let comment = format!("QA is {} by **{}**", status_text, comment_author);
-    post_comment(
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(true)
-}
-
-/// Handle `ChecksStatus` command.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
-/// * `status` - QA status
-pub async fn handle_checks_command(
-    conn: &DbConn,
-    repo_model: &RepositoryModel,
-    pr_model: &mut PullRequestModel,
-    comment_author: &str,
-    status: bool,
-) -> Result<bool> {
-    let (status, status_text) = if status {
-        (CheckStatus::Pass, "marked as pass")
-    } else {
-        (CheckStatus::Fail, "marked as fail")
-    };
-
-    pr_model.set_checks_status(status);
-    pr_model.save(conn)?;
-
-    let comment = format!("Checks are {} by **{}**", status_text, comment_author);
     post_comment(
         &repo_model.owner,
         &repo_model.name,
@@ -625,15 +599,13 @@ pub async fn handle_help_command(
         - `qa+`: _Mark QA as passed_\n\
         - `qa-`: _Mark QA as failed_\n\
         - `qa?`: _Mark QA as waiting_\n\
-        - `checks+`: _Mark checks as passed_\n\
-        - `checks-`: _Mark checks as failed_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
         - `automerge-`: _Disable auto-merge for this PR_\n\
         - `lock+ <reason?>`: _Lock a pull-request (block merge)_\n\
         - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
         - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
         - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
-        - `merge`: _Try to merge the pull request_\n\
+        - `merge`: _Try merging the pull request_\n\
         - `ping`: _Ping me_\n\
         - `help`: _Show this comment_\n\
         - `sync`: _Update status comment if needed (maintenance-type command)_\n",

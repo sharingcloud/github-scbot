@@ -47,8 +47,10 @@ pub struct PullRequestModel {
     pub wip: bool,
     /// Needed reviewers count.
     pub needed_reviewers_count: i32,
-    /// Is the PR locked?.
+    /// Is the PR locked?
     pub locked: bool,
+    /// Is the PR merged?
+    pub merged: bool,
 }
 
 impl Default for PullRequestModel {
@@ -66,6 +68,7 @@ impl Default for PullRequestModel {
             wip: false,
             needed_reviewers_count: 2,
             locked: false,
+            merged: false,
         }
     }
 }
@@ -94,8 +97,10 @@ pub struct PullRequestCreation {
     pub wip: bool,
     /// Needed reviewers count.
     pub needed_reviewers_count: i32,
-    /// Is the PR locked?.
+    /// Is the PR locked?
     pub locked: bool,
+    /// Is the PR merged?
+    pub merged: bool,
 }
 
 impl Default for PullRequestCreation {
@@ -112,6 +117,7 @@ impl Default for PullRequestCreation {
             wip: false,
             needed_reviewers_count: 2,
             locked: false,
+            merged: false,
         }
     }
 }
@@ -288,6 +294,11 @@ impl PullRequestModel {
     /// * `step_label` - Step label
     pub fn set_step_label(&mut self, step_label: StepLabel) {
         self.step = Some(step_label.to_str().to_string());
+    }
+
+    /// Remove step label.
+    pub fn remove_step_label(&mut self) {
+        self.step = None;
     }
 
     /// Set QA status.

@@ -1,4 +1,4 @@
-//! Issues webhook handlers.
+//! Issue webhook handlers.
 
 use actix_web::HttpResponse;
 use github_scbot_database::DbConn;

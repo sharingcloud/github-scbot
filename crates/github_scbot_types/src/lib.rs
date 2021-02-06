@@ -10,9 +10,7 @@ pub mod events;
 pub mod issues;
 pub mod labels;
 pub mod ping;
-pub mod pull_requests;
+pub mod pulls;
 pub mod push;
+pub mod reviews;
 pub mod status;
-
-#[cfg(test)]
-mod tests;

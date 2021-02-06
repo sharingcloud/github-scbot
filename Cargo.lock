@@ -929,6 +929,7 @@ dependencies = [
  "github-scbot-api",
  "github-scbot-core",
  "github-scbot-database",
+ "github-scbot-logic",
  "github-scbot-server",
  "github-scbot-tui",
  "owo-colors",
@@ -940,13 +941,16 @@ dependencies = [
 name = "github-scbot-api"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "github-scbot-core",
  "github-scbot-types",
+ "heck",
  "http",
  "jsonwebtoken",
  "octocrab",
  "serde",
  "serde_json",
+ "serde_plain",
  "thiserror",
  "tracing",
 ]

@@ -8,8 +8,6 @@ use serde::Deserialize;
 pub struct GHUser {
     /// Username.
     pub login: String,
-    /// ID.
-    pub id: u64,
 }
 
 /// GitHub Commit user.
@@ -26,10 +24,6 @@ pub struct GHCommitUser {
 /// GitHub Commit.
 #[derive(Debug, Deserialize)]
 pub struct GHCommit {
-    /// ID.
-    pub id: String,
-    /// Tree ID.
-    pub tree_id: String,
     /// Distinct.
     pub distinct: bool,
     /// Message.
@@ -75,8 +69,6 @@ pub struct GHBranchShort {
 /// GitHub Repository.
 #[derive(Debug, Deserialize)]
 pub struct GHRepository {
-    /// ID.
-    pub id: u64,
     /// Name.
     pub name: String,
     /// Full name.
@@ -91,8 +83,6 @@ pub struct GHRepository {
     pub description: String,
     /// Is a fork?
     pub fork: bool,
-    /// Size in bytes.
-    pub size: usize,
     /// Language.
     pub language: String,
     /// Default branch name.
@@ -102,8 +92,6 @@ pub struct GHRepository {
 /// GitHub Label.
 #[derive(Debug, Deserialize)]
 pub struct GHLabel {
-    /// ID.
-    pub id: u64,
     /// Name.
     pub name: String,
     /// Color.
@@ -115,8 +103,6 @@ pub struct GHLabel {
 /// GitHub Application.
 #[derive(Debug, Deserialize)]
 pub struct GHApplication {
-    /// ID.
-    pub id: u64,
     /// Slug name.
     pub slug: String,
     /// Owner.

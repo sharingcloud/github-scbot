@@ -9,7 +9,7 @@ use github_scbot_database::{
 };
 use github_scbot_types::{
     common::GHUser,
-    pull_requests::{GHPullRequestReview, GHPullRequestReviewState},
+    reviews::{GHReview, GHReviewState},
 };
 
 use super::test_init;
@@ -52,28 +52,20 @@ async fn test_review_creation() {
     let (repo, mut pr) = arrange(&conn);
 
     // Simulate review
-    let review = GHPullRequestReview {
-        id: 1,
-        body: "OK".to_string(),
-        commit_id: "1234".to_string(),
-        state: GHPullRequestReviewState::Pending,
+    let review = GHReview {
+        state: GHReviewState::Pending,
         submitted_at: chrono::Utc::now(),
         user: GHUser {
-            id: 1,
             login: "me".to_string(),
         },
     };
     handle_review(&conn, &pr, &review).unwrap();
 
     // Simulate another review
-    let review2 = GHPullRequestReview {
-        id: 2,
-        body: "OK".to_string(),
-        commit_id: "1234".to_string(),
-        state: GHPullRequestReviewState::ChangesRequested,
+    let review2 = GHReview {
+        state: GHReviewState::ChangesRequested,
         submitted_at: chrono::Utc::now(),
         user: GHUser {
-            id: 2,
             login: "him".to_string(),
         },
     };

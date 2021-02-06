@@ -39,10 +39,7 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Reacts to GitHub Webhooks to update review status
 - [x] Generate a summary comment (once per PR)
 - [x] Validate PR titles depending on per-repository regexes
-- [ ] Reacts to comments:
-    - [x] Override checks status
-    - [x] Set QA status (or skip)
-    - [x] Require reviewers
+- [x] Reacts to comments: Set QA status (or skip), ping, lock/unlock, merge, etc.
 - [x] Require mandatory reviewers
 - [ ] Enable auto-merge
 
@@ -56,14 +53,15 @@ Process can be followed with labels, which are auto applied depending on the cur
 - Waiting for required reviews? **step/awaiting-required-review**
 - Waiting for reviews? **step/awaiting-reviews**
 - Waiting for QA? **step/awaiting-qa**
-- QA failed? **step/awaiting-checks**
+- QA failed? **step/awaiting-changes**
 - PR is locked? **step/locked**
 - All good? **step/awaiting-merge**
 
 ## Building
 
-This project use the **just** command runner (https://github.com/casey/just).  
-To install, use `cargo install just`.
+This project is written in the [Rust programming language](https://www.rust-lang.org/), so to build you have to [install the Rust tools](https://www.rust-lang.org/tools/install).  
+To easily execute build tasks, this project use **just** (https://github.com/casey/just), a modern Makefile-inspired command runner built in Rust.  
+To install, type `cargo install just`.
 
 You can then type `just --list` to print available commands.
 

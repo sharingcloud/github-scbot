@@ -1,6 +1,6 @@
 //! Pull request API module.
 
-use github_scbot_types::pull_requests::GHMergeStrategy;
+use github_scbot_types::pulls::{GHMergeStrategy, GHPullRequest};
 
 use crate::{
     utils::{get_client, is_client_enabled},
@@ -18,20 +18,31 @@ pub async fn get_pull_request(
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
-) -> Result<octocrab::models::pulls::PullRequest> {
+) -> Result<GHPullRequest> {
     if is_client_enabled() {
         let client = get_client().await?;
 
-        client
-            .pulls(repository_owner, repository_name)
-            .get(pr_number)
-            .await
-            .map_err(|_e| {
-                APIError::MissingPullRequest(
-                    format!("{}/{}", repository_owner, repository_name),
-                    pr_number,
-                )
-            })
+        let data: GHPullRequest = client
+            .get(
+                format!(
+                    "/repos/{owner}/{name}/pulls/{pr_number}",
+                    owner = repository_owner,
+                    name = repository_name,
+                    pr_number = pr_number
+                ),
+                None::<&()>,
+            )
+            .await?;
+        // .pulls(repository_owner, repository_name)
+        // .get(pr_number)
+        // .await
+        // .map_err(|_e| {
+        //     APIError::MissingPullRequest(
+        //         format!("{}/{}", repository_owner, repository_name),
+        //         pr_number,
+        //     )
+        // })
+        Ok(data)
     } else {
         Err(APIError::MissingPullRequest(
             format!("{}/{}", repository_owner, repository_name),

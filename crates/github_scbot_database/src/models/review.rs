@@ -1,7 +1,7 @@
 //! Database review models.
 
 use diesel::prelude::*;
-use github_scbot_types::pull_requests::{GHPullRequestReview, GHPullRequestReviewState};
+use github_scbot_types::reviews::{GHReview, GHReviewState};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -45,7 +45,7 @@ impl Default for ReviewCreation<'_> {
         Self {
             pull_request_id: 0,
             username: "",
-            state: GHPullRequestReviewState::Pending.to_string(),
+            state: GHReviewState::Pending.to_string(),
             required: false,
         }
     }
@@ -79,7 +79,7 @@ impl ReviewModel {
     pub fn create_or_update_from_github_review(
         conn: &DbConn,
         pull_request_id: i32,
-        review: &GHPullRequestReview,
+        review: &GHReview,
     ) -> Result<Self> {
         let entry = ReviewCreation {
             pull_request_id,
@@ -105,7 +105,7 @@ impl ReviewModel {
     pub fn create_or_update(
         conn: &DbConn,
         pull_request_id: i32,
-        review_state: GHPullRequestReviewState,
+        review_state: GHReviewState,
         username: &str,
     ) -> Result<Self> {
         let entry = ReviewCreation {
@@ -179,7 +179,7 @@ impl ReviewModel {
     }
 
     /// Get review state.
-    pub fn get_review_state(&self) -> GHPullRequestReviewState {
+    pub fn get_review_state(&self) -> GHReviewState {
         self.state.as_str().into()
     }
 
@@ -188,7 +188,7 @@ impl ReviewModel {
     /// # Arguments
     ///
     /// * `review_state` - Review state
-    pub fn set_review_state(&mut self, review_state: GHPullRequestReviewState) {
+    pub fn set_review_state(&mut self, review_state: GHReviewState) {
         self.state = review_state.to_string();
     }
 
@@ -197,8 +197,21 @@ impl ReviewModel {
     /// # Arguments
     ///
     /// * `conn` - Database connection
-    pub fn remove(&mut self, conn: &DbConn) -> Result<()> {
+    pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(review::table.filter(review::id.eq(self.id))).execute(conn)?;
+
+        Ok(())
+    }
+
+    /// Remove reviews for pull request.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `pull_request_id` - Pull request ID
+    pub fn remove_all_for_pull_request(conn: &DbConn, pull_request_id: i32) -> Result<()> {
+        diesel::delete(review::table.filter(review::pull_request_id.eq(pull_request_id)))
+            .execute(conn)?;
 
         Ok(())
     }

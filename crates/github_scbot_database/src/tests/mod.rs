@@ -1,4 +1,4 @@
-use github_scbot_types::pull_requests::GHPullRequestReviewState;
+use github_scbot_types::reviews::GHReviewState;
 
 use super::import_export::{export_models_to_json, import_models_from_json};
 use crate::{
@@ -122,7 +122,7 @@ fn test_export_models_to_json() {
         ReviewCreation {
             pull_request_id: pr.id,
             required: true,
-            state: GHPullRequestReviewState::Commented.to_string(),
+            state: GHReviewState::Commented.to_string(),
             username: "toto",
         },
     )
@@ -194,7 +194,8 @@ fn test_import_models_from_json() {
                     "qa_status": null,
                     "wip": false,
                     "needed_reviewers_count": 2,
-                    "locked": false
+                    "locked": false,
+                    "merged": false
                 },
                 {
                     "id": 2,
@@ -208,7 +209,8 @@ fn test_import_models_from_json() {
                     "qa_status": "pass",
                     "wip": true,
                     "needed_reviewers_count": 2,
-                    "locked": true
+                    "locked": true,
+                    "merged": false
                 }
             ],
             "reviews": [
@@ -238,8 +240,5 @@ fn test_import_models_from_json() {
     assert_eq!(pr_2.name, "Tata");
     assert_eq!(pr_2.automerge, true);
     assert_eq!(review_1.required, true);
-    assert_eq!(
-        review_1.get_review_state(),
-        GHPullRequestReviewState::Commented
-    );
+    assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
 }

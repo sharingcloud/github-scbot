@@ -1,4 +1,4 @@
-//! Labels types.
+//! Label types.
 
 use std::convert::TryFrom;
 

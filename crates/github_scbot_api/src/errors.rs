@@ -17,6 +17,10 @@ pub enum APIError {
     #[error("Merge error: {0}")]
     MergeError(String),
 
+    /// GitHub error.
+    #[error("GitHub error: {0}")]
+    GitHubError(String),
+
     /// Wraps [`octocrab::Error`].
     #[error(transparent)]
     OctocrabError(#[from] octocrab::Error),

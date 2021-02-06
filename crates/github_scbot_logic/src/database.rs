@@ -5,7 +5,7 @@ use github_scbot_database::{
     models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
     DbConn,
 };
-use github_scbot_types::{common::GHRepository, pull_requests::GHPullRequest};
+use github_scbot_types::{common::GHRepository, pulls::GHPullRequest};
 
 use crate::errors::Result;
 

@@ -9,14 +9,12 @@ use github_scbot_database::{
     DbConn,
 };
 use github_scbot_types::{
-    pull_requests::GHPullRequestReviewState,
+    reviews::GHReviewState,
     status::{CheckStatus, QAStatus, StatusState},
 };
 use regex::Regex;
 
-use crate::{
-    database::apply_pull_request_step, errors::Result, pull_requests::determine_automatic_step,
-};
+use crate::{database::apply_pull_request_step, errors::Result, pulls::determine_automatic_step};
 
 /// Pull request status.
 pub struct PullRequestStatus {
@@ -60,9 +58,9 @@ impl PullRequestStatus {
 
         for review in reviews {
             let state = review.get_review_state();
-            if review.required && state != GHPullRequestReviewState::Approved {
+            if review.required && state != GHReviewState::Approved {
                 required_reviews.push(review.username.clone());
-            } else if state == GHPullRequestReviewState::Approved {
+            } else if state == GHReviewState::Approved {
                 approved_reviews.push(review.username.clone());
             }
         }
