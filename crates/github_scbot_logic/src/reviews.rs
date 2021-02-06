@@ -5,9 +5,7 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
 };
-use github_scbot_types::pull_requests::{
-    GHPullRequestReview, GHPullRequestReviewEvent, GHPullRequestReviewState,
-};
+use github_scbot_types::reviews::{GHReview, GHReviewEvent, GHReviewState};
 
 use crate::{database::process_pull_request, status::update_pull_request_status, Result};
 
@@ -17,7 +15,7 @@ use crate::{database::process_pull_request, status::update_pull_request_status, 
 ///
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request review event
-pub async fn handle_review_event(conn: &DbConn, event: &GHPullRequestReviewEvent) -> Result<()> {
+pub async fn handle_review_event(conn: &DbConn, event: &GHReviewEvent) -> Result<()> {
     let (repo, mut pr) = process_pull_request(conn, &event.repository, &event.pull_request)?;
     handle_review(conn, &pr, &event.review)?;
     update_pull_request_status(conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
@@ -32,11 +30,7 @@ pub async fn handle_review_event(conn: &DbConn, event: &GHPullRequestReviewEvent
 /// * `conn` - Database connection
 /// * `pr_model` - Pull request model
 /// * `review` - GitHub review
-pub fn handle_review(
-    conn: &DbConn,
-    pr_model: &PullRequestModel,
-    review: &GHPullRequestReview,
-) -> Result<()> {
+pub fn handle_review(conn: &DbConn, pr_model: &PullRequestModel, review: &GHReview) -> Result<()> {
     // Get or create in database
     ReviewModel::create_or_update_from_github_review(conn, pr_model.id, review)?;
 
@@ -51,7 +45,7 @@ pub fn handle_review(
 pub fn handle_review_request(
     conn: &DbConn,
     pr_model: &PullRequestModel,
-    review_state: GHPullRequestReviewState,
+    review_state: GHReviewState,
     requested_reviewers: &[&str],
 ) -> Result<()> {
     for reviewer in requested_reviewers {
@@ -86,7 +80,7 @@ pub async fn rerequest_existing_reviews(
         .await?;
 
         for mut review in reviews {
-            review.set_review_state(GHPullRequestReviewState::Pending);
+            review.set_review_state(GHReviewState::Pending);
             review.save(conn)?;
         }
     }

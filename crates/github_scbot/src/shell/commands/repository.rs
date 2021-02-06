@@ -1,8 +1,6 @@
 //! Repository commands.
 
-use github_scbot_database::{establish_single_connection, models::RepositoryModel};
-
-use crate::errors::Result;
+use github_scbot_database::{establish_single_connection, models::RepositoryModel, Result};
 
 /// Set the pull request title validation regex for a repository.
 ///

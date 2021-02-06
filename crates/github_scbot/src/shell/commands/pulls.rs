@@ -1,14 +1,12 @@
 //! Pull request commands.
 
 use actix_rt::System;
-use github_scbot_api::pulls::get_pull_request;
+use anyhow::Result;
 use github_scbot_database::{
-    errors::DatabaseError,
     establish_single_connection,
-    models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
+    models::{PullRequestModel, RepositoryModel},
 };
-
-use crate::errors::Result;
+use github_scbot_logic::pulls::synchronize_pull_request;
 
 /// Show pull request data stored in database for a repository.
 ///
@@ -68,30 +66,14 @@ pub fn list_pull_requests(repository_path: &str) -> Result<()> {
 pub fn sync_pull_request(repository_path: String, number: u64) -> Result<()> {
     async fn sync(repository_path: String, number: u64) -> Result<()> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
-        let target_pr = get_pull_request(owner, name, number).await.map_err(|_e| {
-            DatabaseError::UnknownPullRequestError(number, repository_path.clone())
-        })?;
 
         let conn = establish_single_connection()?;
-        let repository = RepositoryModel::get_or_create(
-            &conn,
-            RepositoryCreation {
-                name: name.into(),
-                owner: owner.into(),
-                ..Default::default()
-            },
-        )?;
+        synchronize_pull_request(&conn, owner, name, number).await?;
 
-        PullRequestModel::get_or_create(
-            &conn,
-            PullRequestCreation {
-                repository_id: repository.id,
-                name: target_pr.title,
-                number: number as i32,
-                ..Default::default()
-            },
-        )?;
-
+        println!(
+            "Pull request #{} from {} updated from GitHub.",
+            number, repository_path
+        );
         Ok(())
     }
 

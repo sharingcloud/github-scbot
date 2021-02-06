@@ -134,16 +134,16 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 repository_path,
                 number,
             } => {
-                commands::pull_request::show_pull_request(&repository_path, number)?;
+                commands::pulls::show_pull_request(&repository_path, number)?;
             }
             PullRequestCommand::List { repository_path } => {
-                commands::pull_request::list_pull_requests(&repository_path)?;
+                commands::pulls::list_pull_requests(&repository_path)?;
             }
             PullRequestCommand::Sync {
                 repository_path,
                 number,
             } => {
-                commands::pull_request::sync_pull_request(repository_path, number)?;
+                commands::pulls::sync_pull_request(repository_path, number)?;
             }
         },
     }

@@ -12,6 +12,7 @@ table! {
         wip -> Bool,
         needed_reviewers_count -> Int4,
         locked -> Bool,
+        merged -> Bool,
     }
 }
 

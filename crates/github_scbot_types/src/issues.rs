@@ -73,8 +73,6 @@ pub enum GHIssueState {
 /// GitHub Issue.
 #[derive(Debug, Deserialize)]
 pub struct GHIssue {
-    /// ID.
-    pub id: u64,
     /// Number.
     pub number: u64,
     /// Title.

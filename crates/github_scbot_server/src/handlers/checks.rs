@@ -1,4 +1,4 @@
-//! Checks webhook handlers.
+//! Check webhook handlers.
 
 use actix_web::HttpResponse;
 use github_scbot_database::DbConn;

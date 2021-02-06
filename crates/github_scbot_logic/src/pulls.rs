@@ -1,13 +1,23 @@
 //! Pull requests logic.
 
+use std::collections::HashMap;
+
+use github_scbot_api::{
+    checks::list_check_suites_for_git_ref, pulls::get_pull_request,
+    reviews::list_reviews_for_pull_request,
+};
 use github_scbot_database::{
-    models::{PullRequestModel, RepositoryModel, ReviewModel},
+    models::{
+        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewModel,
+    },
     DbConn,
 };
 use github_scbot_types::{
+    checks::GHCheckConclusion,
     common::GHUser,
     labels::StepLabel,
-    pull_requests::{GHPullRequestAction, GHPullRequestEvent, GHPullRequestReviewState},
+    pulls::{GHPullRequestAction, GHPullRequestEvent},
+    reviews::{GHReview, GHReviewState},
     status::{CheckStatus, QAStatus},
 };
 
@@ -61,7 +71,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             handle_review_request(
                 conn,
                 &pr_model,
-                GHPullRequestReviewState::Pending,
+                GHReviewState::Pending,
                 &extract_usernames(&event.pull_request.requested_reviewers),
             )?;
             status_changed = true;
@@ -70,7 +80,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             handle_review_request(
                 conn,
                 &pr_model,
-                GHPullRequestReviewState::Dismissed,
+                GHReviewState::Dismissed,
                 &extract_usernames(&event.pull_request.requested_reviewers),
             )?;
             status_changed = true;
@@ -139,6 +149,102 @@ pub fn determine_automatic_step(
             Some(CheckStatus::Fail) => StepLabel::AwaitingChanges,
         }
     })
+}
+
+/// Synchronize pull request from upstream.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `pr_number` - Pull request number
+pub async fn synchronize_pull_request(
+    conn: &DbConn,
+    repository_owner: &str,
+    repository_name: &str,
+    pr_number: u64,
+) -> Result<PullRequestModel> {
+    // Get upstream pull request
+    let upstream_pr = get_pull_request(repository_owner, repository_name, pr_number).await?;
+    // Get reviews
+    let reviews =
+        list_reviews_for_pull_request(repository_owner, repository_name, pr_number).await?;
+    // Get upstream checks
+    let check_suites =
+        list_check_suites_for_git_ref(repository_owner, repository_name, &upstream_pr.head.sha)
+            .await?;
+
+    // Extract status
+    let status: CheckStatus = {
+        if check_suites.is_empty() {
+            CheckStatus::Skipped
+        } else {
+            check_suites
+                .iter()
+                // Only fetch GitHub apps, like GitHub Actions
+                .filter(|&s| s.app.owner.login == "github")
+                .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
+                    (CheckStatus::Fail, _) => CheckStatus::Fail,
+                    (_, Some(GHCheckConclusion::Failure)) => CheckStatus::Fail,
+                    (_, None) => CheckStatus::Waiting,
+                    (_, _) => acc,
+                })
+        }
+    };
+
+    let repo = RepositoryModel::get_or_create(
+        conn,
+        RepositoryCreation {
+            name: repository_name.into(),
+            owner: repository_owner.into(),
+            ..Default::default()
+        },
+    )?;
+
+    let mut pr = PullRequestModel::get_or_create(
+        conn,
+        PullRequestCreation {
+            repository_id: repo.id,
+            name: upstream_pr.title.clone(),
+            number: pr_number as i32,
+            ..Default::default()
+        },
+    )?;
+
+    // Update reviews
+    let review_map: HashMap<&str, &GHReview> =
+        reviews.iter().map(|r| (&r.user.login[..], r)).collect();
+    for review in &reviews {
+        ReviewModel::create_or_update(conn, pr.id, review.state, &review.user.login)?;
+    }
+
+    // Remove missing reviews
+    let existing_reviews = pr.get_reviews(conn)?;
+    for review in &existing_reviews {
+        if !review_map.contains_key(&review.username[..]) {
+            review.remove(conn)?;
+        }
+    }
+
+    // Update PR
+    pr.name = upstream_pr.title;
+    pr.wip = upstream_pr.draft;
+    pr.set_checks_status(status);
+
+    // Remove label is PR is merged
+    if upstream_pr.merged_at.is_some() {
+        pr.remove_step_label();
+        pr.merged = true;
+    } else {
+        // Determine step label
+        let existing_reviews = pr.get_reviews(conn)?;
+        let label = determine_automatic_step(&repo, &pr, &existing_reviews)?;
+        pr.set_step_label(label);
+        pr.merged = false;
+    }
+    pr.save(conn)?;
+    Ok(pr)
 }
 
 fn extract_usernames(users: &[GHUser]) -> Vec<&str> {

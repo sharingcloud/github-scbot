@@ -7,9 +7,9 @@ use std::{
 };
 
 use github_scbot_database::{
-    errors::Result,
     establish_single_connection,
     import_export::{export_models_to_json, import_models_from_json, ExportError, ImportError},
+    Result,
 };
 
 /// Export database as JSON.
