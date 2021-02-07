@@ -42,6 +42,10 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
 
     // Welcome message
     if let GHPullRequestAction::Opened = event.action {
+        // Define needed reviewers count.
+        pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
+        pr_model.save(&conn)?;
+
         post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
     }
 
@@ -50,7 +54,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
     // Status update
     match event.action {
         GHPullRequestAction::Opened | GHPullRequestAction::Synchronize => {
-            pr_model.wip = event.pull_request.draft;
+            pr_model.set_from_upstream(&event.pull_request);
             pr_model.set_checks_status(CheckStatus::Waiting);
             pr_model.save(conn)?;
             status_changed = true;
@@ -59,13 +63,13 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             rerequest_existing_reviews(conn, &repo_model, &pr_model).await?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
-            pr_model.wip = event.pull_request.draft;
+            pr_model.set_from_upstream(&event.pull_request);
             pr_model.save(conn)?;
             status_changed = true;
         }
         GHPullRequestAction::ConvertedToDraft => {
+            pr_model.set_from_upstream(&event.pull_request);
             pr_model.wip = true;
-            pr_model.save(conn)?;
             status_changed = true;
         }
         GHPullRequestAction::ReviewRequested => {
@@ -91,7 +95,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
 
     if let GHPullRequestAction::Edited = event.action {
         // Update PR title
-        pr_model.name = event.pull_request.title.clone();
+        pr_model.set_from_upstream(&event.pull_request);
         pr_model.save(conn)?;
         status_changed = true;
     }
