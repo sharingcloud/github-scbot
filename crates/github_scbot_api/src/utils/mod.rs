@@ -74,8 +74,8 @@ fn create_jwt_token() -> Result<String> {
     let claims = JwtClaims {
         // Issued at time
         iat: now_ts,
-        // Expiration time, 10 minutes maximum, enforced by GitHub
-        exp: now_ts + (60 * 10),
+        // Expiration time, 1 minute
+        exp: now_ts + 60,
         // GitHub App Identifier
         iss: std::env::var(ENV_GITHUB_APP_ID).unwrap().parse().unwrap(),
     };
@@ -94,8 +94,8 @@ async fn create_installation_access_token() -> Result<String> {
     let client = Octocrab::builder().personal_token(auth_token).build()?;
     let installation_id = std::env::var(ENV_GITHUB_APP_INSTALLATION_ID).unwrap_or_default();
 
-    let resp = client
-        ._post(
+    let resp: InstallationTokenResponse = client
+        .post(
             client.absolute_url(&format!(
                 "/app/installations/{}/access_tokens",
                 installation_id
@@ -103,6 +103,5 @@ async fn create_installation_access_token() -> Result<String> {
             None::<&()>,
         )
         .await?;
-    let content = resp.json::<InstallationTokenResponse>().await.unwrap();
-    Ok(content.token)
+    Ok(resp.token)
 }

@@ -8,7 +8,8 @@ use github_scbot_api::{
 };
 use github_scbot_database::{
     models::{
-        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewModel,
+        MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
+        ReviewModel,
     },
     DbConn,
 };
@@ -16,7 +17,7 @@ use github_scbot_types::{
     checks::GHCheckConclusion,
     common::GHUser,
     labels::StepLabel,
-    pulls::{GHPullRequestAction, GHPullRequestEvent},
+    pulls::{GHMergeStrategy, GHPullRequestAction, GHPullRequestEvent},
     reviews::{GHReview, GHReviewState},
     status::{CheckStatus, QAStatus},
 };
@@ -151,6 +152,29 @@ pub fn determine_automatic_step(
     })
 }
 
+/// Get merge strategy for branches.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `base_branch` - Base branch
+/// * `head_branch` - Head branch
+pub fn get_merge_strategy_for_branches(
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    base_branch: &str,
+    head_branch: &str,
+) -> GHMergeStrategy {
+    MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, head_branch)
+        .map(|x| x.get_strategy())
+        .unwrap_or_else(|| {
+            MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, "*")
+                .map(|x| x.get_strategy())
+                .unwrap_or_else(|| repo_model.get_default_merge_strategy())
+        })
+}
+
 /// Synchronize pull request from upstream.
 ///
 /// # Arguments
@@ -204,12 +228,7 @@ pub async fn synchronize_pull_request(
 
     let mut pr = PullRequestModel::get_or_create(
         conn,
-        PullRequestCreation {
-            repository_id: repo.id,
-            name: upstream_pr.title.clone(),
-            number: pr_number as i32,
-            ..Default::default()
-        },
+        PullRequestCreation::from_upstream(repo.id, &upstream_pr),
     )?;
 
     // Update reviews
@@ -228,21 +247,18 @@ pub async fn synchronize_pull_request(
     }
 
     // Update PR
-    pr.name = upstream_pr.title;
-    pr.wip = upstream_pr.draft;
+    pr.set_from_upstream(&upstream_pr);
     pr.set_checks_status(status);
 
-    // Remove label is PR is merged
+    // Determine step label
+    let existing_reviews = pr.get_reviews(conn)?;
+    let label = determine_automatic_step(&repo, &pr, &existing_reviews)?;
+    pr.set_step_label(label);
+
     if upstream_pr.merged_at.is_some() {
         pr.remove_step_label();
-        pr.merged = true;
-    } else {
-        // Determine step label
-        let existing_reviews = pr.get_reviews(conn)?;
-        let label = determine_automatic_step(&repo, &pr, &existing_reviews)?;
-        pr.set_step_label(label);
-        pr.merged = false;
     }
+
     pr.save(conn)?;
     Ok(pr)
 }

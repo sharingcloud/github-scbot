@@ -5,6 +5,7 @@ class Repository {
     owner: String
     pr_title_validation_regex: String
     default_needed_reviewers_count: Integer
+    default_strategy: String
 }
 class PullRequest {
     #id: Integer
@@ -19,6 +20,9 @@ class PullRequest {
     wip: Boolean
     needed_reviewers_count: Integer
     locked: Boolean
+    merged: Boolean
+    base_branch: String
+    head_branch: String
 }
 class Review {
     #id: Integer
@@ -27,7 +31,15 @@ class Review {
     state: String
     required: Boolean
 }
+class MergeRule {
+    #id: Integer
+    *repository_id: Integer
+    base_branch: String
+    head_branch: String
+    strategy: String
+}
 
 Repository *-- PullRequest : has
+Repository *-- MergeRule : has
 PullRequest *-- Review : has
 @enduml

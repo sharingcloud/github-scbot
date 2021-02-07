@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 use diesel::prelude::*;
 use github_scbot_types::{
     labels::StepLabel,
+    pulls::GHPullRequest,
     status::{CheckStatus, QAStatus},
 };
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::{repository::RepositoryModel, ReviewModel};
 use crate::{
     errors::{DatabaseError, Result},
-    schema::{
-        pull_request::{self, dsl},
-        repository,
-    },
+    schema::{pull_request, repository},
     DbConn,
 };
 
@@ -51,6 +49,10 @@ pub struct PullRequestModel {
     pub locked: bool,
     /// Is the PR merged?
     pub merged: bool,
+    /// Base branch.
+    pub base_branch: String,
+    /// Head branch.
+    pub head_branch: String,
 }
 
 impl Default for PullRequestModel {
@@ -69,6 +71,8 @@ impl Default for PullRequestModel {
             needed_reviewers_count: 2,
             locked: false,
             merged: false,
+            base_branch: String::new(),
+            head_branch: String::new(),
         }
     }
 }
@@ -101,6 +105,24 @@ pub struct PullRequestCreation {
     pub locked: bool,
     /// Is the PR merged?
     pub merged: bool,
+    /// Base branch.
+    pub base_branch: String,
+    /// Head branch.
+    pub head_branch: String,
+}
+
+impl PullRequestCreation {
+    /// Creates from upstream pull request.
+    pub fn from_upstream(repository_id: i32, upstream: &GHPullRequest) -> Self {
+        Self {
+            repository_id,
+            name: upstream.title.clone(),
+            number: upstream.number as i32,
+            base_branch: upstream.base.reference.clone(),
+            head_branch: upstream.head.reference.clone(),
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for PullRequestCreation {
@@ -118,6 +140,8 @@ impl Default for PullRequestCreation {
             needed_reviewers_count: 2,
             locked: false,
             merged: false,
+            base_branch: String::new(),
+            head_branch: String::new(),
         }
     }
 }
@@ -130,13 +154,13 @@ impl PullRequestModel {
     /// * `conn` - Database connection
     /// * `entry` - Pull request creation entry
     pub fn create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
-        diesel::insert_into(dsl::pull_request)
+        diesel::insert_into(pull_request::table)
             .values(&entry)
             .execute(conn)?;
 
         Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number).ok_or_else(
             || {
-                DatabaseError::UnknownPullRequestError(
+                DatabaseError::UnknownPullRequest(
                     entry.number as u64,
                     entry.repository_id.to_string(),
                 )
@@ -150,7 +174,7 @@ impl PullRequestModel {
     ///
     /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        dsl::pull_request.load::<Self>(conn).map_err(Into::into)
+        pull_request::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// List pull requests for repository path.
@@ -185,9 +209,9 @@ impl PullRequestModel {
         repository_id: i32,
         pr_number: i32,
     ) -> Option<Self> {
-        dsl::pull_request
-            .filter(dsl::repository_id.eq(repository_id))
-            .filter(dsl::number.eq(pr_number))
+        pull_request::table
+            .filter(pull_request::repository_id.eq(repository_id))
+            .filter(pull_request::number.eq(pr_number))
             .first(conn)
             .ok()
     }
@@ -317,6 +341,19 @@ impl PullRequestModel {
     /// * `id` - Status comment ID
     pub fn set_status_comment_id(&mut self, id: u64) {
         self.status_comment_id = id as i32
+    }
+
+    /// Set attributes from upstream pull request.
+    ///
+    /// # Arguments
+    ///
+    /// * `upstream_pr` - GitHub Pull request
+    pub fn set_from_upstream(&mut self, upstream_pr: &GHPullRequest) {
+        self.name = upstream_pr.title.clone();
+        self.wip = upstream_pr.draft;
+        self.merged = upstream_pr.merged_at.is_some();
+        self.base_branch = upstream_pr.base.reference.clone();
+        self.head_branch = upstream_pr.head.reference.clone();
     }
 
     /// Save model instance to database.

@@ -7,23 +7,27 @@ use thiserror::Error;
 pub enum DatabaseError {
     /// Unknown repository.
     #[error("Repository `{0}` not found")]
-    UnknownRepositoryError(String),
+    UnknownRepository(String),
 
     /// Badly formatted repository path.
     #[error("Badly formatted repository path: {0}")]
-    BadRepositoryPathError(String),
+    BadRepositoryPath(String),
 
     /// Unknown pull request.
     #[error("Pull request `#{0}` not found for repository `{1}`")]
-    UnknownPullRequestError(u64, String),
+    UnknownPullRequest(u64, String),
 
     /// Unknown review.
     #[error("Unknown pull request review for PR id {0} and username {1}")]
-    UnknownReviewError(i32, String),
+    UnknownReview(i32, String),
+
+    /// Unknown merge rule.
+    #[error("Unknown merge rule for repository id {0} and branches {1} (base) <- {2} (head)")]
+    UnknownMergeRule(i32, String, String),
 
     /// Unknown review state.
     #[error("Unknown review state: {0}")]
-    UnknownReviewStateError(String),
+    UnknownReviewState(String),
 
     /// Wraps [`super::import_export::ExportError`].
     #[error("Export error: {0}")]

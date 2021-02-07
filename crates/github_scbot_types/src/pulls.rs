@@ -1,12 +1,15 @@
 //! Pull types.
 
+use std::convert::TryFrom;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use super::common::{GHBranch, GHBranchShort, GHLabel, GHRepository, GHUser};
+use crate::errors::TypeError;
 
 /// GitHub Merge strategy.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GHMergeStrategy {
     /// Merge
@@ -23,9 +26,12 @@ impl ToString for GHMergeStrategy {
     }
 }
 
-impl From<&str> for GHMergeStrategy {
-    fn from(input: &str) -> Self {
-        serde_plain::from_str(input).unwrap()
+impl TryFrom<&str> for GHMergeStrategy {
+    type Error = TypeError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        serde_plain::from_str(value)
+            .map_err(|_e| TypeError::UnknownMergeStrategy(value.to_string()))
     }
 }
 

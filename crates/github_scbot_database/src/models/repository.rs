@@ -1,11 +1,14 @@
 //! Database repository models.
 
+use std::convert::TryInto;
+
 use diesel::prelude::*;
+use github_scbot_types::pulls::GHMergeStrategy;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{DatabaseError, Result},
-    schema::repository::{self, dsl},
+    schema::{merge_rule, repository},
     DbConn,
 };
 
@@ -25,6 +28,8 @@ pub struct RepositoryModel {
     pub pr_title_validation_regex: String,
     /// Default reviewers count needed for a pull request.
     pub default_needed_reviewers_count: i32,
+    /// Default strategy.
+    default_strategy: String,
 }
 
 /// Repository creation.
@@ -39,6 +44,8 @@ pub struct RepositoryCreation {
     pub pr_title_validation_regex: String,
     /// Default reviewers count needed for a pull request.
     pub default_needed_reviewers_count: i32,
+    /// Default strategy.
+    pub default_strategy: String,
 }
 
 impl Default for RepositoryModel {
@@ -49,6 +56,7 @@ impl Default for RepositoryModel {
             owner: String::new(),
             pr_title_validation_regex: String::new(),
             default_needed_reviewers_count: 2,
+            default_strategy: GHMergeStrategy::Merge.to_string(),
         }
     }
 }
@@ -60,6 +68,7 @@ impl Default for RepositoryCreation {
             owner: String::new(),
             pr_title_validation_regex: String::new(),
             default_needed_reviewers_count: 2,
+            default_strategy: GHMergeStrategy::Merge.to_string(),
         }
     }
 }
@@ -71,12 +80,12 @@ impl RepositoryModel {
     ///
     /// * `entry` - Database entry
     pub fn create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
-        diesel::insert_into(dsl::repository)
+        diesel::insert_into(repository::table)
             .values(&entry)
             .execute(conn)?;
 
         Self::get_from_owner_and_name(conn, &entry.owner, &entry.name).ok_or_else(|| {
-            DatabaseError::UnknownRepositoryError(format!("{}/{}", entry.owner, entry.name))
+            DatabaseError::UnknownRepository(format!("{}/{}", entry.owner, entry.name))
         })
     }
 
@@ -86,7 +95,7 @@ impl RepositoryModel {
     ///
     /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        dsl::repository.load::<Self>(conn).map_err(Into::into)
+        repository::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// Get repository from database ID.
@@ -96,7 +105,10 @@ impl RepositoryModel {
     /// * `conn` - Database connection
     /// * `id` - Repository ID
     pub fn get_from_id(conn: &DbConn, id: i32) -> Option<Self> {
-        dsl::repository.filter(dsl::id.eq(id)).first(conn).ok()
+        repository::table
+            .filter(repository::id.eq(id))
+            .first(conn)
+            .ok()
     }
 
     /// Get repository from owner and name.
@@ -107,9 +119,9 @@ impl RepositoryModel {
     /// * `owner` - Repository owner
     /// * `name` - Repository name
     pub fn get_from_owner_and_name(conn: &DbConn, owner: &str, name: &str) -> Option<Self> {
-        dsl::repository
-            .filter(dsl::name.eq(name))
-            .filter(dsl::owner.eq(owner))
+        repository::table
+            .filter(repository::name.eq(name))
+            .filter(repository::owner.eq(owner))
             .first(conn)
             .ok()
     }
@@ -134,6 +146,20 @@ impl RepositoryModel {
     pub fn get_or_create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
         Self::get_from_owner_and_name(conn, &entry.owner, &entry.name)
             .map_or_else(|| Self::create(conn, entry), Ok)
+    }
+
+    /// Get default merge strategy.
+    pub fn get_default_merge_strategy(&self) -> GHMergeStrategy {
+        (&self.default_strategy[..]).try_into().unwrap()
+    }
+
+    /// Set default merge strategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `strategy` - Merge strategy
+    pub fn set_default_merge_strategy(&mut self, strategy: GHMergeStrategy) {
+        self.default_strategy = strategy.to_string();
     }
 
     /// Get repository path.
@@ -168,6 +194,162 @@ impl RepositoryModel {
             }
         }
 
-        Err(DatabaseError::BadRepositoryPathError(path.to_string()))
+        Err(DatabaseError::BadRepositoryPath(path.to_string()))
+    }
+}
+
+/// Merge rule model.
+#[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, AsChangeset)]
+#[table_name = "merge_rule"]
+pub struct MergeRuleModel {
+    /// Merge rule ID.
+    pub id: i32,
+    /// Repository ID.
+    pub repository_id: i32,
+    /// Base branch name.
+    pub base_branch: String,
+    /// Head branch name.
+    pub head_branch: String,
+    /// Strategy name.
+    strategy: String,
+}
+
+/// Merge rule creation.
+#[derive(Debug, Insertable)]
+#[table_name = "merge_rule"]
+pub struct MergeRuleCreation {
+    /// Repository ID.
+    pub repository_id: i32,
+    /// Base branch name.
+    pub base_branch: String,
+    /// Head branch name.
+    pub head_branch: String,
+    /// Strategy name.
+    pub strategy: String,
+}
+
+impl MergeRuleModel {
+    /// Create merge rule from creation entry.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `entry` - Merge rule creation entry
+    pub fn create(conn: &DbConn, entry: MergeRuleCreation) -> Result<Self> {
+        diesel::insert_into(merge_rule::table)
+            .values(&entry)
+            .execute(conn)?;
+
+        Self::get_from_branches(
+            conn,
+            entry.repository_id,
+            &entry.base_branch,
+            &entry.head_branch,
+        )
+        .ok_or(DatabaseError::UnknownMergeRule(
+            entry.repository_id,
+            entry.base_branch,
+            entry.head_branch,
+        ))
+    }
+
+    /// Get or create a merge rule.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `entry` - Merge rule creation entry
+    pub fn get_or_create(conn: &DbConn, entry: MergeRuleCreation) -> Result<Self> {
+        Self::get_from_branches(
+            conn,
+            entry.repository_id,
+            &entry.base_branch,
+            &entry.head_branch,
+        )
+        .map_or_else(|| Self::create(conn, entry), Ok)
+    }
+
+    /// Get strategy.
+    pub fn get_strategy(&self) -> GHMergeStrategy {
+        (&self.strategy[..]).try_into().unwrap()
+    }
+
+    /// Set strategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `strategy` - Merge strategy
+    pub fn set_strategy(&mut self, strategy: GHMergeStrategy) {
+        self.strategy = strategy.to_string();
+    }
+
+    /// Get merge rule for branches.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `repository_id` - Repository ID
+    /// * `base_branch` - Base branch
+    /// * `head_branch` - Head branch
+    pub fn get_from_branches(
+        conn: &DbConn,
+        repository_id: i32,
+        base_branch: &str,
+        head_branch: &str,
+    ) -> Option<Self> {
+        merge_rule::table
+            .filter(merge_rule::repository_id.eq(repository_id))
+            .filter(merge_rule::base_branch.eq(base_branch))
+            .filter(merge_rule::head_branch.eq(head_branch))
+            .first(conn)
+            .ok()
+    }
+
+    /// List rules from repository ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `repository_id` - Repository ID
+    pub fn list_from_repository_id(
+        conn: &DbConn,
+        repository_id: i32,
+    ) -> Result<Vec<MergeRuleModel>> {
+        let rules = merge_rule::table
+            .filter(merge_rule::repository_id.eq(repository_id))
+            .get_results(conn)?;
+
+        Ok(rules)
+    }
+
+    /// List merge rules.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
+        merge_rule::table.load::<Self>(conn).map_err(Into::into)
+    }
+
+    /// Remove merge rule.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn remove(&self, conn: &DbConn) -> Result<()> {
+        diesel::delete(merge_rule::table.filter(merge_rule::id.eq(self.id))).execute(conn)?;
+
+        Ok(())
+    }
+
+    /// Save model instance to database.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn save(&mut self, conn: &DbConn) -> Result<()> {
+        self.save_changes::<Self>(conn)?;
+
+        Ok(())
     }
 }

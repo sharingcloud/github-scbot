@@ -932,6 +932,7 @@ dependencies = [
  "github-scbot-logic",
  "github-scbot-server",
  "github-scbot-tui",
+ "github-scbot-types",
  "owo-colors",
  "structopt",
  "thiserror",

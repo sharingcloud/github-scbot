@@ -17,6 +17,7 @@ use super::{
     },
     DbConn,
 };
+use crate::models::{MergeRuleCreation, MergeRuleModel};
 
 /// Import error.
 #[derive(Debug, Error)]
@@ -29,13 +30,13 @@ pub enum ImportError {
     #[error("IO error on file {0:?}: {1}")]
     IOError(PathBuf, std::io::Error),
 
-    /// Unknown repository ID error.
+    /// Unknown repository ID.
     #[error("Unknown repository ID in file: {0}")]
-    UnknownRepositoryIdError(i32),
+    UnknownRepositoryId(i32),
 
-    /// Unknown pull request ID error.
+    /// Unknown pull request ID.
     #[error("Unknown pull request ID in file: {0}")]
-    UnknownPullRequestIdError(i32),
+    UnknownPullRequestId(i32),
 }
 
 /// Export error.
@@ -55,6 +56,7 @@ struct ImportExportModel {
     repositories: Vec<RepositoryModel>,
     pull_requests: Vec<PullRequestModel>,
     reviews: Vec<ReviewModel>,
+    merge_rules: Vec<MergeRuleModel>,
 }
 
 /// Export database models to JSON.
@@ -71,6 +73,7 @@ where
         repositories: RepositoryModel::list(conn)?,
         pull_requests: PullRequestModel::list(conn)?,
         reviews: ReviewModel::list(conn)?,
+        merge_rules: MergeRuleModel::list(conn)?,
     };
 
     serde_json::to_writer_pretty(writer, &model).map_err(ExportError::SerdeError)?;
@@ -114,13 +117,39 @@ where
         repository.save(conn)?;
     }
 
+    // Create or update merge rules
+    for merge_rule in &mut model.merge_rules {
+        println!(
+            "> Importing merge rule '{}' (base) <- '{}' (head), strategy '{}' for repository ID {}",
+            merge_rule.base_branch,
+            merge_rule.head_branch,
+            merge_rule.get_strategy().to_string(),
+            merge_rule.repository_id
+        );
+
+        let repo_id = repo_id_map
+            .get(&merge_rule.repository_id)
+            .ok_or(ImportError::UnknownRepositoryId(merge_rule.repository_id))?;
+        let mr = MergeRuleModel::get_or_create(
+            conn,
+            MergeRuleCreation {
+                repository_id: *repo_id,
+                base_branch: merge_rule.base_branch.clone(),
+                head_branch: merge_rule.head_branch.clone(),
+                strategy: merge_rule.get_strategy().to_string(),
+            },
+        )?;
+        merge_rule.id = mr.id;
+        merge_rule.save(conn)?;
+    }
+
     // Create or update pull requests
     for pull_request in &mut model.pull_requests {
         println!("> Importing pull request #{}", pull_request.get_number());
 
-        let repo_id = repo_id_map.get(&pull_request.repository_id).ok_or(
-            ImportError::UnknownRepositoryIdError(pull_request.repository_id),
-        )?;
+        let repo_id = repo_id_map
+            .get(&pull_request.repository_id)
+            .ok_or(ImportError::UnknownRepositoryId(pull_request.repository_id))?;
         let pr = PullRequestModel::get_or_create(
             conn,
             PullRequestCreation {
@@ -141,9 +170,9 @@ where
             review.id, review.username
         );
 
-        let pr_id = pr_id_map.get(&review.pull_request_id).ok_or(
-            ImportError::UnknownPullRequestIdError(review.pull_request_id),
-        )?;
+        let pr_id = pr_id_map
+            .get(&review.pull_request_id)
+            .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
         let rvw = ReviewModel::get_or_create(
             conn,
             ReviewCreation {

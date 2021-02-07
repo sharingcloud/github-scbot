@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{DatabaseError, Result},
-    schema::review::{self, dsl},
+    schema::review,
     DbConn,
 };
 
@@ -59,13 +59,13 @@ impl ReviewModel {
     /// * `conn` - Database connection
     /// * `entry` - Review creation entry
     pub fn create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
-        diesel::insert_into(dsl::review)
+        diesel::insert_into(review::table)
             .values(&entry)
             .execute(conn)?;
 
         Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
             .ok_or_else(|| {
-                DatabaseError::UnknownReviewError(entry.pull_request_id, entry.username.to_string())
+                DatabaseError::UnknownReview(entry.pull_request_id, entry.username.to_string())
             })
     }
 

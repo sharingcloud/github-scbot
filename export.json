@@ -1,0 +1,90 @@
+{
+  "repositories": [
+    {
+      "id": 6,
+      "name": "github-scbot",
+      "owner": "sharingcloud",
+      "pr_title_validation_regex": "",
+      "default_needed_reviewers_count": 2,
+      "default_strategy": "squash"
+    }
+  ],
+  "pull_requests": [
+    {
+      "id": 6,
+      "repository_id": 6,
+      "number": 6,
+      "name": "doc: update README",
+      "automerge": false,
+      "step": null,
+      "check_status": "pass",
+      "status_comment_id": 0,
+      "qa_status": null,
+      "wip": false,
+      "needed_reviewers_count": 2,
+      "locked": false,
+      "merged": true,
+      "base_branch": "unknown",
+      "head_branch": "unknown"
+    },
+    {
+      "id": 7,
+      "repository_id": 6,
+      "number": 8,
+      "name": "Better synchronization with GitHub",
+      "automerge": false,
+      "step": "step/awaiting-checks",
+      "check_status": "pass",
+      "status_comment_id": 774496228,
+      "qa_status": null,
+      "wip": false,
+      "needed_reviewers_count": 2,
+      "locked": false,
+      "merged": false,
+      "base_branch": "unknown",
+      "head_branch": "unknown"
+    },
+    {
+      "id": 5,
+      "repository_id": 6,
+      "number": 7,
+      "name": "Add required reviews support",
+      "automerge": false,
+      "step": "step/awaiting-merge",
+      "check_status": "pass",
+      "status_comment_id": 772602221,
+      "qa_status": "pass",
+      "wip": false,
+      "needed_reviewers_count": 2,
+      "locked": false,
+      "merged": true,
+      "base_branch": "main",
+      "head_branch": "feat/reviews"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 9,
+      "pull_request_id": 5,
+      "username": "FloZone",
+      "state": "approved",
+      "required": true
+    },
+    {
+      "id": 10,
+      "pull_request_id": 5,
+      "username": "jnodsc",
+      "state": "approved",
+      "required": true
+    }
+  ],
+  "merge_rules": [
+    {
+      "id": 1,
+      "repository_id": 6,
+      "base_branch": "main",
+      "head_branch": "*",
+      "strategy": "merge"
+    }
+  ]
+}

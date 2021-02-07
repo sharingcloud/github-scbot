@@ -7,15 +7,19 @@ use thiserror::Error;
 pub enum TypeError {
     /// Unknown step label.
     #[error("Unknown step label: {0}")]
-    UnknownStepLabelError(String),
+    UnknownStepLabel(String),
 
     /// Unknown check status.
     #[error("Unknown check status: {0}")]
-    UnknownCheckStatusError(String),
+    UnknownCheckStatus(String),
 
     /// Unknown QA status.
     #[error("Unknown QA status: {0}")]
-    UnknownQAStatusError(String),
+    UnknownQAStatus(String),
+
+    /// Unknown merge strategy.
+    #[error("Unknown merge strategy: {0}")]
+    UnknownMergeStrategy(String),
 
     /// Unsupported event.
     #[error("Unsupported event: {0}")]
