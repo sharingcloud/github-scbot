@@ -21,10 +21,6 @@ pub enum EventType {
     PullRequestReview,
     /// Pull request review comment event.
     PullRequestReviewComment,
-    /// Push event.
-    Push,
-    /// Status event.
-    Status,
 }
 
 impl EventType {
@@ -46,8 +42,6 @@ impl TryFrom<&str> for EventType {
             "pull_request" => Ok(Self::PullRequest),
             "pull_request_review" => Ok(Self::PullRequestReview),
             "pull_request_review_comment" => Ok(Self::PullRequestReviewComment),
-            "push" => Ok(Self::Push),
-            "status" => Ok(Self::Status),
             name => Err(TypeError::UnsupportedEvent(name.to_owned())),
         }
     }
@@ -63,8 +57,6 @@ impl From<EventType> for &'static str {
             EventType::PullRequest => "pull_request",
             EventType::PullRequestReview => "pull_request_review",
             EventType::PullRequestReviewComment => "pull_request_review_comment",
-            EventType::Push => "push",
-            EventType::Status => "status",
         }
     }
 }

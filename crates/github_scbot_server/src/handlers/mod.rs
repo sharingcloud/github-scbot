@@ -4,7 +4,6 @@ mod checks;
 mod issues;
 mod ping;
 mod pulls;
-mod push;
 mod reviews;
 
 use std::convert::TryFrom;
@@ -76,16 +75,6 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
             )
             .await
         }
-        EventType::Push => {
-            push::push_event(
-                conn,
-                serde_json::from_str(body)
-                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
-            )
-            .await
-        }
-        e => Ok(HttpResponse::BadRequest()
-            .body(format!("Event handling is not yet implemented for {:?}", e))),
     }
 }
 

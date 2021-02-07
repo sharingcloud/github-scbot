@@ -11,4 +11,3 @@ pub const PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA: &str =
     include_str!("pull_request_review_comment_created.json");
 pub const PULL_REQUEST_REVIEW_SUBMITTED_DATA: &str =
     include_str!("pull_request_review_submitted.json");
-pub const PUSH_DATA: &str = include_str!("push.json");
