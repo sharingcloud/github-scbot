@@ -3,6 +3,7 @@
 use std::convert::TryFrom;
 
 use anyhow::Result;
+use github_scbot_core::Config;
 use github_scbot_database::{
     establish_single_connection,
     models::{MergeRuleCreation, MergeRuleModel, RepositoryModel},
@@ -13,10 +14,15 @@ use github_scbot_types::pulls::GHMergeStrategy;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `value` - Regex value
-pub fn set_pull_request_title_regex(repository_path: &str, value: &str) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn set_pull_request_title_regex(
+    config: &Config,
+    repository_path: &str,
+    value: &str,
+) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
         println!("Accessing repository {}", repository_path);
@@ -34,9 +40,10 @@ pub fn set_pull_request_title_regex(repository_path: &str, value: &str) -> Resul
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
-pub fn show_repository(repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn show_repository(config: &Config, repository_path: &str) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some(repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
         println!("Accessing repository {}", repository_path);
@@ -49,8 +56,12 @@ pub fn show_repository(repository_path: &str) -> Result<()> {
 }
 
 /// List known repositories from database.
-pub fn list_repositories() -> Result<()> {
-    let conn = establish_single_connection()?;
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+pub fn list_repositories(config: &Config) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     let repos = RepositoryModel::list(&conn)?;
     if repos.is_empty() {
@@ -68,9 +79,10 @@ pub fn list_repositories() -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
-pub fn list_merge_rules(repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn list_merge_rules(config: &Config, repository_path: &str) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some(repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
         let default_strategy = repo.get_default_merge_strategy();
@@ -97,17 +109,19 @@ pub fn list_merge_rules(repository_path: &str) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `base_branch` - Base branch
 /// * `head_branch` - Head branch
 /// * `strategy` - Merge strategy
 pub fn set_merge_rule(
+    config: &Config,
     repository_path: &str,
     base_branch: &str,
     head_branch: &str,
     strategy: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection()?;
+    let conn = establish_single_connection(config)?;
     let strategy_enum = GHMergeStrategy::try_from(strategy)?;
 
     if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
@@ -152,15 +166,17 @@ pub fn set_merge_rule(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `base_branch` - Base branch
 /// * `head_branch` - Head branch
 pub fn remove_merge_rule(
+    config: &Config,
     repository_path: &str,
     base_branch: &str,
     head_branch: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection()?;
+    let conn = establish_single_connection(config)?;
 
     if let Some(repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
         if base_branch == "*" && head_branch == "*" {
@@ -187,10 +203,15 @@ pub fn remove_merge_rule(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `reviewers_count` - Reviewers count
-pub fn set_reviewers_count(repository_path: &str, reviewers_count: u32) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn set_reviewers_count(
+    config: &Config,
+    repository_path: &str,
+    reviewers_count: u32,
+) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
         repo.default_needed_reviewers_count = reviewers_count as i32;

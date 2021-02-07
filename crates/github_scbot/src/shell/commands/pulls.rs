@@ -2,6 +2,7 @@
 
 use actix_rt::System;
 use anyhow::Result;
+use github_scbot_core::Config;
 use github_scbot_database::{
     establish_single_connection,
     models::{PullRequestModel, RepositoryModel},
@@ -12,10 +13,11 @@ use github_scbot_logic::pulls::synchronize_pull_request;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `number` - Pull request number
-pub fn show_pull_request(repository_path: &str, number: u64) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn show_pull_request(config: &Config, repository_path: &str, number: u64) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some((pr, _repo)) = PullRequestModel::get_from_repository_path_and_number(
         &conn,
@@ -41,9 +43,10 @@ pub fn show_pull_request(repository_path: &str, number: u64) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
-pub fn list_pull_requests(repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn list_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     let prs = PullRequestModel::list_for_repository_path(&conn, &repository_path)?;
     if prs.is_empty() {
@@ -61,14 +64,15 @@ pub fn list_pull_requests(repository_path: &str) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `number` - Pull request number
-pub fn sync_pull_request(repository_path: String, number: u64) -> Result<()> {
-    async fn sync(repository_path: String, number: u64) -> Result<()> {
+pub fn sync_pull_request(config: &Config, repository_path: String, number: u64) -> Result<()> {
+    async fn sync(config: Config, repository_path: String, number: u64) -> Result<()> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
 
-        let conn = establish_single_connection()?;
-        synchronize_pull_request(&conn, owner, name, number).await?;
+        let conn = establish_single_connection(&config)?;
+        synchronize_pull_request(&config, &conn, owner, name, number).await?;
 
         println!(
             "Pull request #{} from {} updated from GitHub.",
@@ -78,5 +82,5 @@ pub fn sync_pull_request(repository_path: String, number: u64) -> Result<()> {
     }
 
     let mut sys = System::new("sync");
-    sys.block_on(sync(repository_path, number))
+    sys.block_on(sync(config.clone(), repository_path, number))
 }

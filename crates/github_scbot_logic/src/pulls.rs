@@ -3,9 +3,12 @@
 use std::collections::HashMap;
 
 use github_scbot_api::{
-    checks::list_check_suites_for_git_ref, pulls::get_pull_request,
+    checks::list_check_suites_for_git_ref,
+    comments::post_comment,
+    pulls::{get_pull_request, merge_pull_request},
     reviews::list_reviews_for_pull_request,
 };
+use github_scbot_core::Config;
 use github_scbot_database::{
     models::{
         MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
@@ -34,9 +37,14 @@ use crate::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request event
-pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent) -> Result<()> {
+pub async fn handle_pull_request_event(
+    config: &Config,
+    conn: &DbConn,
+    event: &GHPullRequestEvent,
+) -> Result<()> {
     let (repo_model, mut pr_model) =
         process_pull_request(conn, &event.repository, &event.pull_request)?;
 
@@ -46,7 +54,13 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
         pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
         pr_model.save(&conn)?;
 
-        post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
+        post_welcome_comment(
+            config,
+            &repo_model,
+            &pr_model,
+            &event.pull_request.user.login,
+        )
+        .await?;
     }
 
     let mut status_changed = false;
@@ -60,7 +74,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             status_changed = true;
 
             // Only for synchronize
-            rerequest_existing_reviews(conn, &repo_model, &pr_model).await?;
+            rerequest_existing_reviews(config, conn, &repo_model, &pr_model).await?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             pr_model.set_from_upstream(&event.pull_request);
@@ -102,6 +116,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
 
     if status_changed {
         update_pull_request_status(
+            config,
             conn,
             &repo_model,
             &mut pr_model,
@@ -183,25 +198,32 @@ pub fn get_merge_strategy_for_branches(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
 pub async fn synchronize_pull_request(
+    config: &Config,
     conn: &DbConn,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
 ) -> Result<PullRequestModel> {
     // Get upstream pull request
-    let upstream_pr = get_pull_request(repository_owner, repository_name, pr_number).await?;
+    let upstream_pr =
+        get_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get reviews
     let reviews =
-        list_reviews_for_pull_request(repository_owner, repository_name, pr_number).await?;
+        list_reviews_for_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get upstream checks
-    let check_suites =
-        list_check_suites_for_git_ref(repository_owner, repository_name, &upstream_pr.head.sha)
-            .await?;
+    let check_suites = list_check_suites_for_git_ref(
+        config,
+        repository_owner,
+        repository_name,
+        &upstream_pr.head.sha,
+    )
+    .await?;
 
     // Extract status
     let status: CheckStatus = {
@@ -265,6 +287,70 @@ pub async fn synchronize_pull_request(
 
     pr.save(conn)?;
     Ok(pr)
+}
+
+/// Try automerge pull request.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+pub async fn try_automerge_pull_request(
+    config: &Config,
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> Result<bool> {
+    let commit_title = pr_model.get_merge_commit_title();
+    let strategy = get_merge_strategy_for_branches(
+        conn,
+        repo_model,
+        &pr_model.base_branch,
+        &pr_model.head_branch,
+    );
+
+    match merge_pull_request(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &commit_title,
+        "",
+        strategy,
+    )
+    .await
+    {
+        Err(e) => {
+            post_comment(
+                config,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
+                    e
+                ),
+            )
+            .await?;
+            Ok(false)
+        }
+        _ => {
+            post_comment(
+                config,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Pull request successfully auto-merged! (strategy: '{}')",
+                    strategy.to_string()
+                ),
+            )
+            .await?;
+            Ok(true)
+        }
+    }
 }
 
 fn extract_usernames(users: &[GHUser]) -> Vec<&str> {

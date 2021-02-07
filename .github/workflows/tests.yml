@@ -10,9 +10,9 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test-bot-data
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: test-bot
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -38,4 +38,4 @@ jobs:
     - name: Lint, test, build and run
       run: just fmt-check lint-err test build
       env:
-        TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test-bot-data
+        TEST_DATABASE_URL: postgres://user:pass@localhost:5432/test-bot

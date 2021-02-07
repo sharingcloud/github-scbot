@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use github_scbot_core::Config;
 use github_scbot_database::{
     establish_single_connection,
     import_export::{export_models_to_json, import_models_from_json, ExportError, ImportError},
@@ -16,9 +17,10 @@ use github_scbot_database::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `output_path` - Optional output path.
-pub fn export_json(output_path: Option<PathBuf>) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn export_json(config: &Config, output_path: Option<PathBuf>) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     if let Some(file_path) = output_path {
         let file =
@@ -35,9 +37,10 @@ pub fn export_json(output_path: Option<PathBuf>) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `input_path` - Input path.
-pub fn import_json(input_path: &Path) -> Result<()> {
-    let conn = establish_single_connection()?;
+pub fn import_json(config: &Config, input_path: &Path) -> Result<()> {
+    let conn = establish_single_connection(config)?;
 
     let file = File::open(input_path.to_path_buf())
         .map_err(|e| ImportError::IOError(input_path.to_path_buf(), e))?;

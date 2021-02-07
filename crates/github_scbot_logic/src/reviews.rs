@@ -1,6 +1,7 @@
 //! Reviews module.
 
 use github_scbot_api::reviews::request_reviewers_for_pull_request;
+use github_scbot_core::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
@@ -13,12 +14,17 @@ use crate::{database::process_pull_request, status::update_pull_request_status, 
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request review event
-pub async fn handle_review_event(conn: &DbConn, event: &GHReviewEvent) -> Result<()> {
+pub async fn handle_review_event(
+    config: &Config,
+    conn: &DbConn,
+    event: &GHReviewEvent,
+) -> Result<()> {
     let (repo, mut pr) = process_pull_request(conn, &event.repository, &event.pull_request)?;
     handle_review(conn, &pr, &event.review)?;
-    update_pull_request_status(conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
+    update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
 
     Ok(())
 }
@@ -59,10 +65,12 @@ pub fn handle_review_request(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` -Repository model
 /// * `pr_model` - Pull request model
 pub async fn rerequest_existing_reviews(
+    config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -72,6 +80,7 @@ pub async fn rerequest_existing_reviews(
     if !reviews.is_empty() {
         let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
         request_reviewers_for_pull_request(
+            config,
             &repo_model.owner,
             &repo_model.name,
             pr_model.get_number(),

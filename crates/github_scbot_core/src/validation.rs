@@ -2,35 +2,17 @@
 
 use jsonwebtoken::EncodingKey;
 
-use crate::{
-    constants::{
-        ENV_BIND_IP, ENV_BIND_PORT, ENV_BOT_USERNAME, ENV_DATABASE_URL, ENV_GITHUB_API_TOKEN,
-        ENV_GITHUB_APP_ID, ENV_GITHUB_APP_PRIVATE_KEY,
-    },
-    CoreError, Result,
-};
-
-enum EnvError {
-    Missing,
-}
+use crate::{config::Config, CoreError, Result};
 
 enum ApiConfigError {
     MissingToken,
     MissingAppID,
+    MissingInstallationID,
     MissingPrivateKey,
     InvalidPrivateKey,
 }
 
-fn check_env_var(name: &str) -> Result<(), EnvError> {
-    let entry: String = std::env::var(name).unwrap_or_default();
-    if entry.is_empty() {
-        Err(EnvError::Missing)
-    } else {
-        Ok(())
-    }
-}
-
-fn validate_env_vars() -> Result<()> {
+fn validate_env_vars(config: &Config) -> Result<()> {
     #[inline]
     fn _missing(error: &mut String, name: &str) {
         error.push('\n');
@@ -43,29 +25,35 @@ fn validate_env_vars() -> Result<()> {
         error.push_str(&format!("  - Invalid private key: {}", name));
     }
 
-    // Check mandatory env vars
     let mut error = String::new();
-    for name in &[
-        ENV_BIND_IP,
-        ENV_BIND_PORT,
-        ENV_BOT_USERNAME,
-        ENV_DATABASE_URL,
-    ] {
-        if let Err(EnvError::Missing) = check_env_var(name) {
-            _missing(&mut error, name);
-        }
+
+    // Check server configuration
+    if config.server_bind_ip.is_empty() {
+        _missing(&mut error, "BOT_SERVER_BIND_IP");
+    }
+    if config.server_bind_port == 0 {
+        _missing(&mut error, "BOT_SERVER_BIND_PORT");
+    }
+    if config.bot_username.is_empty() {
+        _missing(&mut error, "BOT_USERNAME");
+    }
+    if config.database_url.is_empty() {
+        _missing(&mut error, "DATABASE_URL");
     }
 
     // Check API credentials: token or private key
-    match validate_api_credentials() {
+    match validate_api_credentials(config) {
         Err(ApiConfigError::MissingToken) => {
-            _missing(&mut error, ENV_GITHUB_API_TOKEN);
+            _missing(&mut error, "ENV_GITHUB_API_TOKEN");
         }
         Err(ApiConfigError::MissingAppID) => {
-            _missing(&mut error, ENV_GITHUB_APP_ID);
+            _missing(&mut error, "ENV_GITHUB_APP_ID");
         }
         Err(ApiConfigError::InvalidPrivateKey) => {
-            _invalid_key(&mut error, ENV_GITHUB_APP_PRIVATE_KEY)
+            _invalid_key(&mut error, "ENV_GITHUB_APP_PRIVATE_KEY");
+        }
+        Err(ApiConfigError::MissingInstallationID) => {
+            _missing(&mut error, "ENV_GITHUB_APP_INSTALLATION_ID");
         }
         _ => (),
     }
@@ -77,11 +65,10 @@ fn validate_env_vars() -> Result<()> {
     }
 }
 
-fn validate_api_credentials() -> Result<(), ApiConfigError> {
+fn validate_api_credentials(config: &Config) -> Result<(), ApiConfigError> {
     // Check token first
-    let token: String = std::env::var(crate::constants::ENV_GITHUB_API_TOKEN).unwrap_or_default();
-    if token.is_empty() {
-        match validate_github_app_config() {
+    if config.github_api_token.is_empty() {
+        match validate_github_app_config(config) {
             // If private key is missing, you might want to use token instead.
             Err(ApiConfigError::MissingPrivateKey) => Err(ApiConfigError::MissingToken),
             res => res,
@@ -91,22 +78,19 @@ fn validate_api_credentials() -> Result<(), ApiConfigError> {
     }
 }
 
-fn validate_github_app_config() -> Result<(), ApiConfigError> {
+fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
     // Check Private key
-    let entry: String =
-        std::env::var(crate::constants::ENV_GITHUB_APP_PRIVATE_KEY).unwrap_or_default();
-    if entry.is_empty() {
+    if config.github_app_private_key.is_empty() {
         Err(ApiConfigError::MissingPrivateKey)
     } else {
-        match EncodingKey::from_rsa_pem(entry.as_bytes()) {
+        match EncodingKey::from_rsa_pem(config.github_app_private_key.as_bytes()) {
             Err(_) => Err(ApiConfigError::InvalidPrivateKey),
             Ok(_) => {
                 // Check App ID
-                if std::env::var(ENV_GITHUB_APP_ID)
-                    .unwrap_or_default()
-                    .is_empty()
-                {
+                if config.github_app_id == 0 {
                     Err(ApiConfigError::MissingAppID)
+                } else if config.github_app_installation_id == 0 {
+                    Err(ApiConfigError::MissingInstallationID)
                 } else {
                     Ok(())
                 }
@@ -116,8 +100,12 @@ fn validate_github_app_config() -> Result<(), ApiConfigError> {
 }
 
 /// Validate configuration.
-pub fn validate_configuration() -> Result<()> {
-    validate_env_vars()
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+pub fn validate_configuration(config: &Config) -> Result<()> {
+    validate_env_vars(config)
 }
 
 #[cfg(test)]
@@ -140,61 +128,92 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
 
     #[test]
     fn test_validate_github_app_config() {
+        let mut config = Config::from_env();
+
         macro_rules! test {
-            ($val_id: tt, $val_pk: tt, $($res: tt)+) => {{
-                let env_n1 = ENV_GITHUB_APP_ID;
-                let env_n2 = ENV_GITHUB_APP_PRIVATE_KEY;
-                ::std::env::set_var(env_n1, $val_id);
-                ::std::env::set_var(env_n2, $val_pk);
-                assert!(matches!(validate_github_app_config(), $($res)+))
+            ($val_id: tt, $val_iid: tt, $val_pk: tt, $($res: tt)+) => {{
+                config.github_app_id = $val_id.into();
+                config.github_app_installation_id = $val_iid.into();
+                config.github_app_private_key = $val_pk.into();
+                assert!(matches!(validate_github_app_config(&config), $($res)+))
             }};
         }
 
-        test!("", "", Err(ApiConfigError::MissingPrivateKey));
-        test!("", "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!("id", "", Err(ApiConfigError::MissingPrivateKey));
-        test!("id", "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!("", SAMPLE_RSA_KEY, Err(ApiConfigError::MissingAppID));
-        test!("id", SAMPLE_RSA_KEY, Ok(()));
+        test!(0u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0u64, 0u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(0u64, 1u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0u64, 1u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(1234u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(
+            1234u64,
+            0u64,
+            "toto",
+            Err(ApiConfigError::InvalidPrivateKey)
+        );
+        test!(
+            0u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingAppID)
+        );
+        test!(
+            1234u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingInstallationID)
+        );
+        test!(1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
     }
 
     #[test]
     fn test_validate_api_credentials() {
+        let mut config = Config::from_env();
+
         macro_rules! test {
-            ($val_tok: tt, $val_id: tt, $val_pk: tt, $($res: tt)+) => {{
-                let env_n1 = ENV_GITHUB_API_TOKEN;
-                let env_n2 = ENV_GITHUB_APP_ID;
-                let env_n3 = ENV_GITHUB_APP_PRIVATE_KEY;
-                ::std::env::set_var(env_n1, $val_tok);
-                ::std::env::set_var(env_n2, $val_id);
-                ::std::env::set_var(env_n3, $val_pk);
-                assert!(matches!(validate_api_credentials(), $($res)+));
+            ($val_tok: tt, $val_id: tt, $val_iid: tt, $val_pk: tt, $($res: tt)+) => {{
+                config.github_api_token = $val_tok.into();
+                config.github_app_id = $val_id.into();
+                config.github_app_installation_id = $val_iid.into();
+                config.github_app_private_key = $val_pk.into();
+                assert!(matches!(validate_api_credentials(&config), $($res)+));
             }};
         }
 
-        test!("", "", "", Err(ApiConfigError::MissingToken));
-        test!("", "", "iamapkey", Err(ApiConfigError::InvalidPrivateKey));
-        test!("", "", SAMPLE_RSA_KEY, Err(ApiConfigError::MissingAppID));
-        test!("", "id", "", Err(ApiConfigError::MissingToken));
-        test!("", "id", "iamapkey", Err(ApiConfigError::InvalidPrivateKey));
-        test!("", "id", SAMPLE_RSA_KEY, Ok(()));
-        test!("iamatoken", "", "", Ok(()));
-        test!("iamatoken", "", "iamapkey", Ok(()));
-        test!("iamatoken", "id", "", Ok(()));
-        test!("iamatoken", "id", "iamapkey", Ok(()));
-        test!("iamatoken", "id", SAMPLE_RSA_KEY, Ok(()));
-    }
-
-    #[test]
-    fn test_check_env_var() {
-        macro_rules! test {
-            ($env: tt, $val: tt, $($res: tt)+) => {{
-                ::std::env::set_var($env, $val);
-                assert!(matches!(check_env_var($env), $($res)+));
-            }};
-        }
-
-        test!(ENV_BIND_IP, "", Err(EnvError::Missing));
-        test!(ENV_BIND_IP, "1234", Ok(()));
+        test!("", 0u64, 0u64, "", Err(ApiConfigError::MissingToken));
+        test!(
+            "",
+            0u64,
+            0u64,
+            "iamapkey",
+            Err(ApiConfigError::InvalidPrivateKey)
+        );
+        test!(
+            "",
+            0u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingAppID)
+        );
+        test!("", 1234u64, 0u64, "", Err(ApiConfigError::MissingToken));
+        test!(
+            "",
+            1234u64,
+            0u64,
+            "iamapkey",
+            Err(ApiConfigError::InvalidPrivateKey)
+        );
+        test!(
+            "",
+            1234u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingInstallationID)
+        );
+        test!("", 1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
+        test!("iamatoken", 0u64, 0u64, "", Ok(()));
+        test!("iamatoken", 0u64, 0u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, "", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, SAMPLE_RSA_KEY, Ok(()));
     }
 }

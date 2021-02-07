@@ -1,40 +1,36 @@
 //! Webhook logic tests
 
-use github_scbot_core::constants::ENV_BOT_USERNAME;
-
-use super::test_init;
+use super::test_config;
 use crate::commands::{parse_command_string_from_comment_line, Command};
 
 #[actix_rt::test]
 async fn test_parse_command_string_from_comment_line() {
-    test_init();
+    let config = test_config();
 
     assert_eq!(
-        parse_command_string_from_comment_line(&format!(
-            "{} this-is-a-command",
-            std::env::var(ENV_BOT_USERNAME).unwrap()
-        )),
+        parse_command_string_from_comment_line(
+            &config,
+            &format!("{} this-is-a-command", config.bot_username)
+        ),
         Some(("this-is-a-command", vec![]))
     );
 
     assert_eq!(
-        parse_command_string_from_comment_line(&format!(
-            "{} lock+ Because I choosed to",
-            std::env::var(ENV_BOT_USERNAME).unwrap()
-        )),
+        parse_command_string_from_comment_line(
+            &config,
+            &format!("{} lock+ Because I choosed to", config.bot_username)
+        ),
         Some(("lock+", vec!["Because", "I", "choosed", "to"]))
     );
 
     assert_eq!(
-        parse_command_string_from_comment_line("this-is-a-command"),
+        parse_command_string_from_comment_line(&config, "this-is-a-command"),
         None
     )
 }
 
-#[actix_rt::test]
-async fn test_command_from_comment() {
-    test_init();
-
+#[test]
+fn test_command_from_comment() {
     assert_eq!(
         Command::from_comment("noqa+", &Vec::new()),
         Some(Command::SkipQAStatus(true))

@@ -4,7 +4,6 @@
 
 use std::{
     cell::RefCell,
-    env,
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
@@ -23,7 +22,7 @@ use futures::{
     stream::StreamExt,
     Future,
 };
-use github_scbot_core::constants::{ENV_DISABLE_SIGNATURE, ENV_GITHUB_SECRET};
+use github_scbot_core::Config;
 use tracing::warn;
 
 use super::{
@@ -39,21 +38,21 @@ pub struct VerifySignature {
 
 impl VerifySignature {
     /// Create a new configuration.
-    pub fn new() -> Self {
-        Default::default()
-    }
-}
-
-impl Default for VerifySignature {
-    fn default() -> Self {
-        let mut enabled = env::var(ENV_DISABLE_SIGNATURE).ok().is_none();
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Bot configuration
+    pub fn new(config: &Config) -> Self {
+        let mut enabled = !config.server_disable_webhook_signature;
         let secret = if enabled {
-            env::var(ENV_GITHUB_SECRET).ok().or_else(|| {
+            if config.github_webhook_secret.is_empty() {
                 // Disable signature verification on empty secret
-                warn!("Environment variable '{}' is invalid or not set. Disabling signature verification.", ENV_GITHUB_SECRET);
+                warn!("Environment variable 'BOT_GITHUB_WEBHOOK_SECRET' is invalid or not set. Disabling signature verification.");
                 enabled = false;
                 None
-            })
+            } else {
+                Some(config.github_webhook_secret.clone())
+            }
         } else {
             warn!("Signature verification is disabled. This can be a security concern.");
             None
@@ -138,6 +137,11 @@ where
                     if !is_valid_signature(sig, &body, &secret) {
                         return Err(ErrorUnauthorized(ParseError::Header));
                     }
+
+                    // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438
+                    let mut payload = actix_http::h1::Payload::empty();
+                    payload.unread_data(body.freeze());
+                    req.set_payload(payload.into());
                 }
             }
 

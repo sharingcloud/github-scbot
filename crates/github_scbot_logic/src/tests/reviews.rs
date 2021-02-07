@@ -13,7 +13,7 @@ use github_scbot_types::{
     reviews::{GHReview, GHReviewState},
 };
 
-use super::test_init;
+use super::test_config;
 use crate::{
     commands::parse_commands,
     reviews::handle_review,
@@ -47,9 +47,9 @@ fn arrange(conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
 
 #[actix_rt::test]
 async fn test_review_creation() {
-    test_init();
+    let config = test_config();
 
-    let conn = establish_single_test_connection().unwrap();
+    let conn = establish_single_test_connection(&config).unwrap();
     let (repo, mut pr) = arrange(&conn);
 
     // Simulate review
@@ -79,21 +79,37 @@ async fn test_review_creation() {
     assert_eq!(reviews[1].required, false);
 
     // Parse comment
-    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot req+ @him")
-        .await
-        .unwrap();
+    parse_commands(
+        &config,
+        &conn,
+        &repo,
+        &mut pr,
+        0,
+        "me",
+        "test-bot req+ @him",
+    )
+    .await
+    .unwrap();
 
     // Retrieve "him" review
     let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
     assert_eq!(review.required, true);
 
     // Parse comment
-    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot req- @him")
-        .await
-        .unwrap();
+    parse_commands(
+        &config,
+        &conn,
+        &repo,
+        &mut pr,
+        0,
+        "me",
+        "test-bot req- @him",
+    )
+    .await
+    .unwrap();
 
     // Lock PR
-    parse_commands(&conn, &repo, &mut pr, 0, "me", "test-bot lock+")
+    parse_commands(&config, &conn, &repo, &mut pr, 0, "me", "test-bot lock+")
         .await
         .unwrap();
 

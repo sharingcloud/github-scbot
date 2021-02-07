@@ -1,9 +1,11 @@
+use github_scbot_core::Config;
+
 mod commands;
 mod reviews;
 
-use github_scbot_core::constants::{ENV_API_DISABLE_CLIENT, ENV_BOT_USERNAME};
-
-fn test_init() {
-    std::env::set_var(ENV_BOT_USERNAME, "test-bot");
-    std::env::set_var(ENV_API_DISABLE_CLIENT, "1");
+fn test_config() -> Config {
+    let mut config = Config::from_env();
+    config.bot_username = "test-bot".into();
+    config.api_disable_client = true;
+    config
 }

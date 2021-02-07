@@ -10,6 +10,7 @@ mod state;
 
 use std::io;
 
+use github_scbot_core::Config;
 use github_scbot_database::establish_single_connection;
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
@@ -30,7 +31,8 @@ pub fn run_tui() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
     let events = Events::new();
 
-    let conn = establish_single_connection()?;
+    let config = Config::from_env();
+    let conn = establish_single_connection(&config)?;
     let mut app = App::new("SC Bot");
     app.load_from_db(&conn)?;
 

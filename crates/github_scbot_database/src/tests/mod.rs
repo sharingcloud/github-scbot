@@ -1,3 +1,4 @@
+use github_scbot_core::Config;
 use github_scbot_types::{pulls::GHMergeStrategy, reviews::GHReviewState};
 
 use super::import_export::{export_models_to_json, import_models_from_json};
@@ -15,7 +16,8 @@ fn test_init() {}
 fn create_repository() {
     test_init();
 
-    let conn = establish_single_test_connection().unwrap();
+    let config = Config::from_env();
+    let conn = establish_single_test_connection(&config).unwrap();
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {
@@ -35,7 +37,8 @@ fn create_repository() {
 fn list_repositories() {
     test_init();
 
-    let conn = establish_single_test_connection().unwrap();
+    let config = Config::from_env();
+    let conn = establish_single_test_connection(&config).unwrap();
     RepositoryModel::create(
         &conn,
         RepositoryCreation {
@@ -64,7 +67,8 @@ fn list_repositories() {
 fn create_pull_request() {
     test_init();
 
-    let conn = establish_single_test_connection().unwrap();
+    let config = Config::from_env();
+    let conn = establish_single_test_connection(&config).unwrap();
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {
@@ -95,7 +99,8 @@ fn create_pull_request() {
 fn test_export_models_to_json() {
     test_init();
 
-    let conn = establish_single_test_connection().unwrap();
+    let config = Config::from_env();
+    let conn = establish_single_test_connection(&config).unwrap();
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {
@@ -152,7 +157,8 @@ fn test_export_models_to_json() {
 fn test_import_models_from_json() {
     test_init();
 
-    let conn = establish_single_test_connection().unwrap();
+    let config = Config::from_env();
+    let conn = establish_single_test_connection(&config).unwrap();
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {

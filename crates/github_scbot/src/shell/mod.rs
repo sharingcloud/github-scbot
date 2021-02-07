@@ -135,37 +135,45 @@ struct Opt {
 /// Initialize command line.
 pub fn initialize_command_line() -> anyhow::Result<()> {
     // Prepare startup
-    configure_startup()?;
+    let config = configure_startup()?;
 
     let opt = Opt::from_args();
     match opt.cmd {
         Command::Server => {
-            run_bot_server()?;
+            run_bot_server(config)?;
         }
         Command::Ui => {
             run_tui()?;
         }
         Command::Export { output_file } => {
-            commands::common::export_json(output_file)?;
+            commands::common::export_json(&config, output_file)?;
         }
         Command::Import { input_file } => {
-            commands::common::import_json(&input_file)?;
+            commands::common::import_json(&config, &input_file)?;
         }
         Command::Repository { cmd } => match cmd {
             RepositoryCommand::SetTitleRegex {
                 repository_path,
                 value,
             } => {
-                commands::repository::set_pull_request_title_regex(&repository_path, &value)?;
+                commands::repository::set_pull_request_title_regex(
+                    &config,
+                    &repository_path,
+                    &value,
+                )?;
             }
             RepositoryCommand::SetReviewersCount {
                 repository_path,
                 reviewers_count,
             } => {
-                commands::repository::set_reviewers_count(&repository_path, reviewers_count)?;
+                commands::repository::set_reviewers_count(
+                    &config,
+                    &repository_path,
+                    reviewers_count,
+                )?;
             }
             RepositoryCommand::ListMergeRules { repository_path } => {
-                commands::repository::list_merge_rules(&repository_path)?;
+                commands::repository::list_merge_rules(&config, &repository_path)?;
             }
             RepositoryCommand::SetMergeRule {
                 repository_path,
@@ -174,6 +182,7 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 strategy,
             } => {
                 commands::repository::set_merge_rule(
+                    &config,
                     &repository_path,
                     &base_branch,
                     &head_branch,
@@ -186,16 +195,17 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 head_branch,
             } => {
                 commands::repository::remove_merge_rule(
+                    &config,
                     &repository_path,
                     &base_branch,
                     &head_branch,
                 )?;
             }
             RepositoryCommand::Show { repository_path } => {
-                commands::repository::show_repository(&repository_path)?;
+                commands::repository::show_repository(&config, &repository_path)?;
             }
             RepositoryCommand::List => {
-                commands::repository::list_repositories()?;
+                commands::repository::list_repositories(&config)?;
             }
         },
         Command::PullRequest { cmd } => match cmd {
@@ -203,16 +213,16 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 repository_path,
                 number,
             } => {
-                commands::pulls::show_pull_request(&repository_path, number)?;
+                commands::pulls::show_pull_request(&config, &repository_path, number)?;
             }
             PullRequestCommand::List { repository_path } => {
-                commands::pulls::list_pull_requests(&repository_path)?;
+                commands::pulls::list_pull_requests(&config, &repository_path)?;
             }
             PullRequestCommand::Sync {
                 repository_path,
                 number,
             } => {
-                commands::pulls::sync_pull_request(repository_path, number)?;
+                commands::pulls::sync_pull_request(&config, repository_path, number)?;
             }
         },
     }

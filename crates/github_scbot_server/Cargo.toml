@@ -9,6 +9,7 @@ github-scbot-core = { path = "../github_scbot_core" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-logic = { path = "../github_scbot_logic" }
 github-scbot-types = { path = "../github_scbot_types" }
+actix-http = "2.2"
 actix-rt = "1"
 actix-service = "1"
 actix-web = "3"
