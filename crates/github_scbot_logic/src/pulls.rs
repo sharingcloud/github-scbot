@@ -3,7 +3,9 @@
 use std::collections::HashMap;
 
 use github_scbot_api::{
-    checks::list_check_suites_for_git_ref, pulls::get_pull_request,
+    checks::list_check_suites_for_git_ref,
+    comments::post_comment,
+    pulls::{get_pull_request, merge_pull_request},
     reviews::list_reviews_for_pull_request,
 };
 use github_scbot_core::Config;
@@ -35,6 +37,7 @@ use crate::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request event
 pub async fn handle_pull_request_event(
@@ -195,6 +198,7 @@ pub fn get_merge_strategy_for_branches(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
@@ -283,6 +287,70 @@ pub async fn synchronize_pull_request(
 
     pr.save(conn)?;
     Ok(pr)
+}
+
+/// Try automerge pull request.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+pub async fn try_automerge_pull_request(
+    config: &Config,
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> Result<bool> {
+    let commit_title = pr_model.get_merge_commit_title();
+    let strategy = get_merge_strategy_for_branches(
+        conn,
+        repo_model,
+        &pr_model.base_branch,
+        &pr_model.head_branch,
+    );
+
+    match merge_pull_request(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &commit_title,
+        "",
+        strategy,
+    )
+    .await
+    {
+        Err(e) => {
+            post_comment(
+                config,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
+                    e
+                ),
+            )
+            .await?;
+            Ok(false)
+        }
+        _ => {
+            post_comment(
+                config,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Pull request successfully auto-merged! (strategy: '{}')",
+                    strategy.to_string()
+                ),
+            )
+            .await?;
+            Ok(true)
+        }
+    }
 }
 
 fn extract_usernames(users: &[GHUser]) -> Vec<&str> {

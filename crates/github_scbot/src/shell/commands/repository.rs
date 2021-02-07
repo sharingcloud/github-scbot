@@ -14,6 +14,7 @@ use github_scbot_types::pulls::GHMergeStrategy;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `value` - Regex value
 pub fn set_pull_request_title_regex(
@@ -39,6 +40,7 @@ pub fn set_pull_request_title_regex(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 pub fn show_repository(config: &Config, repository_path: &str) -> Result<()> {
     let conn = establish_single_connection(config)?;
@@ -54,6 +56,10 @@ pub fn show_repository(config: &Config, repository_path: &str) -> Result<()> {
 }
 
 /// List known repositories from database.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn list_repositories(config: &Config) -> Result<()> {
     let conn = establish_single_connection(config)?;
 
@@ -73,6 +79,7 @@ pub fn list_repositories(config: &Config) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 pub fn list_merge_rules(config: &Config, repository_path: &str) -> Result<()> {
     let conn = establish_single_connection(config)?;
@@ -102,6 +109,7 @@ pub fn list_merge_rules(config: &Config, repository_path: &str) -> Result<()> {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `base_branch` - Base branch
 /// * `head_branch` - Head branch
@@ -158,6 +166,7 @@ pub fn set_merge_rule(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `base_branch` - Base branch
 /// * `head_branch` - Head branch
@@ -194,6 +203,7 @@ pub fn remove_merge_rule(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path
 /// * `reviewers_count` - Reviewers count
 pub fn set_reviewers_count(

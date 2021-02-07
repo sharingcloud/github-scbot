@@ -14,6 +14,7 @@ const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `commit_sha` - Commit SHA

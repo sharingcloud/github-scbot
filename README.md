@@ -41,7 +41,10 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Validate PR titles depending on per-repository regexes
 - [x] Reacts to comments: Set QA status (or skip), ping, lock/unlock, merge, etc.
 - [x] Require mandatory reviewers
-- [ ] Enable auto-merge
+- [x] Enable auto-merge
+- [ ] Simple permission system to control who can type which command
+- [ ] Terminal-like interface to manage pull request status
+- [ ] Actions that can be triggered from external sources, with simple token-based authentication
 
 ## Step labels
 

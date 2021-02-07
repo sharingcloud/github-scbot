@@ -24,6 +24,10 @@ struct InstallationTokenResponse {
 }
 
 /// Get an authenticated GitHub client.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub async fn get_client(config: &Config) -> Result<Octocrab> {
     let client = get_client_builder(config).await?.build()?;
 
@@ -31,6 +35,10 @@ pub async fn get_client(config: &Config) -> Result<Octocrab> {
 }
 
 /// Get an authenticated GitHub client builder.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub async fn get_client_builder(config: &Config) -> Result<OctocrabBuilder> {
     let token = get_authentication_credentials(config).await?;
     Ok(Octocrab::builder().personal_token(token))

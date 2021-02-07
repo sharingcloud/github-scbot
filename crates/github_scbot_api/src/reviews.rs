@@ -47,6 +47,7 @@ struct GHReviewAPI {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
@@ -80,6 +81,7 @@ pub async fn request_reviewers_for_pull_request(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
@@ -124,6 +126,7 @@ pub async fn remove_reviewers_for_pull_request(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number

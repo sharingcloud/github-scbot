@@ -10,6 +10,7 @@ use crate::errors::Result;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
 /// * `pr_author` - Pull request author

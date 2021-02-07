@@ -15,6 +15,7 @@ const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
@@ -45,6 +46,7 @@ pub async fn post_comment(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `comment_id` - Comment ID
@@ -72,6 +74,7 @@ pub async fn update_comment(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `comment_id` - Comment ID

@@ -37,6 +37,7 @@ pub fn add_step_in_existing_labels(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `issue_number` - Issue number
@@ -67,6 +68,7 @@ pub async fn get_issue_labels(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number

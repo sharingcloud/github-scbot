@@ -100,6 +100,7 @@ impl Command {
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -139,6 +140,8 @@ pub async fn parse_commands(
 /// Parse command from a single comment line.
 ///
 /// # Arguments
+///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -245,6 +248,7 @@ pub async fn parse_single_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `comment` - Comment
 pub fn parse_command_string_from_comment_line<'a>(
     config: &Config,
@@ -268,6 +272,7 @@ pub fn parse_command_string_from_comment_line<'a>(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -302,6 +307,7 @@ pub async fn handle_auto_merge_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -318,7 +324,7 @@ pub async fn handle_merge_command(
     // Use step to determine merge possibility
     let reviews = pr_model.get_reviews(conn)?;
     let step = determine_automatic_step(repo_model, pr_model, &reviews)?;
-    let commit_title = format!("{} (#{})", pr_model.name, pr_model.get_number());
+    let commit_title = pr_model.get_merge_commit_title();
     let strategy = get_merge_strategy_for_branches(
         conn,
         repo_model,
@@ -405,7 +411,10 @@ pub async fn handle_merge_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
 pub async fn handle_sync_command(
     config: &Config,
     conn: &DbConn,
@@ -451,6 +460,7 @@ pub fn handle_skip_qa_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -490,6 +500,7 @@ pub async fn handle_qa_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author
@@ -515,6 +526,7 @@ pub async fn handle_ping_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -563,6 +575,7 @@ pub async fn handle_assign_required_reviewers_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -610,6 +623,7 @@ pub async fn handle_unassign_required_reviewers_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -651,6 +665,7 @@ pub async fn handle_lock_command(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author

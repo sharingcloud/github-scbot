@@ -38,6 +38,10 @@ pub struct VerifySignature {
 
 impl VerifySignature {
     /// Create a new configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Bot configuration
     pub fn new(config: &Config) -> Self {
         let mut enabled = !config.server_disable_webhook_signature;
         let secret = if enabled {

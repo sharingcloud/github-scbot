@@ -17,6 +17,7 @@ use github_scbot_database::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `output_path` - Optional output path.
 pub fn export_json(config: &Config, output_path: Option<PathBuf>) -> Result<()> {
     let conn = establish_single_connection(config)?;
@@ -36,6 +37,7 @@ pub fn export_json(config: &Config, output_path: Option<PathBuf>) -> Result<()> 
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `input_path` - Input path.
 pub fn import_json(config: &Config, input_path: &Path) -> Result<()> {
     let conn = establish_single_connection(config)?;

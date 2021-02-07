@@ -13,6 +13,7 @@ use github_scbot_logic::pulls::synchronize_pull_request;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `number` - Pull request number
 pub fn show_pull_request(config: &Config, repository_path: &str, number: u64) -> Result<()> {
@@ -42,6 +43,7 @@ pub fn show_pull_request(config: &Config, repository_path: &str, number: u64) ->
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 pub fn list_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
     let conn = establish_single_connection(config)?;
@@ -62,6 +64,7 @@ pub fn list_pull_requests(config: &Config, repository_path: &str) -> Result<()> 
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_path` - Repository path (<owner>/<name>)
 /// * `number` - Pull request number
 pub fn sync_pull_request(config: &Config, repository_path: String, number: u64) -> Result<()> {

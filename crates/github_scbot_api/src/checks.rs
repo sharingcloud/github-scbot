@@ -13,7 +13,10 @@ use crate::{
 ///
 /// # Arguments
 ///
-/// * `reposi
+/// * `config` - Bot configuration
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `git_ref` - Git reference
 pub async fn list_check_suites_for_git_ref(
     config: &Config,
     repository_owner: &str,

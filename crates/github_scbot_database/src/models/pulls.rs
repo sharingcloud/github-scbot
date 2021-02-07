@@ -264,6 +264,11 @@ impl PullRequestModel {
         self.number as u64
     }
 
+    /// Get merge commit title.
+    pub fn get_merge_commit_title(&self) -> String {
+        format!("{} (#{})", self.name, self.get_number())
+    }
+
     /// Get status comment ID.
     pub fn get_status_comment_id(&self) -> u64 {
         self.status_comment_id as u64

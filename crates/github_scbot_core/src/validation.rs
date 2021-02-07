@@ -100,6 +100,10 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
 }
 
 /// Validate configuration.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn validate_configuration(config: &Config) -> Result<()> {
     validate_env_vars(config)
 }

@@ -10,6 +10,7 @@ use github_scbot_database::{
     DbConn,
 };
 use github_scbot_types::{
+    labels::StepLabel,
     pulls::GHMergeStrategy,
     reviews::GHReviewState,
     status::{CheckStatus, QAStatus, StatusState},
@@ -19,7 +20,9 @@ use regex::Regex;
 use crate::{
     database::apply_pull_request_step,
     errors::Result,
-    pulls::{determine_automatic_step, get_merge_strategy_for_branches},
+    pulls::{
+        determine_automatic_step, get_merge_strategy_for_branches, try_automerge_pull_request,
+    },
 };
 
 /// Pull request status.
@@ -96,14 +99,15 @@ impl PullRequestStatus {
     }
 }
 
-/// Post status comment.
+/// Create or update status comment.
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
-pub async fn post_status_comment(
+pub async fn create_or_update_status_comment(
     config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
@@ -162,6 +166,7 @@ async fn post_new_status_comment(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
@@ -180,7 +185,7 @@ pub async fn update_pull_request_status(
     apply_pull_request_step(config, repo_model, pr_model).await?;
 
     // Post status.
-    post_status_comment(config, conn, repo_model, pr_model).await?;
+    create_or_update_status_comment(config, conn, repo_model, pr_model).await?;
 
     // Create or update status.
     let (status_state, status_title, status_message) =
@@ -195,6 +200,18 @@ pub async fn update_pull_request_status(
         &status_message,
     )
     .await?;
+
+    // Merge if auto-merge is enabled
+    if matches!(step_label, StepLabel::AwaitingMerge) && !pr_model.merged && pr_model.automerge {
+        let result = try_automerge_pull_request(config, conn, &repo_model, &pr_model).await?;
+        if !result {
+            pr_model.automerge = false;
+            pr_model.save(&conn)?;
+
+            // Update status
+            create_or_update_status_comment(config, conn, repo_model, pr_model).await?;
+        }
+    }
 
     Ok(())
 }

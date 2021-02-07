@@ -16,6 +16,7 @@ use crate::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub Issue comment event
 pub async fn handle_issue_comment_event(
@@ -44,6 +45,7 @@ pub async fn handle_issue_comment_event(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
 /// * `issue_number` - Issue number

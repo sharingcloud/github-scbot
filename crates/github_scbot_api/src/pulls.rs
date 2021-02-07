@@ -12,6 +12,7 @@ use crate::{
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
@@ -46,6 +47,7 @@ pub async fn get_pull_request(
 
 /// Get pull request last commit SHA.
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
@@ -71,6 +73,7 @@ pub async fn get_pull_request_sha(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `pr_number` - PR number

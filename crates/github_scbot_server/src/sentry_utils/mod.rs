@@ -9,6 +9,7 @@ pub mod constants;
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `func` - Function to wrap.
 pub fn with_sentry_configuration<T, E>(config: Config, func: T) -> Result<(), E>
 where

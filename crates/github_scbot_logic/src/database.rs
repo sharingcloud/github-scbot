@@ -53,6 +53,7 @@ pub fn process_pull_request(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `repository_model` - Repository model
 /// * `pr_model` - Pull request model
 pub async fn apply_pull_request_step(
@@ -72,6 +73,13 @@ pub async fn apply_pull_request_step(
 }
 
 /// Get or fetch pull request from ID.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+/// * `conn` - Database connection
+/// * `repo_model` - Repository model
+/// * `pr_number` - Pull request number
 pub async fn get_or_fetch_pull_request(
     config: &Config,
     conn: &DbConn,

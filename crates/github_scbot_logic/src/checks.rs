@@ -13,6 +13,7 @@ use crate::{database::process_repository, status::update_pull_request_status, Re
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub check suite event
 pub async fn handle_check_suite_event(

@@ -31,21 +31,37 @@ pub type DbPool = Pool<ConnectionManager<DbConn>>;
 embed_migrations!();
 
 /// Establish a single database connection.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn establish_single_connection(config: &Config) -> Result<DbConn> {
     ConnectionBuilder::configure(config).build()
 }
 
 /// Establish a single test database connection.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn establish_single_test_connection(config: &Config) -> Result<DbConn> {
     ConnectionBuilder::configure_for_test(config).build()
 }
 
 /// Establish a connection to a database pool.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn establish_connection(config: &Config) -> Result<DbPool> {
     ConnectionBuilder::configure(config).build_pool()
 }
 
 /// Establish a connection to a test database pool.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn establish_test_connection(config: &Config) -> Result<DbPool> {
     ConnectionBuilder::configure_for_test(config).build_pool()
 }

@@ -9,8 +9,11 @@ use tracing::{error, info};
 use crate::{configure_webhooks, sentry_utils::with_sentry_configuration, Result, VerifySignature};
 
 /// Run bot server.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
 pub fn run_bot_server(config: Config) -> Result<()> {
-    // Intro message
     info!("Starting bot server v{} ...", env!("CARGO_PKG_VERSION"));
 
     with_sentry_configuration(config.clone(), || {

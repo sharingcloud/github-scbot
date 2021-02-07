@@ -14,6 +14,7 @@ use crate::{database::process_pull_request, status::update_pull_request_status, 
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request review event
 pub async fn handle_review_event(
@@ -64,6 +65,7 @@ pub fn handle_review_request(
 ///
 /// # Arguments
 ///
+/// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` -Repository model
 /// * `pr_model` - Pull request model
