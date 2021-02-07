@@ -213,23 +213,3 @@ async fn test_pull_request_review_submitted() {
     let data = read_body(resp).await;
     assert_eq!(data.to_vec(), b"Pull request review.");
 }
-
-#[actix_rt::test]
-async fn test_push() {
-    test_init();
-
-    let pool = establish_test_connection().unwrap();
-    let (req, payload) = test::TestRequest::default()
-        .header("Content-Type", "application/json")
-        .header("X-GitHub-Event", EventType::Push.to_str())
-        .set_payload(fixtures::PUSH_DATA)
-        .to_http_parts();
-
-    let resp = event_handler(req, web::Payload(payload), web::Data::new(pool))
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), http::StatusCode::OK);
-
-    let data = read_body(resp).await;
-    assert_eq!(data.to_vec(), b"Push.");
-}
