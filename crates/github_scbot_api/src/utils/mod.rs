@@ -2,10 +2,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use github_scbot_core::constants::{
-    ENV_API_DISABLE_CLIENT, ENV_GITHUB_API_TOKEN, ENV_GITHUB_APP_ID,
-    ENV_GITHUB_APP_INSTALLATION_ID, ENV_GITHUB_APP_PRIVATE_KEY,
-};
+use github_scbot_core::Config;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use octocrab::{Octocrab, OctocrabBuilder};
 use serde::{Deserialize, Serialize};
@@ -27,20 +24,20 @@ struct InstallationTokenResponse {
 }
 
 /// Get an authenticated GitHub client.
-pub async fn get_client() -> Result<Octocrab> {
-    let client = get_client_builder().await?.build()?;
+pub async fn get_client(config: &Config) -> Result<Octocrab> {
+    let client = get_client_builder(config).await?.build()?;
 
     Ok(client)
 }
 
 /// Get an authenticated GitHub client builder.
-pub async fn get_client_builder() -> Result<OctocrabBuilder> {
-    let token = get_authentication_credentials().await?;
+pub async fn get_client_builder(config: &Config) -> Result<OctocrabBuilder> {
+    let token = get_authentication_credentials(config).await?;
     Ok(Octocrab::builder().personal_token(token))
 }
 
-pub(crate) fn is_client_enabled() -> bool {
-    std::env::var(ENV_API_DISABLE_CLIENT).ok().is_none()
+pub(crate) fn is_client_enabled(config: &Config) -> bool {
+    !config.api_disable_client
 }
 
 fn now() -> u64 {
@@ -50,25 +47,19 @@ fn now() -> u64 {
     duration.as_secs()
 }
 
-async fn get_authentication_credentials() -> Result<String> {
-    let token: String = std::env::var(ENV_GITHUB_API_TOKEN).unwrap_or_default();
-    if token.is_empty() {
-        create_installation_access_token().await
+async fn get_authentication_credentials(config: &Config) -> Result<String> {
+    if config.github_api_token.is_empty() {
+        create_installation_access_token(config).await
     } else {
-        Ok(token)
+        Ok(config.github_api_token.clone())
     }
 }
 
-fn create_jwt_token() -> Result<String> {
+fn create_jwt_token(config: &Config) -> Result<String> {
     // GitHub App authentication documentation
     // https://docs.github.com/en/developers/apps/authenticating-with-github-apps#authenticating-as-a-github-app
 
-    let key = EncodingKey::from_rsa_pem(
-        std::env::var(ENV_GITHUB_APP_PRIVATE_KEY)
-            .unwrap()
-            .as_bytes(),
-    )
-    .unwrap();
+    let key = EncodingKey::from_rsa_pem(config.github_app_private_key.as_bytes()).unwrap();
 
     let now_ts = now();
     let claims = JwtClaims {
@@ -77,7 +68,7 @@ fn create_jwt_token() -> Result<String> {
         // Expiration time, 1 minute
         exp: now_ts + 60,
         // GitHub App Identifier
-        iss: std::env::var(ENV_GITHUB_APP_ID).unwrap().parse().unwrap(),
+        iss: config.github_app_id,
     };
 
     match encode(&Header::new(Algorithm::RS256), &claims, &key) {
@@ -89,10 +80,10 @@ fn create_jwt_token() -> Result<String> {
     }
 }
 
-async fn create_installation_access_token() -> Result<String> {
-    let auth_token = create_jwt_token()?;
+async fn create_installation_access_token(config: &Config) -> Result<String> {
+    let auth_token = create_jwt_token(config)?;
     let client = Octocrab::builder().personal_token(auth_token).build()?;
-    let installation_id = std::env::var(ENV_GITHUB_APP_INSTALLATION_ID).unwrap_or_default();
+    let installation_id = config.github_app_installation_id;
 
     let resp: InstallationTokenResponse = client
         .post(

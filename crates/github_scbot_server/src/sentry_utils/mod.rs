@@ -1,5 +1,6 @@
 //! Sentry module.
 
+use github_scbot_core::Config;
 use tracing::info;
 
 pub mod constants;
@@ -9,18 +10,18 @@ pub mod constants;
 /// # Arguments
 ///
 /// * `func` - Function to wrap.
-pub fn with_sentry_configuration<T, E>(func: T) -> Result<(), E>
+pub fn with_sentry_configuration<T, E>(config: Config, func: T) -> Result<(), E>
 where
     T: FnOnce() -> Result<(), E>,
 {
-    if let Ok(url) = std::env::var(constants::ENV_SENTRY_URL) {
+    if !config.sentry_url.is_empty() {
         info!("Sentry integration enabled.");
 
         // Create client options
         let mut options = sentry::ClientOptions::new();
         options.attach_stacktrace = true;
 
-        let _guard = sentry::init((url, options));
+        let _guard = sentry::init((config.sentry_url, options));
         func()
     } else {
         func()

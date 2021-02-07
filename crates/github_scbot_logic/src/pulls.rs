@@ -6,6 +6,7 @@ use github_scbot_api::{
     checks::list_check_suites_for_git_ref, pulls::get_pull_request,
     reviews::list_reviews_for_pull_request,
 };
+use github_scbot_core::Config;
 use github_scbot_database::{
     models::{
         MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
@@ -36,7 +37,11 @@ use crate::{
 ///
 /// * `conn` - Database connection
 /// * `event` - GitHub pull request event
-pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent) -> Result<()> {
+pub async fn handle_pull_request_event(
+    config: &Config,
+    conn: &DbConn,
+    event: &GHPullRequestEvent,
+) -> Result<()> {
     let (repo_model, mut pr_model) =
         process_pull_request(conn, &event.repository, &event.pull_request)?;
 
@@ -46,7 +51,13 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
         pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
         pr_model.save(&conn)?;
 
-        post_welcome_comment(&repo_model, &pr_model, &event.pull_request.user.login).await?;
+        post_welcome_comment(
+            config,
+            &repo_model,
+            &pr_model,
+            &event.pull_request.user.login,
+        )
+        .await?;
     }
 
     let mut status_changed = false;
@@ -60,7 +71,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
             status_changed = true;
 
             // Only for synchronize
-            rerequest_existing_reviews(conn, &repo_model, &pr_model).await?;
+            rerequest_existing_reviews(config, conn, &repo_model, &pr_model).await?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             pr_model.set_from_upstream(&event.pull_request);
@@ -102,6 +113,7 @@ pub async fn handle_pull_request_event(conn: &DbConn, event: &GHPullRequestEvent
 
     if status_changed {
         update_pull_request_status(
+            config,
             conn,
             &repo_model,
             &mut pr_model,
@@ -188,20 +200,26 @@ pub fn get_merge_strategy_for_branches(
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
 pub async fn synchronize_pull_request(
+    config: &Config,
     conn: &DbConn,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
 ) -> Result<PullRequestModel> {
     // Get upstream pull request
-    let upstream_pr = get_pull_request(repository_owner, repository_name, pr_number).await?;
+    let upstream_pr =
+        get_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get reviews
     let reviews =
-        list_reviews_for_pull_request(repository_owner, repository_name, pr_number).await?;
+        list_reviews_for_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get upstream checks
-    let check_suites =
-        list_check_suites_for_git_ref(repository_owner, repository_name, &upstream_pr.head.sha)
-            .await?;
+    let check_suites = list_check_suites_for_git_ref(
+        config,
+        repository_owner,
+        repository_name,
+        &upstream_pr.head.sha,
+    )
+    .await?;
 
     // Extract status
     let status: CheckStatus = {

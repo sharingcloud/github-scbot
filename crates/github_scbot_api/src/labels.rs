@@ -2,6 +2,7 @@
 
 use std::convert::TryFrom;
 
+use github_scbot_core::Config;
 use github_scbot_types::labels::StepLabel;
 
 use crate::{
@@ -40,12 +41,13 @@ pub fn add_step_in_existing_labels(
 /// * `repository_name` - Repository name
 /// * `issue_number` - Issue number
 pub async fn get_issue_labels(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     issue_number: u64,
 ) -> Result<Vec<String>> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
 
         Ok(client
             .issues(repository_owner, repository_name)
@@ -70,17 +72,18 @@ pub async fn get_issue_labels(
 /// * `pr_number` - Pull request number
 /// * `label` - Optional step label
 pub async fn set_step_label(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
     label: Option<StepLabel>,
 ) -> Result<()> {
-    if is_client_enabled() {
+    if is_client_enabled(config) {
         let existing_labels =
-            get_issue_labels(repository_owner, repository_name, pr_number).await?;
+            get_issue_labels(config, repository_owner, repository_name, pr_number).await?;
         let existing_labels = add_step_in_existing_labels(&existing_labels, label);
 
-        let client = get_client().await?;
+        let client = get_client(config).await?;
         client
             .issues(repository_owner, repository_name)
             .replace_all_labels(pr_number, &existing_labels)

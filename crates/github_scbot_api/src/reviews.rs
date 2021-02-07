@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use github_scbot_core::Config;
 use github_scbot_types::{
     common::GHUser,
     reviews::{GHReview, GHReviewState},
@@ -51,13 +52,14 @@ struct GHReviewAPI {
 /// * `pr_number` - Pull request number
 /// * `reviewers` - Reviewers names
 pub async fn request_reviewers_for_pull_request(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
     reviewers: &[String],
 ) -> Result<()> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
         let body = serde_json::json!({ "reviewers": reviewers });
 
         client
@@ -83,15 +85,16 @@ pub async fn request_reviewers_for_pull_request(
 /// * `pr_number` - Pull request number
 /// * `reviewers` - Reviewers names
 pub async fn remove_reviewers_for_pull_request(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
     reviewers: &[String],
 ) -> Result<()> {
-    if is_client_enabled() {
+    if is_client_enabled(config) {
         let body = serde_json::json!({ "reviewers": reviewers });
 
-        let client = get_client().await?;
+        let client = get_client(config).await?;
         let url = client.absolute_url(format!(
             "/repos/{}/{}/pulls/{}/requested_reviewers",
             repository_owner, repository_name, pr_number
@@ -125,12 +128,13 @@ pub async fn remove_reviewers_for_pull_request(
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
 pub async fn list_reviews_for_pull_request(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
 ) -> Result<Vec<GHReview>> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
 
         let data: Vec<GHReviewAPI> = client
             .get(

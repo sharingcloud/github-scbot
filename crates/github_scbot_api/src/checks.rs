@@ -1,5 +1,6 @@
 //! Checks API module.
 
+use github_scbot_core::Config;
 use github_scbot_types::checks::GHCheckSuite;
 use serde::Deserialize;
 
@@ -14,17 +15,18 @@ use crate::{
 ///
 /// * `reposi
 pub async fn list_check_suites_for_git_ref(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     git_ref: &str,
 ) -> Result<Vec<GHCheckSuite>> {
-    if is_client_enabled() {
+    if is_client_enabled(config) {
         #[derive(Deserialize)]
         struct Response {
             check_suites: Vec<GHCheckSuite>,
         }
 
-        let client = get_client().await?;
+        let client = get_client(config).await?;
         let response: Response = client
             ._get(
                 client.absolute_url(format!(

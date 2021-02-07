@@ -1,7 +1,7 @@
 //! Welcome module.
 
 use github_scbot_api::comments::post_comment;
-use github_scbot_core::constants::ENV_DISABLE_WELCOME_COMMENTS;
+use github_scbot_core::Config;
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
 
 use crate::errors::Result;
@@ -14,12 +14,14 @@ use crate::errors::Result;
 /// * `pr_model` - Pull request model
 /// * `pr_author` - Pull request author
 pub async fn post_welcome_comment(
+    config: &Config,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     pr_author: &str,
 ) -> Result<()> {
-    if std::env::var(ENV_DISABLE_WELCOME_COMMENTS).ok().is_none() {
+    if config.server_enable_welcome_comments {
         post_comment(
+            config,
             &repo_model.owner,
             &repo_model.name,
             pr_model.get_number(),

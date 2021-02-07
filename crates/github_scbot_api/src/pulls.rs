@@ -1,5 +1,6 @@
 //! Pull request API module.
 
+use github_scbot_core::Config;
 use github_scbot_types::pulls::{GHMergeStrategy, GHPullRequest};
 
 use crate::{
@@ -15,12 +16,13 @@ use crate::{
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
 pub async fn get_pull_request(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
 ) -> Result<GHPullRequest> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
 
         let data: GHPullRequest = client
             .get(
@@ -48,12 +50,13 @@ pub async fn get_pull_request(
 /// * `repository_name` - Repository name
 /// * `pr_number` - Pull request number
 pub async fn get_pull_request_sha(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
 ) -> Result<String> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
         let data = client
             .pulls(repository_owner, repository_name)
             .get(pr_number)
@@ -75,6 +78,7 @@ pub async fn get_pull_request_sha(
 /// * `commit_message` - Commit message
 /// * `commit_message` - Commit message
 pub async fn merge_pull_request(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
@@ -82,8 +86,8 @@ pub async fn merge_pull_request(
     commit_message: &str,
     merge_strategy: GHMergeStrategy,
 ) -> Result<()> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
         let body = serde_json::json!({
             "commit_title": commit_title,
             "commit_message": commit_message,

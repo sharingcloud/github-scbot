@@ -4,6 +4,7 @@ use github_scbot_api::{
     comments::{post_comment, update_comment},
     status::update_status_for_repository,
 };
+use github_scbot_core::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
@@ -103,6 +104,7 @@ impl PullRequestStatus {
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
 pub async fn post_status_comment(
+    config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -119,6 +121,7 @@ pub async fn post_status_comment(
 
     if comment_id > 0 {
         if let Ok(comment_id) = update_comment(
+            config,
             &repo_model.owner,
             &repo_model.name,
             comment_id,
@@ -131,16 +134,18 @@ pub async fn post_status_comment(
     }
 
     // Handle invalid comment ID
-    post_new_status_comment(conn, repo_model, pr_model, &status_comment).await
+    post_new_status_comment(config, conn, repo_model, pr_model, &status_comment).await
 }
 
 async fn post_new_status_comment(
+    config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment: &str,
 ) -> Result<u64> {
     let comment_id = post_comment(
+        config,
         &repo_model.owner,
         &repo_model.name,
         pr_model.get_number(),
@@ -162,6 +167,7 @@ async fn post_new_status_comment(
 /// * `pr_model` - Pull request model
 /// * `commit_sha` - Commit SHA.
 pub async fn update_pull_request_status(
+    config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -171,15 +177,16 @@ pub async fn update_pull_request_status(
     let reviews = pr_model.get_reviews(conn)?;
     let step_label = determine_automatic_step(repo_model, pr_model, &reviews)?;
     pr_model.set_step_label(step_label);
-    apply_pull_request_step(repo_model, pr_model).await?;
+    apply_pull_request_step(config, repo_model, pr_model).await?;
 
     // Post status.
-    post_status_comment(conn, repo_model, pr_model).await?;
+    post_status_comment(config, conn, repo_model, pr_model).await?;
 
     // Create or update status.
     let (status_state, status_title, status_message) =
         generate_pr_status_message(&repo_model, &pr_model, &reviews)?;
     update_status_for_repository(
+        config,
         &repo_model.owner,
         &repo_model.name,
         commit_sha,

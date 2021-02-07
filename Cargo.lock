@@ -1023,6 +1023,7 @@ dependencies = [
 name = "github-scbot-tui"
 version = "0.1.0"
 dependencies = [
+ "github-scbot-core",
  "github-scbot-database",
  "termion",
  "thiserror",

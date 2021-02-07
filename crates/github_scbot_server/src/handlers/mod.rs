@@ -9,6 +9,7 @@ mod reviews;
 use std::convert::TryFrom;
 
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
+use github_scbot_core::Config;
 use github_scbot_database::{DbConn, DbPool};
 use github_scbot_types::events::EventType;
 use tracing::info;
@@ -19,7 +20,12 @@ use crate::{
     utils::convert_payload_to_string,
 };
 
-async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result<HttpResponse> {
+async fn parse_event(
+    config: &Config,
+    conn: &DbConn,
+    event_type: EventType,
+    body: &str,
+) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckRun => {
             checks::check_run_event(
@@ -31,6 +37,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         }
         EventType::CheckSuite => {
             checks::check_suite_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -39,6 +46,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         }
         EventType::IssueComment => {
             issues::issue_comment_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -53,6 +61,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         .map_err(Into::into),
         EventType::PullRequest => {
             pulls::pull_request_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -61,6 +70,7 @@ async fn parse_event(conn: &DbConn, event_type: EventType, body: &str) -> Result
         }
         EventType::PullRequestReview => {
             reviews::review_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -88,6 +98,7 @@ fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
 pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
+    config: web::Data<Config>,
     pool: web::Data<DbPool>,
 ) -> core::result::Result<HttpResponse, Error> {
     // Route event depending on header
@@ -96,7 +107,7 @@ pub(crate) async fn event_handler(
             let conn = pool.get().map_err(error::ErrorInternalServerError)?;
             info!("Incoming event: {:?}", event_type);
 
-            parse_event(&conn, event_type, &body)
+            parse_event(&config, &conn, event_type, &body)
                 .await
                 .map_err(Into::into)
         } else {

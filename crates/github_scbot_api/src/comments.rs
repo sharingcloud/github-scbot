@@ -1,5 +1,6 @@
 //! Comments API module.
 
+use github_scbot_core::Config;
 use github_scbot_types::issues::GHReactionType;
 use tracing::error;
 
@@ -19,13 +20,14 @@ const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 /// * `pr_number` - Pull request number
 /// * `body` - Comment body
 pub async fn post_comment(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
     body: &str,
 ) -> Result<u64> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
         let final_body = format!("{}\n\n{}", body, BOT_COMMENT_SIGNATURE);
 
         let comment = client
@@ -47,13 +49,14 @@ pub async fn post_comment(
 /// * `repository_name` - Repository name
 /// * `comment_id` - Comment ID
 pub async fn update_comment(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     comment_id: u64,
     body: &str,
 ) -> Result<u64> {
-    if is_client_enabled() {
-        let client = get_client().await?;
+    if is_client_enabled(config) {
+        let client = get_client(config).await?;
         let final_body = format!("{}\n\n{}", body, BOT_COMMENT_SIGNATURE);
 
         client
@@ -74,13 +77,14 @@ pub async fn update_comment(
 /// * `comment_id` - Comment ID
 /// * `reaction_type` - Reaction type
 pub async fn add_reaction_to_comment(
+    config: &Config,
     repository_owner: &str,
     repository_name: &str,
     comment_id: u64,
     reaction_type: GHReactionType,
 ) -> Result<()> {
-    if is_client_enabled() {
-        let client = get_client_builder()
+    if is_client_enabled(config) {
+        let client = get_client_builder(config)
             .await?
             .add_preview("squirrel-girl")
             .build()?;

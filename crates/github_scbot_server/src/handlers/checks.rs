@@ -1,6 +1,7 @@
 //! Check webhook handlers.
 
 use actix_web::HttpResponse;
+use github_scbot_core::Config;
 use github_scbot_database::DbConn;
 use github_scbot_logic::{checks::handle_check_suite_event, database::process_repository};
 use github_scbot_types::checks::{GHCheckRunEvent, GHCheckSuiteEvent};
@@ -17,6 +18,7 @@ pub(crate) async fn check_run_event(conn: &DbConn, event: GHCheckRunEvent) -> Re
 }
 
 pub(crate) async fn check_suite_event(
+    config: &Config,
     conn: &DbConn,
     event: GHCheckSuiteEvent,
 ) -> Result<HttpResponse> {
@@ -28,7 +30,7 @@ pub(crate) async fn check_suite_event(
         event.check_suite.conclusion
     );
 
-    handle_check_suite_event(conn, &event).await?;
+    handle_check_suite_event(config, conn, &event).await?;
 
     Ok(HttpResponse::Ok().body("Check suite."))
 }

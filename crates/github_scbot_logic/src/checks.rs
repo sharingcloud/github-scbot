@@ -1,5 +1,6 @@
 //! Checks logic.
 
+use github_scbot_core::Config;
 use github_scbot_database::{models::PullRequestModel, DbConn};
 use github_scbot_types::{
     checks::{GHCheckConclusion, GHCheckSuiteAction, GHCheckSuiteEvent},
@@ -14,7 +15,11 @@ use crate::{database::process_repository, status::update_pull_request_status, Re
 ///
 /// * `conn` - Database connection
 /// * `event` - GitHub check suite event
-pub async fn handle_check_suite_event(conn: &DbConn, event: &GHCheckSuiteEvent) -> Result<()> {
+pub async fn handle_check_suite_event(
+    config: &Config,
+    conn: &DbConn,
+    event: &GHCheckSuiteEvent,
+) -> Result<()> {
     let repo_model = process_repository(conn, &event.repository)?;
 
     // Only look for first PR
@@ -44,6 +49,7 @@ pub async fn handle_check_suite_event(conn: &DbConn, event: &GHCheckSuiteEvent) 
 
             // Update status
             update_pull_request_status(
+                config,
                 conn,
                 &repo_model,
                 &mut pr_model,

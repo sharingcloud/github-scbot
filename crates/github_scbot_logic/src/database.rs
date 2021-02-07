@@ -1,6 +1,7 @@
 //! Database module.
 
 use github_scbot_api::{labels::set_step_label, pulls::get_pull_request};
+use github_scbot_core::Config;
 use github_scbot_database::{
     models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
     DbConn,
@@ -55,10 +56,12 @@ pub fn process_pull_request(
 /// * `repository_model` - Repository model
 /// * `pr_model` - Pull request model
 pub async fn apply_pull_request_step(
+    config: &Config,
     repository_model: &RepositoryModel,
     pr_model: &PullRequestModel,
 ) -> Result<()> {
     set_step_label(
+        config,
         &repository_model.owner,
         &repository_model.name,
         pr_model.get_number(),
@@ -70,6 +73,7 @@ pub async fn apply_pull_request_step(
 
 /// Get or fetch pull request from ID.
 pub async fn get_or_fetch_pull_request(
+    config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_number: u64,
@@ -80,7 +84,7 @@ pub async fn get_or_fetch_pull_request(
     {
         Ok(pr_model)
     } else {
-        let pr = get_pull_request(&repo_model.owner, &repo_model.name, pr_number).await?;
+        let pr = get_pull_request(config, &repo_model.owner, &repo_model.name, pr_number).await?;
 
         let pr_model = PullRequestModel::get_or_create(
             conn,
