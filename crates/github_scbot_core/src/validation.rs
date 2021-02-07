@@ -131,19 +131,38 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
         let mut config = Config::from_env();
 
         macro_rules! test {
-            ($val_id: tt, $val_pk: tt, $($res: tt)+) => {{
+            ($val_id: tt, $val_iid: tt, $val_pk: tt, $($res: tt)+) => {{
                 config.github_app_id = $val_id.into();
+                config.github_app_installation_id = $val_iid.into();
                 config.github_app_private_key = $val_pk.into();
                 assert!(matches!(validate_github_app_config(&config), $($res)+))
             }};
         }
 
-        test!(0u64, "", Err(ApiConfigError::MissingPrivateKey));
-        test!(0u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!(1234u64, "", Err(ApiConfigError::MissingPrivateKey));
-        test!(1234u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!(0u64, SAMPLE_RSA_KEY, Err(ApiConfigError::MissingAppID));
-        test!(1234u64, SAMPLE_RSA_KEY, Ok(()));
+        test!(0u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0u64, 0u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(0u64, 1u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0u64, 1u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(1234u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(
+            1234u64,
+            0u64,
+            "toto",
+            Err(ApiConfigError::InvalidPrivateKey)
+        );
+        test!(
+            0u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingAppID)
+        );
+        test!(
+            1234u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingInstallationID)
+        );
+        test!(1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
     }
 
     #[test]
@@ -151,29 +170,50 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
         let mut config = Config::from_env();
 
         macro_rules! test {
-            ($val_tok: tt, $val_id: tt, $val_pk: tt, $($res: tt)+) => {{
+            ($val_tok: tt, $val_id: tt, $val_iid: tt, $val_pk: tt, $($res: tt)+) => {{
                 config.github_api_token = $val_tok.into();
                 config.github_app_id = $val_id.into();
+                config.github_app_installation_id = $val_iid.into();
                 config.github_app_private_key = $val_pk.into();
                 assert!(matches!(validate_api_credentials(&config), $($res)+));
             }};
         }
 
-        test!("", 0u64, "", Err(ApiConfigError::MissingToken));
-        test!("", 0u64, "iamapkey", Err(ApiConfigError::InvalidPrivateKey));
-        test!("", 0u64, SAMPLE_RSA_KEY, Err(ApiConfigError::MissingAppID));
-        test!("", 1234u64, "", Err(ApiConfigError::MissingToken));
+        test!("", 0u64, 0u64, "", Err(ApiConfigError::MissingToken));
         test!(
             "",
-            1234u64,
+            0u64,
+            0u64,
             "iamapkey",
             Err(ApiConfigError::InvalidPrivateKey)
         );
-        test!("", 1234u64, SAMPLE_RSA_KEY, Ok(()));
-        test!("iamatoken", 0u64, "", Ok(()));
-        test!("iamatoken", 0u64, "iamapkey", Ok(()));
-        test!("iamatoken", 1234u64, "", Ok(()));
-        test!("iamatoken", 1234u64, "iamapkey", Ok(()));
-        test!("iamatoken", 1234u64, SAMPLE_RSA_KEY, Ok(()));
+        test!(
+            "",
+            0u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingAppID)
+        );
+        test!("", 1234u64, 0u64, "", Err(ApiConfigError::MissingToken));
+        test!(
+            "",
+            1234u64,
+            0u64,
+            "iamapkey",
+            Err(ApiConfigError::InvalidPrivateKey)
+        );
+        test!(
+            "",
+            1234u64,
+            0u64,
+            SAMPLE_RSA_KEY,
+            Err(ApiConfigError::MissingInstallationID)
+        );
+        test!("", 1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
+        test!("iamatoken", 0u64, 0u64, "", Ok(()));
+        test!("iamatoken", 0u64, 0u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, "", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234u64, 0u64, SAMPLE_RSA_KEY, Ok(()));
     }
 }

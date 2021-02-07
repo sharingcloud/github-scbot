@@ -137,6 +137,11 @@ where
                     if !is_valid_signature(sig, &body, &secret) {
                         return Err(ErrorUnauthorized(ParseError::Header));
                     }
+
+                    // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438
+                    let mut payload = actix_http::h1::Payload::empty();
+                    payload.unread_data(body.freeze());
+                    req.set_payload(payload.into());
                 }
             }
 

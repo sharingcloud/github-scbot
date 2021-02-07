@@ -2,11 +2,20 @@
 
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use github_scbot_core::Config;
-use github_scbot_database::establish_connection;
+use github_scbot_database::{establish_connection, DbPool};
 use sentry_actix::Sentry;
 use tracing::{error, info};
 
 use crate::{configure_webhooks, sentry_utils::with_sentry_configuration, Result, VerifySignature};
+
+/// App context.
+#[derive(Clone)]
+pub struct AppContext {
+    /// Config.
+    pub config: Config,
+    /// Database pool.
+    pub pool: DbPool,
+}
 
 /// Run bot server.
 ///
@@ -29,12 +38,16 @@ fn get_bind_address(config: &Config) -> String {
 
 async fn run_bot_server_internal(config: Config, ip_with_port: String) -> Result<()> {
     if let Ok(pool) = establish_connection(&config) {
+        let app_context = AppContext {
+            config: config.clone(),
+            pool: pool.clone(),
+        };
+
         HttpServer::new(move || {
             App::new()
-                .data(config.clone())
-                .data(pool.clone())
+                .data(app_context.clone())
                 .wrap(Sentry::new())
-                .wrap(VerifySignature::new(&config.clone()))
+                .wrap(VerifySignature::new(&app_context.config))
                 .wrap(Logger::default())
                 .service(web::scope("/webhook").configure(configure_webhooks))
                 .route("/", web::get().to(|| async { "Welcome on SC Bot!" }))

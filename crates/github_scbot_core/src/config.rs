@@ -76,9 +76,7 @@ fn env_to_u64(name: &str, default: u64) -> u64 {
 }
 
 fn env_to_bool(name: &str, default: bool) -> bool {
-    env::var(name)
-        .map(|e| e.parse().unwrap_or(default))
-        .unwrap_or(default)
+    env::var(name).map(|e| !e.is_empty()).unwrap_or(default)
 }
 
 fn env_to_str(name: &str, default: &str) -> String {
