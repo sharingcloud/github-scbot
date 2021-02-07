@@ -11,6 +11,5 @@ pub mod issues;
 pub mod labels;
 pub mod ping;
 pub mod pulls;
-pub mod push;
 pub mod reviews;
 pub mod status;
