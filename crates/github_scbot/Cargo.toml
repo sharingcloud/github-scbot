@@ -11,6 +11,7 @@ github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-logic = { path = "../github_scbot_logic" }
 github-scbot-server = { path = "../github_scbot_server" }
 github-scbot-tui = { path = "../github_scbot_tui" }
+github-scbot-types = { path = "../github_scbot_types" }
 actix-rt = "1"
 anyhow = "1.0"
 owo-colors = "1.2"

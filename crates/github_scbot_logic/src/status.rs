@@ -9,12 +9,17 @@ use github_scbot_database::{
     DbConn,
 };
 use github_scbot_types::{
+    pulls::GHMergeStrategy,
     reviews::GHReviewState,
     status::{CheckStatus, QAStatus, StatusState},
 };
 use regex::Regex;
 
-use crate::{database::apply_pull_request_step, errors::Result, pulls::determine_automatic_step};
+use crate::{
+    database::apply_pull_request_step,
+    errors::Result,
+    pulls::{determine_automatic_step, get_merge_strategy_for_branches},
+};
 
 /// Pull request status.
 pub struct PullRequestStatus {
@@ -104,7 +109,13 @@ pub async fn post_status_comment(
 ) -> Result<u64> {
     let comment_id = pr_model.get_status_comment_id();
     let reviews = pr_model.get_reviews(conn)?;
-    let status_comment = generate_pr_status_comment(repo_model, pr_model, &reviews)?;
+    let strategy = get_merge_strategy_for_branches(
+        conn,
+        repo_model,
+        &pr_model.base_branch,
+        &pr_model.head_branch,
+    );
+    let status_comment = generate_pr_status_comment(repo_model, pr_model, &reviews, strategy)?;
 
     if comment_id > 0 {
         if let Ok(comment_id) = update_comment(
@@ -192,6 +203,7 @@ pub fn generate_pr_status_comment(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     reviews: &[ReviewModel],
+    strategy: GHMergeStrategy,
 ) -> Result<String> {
     let review_status = PullRequestStatus::from_pull_request(repo_model, pr_model, reviews)?;
 
@@ -205,7 +217,7 @@ pub fn generate_pr_status_comment(
         {config_section}\n\
         \n\
         {footer}",
-        rules_section = generate_status_comment_rule_section(repo_model, pr_model)?,
+        rules_section = generate_status_comment_rule_section(repo_model, pr_model, strategy)?,
         checks_section = generate_status_comment_checks_section(&review_status, pr_model),
         config_section = generate_status_comment_config_section(pr_model),
         footer = generate_status_comment_footer(repo_model, pr_model)
@@ -284,6 +296,7 @@ pub fn generate_pr_status_message(
 fn generate_status_comment_rule_section(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
+    strategy: GHMergeStrategy,
 ) -> Result<String> {
     let validation_regex = if repo_model.pr_title_validation_regex.is_empty() {
         "None".to_owned()
@@ -301,9 +314,11 @@ fn generate_status_comment_rule_section(
         ":pencil: &mdash; **Rules**\n\
         \n\
         > - :speech_balloon: **Title validation**: {status}\n\
-        >   - _Rule:_ {rule}",
+        >   - _Rule:_ {rule}\n\
+        > - :twisted_rightwards_arrows: **Merge strategy**: _{strategy}_\n",
         status = title_validation_status,
-        rule = validation_regex
+        rule = validation_regex,
+        strategy = strategy.to_string()
     ))
 }
 

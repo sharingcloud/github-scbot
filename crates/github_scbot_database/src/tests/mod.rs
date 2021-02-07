@@ -1,11 +1,11 @@
-use github_scbot_types::reviews::GHReviewState;
+use github_scbot_types::{pulls::GHMergeStrategy, reviews::GHReviewState};
 
 use super::import_export::{export_models_to_json, import_models_from_json};
 use crate::{
     establish_single_test_connection,
     models::{
-        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewCreation,
-        ReviewModel,
+        MergeRuleCreation, MergeRuleModel, PullRequestCreation, PullRequestModel,
+        RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
     },
 };
 
@@ -128,6 +128,17 @@ fn test_export_models_to_json() {
     )
     .unwrap();
 
+    MergeRuleModel::create(
+        &conn,
+        MergeRuleCreation {
+            repository_id: repo.id,
+            base_branch: "base".into(),
+            head_branch: "head".into(),
+            strategy: GHMergeStrategy::Merge.to_string(),
+        },
+    )
+    .unwrap();
+
     let mut buffer = Vec::new();
     export_models_to_json(&conn, &mut buffer).unwrap();
 
@@ -171,14 +182,16 @@ fn test_import_models_from_json() {
                     "name": "TestRepo",
                     "owner": "me",
                     "pr_title_validation_regex": "[a-z]*",
-                    "default_needed_reviewers_count": 2
+                    "default_needed_reviewers_count": 2,
+                    "default_strategy": "merge"
                 },
                 {
                     "id": 2,
                     "name": "AnotherRepo",
                     "owner": "me",
                     "pr_title_validation_regex": "",
-                    "default_needed_reviewers_count": 3
+                    "default_needed_reviewers_count": 3,
+                    "default_strategy": "merge"
                 }
             ],
             "pull_requests": [
@@ -195,7 +208,9 @@ fn test_import_models_from_json() {
                     "wip": false,
                     "needed_reviewers_count": 2,
                     "locked": false,
-                    "merged": false
+                    "merged": false,
+                    "base_branch": "a",
+                    "head_branch": "b"
                 },
                 {
                     "id": 2,
@@ -210,7 +225,9 @@ fn test_import_models_from_json() {
                     "wip": true,
                     "needed_reviewers_count": 2,
                     "locked": true,
-                    "merged": false
+                    "merged": false,
+                    "base_branch": "a",
+                    "head_branch": "b"
                 }
             ],
             "reviews": [
@@ -220,6 +237,15 @@ fn test_import_models_from_json() {
                     "username": "tutu",
                     "state": "commented",
                     "required": true
+                }
+            ],
+            "merge_rules": [
+                {
+                    "id": 1,
+                    "repository_id": 1,
+                    "base_branch": "base",
+                    "head_branch": "head",
+                    "strategy": "merge"
                 }
             ]
         }

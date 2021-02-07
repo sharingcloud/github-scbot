@@ -33,15 +33,6 @@ pub async fn get_pull_request(
                 None::<&()>,
             )
             .await?;
-        // .pulls(repository_owner, repository_name)
-        // .get(pr_number)
-        // .await
-        // .map_err(|_e| {
-        //     APIError::MissingPullRequest(
-        //         format!("{}/{}", repository_owner, repository_name),
-        //         pr_number,
-        //     )
-        // })
         Ok(data)
     } else {
         Err(APIError::MissingPullRequest(

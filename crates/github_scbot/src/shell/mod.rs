@@ -82,6 +82,34 @@ enum RepositoryCommand {
         repository_path: String,
     },
 
+    /// Set merge rule
+    SetMergeRule {
+        /// Repository path (e.g. 'MyOrganization/my-project`)
+        repository_path: String,
+        /// Base branch name
+        base_branch: String,
+        /// Head branch name
+        head_branch: String,
+        /// Strategy
+        strategy: String,
+    },
+
+    /// Remove merge rule
+    RemoveMergeRule {
+        /// Repository path (e.g. 'MyOrganization/my-project`)
+        repository_path: String,
+        /// Base branch name
+        base_branch: String,
+        /// Head branch name
+        head_branch: String,
+    },
+
+    /// List merge rules
+    ListMergeRules {
+        /// Repository path (e.g. 'MyOrganization/my-project`)
+        repository_path: String,
+    },
+
     /// List known repositories
     List,
 }
@@ -121,6 +149,33 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 value,
             } => {
                 commands::repository::set_pull_request_title_regex(&repository_path, &value)?;
+            }
+            RepositoryCommand::ListMergeRules { repository_path } => {
+                commands::repository::list_merge_rules(&repository_path)?;
+            }
+            RepositoryCommand::SetMergeRule {
+                repository_path,
+                base_branch,
+                head_branch,
+                strategy,
+            } => {
+                commands::repository::set_merge_rule(
+                    &repository_path,
+                    &base_branch,
+                    &head_branch,
+                    &strategy,
+                )?;
+            }
+            RepositoryCommand::RemoveMergeRule {
+                repository_path,
+                base_branch,
+                head_branch,
+            } => {
+                commands::repository::remove_merge_rule(
+                    &repository_path,
+                    &base_branch,
+                    &head_branch,
+                )?;
             }
             RepositoryCommand::Show { repository_path } => {
                 commands::repository::show_repository(&repository_path)?;

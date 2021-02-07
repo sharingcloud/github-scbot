@@ -9,6 +9,7 @@ use github_scbot_database::{
 };
 use github_scbot_types::{
     common::GHUser,
+    pulls::GHMergeStrategy,
     reviews::{GHReview, GHReviewState},
 };
 
@@ -110,6 +111,6 @@ async fn test_review_creation() {
     assert_eq!(status.locked, true);
 
     // Generate status comment
-    let comment = generate_pr_status_comment(&repo, &pr, &reviews).unwrap();
+    let comment = generate_pr_status_comment(&repo, &pr, &reviews, GHMergeStrategy::Merge).unwrap();
     assert!(!comment.is_empty());
 }

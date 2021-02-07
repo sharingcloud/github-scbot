@@ -10,13 +10,13 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel},
     DbConn,
 };
-use github_scbot_types::{
-    issues::GHReactionType, labels::StepLabel, pulls::GHMergeStrategy, status::QAStatus,
-};
+use github_scbot_types::{issues::GHReactionType, labels::StepLabel, status::QAStatus};
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
-use crate::pulls::{determine_automatic_step, synchronize_pull_request};
+use crate::pulls::{
+    determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request,
+};
 
 /// Command handling status.
 #[derive(Debug, Clone, Copy)]
@@ -278,6 +278,12 @@ pub async fn handle_merge_command(
     let reviews = pr_model.get_reviews(conn)?;
     let step = determine_automatic_step(repo_model, pr_model, &reviews)?;
     let commit_title = format!("{} (#{})", pr_model.name, pr_model.get_number());
+    let strategy = get_merge_strategy_for_branches(
+        conn,
+        repo_model,
+        &pr_model.base_branch,
+        &pr_model.head_branch,
+    );
 
     if matches!(step, StepLabel::AwaitingMerge) {
         match merge_pull_request(
@@ -286,7 +292,7 @@ pub async fn handle_merge_command(
             pr_model.get_number(),
             &commit_title,
             "",
-            GHMergeStrategy::Squash,
+            strategy,
         )
         .await
         {
@@ -318,7 +324,11 @@ pub async fn handle_merge_command(
                     &repo_model.owner,
                     &repo_model.name,
                     pr_model.get_number(),
-                    &format!("Pull request successfully merged by {}!", comment_author),
+                    &format!(
+                        "Pull request successfully merged by {}! (strategy: '{}')",
+                        comment_author,
+                        strategy.to_string()
+                    ),
                 )
                 .await?;
             }

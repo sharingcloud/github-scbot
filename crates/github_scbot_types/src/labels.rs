@@ -45,7 +45,7 @@ impl TryFrom<&str> for StepLabel {
             "step/awaiting-qa" => Ok(Self::AwaitingQA),
             "step/awaiting-merge" => Ok(Self::AwaitingMerge),
             "step/locked" => Ok(Self::Locked),
-            name => Err(TypeError::UnknownStepLabelError(name.to_string())),
+            name => Err(TypeError::UnknownStepLabel(name.to_string())),
         }
     }
 }

@@ -1,4 +1,14 @@
 table! {
+    merge_rule (id) {
+        id -> Int4,
+        repository_id -> Int4,
+        base_branch -> Varchar,
+        head_branch -> Varchar,
+        strategy -> Varchar,
+    }
+}
+
+table! {
     pull_request (id) {
         id -> Int4,
         repository_id -> Int4,
@@ -13,6 +23,8 @@ table! {
         needed_reviewers_count -> Int4,
         locked -> Bool,
         merged -> Bool,
+        base_branch -> Varchar,
+        head_branch -> Varchar,
     }
 }
 
@@ -23,6 +35,7 @@ table! {
         owner -> Varchar,
         pr_title_validation_regex -> Text,
         default_needed_reviewers_count -> Int4,
+        default_strategy -> Varchar,
     }
 }
 
@@ -36,7 +49,8 @@ table! {
     }
 }
 
+joinable!(merge_rule -> repository (repository_id));
 joinable!(pull_request -> repository (repository_id));
 joinable!(review -> pull_request (pull_request_id));
 
-allow_tables_to_appear_in_same_query!(pull_request, repository, review,);
+allow_tables_to_appear_in_same_query!(merge_rule, pull_request, repository, review,);

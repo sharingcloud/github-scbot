@@ -67,7 +67,7 @@ impl TryFrom<&str> for CheckStatus {
             "waiting" => Ok(Self::Waiting),
             "skipped" => Ok(Self::Skipped),
             "fail" => Ok(Self::Fail),
-            e => Err(TypeError::UnknownCheckStatusError(e.to_string())),
+            e => Err(TypeError::UnknownCheckStatus(e.to_string())),
         }
     }
 }
@@ -113,7 +113,7 @@ impl TryFrom<&str> for QAStatus {
             "waiting" => Ok(Self::Waiting),
             "fail" => Ok(Self::Fail),
             "skipped" => Ok(Self::Skipped),
-            e => Err(TypeError::UnknownQAStatusError(e.to_string())),
+            e => Err(TypeError::UnknownQAStatus(e.to_string())),
         }
     }
 }

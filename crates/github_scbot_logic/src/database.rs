@@ -42,12 +42,7 @@ pub fn process_pull_request(
     let repo = process_repository(conn, repository)?;
     let pr = PullRequestModel::get_or_create(
         conn,
-        PullRequestCreation {
-            repository_id: repo.id,
-            name: pull_request.title.clone(),
-            number: pull_request.number as i32,
-            ..Default::default()
-        },
+        PullRequestCreation::from_upstream(repo.id, &pull_request),
     )?;
 
     Ok((repo, pr))
@@ -89,12 +84,7 @@ pub async fn get_or_fetch_pull_request(
 
         let pr_model = PullRequestModel::get_or_create(
             conn,
-            PullRequestCreation {
-                repository_id: repo_model.id,
-                name: pr.title,
-                number: pr.number as i32,
-                ..Default::default()
-            },
+            PullRequestCreation::from_upstream(repo_model.id, &pr),
         )?;
 
         Ok(pr_model)

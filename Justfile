@@ -5,6 +5,11 @@ opt_fmt_check := "false"
 opt_lint_err := "false"
 opt_doc_open := "false"
 
+###########
+# Variables
+
+version := `cat ./crates/github_scbot/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
+
 #################
 # Format and lint
 
@@ -48,6 +53,17 @@ doc-open:
 # Build app
 build:
 	cargo build
+
+# Build release
+export:
+	@echo "Exporting github-scbot {{ version }} ..."
+	@cargo build --release
+	@mkdir -p ./export
+	@cp ./target/release/github-scbot ./export
+	@cp ./.env.sample ./export
+	@cp ./README.md ./export
+	@tar -zcf ./export/github-scbot-{{ version }}.tar.gz ./export/github-scbot ./export/.env.sample ./export/README.md
+	@echo "Exported to ./export/github-scbot-{{ version }}.tar.gz"
 
 # Run server
 server:
