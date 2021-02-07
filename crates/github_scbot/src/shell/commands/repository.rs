@@ -182,3 +182,26 @@ pub fn remove_merge_rule(
 
     Ok(())
 }
+
+/// Set reviewers count for repository.
+///
+/// # Arguments
+///
+/// * `repository_path` - Repository path
+/// * `reviewers_count` - Reviewers count
+pub fn set_reviewers_count(repository_path: &str, reviewers_count: u32) -> Result<()> {
+    let conn = establish_single_connection()?;
+
+    if let Some(mut repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
+        repo.default_needed_reviewers_count = reviewers_count as i32;
+        println!(
+            "Default reviewers count updated to {} for repository {}.",
+            reviewers_count, repository_path
+        );
+        repo.save(&conn)?;
+    } else {
+        eprintln!("Unknown repository {}.", repository_path);
+    }
+
+    Ok(())
+}

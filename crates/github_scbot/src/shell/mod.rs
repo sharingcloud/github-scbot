@@ -82,6 +82,14 @@ enum RepositoryCommand {
         repository_path: String,
     },
 
+    /// Set default reviewers count
+    SetReviewersCount {
+        /// Repository path (e.g. 'MyOrganization/my-project')
+        repository_path: String,
+        /// Reviewers count
+        reviewers_count: u32,
+    },
+
     /// Set merge rule
     SetMergeRule {
         /// Repository path (e.g. 'MyOrganization/my-project`)
@@ -149,6 +157,12 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 value,
             } => {
                 commands::repository::set_pull_request_title_regex(&repository_path, &value)?;
+            }
+            RepositoryCommand::SetReviewersCount {
+                repository_path,
+                reviewers_count,
+            } => {
+                commands::repository::set_reviewers_count(&repository_path, reviewers_count)?;
             }
             RepositoryCommand::ListMergeRules { repository_path } => {
                 commands::repository::list_merge_rules(&repository_path)?;
