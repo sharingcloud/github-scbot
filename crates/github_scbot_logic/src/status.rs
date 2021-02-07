@@ -315,7 +315,7 @@ fn generate_status_comment_rule_section(
         \n\
         > - :speech_balloon: **Title validation**: {status}\n\
         >   - _Rule:_ {rule}\n\
-        > - :twisted_rightwards_arrows: **Merge strategy**: {strategy}\n",
+        > - :twisted_rightwards_arrows: **Merge strategy**: _{strategy}_\n",
         status = title_validation_status,
         rule = validation_regex,
         strategy = strategy.to_string()
