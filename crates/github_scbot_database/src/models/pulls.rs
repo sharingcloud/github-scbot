@@ -53,6 +53,8 @@ pub struct PullRequestModel {
     pub base_branch: String,
     /// Head branch.
     pub head_branch: String,
+    /// Is the PR closed?
+    pub closed: bool,
 }
 
 impl Default for PullRequestModel {
@@ -73,6 +75,7 @@ impl Default for PullRequestModel {
             merged: false,
             base_branch: String::new(),
             head_branch: String::new(),
+            closed: false,
         }
     }
 }
@@ -109,6 +112,8 @@ pub struct PullRequestCreation {
     pub base_branch: String,
     /// Head branch.
     pub head_branch: String,
+    /// Is the PR closed?
+    pub closed: bool,
 }
 
 impl PullRequestCreation {
@@ -142,6 +147,7 @@ impl Default for PullRequestCreation {
             merged: false,
             base_branch: String::new(),
             head_branch: String::new(),
+            closed: false,
         }
     }
 }
@@ -357,6 +363,7 @@ impl PullRequestModel {
         self.name = upstream_pr.title.clone();
         self.wip = upstream_pr.draft;
         self.merged = upstream_pr.merged_at.is_some();
+        self.closed = upstream_pr.closed_at.is_some();
         self.base_branch = upstream_pr.base.reference.clone();
         self.head_branch = upstream_pr.head.reference.clone();
     }

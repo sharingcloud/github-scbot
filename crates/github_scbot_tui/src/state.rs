@@ -35,6 +35,16 @@ impl AppState {
         }
     }
 
+    pub fn get_current_pull_request(&self) -> Option<&PullRequestModel> {
+        if let Some(repo_id) = self.repositories_state.selected() {
+            if let Some(pr_id) = self.pull_requests_state.selected() {
+                return Some(&self.data[repo_id].1[pr_id]);
+            }
+        }
+
+        None
+    }
+
     pub fn next_repository(&mut self) {
         let i = match self.repositories_state.selected() {
             Some(i) => {

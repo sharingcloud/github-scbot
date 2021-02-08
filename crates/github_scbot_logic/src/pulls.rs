@@ -104,6 +104,11 @@ pub async fn handle_pull_request_event(
             )?;
             status_changed = true;
         }
+        GHPullRequestAction::Closed => {
+            pr_model.set_from_upstream(&event.pull_request);
+            pr_model.save(conn)?;
+            status_changed = true;
+        }
         _ => (),
     }
 

@@ -4,12 +4,13 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel},
     DbConn,
 };
+use github_scbot_types::status::{CheckStatus, QAStatus};
 use termion::event::Key;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
-    text::Spans,
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
@@ -35,7 +36,8 @@ impl<'a> App<'a> {
 
     pub fn load_from_db(&mut self, conn: &DbConn) -> Result<()> {
         let repositories = RepositoryModel::list(conn)?;
-        let pull_requests = PullRequestModel::list(conn)?;
+        let mut pull_requests = PullRequestModel::list(conn)?;
+        pull_requests.sort_by_key(|p| -(p.get_number() as i64));
 
         let mut pr_kvs = Vec::new();
         for repo in repositories {
@@ -87,7 +89,15 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(format!("#{} - {}", i.get_number(), i.name))];
+                    let desc = format!("#{} - {}", i.get_number(), i.name);
+                    let lines = vec![if i.closed {
+                        Spans::from(vec![Span::styled(
+                            desc,
+                            Style::default().add_modifier(Modifier::CROSSED_OUT),
+                        )])
+                    } else {
+                        Spans::from(desc)
+                    }];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -103,11 +113,143 @@ impl<'a> App<'a> {
         };
 
         f.render_stateful_widget(pr_items, chunks[0], &mut self.data.pull_requests_state);
+        self.draw_current_data(f, chunks[1]);
+    }
+
+    pub fn draw_current_data<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        if let Some(selected_pr) = self.data.get_current_pull_request() {
+            let text = vec![
+                Spans::from(vec![Span::styled(
+                    format!(
+                        "{title} - #{number}",
+                        title = selected_pr.name,
+                        number = selected_pr.get_number()
+                    ),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )]),
+                Spans::from(""),
+                Spans::from(vec![
+                    Span::styled("base", Style::default().fg(Color::Green)),
+                    Span::raw(": "),
+                    Span::raw(&selected_pr.base_branch),
+                    Span::raw(" <-- "),
+                    Span::styled("head", Style::default().fg(Color::Green)),
+                    Span::raw(": "),
+                    Span::raw(&selected_pr.head_branch),
+                ]),
+                Spans::from(""),
+                Spans::from(vec![
+                    Span::styled("Step", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(": "),
+                    match selected_pr.get_step_label() {
+                        Some(label) => {
+                            Span::styled(label.to_str(), Style::default().fg(Color::Green))
+                        }
+                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled(
+                        "Check status",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(": "),
+                    match selected_pr.get_checks_status() {
+                        Some(status) => {
+                            let color = match status {
+                                CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
+                                CheckStatus::Fail => Color::Red,
+                                CheckStatus::Waiting => Color::Yellow,
+                            };
+                            Span::styled(status.to_str(), Style::default().fg(color))
+                        }
+                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(": "),
+                    match selected_pr.get_qa_status() {
+                        Some(status) => {
+                            let color = match status {
+                                QAStatus::Pass | QAStatus::Skipped => Color::Green,
+                                QAStatus::Fail => Color::Red,
+                                QAStatus::Waiting => Color::Yellow,
+                            };
+                            Span::styled(status.to_str(), Style::default().fg(color))
+                        }
+                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled(
+                        "Needed reviewers count",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(": "),
+                    Span::styled(
+                        format!("{}", selected_pr.needed_reviewers_count),
+                        Style::default().fg(Color::Blue),
+                    ),
+                ]),
+                Spans::from(vec![
+                    Span::styled("WIP?", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" "),
+                    {
+                        let (msg, color) = if selected_pr.wip {
+                            ("Yes", Color::Yellow)
+                        } else {
+                            ("No", Color::Green)
+                        };
+                        Span::styled(msg, Style::default().fg(color))
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled("Locked?", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" "),
+                    {
+                        let (msg, color) = if selected_pr.locked {
+                            ("Yes", Color::Red)
+                        } else {
+                            ("No", Color::Green)
+                        };
+                        Span::styled(msg, Style::default().fg(color))
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled("Merged?", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" "),
+                    {
+                        let (msg, color) = if selected_pr.merged {
+                            ("Yes", Color::Green)
+                        } else {
+                            ("No", Color::Yellow)
+                        };
+                        Span::styled(msg, Style::default().fg(color))
+                    },
+                ]),
+                Spans::from(vec![
+                    Span::styled("Closed?", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" "),
+                    {
+                        let (msg, color) = if selected_pr.closed {
+                            ("Yes", Color::Green)
+                        } else {
+                            ("No", Color::Yellow)
+                        };
+                        Span::styled(msg, Style::default().fg(color))
+                    },
+                ]),
+            ];
+
+            let paragraph = Paragraph::new(text).block(Block::default().borders(Borders::ALL));
+            f.render_widget(paragraph, area)
+        }
     }
 
     pub fn draw_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
-        let help_text = Paragraph::new(format!("Welcome on SC Bot! ({:?})", self.last_key_pressed))
-            .block(Block::default().borders(Borders::ALL));
+        let help_text =
+            Paragraph::new("Welcome on SC Bot!").block(Block::default().borders(Borders::ALL));
         f.render_widget(help_text, area);
     }
 

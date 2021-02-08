@@ -41,10 +41,10 @@ pub fn process_pull_request(
     pull_request: &GHPullRequest,
 ) -> Result<(RepositoryModel, PullRequestModel)> {
     let repo = process_repository(conn, repository)?;
-    let pr = PullRequestModel::get_or_create(
-        conn,
-        PullRequestCreation::from_upstream(repo.id, &pull_request),
-    )?;
+    let mut upstream = PullRequestCreation::from_upstream(repo.id, &pull_request);
+    upstream.needed_reviewers_count = repo.default_needed_reviewers_count;
+
+    let pr = PullRequestModel::get_or_create(conn, upstream)?;
 
     Ok((repo, pr))
 }
