@@ -150,28 +150,32 @@ pub fn determine_automatic_step(
     Ok(if pr_model.wip {
         StepLabel::Wip
     } else {
-        match pr_model.get_checks_status() {
-            Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
-                if status.missing_required_reviews() {
-                    StepLabel::AwaitingRequiredReview
-                } else if status.missing_reviews() {
-                    StepLabel::AwaitingReview
-                } else {
-                    match status.qa_status {
-                        Some(QAStatus::Fail) => StepLabel::AwaitingChanges,
-                        Some(QAStatus::Waiting) | None => StepLabel::AwaitingQA,
-                        Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
-                            if status.locked {
-                                StepLabel::Locked
-                            } else {
-                                StepLabel::AwaitingMerge
+        if !status.valid_pr_title {
+            StepLabel::AwaitingChanges
+        } else {
+            match pr_model.get_checks_status() {
+                Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
+                    if status.missing_required_reviews() {
+                        StepLabel::AwaitingRequiredReview
+                    } else if status.missing_reviews() {
+                        StepLabel::AwaitingReview
+                    } else {
+                        match status.qa_status {
+                            Some(QAStatus::Fail) => StepLabel::AwaitingChanges,
+                            Some(QAStatus::Waiting) | None => StepLabel::AwaitingQA,
+                            Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
+                                if status.locked {
+                                    StepLabel::Locked
+                                } else {
+                                    StepLabel::AwaitingMerge
+                                }
                             }
                         }
                     }
                 }
+                Some(CheckStatus::Waiting) => StepLabel::AwaitingChecks,
+                Some(CheckStatus::Fail) => StepLabel::AwaitingChanges,
             }
-            Some(CheckStatus::Waiting) => StepLabel::AwaitingChecks,
-            Some(CheckStatus::Fail) => StepLabel::AwaitingChanges,
         }
     })
 }

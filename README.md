@@ -51,6 +51,7 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 Process can be followed with labels, which are auto applied depending on the current pull request state, in this order:
 
 - PR is WIP? **step/wip**
+- PR title is not valid? **step/awaiting-changes**
 - Waiting for checks? **step/awaiting-checks**
 - Checks failed? **step/awaiting-changes**
 - Waiting for required reviews? **step/awaiting-required-review**
