@@ -5,7 +5,7 @@ use github_scbot_crypto::{create_jwt, now};
 use octocrab::{Octocrab, OctocrabBuilder};
 use serde::{Deserialize, Serialize};
 
-use crate::Result;
+use crate::{APIError, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -75,8 +75,8 @@ async fn create_installation_access_token(config: &Config) -> Result<String> {
     let client = Octocrab::builder().personal_token(auth_token).build()?;
     let installation_id = config.github_app_installation_id;
 
-    let resp: InstallationTokenResponse = client
-        .post(
+    let response = client
+        ._post(
             client.absolute_url(&format!(
                 "/app/installations/{}/access_tokens",
                 installation_id
@@ -84,5 +84,18 @@ async fn create_installation_access_token(config: &Config) -> Result<String> {
             None::<&()>,
         )
         .await?;
-    Ok(resp.token)
+
+    let status = response.status();
+    if status == 201 {
+        let inst_resp: InstallationTokenResponse = response
+            .json()
+            .await
+            .map_err(|e| APIError::GitHubError(format!("Bad response: {}", e)))?;
+        Ok(inst_resp.token)
+    } else {
+        Err(APIError::GitHubError(format!(
+            "Bad status code: {}",
+            status
+        )))
+    }
 }
