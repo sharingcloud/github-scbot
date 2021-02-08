@@ -3,12 +3,14 @@
 use std::convert::TryFrom;
 
 use anyhow::Result;
+use dialoguer::Confirm;
 use github_scbot_core::Config;
 use github_scbot_database::{
     establish_single_connection,
-    models::{MergeRuleCreation, MergeRuleModel, RepositoryModel},
+    models::{MergeRuleCreation, MergeRuleModel, PullRequestModel, RepositoryModel},
 };
 use github_scbot_types::pulls::GHMergeStrategy;
+use owo_colors::OwoColorize;
 
 /// Set the pull request title validation regex for a repository.
 ///
@@ -220,6 +222,41 @@ pub fn set_reviewers_count(
             reviewers_count, repository_path
         );
         repo.save(&conn)?;
+    } else {
+        eprintln!("Unknown repository {}.", repository_path);
+    }
+
+    Ok(())
+}
+
+pub(crate) fn purge_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
+    let conn = establish_single_connection(config)?;
+
+    if let Some(repo) = RepositoryModel::get_from_path(&conn, &repository_path)? {
+        let prs_to_purge = PullRequestModel::list_closed_pulls(&conn, repo.id)?;
+        if prs_to_purge.is_empty() {
+            println!(
+                "No closed pull request to remove for repository '{}'",
+                repository_path
+            );
+        } else {
+            println!(
+                "You will remove:\n{}",
+                prs_to_purge
+                    .iter()
+                    .map(|p| format!("- #{} - {}", p.get_number(), p.name))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+
+            let prompt = "Do you want to continue?".yellow();
+            if Confirm::new().with_prompt(prompt.to_string()).interact()? {
+                PullRequestModel::remove_closed_pulls(&conn, repo.id)?;
+                println!("{} pull requests removed.", prs_to_purge.len());
+            } else {
+                println!("Cancelled.");
+            }
+        }
     } else {
         eprintln!("Unknown repository {}.", repository_path);
     }
