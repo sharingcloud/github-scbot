@@ -24,6 +24,10 @@ pub enum APIError {
     /// Wraps [`octocrab::Error`].
     #[error(transparent)]
     OctocrabError(#[from] octocrab::Error),
+
+    /// Wraps [`github_scbot_crypto::CryptoError`].
+    #[error(transparent)]
+    CryptoError(#[from] github_scbot_crypto::CryptoError),
 }
 
 /// Result alias for `APIError`.
