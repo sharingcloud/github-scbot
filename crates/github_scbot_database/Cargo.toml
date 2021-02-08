@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 github-scbot-core = { path = "../github_scbot_core" }
+github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-types = { path = "../github_scbot_types" }
 chrono = { version = "0.4.19", features = ["serde"] }
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }

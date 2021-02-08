@@ -5,8 +5,9 @@ use super::import_export::{export_models_to_json, import_models_from_json};
 use crate::{
     establish_single_test_connection,
     models::{
-        MergeRuleCreation, MergeRuleModel, PullRequestCreation, PullRequestModel,
-        RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
+        ExternalAccountModel, ExternalAccountRightModel, MergeRuleCreation, MergeRuleModel,
+        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewCreation,
+        ReviewModel,
     },
 };
 
@@ -144,6 +145,8 @@ fn test_export_models_to_json() {
     )
     .unwrap();
 
+    ExternalAccountModel::create_with_keys(&conn, "ext", "pub", "pri").unwrap();
+
     let mut buffer = Vec::new();
     export_models_to_json(&conn, &mut buffer).unwrap();
 
@@ -151,6 +154,8 @@ fn test_export_models_to_json() {
     assert!(buffer_string.contains(r#""name": "TestRepo""#));
     assert!(buffer_string.contains(r#""number": 1234"#));
     assert!(buffer_string.contains(r#""username": "toto"#));
+    assert!(buffer_string.contains(r#""username": "ext"#));
+    assert!(buffer_string.contains(r#""strategy": "merge"#));
 }
 
 #[test]
@@ -255,6 +260,19 @@ fn test_import_models_from_json() {
                     "head_branch": "head",
                     "strategy": "merge"
                 }
+            ],
+            "external_accounts": [
+                {
+                    "username": "ext",
+                    "public_key": "pub",
+                    "private_key": "priv"
+                }
+            ],
+            "external_account_rights": [
+                {
+                    "username": "ext",
+                    "repository_id": 1
+                }
             ]
         }
     "#;
@@ -266,6 +284,9 @@ fn test_import_models_from_json() {
     let pr_1 = PullRequestModel::get_from_repository_id_and_number(&conn, rep_1.id, 1234).unwrap();
     let pr_2 = PullRequestModel::get_from_repository_id_and_number(&conn, rep_1.id, 1235).unwrap();
     let review_1 = ReviewModel::get_from_pull_request_and_username(&conn, pr_1.id, "tutu").unwrap();
+    let rule_1 = MergeRuleModel::get_from_branches(&conn, rep_1.id, "base", "head").unwrap();
+    let ext_acc_1 = ExternalAccountModel::get_from_username(&conn, "ext").unwrap();
+    let ext_acc_right_1 = ExternalAccountRightModel::get_right(&conn, "ext", rep_1.id).unwrap();
 
     assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
     assert_eq!(rep_2.pr_title_validation_regex, "");
@@ -275,4 +296,7 @@ fn test_import_models_from_json() {
     assert_eq!(pr_2.automerge, true);
     assert_eq!(review_1.required, true);
     assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
+    assert!(matches!(rule_1.get_strategy(), GHMergeStrategy::Merge));
+    assert_eq!(ext_acc_1.public_key, "pub");
+    assert_eq!(ext_acc_right_1.username, "ext");
 }

@@ -9,7 +9,7 @@ use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
 use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt)]
 enum Command {
     /// Start bot server
     Server,
@@ -42,9 +42,16 @@ enum Command {
         #[structopt(subcommand)]
         cmd: RepositoryCommand,
     },
+
+    /// Auth
+    Auth {
+        /// Auth command
+        #[structopt(subcommand)]
+        cmd: AuthCommand,
+    },
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt)]
 enum PullRequestCommand {
     /// Show pull request stored data
     Show {
@@ -66,7 +73,7 @@ enum PullRequestCommand {
     List { repository_path: String },
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt)]
 enum RepositoryCommand {
     /// Set title validation regex
     SetTitleRegex {
@@ -122,12 +129,23 @@ enum RepositoryCommand {
     List,
 }
 
-#[derive(StructOpt, Debug)]
-struct Opt {
-    /// Activate verbose mode
-    #[structopt(short, long)]
-    verbose: bool,
+#[derive(StructOpt)]
+enum AuthCommand {
+    /// Create external account
+    CreateExternalAccount {
+        /// Account username
+        username: String,
+    },
 
+    /// Create external token
+    CreateExternalToken {
+        /// Account username
+        username: String,
+    },
+}
+
+#[derive(StructOpt)]
+struct Opt {
     #[structopt(subcommand)]
     cmd: Command,
 }
@@ -223,6 +241,14 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
                 number,
             } => {
                 commands::pulls::sync_pull_request(&config, repository_path, number)?;
+            }
+        },
+        Command::Auth { cmd } => match cmd {
+            AuthCommand::CreateExternalAccount { username } => {
+                commands::auth::create_external_account(&config, &username)?;
+            }
+            AuthCommand::CreateExternalToken { username } => {
+                commands::auth::create_external_token(&config, &username)?;
             }
         },
     }

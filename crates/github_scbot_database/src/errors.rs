@@ -21,6 +21,10 @@ pub enum DatabaseError {
     #[error("Unknown pull request review for PR id {0} and username {1}")]
     UnknownReview(i32, String),
 
+    /// Unknown external account.
+    #[error("Unknown external account: {0}")]
+    UnknownExternalAccount(String),
+
     /// Unknown merge rule.
     #[error("Unknown merge rule for repository id {0} and branches {1} (base) <- {2} (head)")]
     UnknownMergeRule(i32, String, String),
@@ -44,6 +48,10 @@ pub enum DatabaseError {
     /// Wraps [`diesel_migrations::RunMigrationsError`].
     #[error(transparent)]
     MigrationError(#[from] diesel_migrations::RunMigrationsError),
+
+    /// Wraps [`github_scbot_crypto::CryptoError`].
+    #[error(transparent)]
+    CryptoError(#[from] github_scbot_crypto::CryptoError),
 
     /// Wraps [`r2d2::Error`].
     #[error(transparent)]

@@ -1,4 +1,19 @@
 table! {
+    external_account (username) {
+        username -> Varchar,
+        public_key -> Text,
+        private_key -> Text,
+    }
+}
+
+table! {
+    external_account_right (username, repository_id) {
+        username -> Varchar,
+        repository_id -> Int4,
+    }
+}
+
+table! {
     merge_rule (id) {
         id -> Int4,
         repository_id -> Int4,
@@ -50,8 +65,17 @@ table! {
     }
 }
 
+joinable!(external_account_right -> external_account (username));
+joinable!(external_account_right -> repository (repository_id));
 joinable!(merge_rule -> repository (repository_id));
 joinable!(pull_request -> repository (repository_id));
 joinable!(review -> pull_request (pull_request_id));
 
-allow_tables_to_appear_in_same_query!(merge_rule, pull_request, repository, review,);
+allow_tables_to_appear_in_same_query!(
+    external_account,
+    external_account_right,
+    merge_rule,
+    pull_request,
+    repository,
+    review,
+);

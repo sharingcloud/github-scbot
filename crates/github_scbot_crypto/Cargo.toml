@@ -1,0 +1,11 @@
+[package]
+name = "github-scbot-crypto"
+version = "0.1.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2018"
+
+[dependencies]
+jsonwebtoken = "7"
+openssl = "0.10.32"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1.0"

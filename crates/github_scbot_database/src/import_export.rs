@@ -12,8 +12,8 @@ use thiserror::Error;
 use super::{
     errors::Result,
     models::{
-        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewCreation,
-        ReviewModel,
+        ExternalAccountModel, ExternalAccountRightModel, PullRequestCreation, PullRequestModel,
+        RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
     },
     DbConn,
 };
@@ -57,6 +57,8 @@ struct ImportExportModel {
     pull_requests: Vec<PullRequestModel>,
     reviews: Vec<ReviewModel>,
     merge_rules: Vec<MergeRuleModel>,
+    external_accounts: Vec<ExternalAccountModel>,
+    external_account_rights: Vec<ExternalAccountRightModel>,
 }
 
 /// Export database models to JSON.
@@ -74,6 +76,8 @@ where
         pull_requests: PullRequestModel::list(conn)?,
         reviews: ReviewModel::list(conn)?,
         merge_rules: MergeRuleModel::list(conn)?,
+        external_accounts: ExternalAccountModel::list(conn)?,
+        external_account_rights: ExternalAccountRightModel::list(conn)?,
     };
 
     serde_json::to_writer_pretty(writer, &model).map_err(ExportError::SerdeError)?;
@@ -185,6 +189,35 @@ where
         // Update pull request if needed
         review.id = rvw.id;
         review.save(conn)?;
+    }
+
+    // Create or update external accounts
+    for account in &mut model.external_accounts {
+        println!("> Importing external account '{}'", account.username);
+
+        // Try to create account
+        let _ = ExternalAccountModel::create_with_keys(
+            conn,
+            &account.username,
+            &account.public_key,
+            &account.private_key,
+        )?;
+
+        // Update
+        account.save(&conn)?;
+    }
+
+    // Create or update external account rights
+    for right in &mut model.external_account_rights {
+        println!(
+            "> Importing external account right for '{}' on repository ID {}",
+            right.username, right.repository_id
+        );
+
+        let repo_id = repo_id_map
+            .get(&right.repository_id)
+            .ok_or(ImportError::UnknownRepositoryId(right.repository_id))?;
+        ExternalAccountRightModel::add_right(conn, &right.username, *repo_id)?;
     }
 
     Ok(())

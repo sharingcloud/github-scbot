@@ -39,7 +39,19 @@ class MergeRule {
     strategy: String
 }
 
+class ExternalAccount {
+    #username: String
+    public_key: String
+    private_key: String
+}
+class ExternalAccountRight {
+    #*username: String
+    #*repository_id: Integer
+}
+
 Repository *-- PullRequest : has
 Repository *-- MergeRule : has
 PullRequest *-- Review : has
+ExternalAccount *-- ExternalAccountRight : has
+Repository *-- ExternalAccountRight : has
 @enduml
