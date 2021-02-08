@@ -368,6 +368,51 @@ impl PullRequestModel {
         self.head_branch = upstream_pr.head.reference.clone();
     }
 
+    /// Remove closed pull requests.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `repository_id` - Repository ID
+    pub fn remove_closed_pulls(conn: &DbConn, repository_id: i32) -> Result<()> {
+        let prs = Self::list_closed_pulls(conn, repository_id)?;
+
+        for pr in prs {
+            for review in pr.get_reviews(conn)? {
+                review.remove(conn)?;
+            }
+
+            pr.remove(conn)?;
+        }
+
+        Ok(())
+    }
+
+    /// List closed pull requests.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `repository_id` - Repository ID
+    pub fn list_closed_pulls(conn: &DbConn, repository_id: i32) -> Result<Vec<Self>> {
+        pull_request::table
+            .filter(pull_request::repository_id.eq(repository_id))
+            .filter(pull_request::closed.eq(true))
+            .get_results(conn)
+            .map_err(Into::into)
+    }
+
+    /// Remove pull request.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn remove(&self, conn: &DbConn) -> Result<()> {
+        diesel::delete(pull_request::table.filter(pull_request::id.eq(self.id))).execute(conn)?;
+
+        Ok(())
+    }
+
     /// Save model instance to database.
     ///
     /// # Arguments

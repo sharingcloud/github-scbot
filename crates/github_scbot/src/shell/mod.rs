@@ -77,7 +77,7 @@ enum PullRequestCommand {
 enum RepositoryCommand {
     /// Set title validation regex
     SetTitleRegex {
-        /// Repository path (e.g. 'MyOrganization/my-project')
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
         /// Regex value
         value: String,
@@ -85,13 +85,13 @@ enum RepositoryCommand {
 
     /// Show repository info
     Show {
-        /// Repository path (e.g. 'MyOrganization/my-project')
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
     },
 
     /// Set default reviewers count
     SetReviewersCount {
-        /// Repository path (e.g. 'MyOrganization/my-project')
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
         /// Reviewers count
         reviewers_count: u32,
@@ -99,7 +99,7 @@ enum RepositoryCommand {
 
     /// Set merge rule
     SetMergeRule {
-        /// Repository path (e.g. 'MyOrganization/my-project`)
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
         /// Base branch name
         base_branch: String,
@@ -111,7 +111,7 @@ enum RepositoryCommand {
 
     /// Remove merge rule
     RemoveMergeRule {
-        /// Repository path (e.g. 'MyOrganization/my-project`)
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
         /// Base branch name
         base_branch: String,
@@ -121,7 +121,13 @@ enum RepositoryCommand {
 
     /// List merge rules
     ListMergeRules {
-        /// Repository path (e.g. 'MyOrganization/my-project`)
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+    },
+
+    /// Purge closed pull requests
+    Purge {
+        /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
     },
 
@@ -224,6 +230,9 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             }
             RepositoryCommand::List => {
                 commands::repository::list_repositories(&config)?;
+            }
+            RepositoryCommand::Purge { repository_path } => {
+                commands::repository::purge_pull_requests(&config, &repository_path)?;
             }
         },
         Command::PullRequest { cmd } => match cmd {

@@ -14,6 +14,7 @@ github-scbot-tui = { path = "../github_scbot_tui" }
 github-scbot-types = { path = "../github_scbot_types" }
 actix-rt = "1"
 anyhow = "1.0"
+dialoguer = "0.7.1"
 owo-colors = "1.2"
 structopt = "0.3"
 thiserror = "1.0"
