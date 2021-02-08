@@ -216,7 +216,8 @@ fn test_import_models_from_json() {
                     "locked": false,
                     "merged": false,
                     "base_branch": "a",
-                    "head_branch": "b"
+                    "head_branch": "b",
+                    "closed": false
                 },
                 {
                     "id": 2,
@@ -233,7 +234,8 @@ fn test_import_models_from_json() {
                     "locked": true,
                     "merged": false,
                     "base_branch": "a",
-                    "head_branch": "b"
+                    "head_branch": "b",
+                    "closed": false
                 }
             ],
             "reviews": [

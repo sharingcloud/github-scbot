@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 github-scbot-core = { path = "../github_scbot_core" }
 github-scbot-database = { path = "../github_scbot_database" }
+github-scbot-types = { path = "../github_scbot_types" }
 thiserror = "1.0"
 termion = "1.5.5"
 tui = "0.13"

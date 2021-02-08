@@ -25,6 +25,7 @@ table! {
         merged -> Bool,
         base_branch -> Varchar,
         head_branch -> Varchar,
+        closed -> Bool,
     }
 }
 

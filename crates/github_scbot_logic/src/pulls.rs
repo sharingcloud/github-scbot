@@ -104,6 +104,11 @@ pub async fn handle_pull_request_event(
             )?;
             status_changed = true;
         }
+        GHPullRequestAction::Closed => {
+            pr_model.set_from_upstream(&event.pull_request);
+            pr_model.save(conn)?;
+            status_changed = true;
+        }
         _ => (),
     }
 
@@ -144,6 +149,8 @@ pub fn determine_automatic_step(
 
     Ok(if pr_model.wip {
         StepLabel::Wip
+    } else if !status.valid_pr_title {
+        StepLabel::AwaitingChanges
     } else {
         match pr_model.get_checks_status() {
             Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
