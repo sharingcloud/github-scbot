@@ -9,10 +9,13 @@ use crate::{
     DbConn, Result,
 };
 
+/// External JWT claims.
 #[derive(Debug, Serialize, Deserialize)]
-struct ExternalJwtClaims {
-    iat: u64,
-    iss: String,
+pub struct ExternalJwtClaims {
+    /// Issued at time
+    pub iat: u64,
+    /// Identifier
+    pub iss: String,
 }
 
 /// External account.

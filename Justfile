@@ -34,7 +34,7 @@ lint-err:
 
 # Execute tests
 test:
-	TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/test-bot cargo test --all
+	TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/test-bot cargo test --lib
 
 ###############
 # Documentation

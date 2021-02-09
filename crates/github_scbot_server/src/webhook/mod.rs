@@ -8,7 +8,7 @@ mod reviews;
 
 use std::convert::TryFrom;
 
-use actix_web::{error, web, Error, HttpRequest, HttpResponse};
+use actix_web::{error, web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_core::Config;
 use github_scbot_database::DbConn;
 use github_scbot_types::events::EventType;
@@ -100,7 +100,7 @@ pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
     ctx: web::Data<AppContext>,
-) -> core::result::Result<HttpResponse, Error> {
+) -> ActixResult<HttpResponse> {
     // Route event depending on header
     if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
@@ -117,4 +117,13 @@ pub(crate) async fn event_handler(
     } else {
         Ok(HttpResponse::BadRequest().body("Unhandled event."))
     }
+}
+
+/// Configure webhook handlers.
+///
+/// # Arguments
+///
+/// * `cfg` - Actix service config
+pub fn configure_webhook_handlers(cfg: &mut web::ServiceConfig) {
+    cfg.service(web::resource("").route(web::post().to(event_handler)));
 }
