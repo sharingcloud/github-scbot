@@ -1,12 +1,20 @@
 //! Server module.
 
+use actix_cors::Cors;
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use github_scbot_core::Config;
 use github_scbot_database::{establish_connection, DbPool};
 use sentry_actix::Sentry;
 use tracing::{error, info};
 
-use crate::{configure_webhooks, sentry_utils::with_sentry_configuration, Result, VerifySignature};
+use crate::{
+    external::{status::set_qa_status, validator::jwt_auth_validator},
+    middlewares::VerifySignature,
+    sentry_utils::with_sentry_configuration,
+    webhook::configure_webhook_handlers,
+    Result,
+};
 
 /// App context.
 #[derive(Clone)]
@@ -47,10 +55,19 @@ async fn run_bot_server_internal(config: Config, ip_with_port: String) -> Result
             App::new()
                 .data(app_context.clone())
                 .wrap(Sentry::new())
-                .wrap(VerifySignature::new(&app_context.config))
                 .wrap(Logger::default())
-                .service(web::scope("/webhook").configure(configure_webhooks))
-                .route("/", web::get().to(|| async { "Welcome on SC Bot!" }))
+                .service(
+                    web::scope("/external")
+                        .wrap(HttpAuthentication::bearer(jwt_auth_validator))
+                        .wrap(Cors::permissive())
+                        .route("/set-qa-status", web::post().to(set_qa_status)),
+                )
+                .service(
+                    web::scope("/webhook")
+                        .wrap(VerifySignature::new(&app_context.config))
+                        .configure(configure_webhook_handlers),
+                )
+                .route("/", web::get().to(|| async { "Welcome on github-scbot !" }))
         })
         .bind(ip_with_port)?
         .run()

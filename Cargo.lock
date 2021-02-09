@@ -36,6 +36,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-cors"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36b133d8026a9f209a9aeeeacd028e7451bcca975f592881b305d37983f303d7"
+dependencies = [
+ "actix-web",
+ "derive_more",
+ "futures-util",
+ "log",
+ "once_cell",
+ "tinyvec",
+]
+
+[[package]]
 name = "actix-http"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,6 +273,19 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "syn",
+]
+
+[[package]]
+name = "actix-web-httpauth"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "536a75d767c5c2b3e64d3f569621f38ed7609359a0c82d149c88290a6ba41b22"
+dependencies = [
+ "actix-service",
+ "actix-web",
+ "base64 0.12.3",
+ "bytes",
+ "futures-util",
 ]
 
 [[package]]
@@ -1005,9 +1032,11 @@ dependencies = [
 name = "github-scbot-crypto"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "jsonwebtoken",
  "openssl",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -1047,12 +1076,15 @@ dependencies = [
 name = "github-scbot-server"
 version = "0.1.0"
 dependencies = [
+ "actix-cors",
  "actix-http",
  "actix-rt",
  "actix-service",
  "actix-web",
+ "actix-web-httpauth",
  "futures",
  "github-scbot-core",
+ "github-scbot-crypto",
  "github-scbot-database",
  "github-scbot-logic",
  "github-scbot-types",
@@ -1061,6 +1093,7 @@ dependencies = [
  "rust-crypto",
  "sentry",
  "sentry-actix",
+ "serde",
  "serde_json",
  "thiserror",
  "tracing",

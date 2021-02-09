@@ -12,7 +12,7 @@ use github_scbot_database::establish_test_connection;
 use github_scbot_types::events::EventType;
 
 use super::fixtures;
-use crate::{handlers::event_handler, server::AppContext};
+use crate::{server::AppContext, webhook::event_handler};
 
 fn test_config() -> Config {
     let mut config = Config::from_env();

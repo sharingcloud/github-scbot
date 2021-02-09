@@ -1,4 +1,4 @@
-//! Webhook middlewares.
+//! Server middlewares.
 
 #![allow(clippy::type_complexity)]
 
