@@ -988,7 +988,6 @@ dependencies = [
  "actix-rt",
  "anyhow",
  "dialoguer",
- "github-scbot-api",
  "github-scbot-core",
  "github-scbot-database",
  "github-scbot-logic",
@@ -997,7 +996,6 @@ dependencies = [
  "github-scbot-types",
  "owo-colors",
  "structopt",
- "thiserror",
 ]
 
 [[package]]
@@ -1032,11 +1030,9 @@ dependencies = [
 name = "github-scbot-crypto"
 version = "0.1.0"
 dependencies = [
- "base64 0.13.0",
  "jsonwebtoken",
  "openssl",
  "serde",
- "serde_json",
  "thiserror",
 ]
 
