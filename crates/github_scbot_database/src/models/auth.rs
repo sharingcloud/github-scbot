@@ -112,6 +112,20 @@ impl ExternalAccountModel {
             .map_err(Into::into)
     }
 
+    /// Remove external account.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn remove(&self, conn: &DbConn) -> Result<()> {
+        diesel::delete(
+            external_account::table.filter(external_account::username.eq(&self.username)),
+        )
+        .execute(conn)?;
+
+        Ok(())
+    }
+
     /// Save model instance to database.
     ///
     /// # Arguments

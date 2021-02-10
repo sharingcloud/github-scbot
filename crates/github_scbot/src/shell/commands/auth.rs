@@ -13,6 +13,21 @@ pub(crate) fn create_external_account(config: &Config, username: &str) -> Result
     Ok(())
 }
 
+pub(crate) fn remove_external_account(config: &Config, username: &str) -> Result<()> {
+    let conn = establish_single_connection(&config)?;
+
+    match ExternalAccountModel::get_from_username(&conn, username) {
+        Some(account) => {
+            account.remove(&conn)?;
+
+            println!("External account '{}' removed.", username);
+        }
+        None => eprintln!("External account '{}' does not exist.", username),
+    }
+
+    Ok(())
+}
+
 pub(crate) fn create_external_token(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 

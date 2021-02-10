@@ -148,6 +148,12 @@ enum AuthCommand {
         /// Account username
         username: String,
     },
+
+    /// Remove external account
+    RemoveExternalAccount {
+        /// Account username
+        username: String,
+    },
 }
 
 #[derive(StructOpt)]
@@ -258,6 +264,9 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             }
             AuthCommand::CreateExternalToken { username } => {
                 commands::auth::create_external_token(&config, &username)?;
+            }
+            AuthCommand::RemoveExternalAccount { username } => {
+                commands::auth::remove_external_account(&config, &username)?;
             }
         },
     }
