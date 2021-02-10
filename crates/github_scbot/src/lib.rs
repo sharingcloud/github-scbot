@@ -1,4 +1,4 @@
-//! `GitHub SharingCloud Bot`.
+//! Bot shell module.
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]

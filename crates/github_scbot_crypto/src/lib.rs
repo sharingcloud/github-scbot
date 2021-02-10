@@ -51,8 +51,6 @@ pub fn verify_jwt<T>(token: &str, rsa_pub_key: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    println!("{:?}", token);
-
     let key = DecodingKey::from_rsa_pem(rsa_pub_key.as_bytes()).unwrap();
     let mut validation = Validation::new(Algorithm::RS256);
     validation.validate_exp = false;
