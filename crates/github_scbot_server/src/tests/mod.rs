@@ -1,4 +1,4 @@
 //! Webhook tests
 
 mod fixtures;
-mod handlers;
+mod webhook;

@@ -87,7 +87,7 @@ pub async fn get_or_fetch_pull_request(
     pr_number: u64,
 ) -> Result<PullRequestModel> {
     // Try fetching pull request
-    if let Some(pr_model) =
+    if let Ok(pr_model) =
         PullRequestModel::get_from_repository_id_and_number(conn, repo_model.id, pr_number as i32)
     {
         Ok(pr_model)

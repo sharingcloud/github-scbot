@@ -36,6 +36,13 @@ lint-err:
 test:
 	TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/test-bot cargo test --lib
 
+#######
+# Tools
+
+# Set crates version
+set-version v:
+	ls -d crates/*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+
 ###############
 # Documentation
 

@@ -1,5 +1,10 @@
 //! Webhook errors.
 
+use actix_web::{
+    dev::HttpResponseBuilder,
+    http::{header, StatusCode},
+    HttpResponse,
+};
 use github_scbot_types::events::EventType;
 use thiserror::Error;
 
@@ -27,7 +32,19 @@ pub enum ServerError {
     LogicError(#[from] github_scbot_logic::LogicError),
 }
 
-impl actix_web::ResponseError for ServerError {}
+impl actix_web::ResponseError for ServerError {
+    fn error_response(&self) -> HttpResponse {
+        HttpResponseBuilder::new(self.status_code())
+            .set_header(header::CONTENT_TYPE, "application/json; charset=utf-8")
+            .body(serde_json::json!({
+                "error": self.to_string()
+            }))
+    }
+
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
 
 /// Result alias for `ServerError`.
 pub type Result<T> = core::result::Result<T, ServerError>;

@@ -127,3 +127,48 @@ pub(crate) async fn event_handler(
 pub fn configure_webhook_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("").route(web::post().to(event_handler)));
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use github_scbot_core::Config;
+//     use github_scbot_database::{establish_single_test_connection, establish_test_connection, models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel}};
+//     use github_scbot_types::events::EventType;
+
+//     use crate::ServerError;
+
+//     use super::checks::check_suite_event;
+
+//     fn test_config() -> Config {
+//         let mut config = Config::from_env();
+//         config.api_disable_client = true;
+//         config
+//     }
+
+//     #[actix_rt::test]
+//     async fn test_check_suite_completed() {
+//         let config = test_config();
+
+//         let conn = establish_single_test_connection(&config).unwrap();
+
+//         let repo3 = RepositoryModel::create(&conn, RepositoryCreation {
+//             name: "Repo3".to_string(),
+//             owner: "Owner".to_string(),
+//             ..Default::default()
+//         }).unwrap();
+
+//         PullRequestModel::create(&conn, PullRequestCreation {
+//             repository_id: repo3.id,
+//             number: 1214,
+//             ..Default::default()
+//         }).unwrap();
+
+//         check_suite_event(
+//             &config,
+//             &conn,
+//             serde_json::from_str(include_str!("../tests/fixtures/check_suite_completed.json"))
+//                 .map_err(|e| ServerError::EventParseError(EventType::Ping, e)).unwrap()
+//         )
+//         .await
+//         .unwrap();
+//     }
+// }

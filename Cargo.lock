@@ -996,6 +996,7 @@ dependencies = [
  "github-scbot-types",
  "owo-colors",
  "structopt",
+ "thiserror",
 ]
 
 [[package]]
@@ -1078,6 +1079,7 @@ dependencies = [
  "actix-service",
  "actix-web",
  "actix-web-httpauth",
+ "anyhow",
  "futures",
  "github-scbot-core",
  "github-scbot-crypto",

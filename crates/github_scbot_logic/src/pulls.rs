@@ -192,13 +192,19 @@ pub fn get_merge_strategy_for_branches(
     base_branch: &str,
     head_branch: &str,
 ) -> GHMergeStrategy {
-    MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, head_branch)
+    match MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, head_branch)
         .map(|x| x.get_strategy())
-        .unwrap_or_else(|| {
-            MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, "*")
+    {
+        Ok(e) => e,
+        Err(_) => {
+            match MergeRuleModel::get_from_branches(conn, repo_model.id, base_branch, "*")
                 .map(|x| x.get_strategy())
-                .unwrap_or_else(|| repo_model.get_default_merge_strategy())
-        })
+            {
+                Ok(e) => e,
+                Err(_) => repo_model.get_default_merge_strategy(),
+            }
+        }
+    }
 }
 
 /// Synchronize pull request from upstream.

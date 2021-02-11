@@ -164,14 +164,13 @@ impl PullRequestModel {
             .values(&entry)
             .execute(conn)?;
 
-        Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number).ok_or_else(
-            || {
-                DatabaseError::UnknownPullRequest(
-                    entry.number as u64,
-                    entry.repository_id.to_string(),
-                )
-            },
-        )
+        match Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number) {
+            Ok(e) => Ok(e),
+            Err(_) => Err(DatabaseError::UnknownPullRequest(
+                entry.repository_id.to_string(),
+                entry.number,
+            )),
+        }
     }
 
     /// List pull requests.
@@ -189,18 +188,16 @@ impl PullRequestModel {
     ///
     /// * `conn` - Database connection
     /// * `path` - Repository path
-    pub fn list_for_repository_path(
-        conn: &DbConn,
-        path: &str,
-    ) -> Result<Vec<(Self, Option<RepositoryModel>)>> {
+    pub fn list_for_repository_path(conn: &DbConn, path: &str) -> Result<Vec<Self>> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
-        pull_request::table
+        let values: Vec<(Self, Option<RepositoryModel>)> = pull_request::table
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
-            .get_results(conn)
-            .map_err(Into::into)
+            .get_results(conn)?;
+
+        Ok(values.into_iter().map(|(pr, _repo)| pr).collect())
     }
 
     /// Get pull request from repository ID and PR number.
@@ -214,12 +211,14 @@ impl PullRequestModel {
         conn: &DbConn,
         repository_id: i32,
         pr_number: i32,
-    ) -> Option<Self> {
+    ) -> Result<Self> {
         pull_request::table
             .filter(pull_request::repository_id.eq(repository_id))
             .filter(pull_request::number.eq(pr_number))
             .first(conn)
-            .ok()
+            .map_err(|_e| {
+                DatabaseError::UnknownPullRequest(format!("<ID {}>", repository_id), pr_number)
+            })
     }
 
     /// Get pull request from repository path and PR number.
@@ -233,16 +232,18 @@ impl PullRequestModel {
         conn: &DbConn,
         path: &str,
         pr_number: i32,
-    ) -> Result<Option<(Self, Option<RepositoryModel>)>> {
+    ) -> Result<Self> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
-        Ok(pull_request::table
+        let (pr, _repo): (Self, Option<RepositoryModel>) = pull_request::table
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
             .filter(pull_request::id.eq(pr_number))
             .first(conn)
-            .ok())
+            .map_err(|_e| DatabaseError::UnknownPullRequest(path.to_string(), pr_number))?;
+
+        Ok(pr)
     }
 
     /// Get or create a pull request from creation entry.
@@ -252,8 +253,10 @@ impl PullRequestModel {
     /// * `conn` - Database connection
     /// * `entry` - Pull request creation entry
     pub fn get_or_create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
-        Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number)
-            .map_or_else(|| Self::create(conn, entry), Ok)
+        match Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number) {
+            Ok(v) => Ok(v),
+            Err(_) => Self::create(conn, entry),
+        }
     }
 
     /// Get reviews from a pull request.

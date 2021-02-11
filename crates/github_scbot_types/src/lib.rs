@@ -13,3 +13,5 @@ pub mod ping;
 pub mod pulls;
 pub mod reviews;
 pub mod status;
+
+pub use errors::{Result, TypeError};

@@ -25,13 +25,11 @@ pub async fn handle_check_suite_event(
 
     // Only look for first PR
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
-        let pr_model = PullRequestModel::get_from_repository_id_and_number(
+        if let Ok(mut pr_model) = PullRequestModel::get_from_repository_id_and_number(
             conn,
             repo_model.id,
             pr_number as i32,
-        );
-
-        if let Some(mut pr_model) = pr_model {
+        ) {
             if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GHCheckConclusion::Success) => {
