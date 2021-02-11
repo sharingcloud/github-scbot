@@ -64,9 +64,6 @@ impl ReviewModel {
             .execute(conn)?;
 
         Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
-            .ok_or_else(|| {
-                DatabaseError::UnknownReview(entry.pull_request_id, entry.username.to_string())
-            })
     }
 
     /// Create or update from GitHub review.
@@ -159,12 +156,17 @@ impl ReviewModel {
         conn: &DbConn,
         pull_request_id: i32,
         username: &str,
-    ) -> Option<Self> {
+    ) -> Result<Self> {
         review::table
             .filter(review::pull_request_id.eq(pull_request_id))
             .filter(review::username.eq(username))
             .first(conn)
-            .ok()
+            .map_err(|_e| {
+                DatabaseError::UnknownReviewState(
+                    username.to_string(),
+                    format!("<ID {}>", pull_request_id),
+                )
+            })
     }
 
     /// Get or create review.
@@ -174,8 +176,11 @@ impl ReviewModel {
     /// * `conn` - Database connection
     /// * `entry` - Review creation entry
     pub fn get_or_create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
-        Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
-            .map_or_else(|| Self::create(conn, entry), Ok)
+        match Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
+        {
+            Ok(v) => Ok(v),
+            Err(_) => Self::create(conn, entry),
+        }
     }
 
     /// Get review state.

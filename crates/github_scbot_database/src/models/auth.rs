@@ -4,9 +4,10 @@ use diesel::prelude::*;
 use github_scbot_crypto::{create_jwt, generate_rsa_keys, now};
 use serde::{Deserialize, Serialize};
 
+use super::RepositoryModel;
 use crate::{
     schema::{external_account, external_account_right},
-    DbConn, Result,
+    DatabaseError, DbConn, Result,
 };
 
 /// External JWT claims.
@@ -67,11 +68,12 @@ impl ExternalAccountModel {
     /// * `conn` - Database connection
     /// * `username` - Account username
     pub fn create(conn: &DbConn, username: &str) -> Result<Self> {
-        if let Some(account) = Self::get_from_username(conn, username) {
-            Ok(account)
-        } else {
-            let (private_key, public_key) = generate_rsa_keys();
-            Self::create_with_keys(conn, username, &public_key, &private_key)
+        match Self::get_from_username(conn, username) {
+            Ok(account) => Ok(account),
+            Err(_) => {
+                let (private_key, public_key) = generate_rsa_keys();
+                Self::create_with_keys(conn, username, &public_key, &private_key)
+            }
         }
     }
 
@@ -94,11 +96,11 @@ impl ExternalAccountModel {
     ///
     /// * `conn` - Database connection
     /// * `username` - Account username
-    pub fn get_from_username(conn: &DbConn, username: &str) -> Option<Self> {
+    pub fn get_from_username(conn: &DbConn, username: &str) -> Result<Self> {
         external_account::table
             .filter(external_account::username.eq(username))
             .first(conn)
-            .ok()
+            .map_err(|_e| DatabaseError::UnknownExternalAccount(username.to_string()))
     }
 
     /// List all external accounts.
@@ -158,19 +160,20 @@ impl ExternalAccountRightModel {
     /// * `username` - Username
     /// * `repository_id` - Repository ID
     pub fn add_right(conn: &DbConn, username: &str, repository_id: i32) -> Result<Self> {
-        if let Some(existing) = Self::get_right(conn, username, repository_id) {
-            Ok(existing)
-        } else {
-            let entry = Self {
-                username: username.into(),
-                repository_id,
-            };
+        match Self::get_right(conn, username, repository_id) {
+            Ok(existing) => Ok(existing),
+            Err(_) => {
+                let entry = Self {
+                    username: username.into(),
+                    repository_id,
+                };
 
-            let data = diesel::insert_into(external_account_right::table)
-                .values(&entry)
-                .get_result(conn)?;
+                let data = diesel::insert_into(external_account_right::table)
+                    .values(&entry)
+                    .get_result(conn)?;
 
-            Ok(data)
+                Ok(data)
+            }
         }
     }
 
@@ -215,12 +218,39 @@ impl ExternalAccountRightModel {
     /// * `conn` - Database connection
     /// * `username` - Username
     /// * `repository_id` - Repository ID
-    pub fn get_right(conn: &DbConn, username: &str, repository_id: i32) -> Option<Self> {
+    pub fn get_right(conn: &DbConn, username: &str, repository_id: i32) -> Result<Self> {
         external_account_right::table
             .filter(external_account_right::username.eq(username))
             .filter(external_account_right::repository_id.eq(repository_id))
             .first(conn)
-            .ok()
+            .map_err(|_e| {
+                DatabaseError::UnknownExternalAccountRight(
+                    username.to_string(),
+                    format!("<ID {}>", repository_id),
+                )
+            })
+    }
+
+    /// List rights from external account.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    /// * `username` - Username
+    pub fn list_rights(conn: &DbConn, username: &str) -> Result<Vec<Self>> {
+        external_account_right::table
+            .filter(external_account_right::username.eq(username))
+            .get_results(conn)
+            .map_err(Into::into)
+    }
+
+    /// Get repository from right.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Database connection
+    pub fn get_repository(&self, conn: &DbConn) -> Result<RepositoryModel> {
+        RepositoryModel::get_from_id(conn, self.repository_id)
     }
 
     /// List all external account rights.

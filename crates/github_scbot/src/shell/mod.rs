@@ -154,6 +154,37 @@ enum AuthCommand {
         /// Account username
         username: String,
     },
+
+    /// List external accounts
+    ListExternalAccounts,
+
+    /// Add right to account
+    AddAccountRight {
+        /// Account username
+        username: String,
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+    },
+
+    /// Remove right from account
+    RemoveAccountRight {
+        /// Account username
+        username: String,
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+    },
+
+    /// Remove all rights from account
+    RemoveAccountRights {
+        /// Account username
+        username: String,
+    },
+
+    /// List rights from account
+    ListAccountRights {
+        /// Account username
+        username: String,
+    },
 }
 
 #[derive(StructOpt)]
@@ -176,10 +207,10 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             run_tui()?;
         }
         Command::Export { output_file } => {
-            commands::common::export_json(&config, output_file)?;
+            commands::database::export_json(&config, output_file)?;
         }
         Command::Import { input_file } => {
-            commands::common::import_json(&config, &input_file)?;
+            commands::database::import_json(&config, &input_file)?;
         }
         Command::Repository { cmd } => match cmd {
             RepositoryCommand::SetTitleRegex {
@@ -267,6 +298,27 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             }
             AuthCommand::RemoveExternalAccount { username } => {
                 commands::auth::remove_external_account(&config, &username)?;
+            }
+            AuthCommand::ListExternalAccounts => {
+                commands::auth::list_external_accounts(&config)?;
+            }
+            AuthCommand::AddAccountRight {
+                username,
+                repository_path,
+            } => {
+                commands::auth::add_account_right(&config, &username, &repository_path)?;
+            }
+            AuthCommand::RemoveAccountRight {
+                username,
+                repository_path,
+            } => {
+                commands::auth::remove_account_right(&config, &username, &repository_path)?;
+            }
+            AuthCommand::RemoveAccountRights { username } => {
+                commands::auth::remove_account_rights(&config, &username)?;
+            }
+            AuthCommand::ListAccountRights { username } => {
+                commands::auth::list_account_rights(&config, &username)?;
             }
         },
     }

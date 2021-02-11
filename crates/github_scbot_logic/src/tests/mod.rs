@@ -1,6 +1,7 @@
 use github_scbot_core::Config;
 
 mod commands;
+mod external;
 mod reviews;
 
 fn test_config() -> Config {

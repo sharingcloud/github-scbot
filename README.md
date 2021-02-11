@@ -42,9 +42,10 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Reacts to comments: Set QA status (or skip), ping, lock/unlock, merge, etc.
 - [x] Require mandatory reviewers
 - [x] Enable auto-merge
+- [x] Actions that can be triggered from external sources, with simple token-based authentication
+- [x] Give rights to external sources on specific repositories
 - [ ] Simple permission system to control who can type which command
 - [ ] Terminal-like interface to manage pull request status
-- [ ] Actions that can be triggered from external sources, with simple token-based authentication
 
 ## Step labels
 

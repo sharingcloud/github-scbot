@@ -84,9 +84,7 @@ impl RepositoryModel {
             .values(&entry)
             .execute(conn)?;
 
-        Self::get_from_owner_and_name(conn, &entry.owner, &entry.name).ok_or_else(|| {
-            DatabaseError::UnknownRepository(format!("{}/{}", entry.owner, entry.name))
-        })
+        Self::get_from_owner_and_name(conn, &entry.owner, &entry.name)
     }
 
     /// List repositories.
@@ -104,11 +102,11 @@ impl RepositoryModel {
     ///
     /// * `conn` - Database connection
     /// * `id` - Repository ID
-    pub fn get_from_id(conn: &DbConn, id: i32) -> Option<Self> {
+    pub fn get_from_id(conn: &DbConn, id: i32) -> Result<Self> {
         repository::table
             .filter(repository::id.eq(id))
             .first(conn)
-            .ok()
+            .map_err(|_e| DatabaseError::UnknownRepository(format!("<ID {}>", id)))
     }
 
     /// Get repository from owner and name.
@@ -118,12 +116,12 @@ impl RepositoryModel {
     /// * `conn` - Database connection
     /// * `owner` - Repository owner
     /// * `name` - Repository name
-    pub fn get_from_owner_and_name(conn: &DbConn, owner: &str, name: &str) -> Option<Self> {
+    pub fn get_from_owner_and_name(conn: &DbConn, owner: &str, name: &str) -> Result<Self> {
         repository::table
             .filter(repository::name.eq(name))
             .filter(repository::owner.eq(owner))
             .first(conn)
-            .ok()
+            .map_err(|_e| DatabaseError::UnknownRepository(format!("{0}/{1}", owner, name)))
     }
 
     /// Get repository from path.
@@ -132,9 +130,9 @@ impl RepositoryModel {
     ///
     /// * `conn` - Database connection
     /// * `path` - Repository path
-    pub fn get_from_path(conn: &DbConn, path: &str) -> Result<Option<Self>> {
+    pub fn get_from_path(conn: &DbConn, path: &str) -> Result<Self> {
         let (owner, name) = Self::extract_owner_and_name_from_path(path)?;
-        Ok(Self::get_from_owner_and_name(conn, owner, name))
+        Self::get_from_owner_and_name(conn, owner, name)
     }
 
     /// Get or create a repository.
@@ -144,8 +142,10 @@ impl RepositoryModel {
     /// * `conn` - Database connection
     /// * `entry` - Repository creation entry
     pub fn get_or_create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
-        Self::get_from_owner_and_name(conn, &entry.owner, &entry.name)
-            .map_or_else(|| Self::create(conn, entry), Ok)
+        match Self::get_from_owner_and_name(conn, &entry.owner, &entry.name) {
+            Err(_) => Self::create(conn, entry),
+            Ok(v) => Ok(v),
+        }
     }
 
     /// Get default merge strategy.
@@ -246,11 +246,6 @@ impl MergeRuleModel {
             &entry.base_branch,
             &entry.head_branch,
         )
-        .ok_or(DatabaseError::UnknownMergeRule(
-            entry.repository_id,
-            entry.base_branch,
-            entry.head_branch,
-        ))
     }
 
     /// Get or create a merge rule.
@@ -260,13 +255,15 @@ impl MergeRuleModel {
     /// * `conn` - Database connection
     /// * `entry` - Merge rule creation entry
     pub fn get_or_create(conn: &DbConn, entry: MergeRuleCreation) -> Result<Self> {
-        Self::get_from_branches(
+        match Self::get_from_branches(
             conn,
             entry.repository_id,
             &entry.base_branch,
             &entry.head_branch,
-        )
-        .map_or_else(|| Self::create(conn, entry), Ok)
+        ) {
+            Ok(v) => Ok(v),
+            Err(_) => Self::create(conn, entry),
+        }
     }
 
     /// Get strategy.
@@ -296,13 +293,19 @@ impl MergeRuleModel {
         repository_id: i32,
         base_branch: &str,
         head_branch: &str,
-    ) -> Option<Self> {
+    ) -> Result<Self> {
         merge_rule::table
             .filter(merge_rule::repository_id.eq(repository_id))
             .filter(merge_rule::base_branch.eq(base_branch))
             .filter(merge_rule::head_branch.eq(head_branch))
             .first(conn)
-            .ok()
+            .map_err(|_e| {
+                DatabaseError::UnknownMergeRule(
+                    format!("<ID {}>", repository_id),
+                    base_branch.to_string(),
+                    head_branch.to_string(),
+                )
+            })
     }
 
     /// List rules from repository ID.
