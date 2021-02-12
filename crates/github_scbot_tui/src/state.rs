@@ -35,6 +35,20 @@ impl AppState {
         }
     }
 
+    pub fn set_first_selection(&mut self) {
+        if !self.data.is_empty() {
+            self.repositories_state.select(Some(0));
+        }
+    }
+
+    pub fn get_current_repository(&self) -> Option<&RepositoryModel> {
+        if let Some(repo_id) = self.repositories_state.selected() {
+            return Some(&self.data[repo_id].0);
+        }
+
+        None
+    }
+
     pub fn get_current_pull_request(&self) -> Option<&PullRequestModel> {
         if let Some(repo_id) = self.repositories_state.selected() {
             if let Some(pr_id) = self.pull_requests_state.selected() {

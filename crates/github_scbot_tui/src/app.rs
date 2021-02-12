@@ -8,7 +8,7 @@ use github_scbot_types::status::{CheckStatus, QAStatus};
 use termion::event::Key;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
@@ -53,10 +53,18 @@ impl<'a> App<'a> {
 
         self.data = AppState::with_items(pr_kvs);
 
+        // Autoselect first repository if available
+        self.data.set_first_selection();
+
         Ok(())
     }
 
     pub fn draw_repositories<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+            .split(area);
+
         let repo_items = {
             let items: Vec<ListItem> = self
                 .data
@@ -74,7 +82,8 @@ impl<'a> App<'a> {
                 .highlight_symbol(">> ")
         };
 
-        f.render_stateful_widget(repo_items, area, &mut self.data.repositories_state);
+        f.render_stateful_widget(repo_items, chunks[0], &mut self.data.repositories_state);
+        self.draw_current_repository_data(f, chunks[1]);
     }
 
     pub fn draw_pull_requests<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
@@ -113,10 +122,52 @@ impl<'a> App<'a> {
         };
 
         f.render_stateful_widget(pr_items, chunks[0], &mut self.data.pull_requests_state);
-        self.draw_current_data(f, chunks[1]);
+        self.draw_current_pull_request_data(f, chunks[1]);
     }
 
-    pub fn draw_current_data<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+    pub fn draw_current_repository_data<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        if let Some(selected_repo) = self.data.get_current_repository() {
+            let text = vec![
+                Spans::from(vec![Span::styled(
+                    selected_repo.get_path(),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )]),
+                Spans::from(""),
+                Spans::from(vec![
+                    Span::styled(
+                        "Pull request count",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(": "),
+                    Span::styled(
+                        format!(
+                            "{}",
+                            self.data.data[self.data.repositories_state.selected().unwrap()]
+                                .1
+                                .len()
+                        ),
+                        Style::default().fg(Color::Blue),
+                    ),
+                ]),
+            ];
+
+            let paragraph = Paragraph::new(text).block(
+                Block::default()
+                    .title("Current repository")
+                    .borders(Borders::ALL),
+            );
+            f.render_widget(paragraph, area)
+        } else {
+            let paragraph = Paragraph::new("Select a repository to display information").block(
+                Block::default()
+                    .title("Current repository")
+                    .borders(Borders::ALL),
+            );
+            f.render_widget(paragraph, area)
+        }
+    }
+
+    pub fn draw_current_pull_request_data<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
         if let Some(selected_pr) = self.data.get_current_pull_request() {
             let text = vec![
                 Spans::from(vec![Span::styled(
@@ -242,35 +293,119 @@ impl<'a> App<'a> {
                 ]),
             ];
 
-            let paragraph = Paragraph::new(text).block(Block::default().borders(Borders::ALL));
+            let paragraph = Paragraph::new(text).block(
+                Block::default()
+                    .title("Current pull request")
+                    .borders(Borders::ALL),
+            );
+            f.render_widget(paragraph, area)
+        } else {
+            let paragraph = Paragraph::new("Select a pull request to display information").block(
+                Block::default()
+                    .title("Current pull request")
+                    .borders(Borders::ALL),
+            );
             f.render_widget(paragraph, area)
         }
     }
 
+    pub fn draw_title<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        let title = Spans::from(vec![Span::styled(
+            "SC Bot Management - Terminal UI",
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(Color::Yellow),
+        )]);
+        let p = Paragraph::new(title).alignment(Alignment::Center);
+        f.render_widget(p, area);
+    }
+
     pub fn draw_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
-        let help_text =
-            Paragraph::new("Welcome on SC Bot!").block(Block::default().borders(Borders::ALL));
-        f.render_widget(help_text, area);
+        if self.data.get_current_pull_request().is_some() {
+            self.draw_pull_request_help(f, area);
+        } else if self.data.get_current_repository().is_some() {
+            self.draw_repository_help(f, area);
+        } else {
+            let help_text = Paragraph::new("Welcome on SC Bot!")
+                .block(Block::default().title("Help").borders(Borders::ALL));
+            f.render_widget(help_text, area);
+        }
+    }
+
+    pub fn draw_repository_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        let text = vec![
+            Spans::from(vec![
+                Span::styled("ENTER", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Select repository"),
+            ]),
+            Spans::from(vec![
+                Span::styled("UP", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Move selection cursor up"),
+            ]),
+            Spans::from(vec![
+                Span::styled("DOWN", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Move selection cursor down"),
+            ]),
+            Spans::from(vec![
+                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Quit application"),
+            ]),
+        ];
+
+        let paragraph =
+            Paragraph::new(text).block(Block::default().title("Help").borders(Borders::ALL));
+        f.render_widget(paragraph, area);
+    }
+
+    pub fn draw_pull_request_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+        let text = vec![
+            Spans::from(vec![
+                Span::styled("ENTER", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Select pull request"),
+            ]),
+            Spans::from(vec![
+                Span::styled("UP", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Move selection cursor up"),
+            ]),
+            Spans::from(vec![
+                Span::styled("DOWN", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Move selection cursor down"),
+            ]),
+            Spans::from(vec![
+                Span::styled("ESCAPE", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Return to repository selection"),
+            ]),
+            Spans::from(vec![
+                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" - Quit application"),
+            ]),
+        ];
+
+        let paragraph =
+            Paragraph::new(text).block(Block::default().title("Help").borders(Borders::ALL));
+        f.render_widget(paragraph, area);
     }
 
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
             .constraints(
                 [
-                    Constraint::Percentage(10),
-                    Constraint::Percentage(80),
+                    Constraint::Percentage(2),
+                    Constraint::Percentage(18),
+                    Constraint::Percentage(70),
                     Constraint::Percentage(10),
                 ]
                 .as_ref(),
             )
             .split(f.size());
 
-        let repo_area = chunks[0];
-        let pr_area = chunks[1];
-        let help_area = chunks[2];
+        let title_area = chunks[0];
+        let repo_area = chunks[1];
+        let pr_area = chunks[2];
+        let help_area = chunks[3];
 
+        self.draw_title(f, title_area);
         self.draw_repositories(f, repo_area);
         self.draw_pull_requests(f, pr_area);
         self.draw_help(f, help_area);

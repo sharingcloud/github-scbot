@@ -2,6 +2,8 @@
 
 Experimental GitHub Bot to manage our development workflows.
 
+[CHANGELOG](./CHANGELOG.md)
+
 ## Why ?
 
 GitHub is great and contains many useful features, but sometimes you need more.
@@ -44,8 +46,7 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Enable auto-merge
 - [x] Actions that can be triggered from external sources, with simple token-based authentication
 - [x] Give rights to external sources on specific repositories
-- [ ] Simple permission system to control who can type which command
-- [ ] Terminal-like interface to manage pull request status
+- [ ] Terminal UI interface to manage pull request status
 
 ## Step labels
 
@@ -61,6 +62,26 @@ Process can be followed with labels, which are auto applied depending on the cur
 - QA failed? **step/awaiting-changes**
 - PR is locked? **step/locked**
 - All good? **step/awaiting-merge**
+
+## Available message commands
+
+This README supposes the default bot handle: 'bot'.
+
+- `bot noqa+`: _Skip QA validation_
+- `bot noqa-`: _Enable QA validation_
+- `bot qa+`: _Mark QA as passed_
+- `bot qa-`: _Mark QA as failed_
+- `bot qa?`: _Mark QA as waiting_
+- `bot automerge+`: _Enable auto-merge for this PR (once all checks pass)_
+- `bot automerge-`: _Disable auto-merge for this PR_
+- `bot lock+ <reason?>`: _Lock a pull-request (block merge)_
+- `bot lock- <reason?>`: _Unlock a pull-request (unblock merge)_
+- `bot req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_
+- `bot req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_
+- `bot merge`: _Try merging the pull request_
+- `bot ping`: _Ping me_
+- `bot help`: _Show this comment_
+- `bot sync`: _Update status comment if needed (maintenance-type command)_
 
 ## Building
 
