@@ -47,6 +47,10 @@ pub enum DatabaseError {
     #[error("Import error: {0}")]
     ImportError(#[from] super::import_export::ImportError),
 
+    /// Wraps [`github_scbot_types::TypeError`].
+    #[error("Type error: {0}")]
+    TypeError(#[from] github_scbot_types::TypeError),
+
     /// Wraps [`diesel::ConnectionError`].
     #[error("Connection error: {0}")]
     ConnectionError(#[from] diesel::ConnectionError),

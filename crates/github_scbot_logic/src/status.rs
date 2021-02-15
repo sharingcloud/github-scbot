@@ -32,13 +32,13 @@ pub struct PullRequestStatus {
     /// Automerge enabled?
     pub automerge: bool,
     /// Checks status.
-    pub checks_status: Option<CheckStatus>,
+    pub checks_status: CheckStatus,
     /// Checks URL.
     pub checks_url: String,
     /// Needed reviewers count.
     pub needed_reviewers_count: usize,
     /// QA status.
-    pub qa_status: Option<QAStatus>,
+    pub qa_status: QAStatus,
     /// Missing required reviewers.
     pub missing_required_reviewers: Vec<String>,
     /// PR title is valid?
@@ -77,10 +77,10 @@ impl PullRequestStatus {
         Ok(Self {
             approved_reviewers: approved_reviews,
             automerge: pr_model.automerge,
-            checks_status: pr_model.get_checks_status(),
+            checks_status: pr_model.get_checks_status()?,
             checks_url: pr_model.get_checks_url(repo_model),
             needed_reviewers_count: needed_reviews,
-            qa_status: pr_model.get_qa_status(),
+            qa_status: pr_model.get_qa_status()?,
             missing_required_reviewers: required_reviews,
             valid_pr_title: check_pr_title(repo_model, pr_model)?,
             locked: pr_model.locked,
@@ -242,7 +242,7 @@ pub fn generate_pr_status_comment(
         \n\
         {footer}",
         rules_section = generate_status_comment_rule_section(repo_model, pr_model, strategy)?,
-        checks_section = generate_status_comment_checks_section(&review_status, pr_model),
+        checks_section = generate_status_comment_checks_section(&review_status, pr_model)?,
         config_section = generate_status_comment_config_section(pr_model),
         footer = generate_status_comment_footer(repo_model, pr_model)
     ))
@@ -269,15 +269,15 @@ pub fn generate_pr_status_message(
     if pr_status.valid_pr_title {
         // Check CI status
         match pr_status.checks_status {
-            Some(CheckStatus::Fail) => {
+            CheckStatus::Fail => {
                 status_message = "Checks failed. Please fix.".to_string();
                 status_state = StatusState::Failure;
             }
-            Some(CheckStatus::Waiting) | None => {
+            CheckStatus::Waiting => {
                 status_message = "Waiting for checks".to_string();
                 status_state = StatusState::Pending;
             }
-            Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) => {
+            CheckStatus::Pass | CheckStatus::Skipped => {
                 // Check review status
                 if !pr_status.missing_required_reviewers.is_empty() {
                     status_message = format!(
@@ -291,15 +291,15 @@ pub fn generate_pr_status_message(
                 } else {
                     // Check QA status
                     match pr_status.qa_status {
-                        Some(QAStatus::Fail) => {
+                        QAStatus::Fail => {
                             status_message = "QA failed. Please fix.".to_string();
                             status_state = StatusState::Failure;
                         }
-                        Some(QAStatus::Waiting) | None => {
+                        QAStatus::Waiting => {
                             status_message = "Waiting for QA".to_string();
                             status_state = StatusState::Pending;
                         }
-                        Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
+                        QAStatus::Pass | QAStatus::Skipped => {
                             if pr_status.locked {
                                 status_message = "PR is locked".to_string();
                                 status_state = StatusState::Failure;
@@ -349,19 +349,19 @@ fn generate_status_comment_rule_section(
 fn generate_status_comment_checks_section(
     pull_request_status: &PullRequestStatus,
     pr_model: &PullRequestModel,
-) -> String {
-    let checks_message = match pr_model.get_checks_status() {
-        Some(CheckStatus::Pass) => "_passed!_ :heavy_check_mark:",
-        None | Some(CheckStatus::Waiting) => "_running..._ :clock2:",
-        Some(CheckStatus::Fail) => "_failed._ :x:",
-        Some(CheckStatus::Skipped) => "_skipped._ :heavy_check_mark:",
+) -> Result<String> {
+    let checks_message = match pr_model.get_checks_status()? {
+        CheckStatus::Pass => "_passed!_ :heavy_check_mark:",
+        CheckStatus::Waiting => "_running..._ :clock2:",
+        CheckStatus::Fail => "_failed._ :x:",
+        CheckStatus::Skipped => "_skipped._ :heavy_check_mark:",
     };
 
-    let qa_message = match pr_model.get_qa_status() {
-        Some(QAStatus::Pass) => "_passed!_ :heavy_check_mark:",
-        None | Some(QAStatus::Waiting) => "_waiting..._ :clock2:",
-        Some(QAStatus::Fail) => "_failed._ :x:",
-        Some(QAStatus::Skipped) => "_skipped._ :heavy_check_mark:",
+    let qa_message = match pr_model.get_qa_status()? {
+        QAStatus::Pass => "_passed!_ :heavy_check_mark:",
+        QAStatus::Waiting => "_waiting..._ :clock2:",
+        QAStatus::Fail => "_failed._ :x:",
+        QAStatus::Skipped => "_skipped._ :heavy_check_mark:",
     };
 
     let lock_message = if pr_model.locked {
@@ -389,7 +389,7 @@ fn generate_status_comment_checks_section(
         )
     };
 
-    format!(
+    Ok(format!(
         ":speech_balloon: &mdash; **Status comment**\n\
         \n\
         > - :checkered_flag: **Checks**: {checks_message}\n\
@@ -400,7 +400,7 @@ fn generate_status_comment_checks_section(
         reviews_message = code_review_section,
         qa_message = qa_message,
         lock_message = lock_message
-    )
+    ))
 }
 
 fn generate_status_comment_config_section(pr_model: &PullRequestModel) -> String {

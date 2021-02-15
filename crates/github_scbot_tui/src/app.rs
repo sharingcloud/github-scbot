@@ -205,31 +205,27 @@ impl<'a> App<'a> {
                         Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::raw(": "),
-                    match selected_pr.get_checks_status() {
-                        Some(status) => {
-                            let color = match status {
-                                CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
-                                CheckStatus::Fail => Color::Red,
-                                CheckStatus::Waiting => Color::Yellow,
-                            };
-                            Span::styled(status.to_str(), Style::default().fg(color))
-                        }
-                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                    {
+                        let status = selected_pr.get_checks_status().unwrap();
+                        let color = match status {
+                            CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
+                            CheckStatus::Fail => Color::Red,
+                            CheckStatus::Waiting => Color::Yellow,
+                        };
+                        Span::styled(status.to_str(), Style::default().fg(color))
                     },
                 ]),
                 Spans::from(vec![
                     Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
-                    match selected_pr.get_qa_status() {
-                        Some(status) => {
-                            let color = match status {
-                                QAStatus::Pass | QAStatus::Skipped => Color::Green,
-                                QAStatus::Fail => Color::Red,
-                                QAStatus::Waiting => Color::Yellow,
-                            };
-                            Span::styled(status.to_str(), Style::default().fg(color))
-                        }
-                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                    {
+                        let status = selected_pr.get_qa_status().unwrap();
+                        let color = match status {
+                            QAStatus::Pass | QAStatus::Skipped => Color::Green,
+                            QAStatus::Fail => Color::Red,
+                            QAStatus::Waiting => Color::Yellow,
+                        };
+                        Span::styled(status.to_str(), Style::default().fg(color))
                     },
                 ]),
                 Spans::from(vec![
