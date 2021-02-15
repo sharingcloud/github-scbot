@@ -1,7 +1,7 @@
 //! Issue webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::DbConn;
 use github_scbot_logic::comments::handle_issue_comment_event;
 use github_scbot_types::issues::GHIssueCommentEvent;

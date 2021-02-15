@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
     import_export::{export_models_to_json, import_models_from_json, ExportError, ImportError},

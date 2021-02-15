@@ -61,6 +61,10 @@ doc-open:
 build:
 	cargo build
 
+# Build docker
+build-docker:
+	docker build --rm -t github-scbot:{{ version }} -f ./docker/Dockerfile .
+
 # Build release
 export:
 	@echo "Exporting github-scbot {{ version }} ..."

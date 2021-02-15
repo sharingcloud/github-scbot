@@ -1,6 +1,6 @@
 //! Comments API module.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_types::issues::GHReactionType;
 use tracing::error;
 

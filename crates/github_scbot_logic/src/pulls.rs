@@ -8,7 +8,7 @@ use github_scbot_api::{
     pulls::{get_pull_request, merge_pull_request},
     reviews::list_reviews_for_pull_request,
 };
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
         MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
@@ -152,17 +152,17 @@ pub fn determine_automatic_step(
     } else if !status.valid_pr_title {
         StepLabel::AwaitingChanges
     } else {
-        match pr_model.get_checks_status() {
-            Some(CheckStatus::Pass) | Some(CheckStatus::Skipped) | None => {
+        match pr_model.get_checks_status()? {
+            CheckStatus::Pass | CheckStatus::Skipped => {
                 if status.missing_required_reviews() {
                     StepLabel::AwaitingRequiredReview
                 } else if status.missing_reviews() {
                     StepLabel::AwaitingReview
                 } else {
                     match status.qa_status {
-                        Some(QAStatus::Fail) => StepLabel::AwaitingChanges,
-                        Some(QAStatus::Waiting) | None => StepLabel::AwaitingQA,
-                        Some(QAStatus::Pass) | Some(QAStatus::Skipped) => {
+                        QAStatus::Fail => StepLabel::AwaitingChanges,
+                        QAStatus::Waiting => StepLabel::AwaitingQA,
+                        QAStatus::Pass | QAStatus::Skipped => {
                             if status.locked {
                                 StepLabel::Locked
                             } else {
@@ -172,8 +172,8 @@ pub fn determine_automatic_step(
                     }
                 }
             }
-            Some(CheckStatus::Waiting) => StepLabel::AwaitingChecks,
-            Some(CheckStatus::Fail) => StepLabel::AwaitingChanges,
+            CheckStatus::Waiting => StepLabel::AwaitingChecks,
+            CheckStatus::Fail => StepLabel::AwaitingChanges,
         }
     })
 }

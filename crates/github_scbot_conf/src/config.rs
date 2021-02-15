@@ -80,5 +80,7 @@ fn env_to_bool(name: &str, default: bool) -> bool {
 }
 
 fn env_to_str(name: &str, default: &str) -> String {
-    env::var(name).unwrap_or_else(|_e| default.to_string())
+    env::var(name)
+        .unwrap_or_else(|_e| default.to_string())
+        .replace("\\n", "\n")
 }

@@ -1,7 +1,7 @@
 //! Database module.
 
 use github_scbot_api::{labels::set_step_label, pulls::get_pull_request};
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
     DbConn,

@@ -1,7 +1,7 @@
 //! Pull request commands.
 
 use actix_rt::System;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
     models::{PullRequestModel, RepositoryModel},

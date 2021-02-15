@@ -22,7 +22,7 @@ use futures::{
     stream::StreamExt,
     Future,
 };
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use tracing::warn;
 
 use super::{

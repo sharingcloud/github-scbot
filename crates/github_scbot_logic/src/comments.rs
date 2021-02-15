@@ -1,7 +1,7 @@
 //! Comments logic.
 
 use github_scbot_api::comments::add_reaction_to_comment;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{models::RepositoryModel, DbConn};
 use github_scbot_types::issues::{GHIssueCommentAction, GHIssueCommentEvent, GHReactionType};
 use tracing::error;

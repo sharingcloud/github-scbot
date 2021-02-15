@@ -988,7 +988,7 @@ dependencies = [
  "actix-rt",
  "anyhow",
  "dialoguer",
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-database",
  "github-scbot-logic",
  "github-scbot-server",
@@ -1004,7 +1004,7 @@ name = "github-scbot-api"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-types",
  "heck",
@@ -1018,7 +1018,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-core"
+name = "github-scbot-conf"
 version = "0.1.0"
 dependencies = [
  "dotenv",
@@ -1044,9 +1044,10 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel_migrations",
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-types",
+ "openssl",
  "r2d2",
  "r2d2-diesel",
  "serde",
@@ -1061,7 +1062,7 @@ dependencies = [
  "actix-rt",
  "chrono",
  "github-scbot-api",
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-database",
  "github-scbot-types",
  "regex",
@@ -1081,7 +1082,7 @@ dependencies = [
  "actix-web-httpauth",
  "anyhow",
  "futures",
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-database",
  "github-scbot-logic",
@@ -1101,7 +1102,7 @@ dependencies = [
 name = "github-scbot-tui"
 version = "0.1.0"
 dependencies = [
- "github-scbot-core",
+ "github-scbot-conf",
  "github-scbot-database",
  "github-scbot-types",
  "termion",

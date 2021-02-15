@@ -1,7 +1,7 @@
 //! Review webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::DbConn;
 use github_scbot_logic::{database::process_pull_request, reviews::handle_review_event};
 use github_scbot_types::reviews::{GHReviewCommentEvent, GHReviewEvent};

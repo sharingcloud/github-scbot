@@ -48,6 +48,10 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Give rights to external sources on specific repositories
 - [ ] Terminal UI interface to manage pull request status
 
+## Infrastructure schema
+
+![Infastructure](./docs/infrastructure.svg)
+
 ## Step labels
 
 Process can be followed with labels, which are auto applied depending on the current pull request state, in this order:
@@ -90,6 +94,13 @@ To easily execute build tasks, this project use **just** (https://github.com/cas
 To install, type `cargo install just`.
 
 You can then type `just --list` to print available commands.
+
+## Docker building
+
+You can type `just build-docker` to automatically generate a Docker image only containing a static-linked binary.  
+It uses the [muslrust](https://github.com/clux/muslrust/) project.
+
+Once your image is ready, you can use the [docker/docker-compose.yml](./docker/docker-compose.yml) file to easily mount a Docker Compose stack.
 
 ## Developing
 

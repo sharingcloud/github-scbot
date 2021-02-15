@@ -47,24 +47,28 @@ pub enum DatabaseError {
     #[error("Import error: {0}")]
     ImportError(#[from] super::import_export::ImportError),
 
+    /// Wraps [`github_scbot_types::TypeError`].
+    #[error("Type error: {0}")]
+    TypeError(#[from] github_scbot_types::TypeError),
+
     /// Wraps [`diesel::ConnectionError`].
-    #[error(transparent)]
+    #[error("Connection error: {0}")]
     ConnectionError(#[from] diesel::ConnectionError),
 
     /// Wraps [`diesel_migrations::RunMigrationsError`].
-    #[error(transparent)]
+    #[error("Migration error: {0}")]
     MigrationError(#[from] diesel_migrations::RunMigrationsError),
 
     /// Wraps [`github_scbot_crypto::CryptoError`].
-    #[error(transparent)]
+    #[error("Crypto error: {0}")]
     CryptoError(#[from] github_scbot_crypto::CryptoError),
 
     /// Wraps [`r2d2::Error`].
-    #[error(transparent)]
+    #[error("Database pool error: {0}")]
     R2d2Error(#[from] r2d2::Error),
 
     /// Wraps [`diesel::result::Error`].
-    #[error(transparent)]
+    #[error("SQL error: {0}")]
     SQLError(#[from] diesel::result::Error),
 }
 

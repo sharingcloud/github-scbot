@@ -3,13 +3,16 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+// Force include openssl for static linking
+extern crate openssl;
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
 use diesel::prelude::*;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
@@ -54,7 +57,13 @@ pub fn establish_single_test_connection(config: &Config) -> Result<DbConn> {
 ///
 /// * `config` - Bot configuration
 pub fn establish_connection(config: &Config) -> Result<DbPool> {
-    ConnectionBuilder::configure(config).build_pool()
+    let pool = ConnectionBuilder::configure(config).build_pool()?;
+    let conn = pool.get()?;
+
+    // Apply migrations
+    embedded_migrations::run(&*conn)?;
+
+    Ok(pool)
 }
 
 /// Establish a connection to a test database pool.

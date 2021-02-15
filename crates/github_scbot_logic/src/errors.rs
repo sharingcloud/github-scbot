@@ -6,15 +6,15 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum LogicError {
     /// Wraps [`regex::Error`].
-    #[error(transparent)]
+    #[error("Regex error: {0}")]
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_api::APIError`].
-    #[error(transparent)]
+    #[error("API error: {0}")]
     APIError(#[from] github_scbot_api::APIError),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error: {0}")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 }
 

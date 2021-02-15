@@ -1,4 +1,4 @@
-//! Core module.
+//! Configuration module.
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]
@@ -9,7 +9,7 @@ pub mod validation;
 
 pub use crate::{
     config::Config,
-    errors::{CoreError, Result},
+    errors::{ConfError, Result},
 };
 
 /// Configure application startup.

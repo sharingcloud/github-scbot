@@ -1,7 +1,7 @@
 //! Check webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::DbConn;
 use github_scbot_logic::{checks::handle_check_suite_event, database::process_repository};
 use github_scbot_types::checks::{GHCheckRunEvent, GHCheckSuiteEvent};

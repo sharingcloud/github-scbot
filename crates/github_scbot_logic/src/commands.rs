@@ -5,7 +5,7 @@ use github_scbot_api::{
     pulls::{get_pull_request_sha, merge_pull_request},
     reviews::{remove_reviewers_for_pull_request, request_reviewers_for_pull_request},
 };
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel},
     DbConn,

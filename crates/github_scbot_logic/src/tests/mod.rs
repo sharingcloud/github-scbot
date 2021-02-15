@@ -1,4 +1,4 @@
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 
 mod commands;
 mod external;

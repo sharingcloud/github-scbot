@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+  server:
+    image: github-scbot:0.1.0
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql://user:pass@postgres:5432/bot
+      BOT_SERVER_BIND_IP: 0.0.0.0
+    ports:
+      - 8008:8008
+
+  postgres:
+    image: postgres:alpine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: bot
+    command: "-c max_connections=200"
+
+volumes:
+  postgres-data:

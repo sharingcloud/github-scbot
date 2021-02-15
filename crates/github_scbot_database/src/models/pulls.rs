@@ -36,11 +36,11 @@ pub struct PullRequestModel {
     /// Current step label.
     step: Option<String>,
     /// Current check status.
-    check_status: Option<String>,
+    check_status: String,
     /// Status comment ID.
     status_comment_id: i32,
     /// QA status.
-    qa_status: Option<String>,
+    qa_status: String,
     /// Is it WIP?.
     pub wip: bool,
     /// Needed reviewers count.
@@ -66,9 +66,9 @@ impl Default for PullRequestModel {
             name: String::new(),
             automerge: false,
             step: None,
-            check_status: None,
+            check_status: CheckStatus::Waiting.to_str().into(),
             status_comment_id: 0,
-            qa_status: None,
+            qa_status: QAStatus::Waiting.to_str().into(),
             wip: false,
             needed_reviewers_count: 2,
             locked: false,
@@ -95,11 +95,11 @@ pub struct PullRequestCreation {
     /// Current step label.
     pub step: Option<String>,
     /// Current check status.
-    pub check_status: Option<String>,
+    pub check_status: String,
     /// Status comment ID.
     pub status_comment_id: i32,
     /// QA status.
-    pub qa_status: Option<String>,
+    pub qa_status: String,
     /// Is it WIP?.
     pub wip: bool,
     /// Needed reviewers count.
@@ -138,9 +138,9 @@ impl Default for PullRequestCreation {
             name: String::new(),
             automerge: false,
             step: None,
-            check_status: None,
+            check_status: CheckStatus::Waiting.to_str().into(),
             status_comment_id: 0,
-            qa_status: None,
+            qa_status: QAStatus::Waiting.to_str().into(),
             wip: false,
             needed_reviewers_count: 2,
             locked: false,
@@ -284,17 +284,13 @@ impl PullRequestModel {
     }
 
     /// Get checks status enum from database value.
-    pub fn get_checks_status(&self) -> Option<CheckStatus> {
-        self.check_status
-            .as_ref()
-            .and_then(|x| CheckStatus::try_from(&x[..]).ok())
+    pub fn get_checks_status(&self) -> Result<CheckStatus> {
+        CheckStatus::try_from(&self.check_status[..]).map_err(Into::into)
     }
 
     /// Get QA status enum from database value.
-    pub fn get_qa_status(&self) -> Option<QAStatus> {
-        self.qa_status
-            .as_ref()
-            .and_then(|x| QAStatus::try_from(&x[..]).ok())
+    pub fn get_qa_status(&self) -> Result<QAStatus> {
+        QAStatus::try_from(&self.qa_status[..]).map_err(Into::into)
     }
 
     /// Get step label enum from database value.
@@ -322,7 +318,7 @@ impl PullRequestModel {
     ///
     /// * `checks_status` - Checks status
     pub fn set_checks_status(&mut self, checks_status: CheckStatus) {
-        self.check_status = Some(checks_status.to_str().to_string());
+        self.check_status = checks_status.to_str().to_string();
     }
 
     /// Set step label.
@@ -345,7 +341,7 @@ impl PullRequestModel {
     ///
     /// * `qa_status` - QA status
     pub fn set_qa_status(&mut self, status: QAStatus) {
-        self.qa_status = Some(status.to_str().to_string());
+        self.qa_status = status.to_str().to_string();
     }
 
     /// Set status comment ID.

@@ -5,7 +5,7 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
 [dependencies]
-github-scbot-core = { path = "../github_scbot_core" }
+github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-logic = { path = "../github_scbot_logic" }
 github-scbot-server = { path = "../github_scbot_server" }

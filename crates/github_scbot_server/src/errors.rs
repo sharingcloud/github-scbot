@@ -16,19 +16,19 @@ pub enum ServerError {
     EventParseError(EventType, serde_json::Error),
 
     /// Wraps [`std::io::Error`].
-    #[error(transparent)]
+    #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
 
     /// Wraps [`regex::Error`].
-    #[error(transparent)]
+    #[error("Regex error: {0}")]
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error: {0}")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
-    #[error(transparent)]
+    #[error("Logic error: {0}")]
     LogicError(#[from] github_scbot_logic::LogicError),
 }
 
@@ -36,9 +36,7 @@ impl actix_web::ResponseError for ServerError {
     fn error_response(&self) -> HttpResponse {
         HttpResponseBuilder::new(self.status_code())
             .set_header(header::CONTENT_TYPE, "application/json; charset=utf-8")
-            .body(serde_json::json!({
-                "error": self.to_string()
-            }))
+            .body(serde_json::json!({ "error": format!("{:?}", self) }))
     }
 
     fn status_code(&self) -> StatusCode {
