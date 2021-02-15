@@ -3,13 +3,16 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+// Force include openssl for static linking
+extern crate openssl;
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
 use diesel::prelude::*;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 

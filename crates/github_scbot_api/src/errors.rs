@@ -22,7 +22,7 @@ pub enum APIError {
     GitHubError(String),
 
     /// Wraps [`octocrab::Error`].
-    #[error(transparent)]
+    #[error("Octocrab error.")]
     OctocrabError(#[from] octocrab::Error),
 
     /// Wraps [`github_scbot_crypto::CryptoError`].

@@ -1,6 +1,6 @@
 //! Sentry module.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use tracing::info;
 
 pub mod constants;

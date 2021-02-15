@@ -1,6 +1,6 @@
 //! Checks logic.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{models::PullRequestModel, DbConn};
 use github_scbot_types::{
     checks::{GHCheckConclusion, GHCheckSuiteAction, GHCheckSuiteEvent},

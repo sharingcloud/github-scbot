@@ -2,7 +2,7 @@
 
 use jsonwebtoken::EncodingKey;
 
-use crate::{config::Config, CoreError, Result};
+use crate::{config::Config, ConfError, Result};
 
 enum ApiConfigError {
     MissingToken,
@@ -61,7 +61,7 @@ fn validate_env_vars(config: &Config) -> Result<()> {
     if error.is_empty() {
         Ok(())
     } else {
-        Err(CoreError::ConfigurationError(error))
+        Err(ConfError::ConfigurationError(error))
     }
 }
 

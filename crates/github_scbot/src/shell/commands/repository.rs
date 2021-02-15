@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use dialoguer::Confirm;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
     models::{MergeRuleCreation, MergeRuleModel, PullRequestModel, RepositoryModel},

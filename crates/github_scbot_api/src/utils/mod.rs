@@ -1,6 +1,6 @@
 //! Utilities.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_crypto::{create_jwt, now};
 use octocrab::{Octocrab, OctocrabBuilder};
 use serde::{Deserialize, Serialize};

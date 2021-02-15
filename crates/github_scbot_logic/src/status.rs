@@ -4,7 +4,7 @@ use github_scbot_api::{
     comments::{post_comment, update_comment},
     status::update_status_for_repository,
 };
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,

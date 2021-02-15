@@ -1,7 +1,7 @@
 //! Reviews module.
 
 use github_scbot_api::reviews::request_reviewers_for_pull_request;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,

@@ -1,6 +1,6 @@
 //! Auth commands.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
     models::{ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},

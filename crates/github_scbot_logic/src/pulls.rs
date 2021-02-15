@@ -8,7 +8,7 @@ use github_scbot_api::{
     pulls::{get_pull_request, merge_pull_request},
     reviews::list_reviews_for_pull_request,
 };
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
         MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,

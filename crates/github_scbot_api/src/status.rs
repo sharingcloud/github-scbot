@@ -1,6 +1,6 @@
 //! Status API module.
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_types::status::StatusState;
 
 use crate::{

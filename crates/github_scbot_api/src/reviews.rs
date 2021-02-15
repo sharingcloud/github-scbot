@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_types::{
     common::GHUser,
     reviews::{GHReview, GHReviewState},

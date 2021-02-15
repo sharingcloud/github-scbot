@@ -4,7 +4,7 @@ pub mod commands;
 
 use std::path::PathBuf;
 
-use github_scbot_core::configure_startup;
+use github_scbot_conf::configure_startup;
 use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
 use structopt::StructOpt;
@@ -14,38 +14,38 @@ enum Command {
     /// Start bot server
     Server,
 
-    /// Start TUI
+    /// Start TUI application
     Ui,
 
-    /// Export data
+    /// Export all data
     Export {
         /// Output file, stdout if not precised
         output_file: Option<PathBuf>,
     },
 
-    /// Import data
+    /// Import all data
     Import {
         /// Input file
         input_file: PathBuf,
     },
 
-    /// Configure pull request
+    /// Pull request management
     PullRequest {
-        /// Pull request configuration command
+        /// Pull request management command
         #[structopt(subcommand)]
         cmd: PullRequestCommand,
     },
 
-    /// Configure repository
+    /// Repository management
     Repository {
-        /// Repository configuration command
+        /// Repository management command
         #[structopt(subcommand)]
         cmd: RepositoryCommand,
     },
 
-    /// Auth
+    /// Authentication management
     Auth {
-        /// Auth command
+        /// Authentication management command
         #[structopt(subcommand)]
         cmd: AuthCommand,
     },

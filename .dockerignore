@@ -1,0 +1,7 @@
+/.github
+/.vscode
+/export
+/target
+/.env
+/docker
+/Justfile

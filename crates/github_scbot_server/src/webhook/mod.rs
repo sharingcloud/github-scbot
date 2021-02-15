@@ -9,7 +9,7 @@ mod reviews;
 use std::convert::TryFrom;
 
 use actix_web::{error, web, HttpRequest, HttpResponse, Result as ActixResult};
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::DbConn;
 use github_scbot_types::events::EventType;
 use tracing::info;
@@ -130,7 +130,7 @@ pub fn configure_webhook_handlers(cfg: &mut web::ServiceConfig) {
 
 // #[cfg(test)]
 // mod tests {
-//     use github_scbot_core::Config;
+//     use github_scbot_conf::Config;
 //     use github_scbot_database::{establish_single_test_connection, establish_test_connection, models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel}};
 //     use github_scbot_types::events::EventType;
 

@@ -15,7 +15,7 @@ version := `cat ./crates/github_scbot/Cargo.toml | sed -n "s/^version = \"\(.*\)
 
 # Check code style
 fmt:
-	cargo fmt --all {{ if opt_fmt_check == "true" { "-- --check" } else { "" } }}
+	cargo +nightly fmt --all {{ if opt_fmt_check == "true" { "-- --check" } else { "" } }}
 
 # Check code style and error if changes are needed
 fmt-check:
@@ -60,6 +60,10 @@ doc-open:
 # Build app
 build:
 	cargo build
+
+# Build docker
+build-docker:
+	docker build --rm -t github-scbot:{{ version }} -f ./docker/Dockerfile .
 
 # Build release
 export:

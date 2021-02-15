@@ -10,7 +10,7 @@ mod state;
 
 use std::io;
 
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::establish_single_connection;
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};

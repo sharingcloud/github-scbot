@@ -3,7 +3,7 @@
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use github_scbot_core::Config;
+use github_scbot_conf::Config;
 use github_scbot_database::{establish_connection, DbPool};
 use sentry_actix::Sentry;
 use tracing::{error, info};

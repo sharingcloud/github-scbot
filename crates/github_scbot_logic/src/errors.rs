@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum LogicError {
     /// Wraps [`regex::Error`].
-    #[error(transparent)]
+    #[error("Regex error.")]
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_api::APIError`].
