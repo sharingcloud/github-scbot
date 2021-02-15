@@ -1,5 +1,9 @@
 use github_scbot_conf::Config;
-use github_scbot_types::{pulls::GHMergeStrategy, reviews::GHReviewState};
+use github_scbot_types::{
+    pulls::GHMergeStrategy,
+    reviews::GHReviewState,
+    status::{CheckStatus, QAStatus},
+};
 
 use super::import_export::{export_models_to_json, import_models_from_json};
 use crate::{
@@ -213,9 +217,9 @@ fn test_import_models_from_json() {
                     "name": "Tutu",
                     "automerge": false,
                     "step": "step/awaiting-review",
-                    "check_status": null,
+                    "check_status": "waiting",
                     "status_comment_id": 1,
-                    "qa_status": null,
+                    "qa_status": "waiting",
                     "wip": false,
                     "needed_reviewers_count": 2,
                     "locked": false,
@@ -292,8 +296,12 @@ fn test_import_models_from_json() {
     assert_eq!(rep_2.pr_title_validation_regex, "");
     assert_eq!(pr_1.name, "Tutu");
     assert_eq!(pr_1.automerge, false);
+    assert_eq!(pr_1.get_checks_status().unwrap(), CheckStatus::Waiting);
+    assert_eq!(pr_1.get_qa_status().unwrap(), QAStatus::Waiting);
     assert_eq!(pr_2.name, "Tata");
     assert_eq!(pr_2.automerge, true);
+    assert_eq!(pr_2.get_checks_status().unwrap(), CheckStatus::Pass);
+    assert_eq!(pr_2.get_qa_status().unwrap(), QAStatus::Pass);
     assert_eq!(review_1.required, true);
     assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
     assert!(matches!(rule_1.get_strategy(), GHMergeStrategy::Merge));
