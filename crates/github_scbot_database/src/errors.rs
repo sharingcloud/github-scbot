@@ -40,31 +40,31 @@ pub enum DatabaseError {
     UnknownReviewState(String, String),
 
     /// Wraps [`super::import_export::ExportError`].
-    #[error("Export error.")]
+    #[error("Export error: {0}")]
     ExportError(#[from] super::import_export::ExportError),
 
     /// Wraps [`super::import_export::ImportError`].
-    #[error("Import error.")]
+    #[error("Import error: {0}")]
     ImportError(#[from] super::import_export::ImportError),
 
     /// Wraps [`diesel::ConnectionError`].
-    #[error("Connection error.")]
+    #[error("Connection error: {0}")]
     ConnectionError(#[from] diesel::ConnectionError),
 
     /// Wraps [`diesel_migrations::RunMigrationsError`].
-    #[error("Migration error.")]
+    #[error("Migration error: {0}")]
     MigrationError(#[from] diesel_migrations::RunMigrationsError),
 
     /// Wraps [`github_scbot_crypto::CryptoError`].
-    #[error(transparent)]
+    #[error("Crypto error: {0}")]
     CryptoError(#[from] github_scbot_crypto::CryptoError),
 
     /// Wraps [`r2d2::Error`].
-    #[error("Database pool error.")]
+    #[error("Database pool error: {0}")]
     R2d2Error(#[from] r2d2::Error),
 
     /// Wraps [`diesel::result::Error`].
-    #[error("SQL error.")]
+    #[error("SQL error: {0}")]
     SQLError(#[from] diesel::result::Error),
 }
 

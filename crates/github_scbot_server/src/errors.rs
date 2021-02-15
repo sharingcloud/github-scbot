@@ -16,19 +16,19 @@ pub enum ServerError {
     EventParseError(EventType, serde_json::Error),
 
     /// Wraps [`std::io::Error`].
-    #[error("IO error.")]
+    #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
 
     /// Wraps [`regex::Error`].
-    #[error("Regex error.")]
+    #[error("Regex error: {0}")]
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error: {0}")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
-    #[error(transparent)]
+    #[error("Logic error: {0}")]
     LogicError(#[from] github_scbot_logic::LogicError),
 }
 
