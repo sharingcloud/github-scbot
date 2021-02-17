@@ -28,7 +28,7 @@ fn create_repository() {
         RepositoryCreation {
             name: "TestRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -49,7 +49,7 @@ fn list_repositories() {
         RepositoryCreation {
             name: "TestRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -59,7 +59,7 @@ fn list_repositories() {
         RepositoryCreation {
             name: "AnotherRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -79,7 +79,7 @@ fn create_pull_request() {
         RepositoryCreation {
             name: "TestRepo".to_string(),
             owner: "me".to_string(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -87,10 +87,9 @@ fn create_pull_request() {
     let pr = PullRequestModel::create(
         &conn,
         PullRequestCreation {
-            repository_id: repo.id,
             number: 1234,
             name: "Toto".to_string(),
-            ..Default::default()
+            ..PullRequestCreation::from_repository(&repo)
         },
     )
     .unwrap();
@@ -111,7 +110,7 @@ fn test_export_models_to_json() {
         RepositoryCreation {
             name: "TestRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -119,10 +118,9 @@ fn test_export_models_to_json() {
     let pr = PullRequestModel::create(
         &conn,
         PullRequestCreation {
-            repository_id: repo.id,
             number: 1234,
             name: "Toto".into(),
-            ..Default::default()
+            ..PullRequestCreation::from_repository(&repo)
         },
     )
     .unwrap();
@@ -173,7 +171,7 @@ fn test_import_models_from_json() {
         RepositoryCreation {
             name: "TestRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();
@@ -181,10 +179,9 @@ fn test_import_models_from_json() {
     PullRequestModel::create(
         &conn,
         PullRequestCreation {
-            repository_id: repo.id,
             number: 1234,
             name: "Toto".into(),
-            ..Default::default()
+            ..PullRequestCreation::from_repository(&repo)
         },
     )
     .unwrap();
@@ -281,7 +278,7 @@ fn test_import_models_from_json() {
         }
     "#;
 
-    import_models_from_json(&conn, sample.as_bytes()).unwrap();
+    import_models_from_json(&config, &conn, sample.as_bytes()).unwrap();
 
     let rep_1 = RepositoryModel::get_from_owner_and_name(&conn, "me", "TestRepo").unwrap();
     let rep_2 = RepositoryModel::get_from_owner_and_name(&conn, "me", "AnotherRepo").unwrap();

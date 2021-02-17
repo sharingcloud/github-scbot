@@ -9,8 +9,12 @@ use tracing::info;
 
 use crate::errors::Result;
 
-pub(crate) async fn check_run_event(conn: &DbConn, event: GHCheckRunEvent) -> Result<HttpResponse> {
-    process_repository(conn, &event.repository)?;
+pub(crate) async fn check_run_event(
+    config: &Config,
+    conn: &DbConn,
+    event: GHCheckRunEvent,
+) -> Result<HttpResponse> {
+    process_repository(config, conn, &event.repository)?;
 
     info!("Check run event from repository '{}', name '{}', action '{:?}', status '{:?}', conclusion '{:?}'", event.repository.full_name, event.check_run.name, event.action, event.check_run.status, event.check_run.conclusion);
 

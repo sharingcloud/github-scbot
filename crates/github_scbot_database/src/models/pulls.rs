@@ -57,29 +57,6 @@ pub struct PullRequestModel {
     pub closed: bool,
 }
 
-impl Default for PullRequestModel {
-    fn default() -> Self {
-        Self {
-            id: -1,
-            repository_id: 0,
-            number: 0,
-            name: String::new(),
-            automerge: false,
-            step: None,
-            check_status: CheckStatus::Waiting.to_str().into(),
-            status_comment_id: 0,
-            qa_status: QAStatus::Waiting.to_str().into(),
-            wip: false,
-            needed_reviewers_count: 2,
-            locked: false,
-            merged: false,
-            base_branch: String::new(),
-            head_branch: String::new(),
-            closed: false,
-        }
-    }
-}
-
 /// Pull request creation.
 #[derive(Debug, Insertable)]
 #[table_name = "pull_request"]
@@ -118,23 +95,26 @@ pub struct PullRequestCreation {
 
 impl PullRequestCreation {
     /// Creates from upstream pull request.
-    pub fn from_upstream(repository_id: i32, upstream: &GHPullRequest) -> Self {
+    ///
+    /// # Arguments
+    ///
+    /// * `upstream` - GitHub pull request
+    /// * `repository` - Repository
+    pub fn from_upstream(upstream: &GHPullRequest, repository: &RepositoryModel) -> Self {
         Self {
-            repository_id,
             name: upstream.title.clone(),
             number: upstream.number as i32,
             base_branch: upstream.base.reference.clone(),
             head_branch: upstream.head.reference.clone(),
-            ..Default::default()
+            ..Self::from_repository(repository)
         }
     }
-}
 
-impl Default for PullRequestCreation {
-    fn default() -> Self {
+    /// Creates from repository.
+    pub fn from_repository(repository: &RepositoryModel) -> Self {
         Self {
-            repository_id: 0,
-            number: 0,
+            number: -1,
+            repository_id: repository.id,
             name: String::new(),
             automerge: false,
             step: None,
@@ -142,7 +122,7 @@ impl Default for PullRequestCreation {
             status_comment_id: 0,
             qa_status: QAStatus::Waiting.to_str().into(),
             wip: false,
-            needed_reviewers_count: 2,
+            needed_reviewers_count: repository.default_needed_reviewers_count,
             locked: false,
             merged: false,
             base_branch: String::new(),
@@ -153,6 +133,28 @@ impl Default for PullRequestCreation {
 }
 
 impl PullRequestModel {
+    /// Create default pull request.
+    pub fn from_repository(repository: &RepositoryModel) -> Self {
+        Self {
+            id: -1,
+            repository_id: 0,
+            number: 0,
+            name: String::new(),
+            automerge: false,
+            step: None,
+            check_status: CheckStatus::Waiting.to_str().into(),
+            status_comment_id: 0,
+            qa_status: QAStatus::Waiting.to_str().into(),
+            wip: false,
+            needed_reviewers_count: repository.default_needed_reviewers_count,
+            locked: false,
+            merged: false,
+            base_branch: String::new(),
+            head_branch: String::new(),
+            closed: false,
+        }
+    }
+
     /// Create pull request from creation entry.
     ///
     /// # Arguments

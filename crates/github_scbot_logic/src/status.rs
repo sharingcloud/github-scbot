@@ -95,7 +95,7 @@ impl PullRequestStatus {
     /// Check if there are missing reviews.
     pub fn missing_reviews(&self) -> bool {
         self.missing_required_reviews()
-            && self.needed_reviewers_count > self.approved_reviewers.len()
+            || self.needed_reviewers_count > self.approved_reviewers.len()
     }
 }
 

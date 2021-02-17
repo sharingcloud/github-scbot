@@ -24,7 +24,7 @@ pub async fn handle_issue_comment_event(
     conn: &DbConn,
     event: &GHIssueCommentEvent,
 ) -> Result<()> {
-    let repo_model = process_repository(conn, &event.repository)?;
+    let repo_model = process_repository(config, conn, &event.repository)?;
     if let GHIssueCommentAction::Created = event.action {
         handle_comment_creation(
             config,

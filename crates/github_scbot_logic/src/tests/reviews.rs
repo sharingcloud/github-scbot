@@ -1,5 +1,6 @@
 //! Review tests
 
+use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_test_connection,
     models::{
@@ -20,24 +21,23 @@ use crate::{
     status::{generate_pr_status_comment, PullRequestStatus},
 };
 
-fn arrange(conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
+fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
     // Create a repository and a pull request
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {
             name: "TestRepo".into(),
             owner: "me".into(),
-            ..Default::default()
+            ..RepositoryCreation::default(conf)
         },
     )
     .unwrap();
     let pr = PullRequestModel::create(
         &conn,
         PullRequestCreation {
-            repository_id: repo.id,
             name: "PR 1".into(),
             number: 1,
-            ..Default::default()
+            ..PullRequestCreation::from_repository(&repo)
         },
     )
     .unwrap();
@@ -50,7 +50,7 @@ async fn test_review_creation() {
     let config = test_config();
 
     let conn = establish_single_test_connection(&config).unwrap();
-    let (repo, mut pr) = arrange(&conn);
+    let (repo, mut pr) = arrange(&config, &conn);
 
     // Simulate review
     let review = GHReview {

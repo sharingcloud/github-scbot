@@ -19,7 +19,7 @@ fn test_repository_right_validation() {
         RepositoryCreation {
             name: "Test".to_string(),
             owner: "test".to_string(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .unwrap();

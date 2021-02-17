@@ -21,7 +21,7 @@ pub async fn handle_check_suite_event(
     conn: &DbConn,
     event: &GHCheckSuiteEvent,
 ) -> Result<()> {
-    let repo_model = process_repository(conn, &event.repository)?;
+    let repo_model = process_repository(config, conn, &event.repository)?;
 
     // Only look for first PR
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {

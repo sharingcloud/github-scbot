@@ -11,6 +11,12 @@ pub struct Config {
     pub bot_username: String,
     /// Database URL.
     pub database_url: String,
+    /// Default merge strategy.
+    pub default_merge_strategy: String,
+    /// Default needed reviewers count.
+    pub default_needed_reviewers_count: u64,
+    /// Default PR title validation regex.
+    pub default_pr_title_validation_regex: String,
     /// GitHub API personal token.
     pub github_api_token: String,
     /// GitHub App ID.
@@ -42,6 +48,12 @@ impl Config {
             api_disable_client: env_to_bool("BOT_API_DISABLE_CLIENT", false),
             bot_username: env_to_str("BOT_USERNAME", "bot"),
             database_url: env_to_str("DATABASE_URL", ""),
+            default_merge_strategy: env_to_str("BOT_DEFAULT_MERGE_STRATEGY", "merge"),
+            default_needed_reviewers_count: env_to_u64("BOT_DEFAULT_NEEDED_REVIEWERS_COUNT", 2),
+            default_pr_title_validation_regex: env_to_str(
+                "BOT_DEFAULT_PR_TITLE_VALIDATION_REGEX",
+                "",
+            ),
             github_api_token: env_to_str("BOT_GITHUB_API_TOKEN", ""),
             github_app_id: env_to_u64("BOT_GITHUB_APP_ID", 0),
             github_app_installation_id: env_to_u64("BOT_GITHUB_APP_INSTALLATION_ID", 0),
