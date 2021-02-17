@@ -7,6 +7,7 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel},
 };
 use github_scbot_logic::pulls::synchronize_pull_request;
+use github_scbot_logic::status::update_pull_request_status;
 
 use super::errors::Result;
 
@@ -51,7 +52,9 @@ pub(crate) fn sync_pull_request(
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
 
         let conn = establish_single_connection(&config)?;
-        synchronize_pull_request(&config, &conn, owner, name, number).await?;
+        let (mut pr, sha) = synchronize_pull_request(&config, &conn, owner, name, number).await?;
+        let repo = RepositoryModel::get_from_owner_and_name(&conn, owner, name)?;
+        update_pull_request_status(&config, &conn, &repo, &mut pr, &sha).await?;
 
         println!(
             "Pull request #{} from {} updated from GitHub.",

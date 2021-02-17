@@ -3,6 +3,7 @@
 use std::convert::TryInto;
 
 use diesel::prelude::*;
+use github_scbot_conf::Config;
 use github_scbot_types::pulls::GHMergeStrategy;
 use serde::{Deserialize, Serialize};
 
@@ -48,27 +49,19 @@ pub struct RepositoryCreation {
     pub default_strategy: String,
 }
 
-impl Default for RepositoryModel {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            name: String::new(),
-            owner: String::new(),
-            pr_title_validation_regex: String::new(),
-            default_needed_reviewers_count: 2,
-            default_strategy: GHMergeStrategy::Merge.to_string(),
-        }
-    }
-}
-
-impl Default for RepositoryCreation {
-    fn default() -> Self {
+impl RepositoryCreation {
+    /// Create default repository.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Application configuration
+    pub fn default(config: &Config) -> Self {
         Self {
             name: String::new(),
             owner: String::new(),
-            pr_title_validation_regex: String::new(),
-            default_needed_reviewers_count: 2,
-            default_strategy: GHMergeStrategy::Merge.to_string(),
+            pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
+            default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
+            default_strategy: config.default_merge_strategy.clone(),
         }
     }
 }
@@ -85,6 +78,22 @@ impl RepositoryModel {
             .execute(conn)?;
 
         Self::get_from_owner_and_name(conn, &entry.owner, &entry.name)
+    }
+
+    /// Create default repository.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Application configuration
+    pub fn default(config: &Config) -> Self {
+        Self {
+            id: 0,
+            name: String::new(),
+            owner: String::new(),
+            pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
+            default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
+            default_strategy: config.default_merge_strategy.clone(),
+        }
     }
 
     /// List repositories.

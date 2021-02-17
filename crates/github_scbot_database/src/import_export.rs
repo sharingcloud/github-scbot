@@ -6,6 +6,7 @@ use std::{
     path::PathBuf,
 };
 
+use github_scbot_conf::Config;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -91,7 +92,7 @@ where
 ///
 /// * `conn` - Database connection
 /// * `reader` - Input stream
-pub fn import_models_from_json<R>(conn: &DbConn, reader: R) -> Result<()>
+pub fn import_models_from_json<R>(config: &Config, conn: &DbConn, reader: R) -> Result<()>
 where
     R: Read,
 {
@@ -99,6 +100,7 @@ where
         serde_json::from_reader(reader).map_err(ImportError::SerdeError)?;
 
     let mut repo_id_map = HashMap::new();
+    let mut repo_map = HashMap::new();
     let mut pr_id_map = HashMap::new();
 
     // Create or update repositories
@@ -113,12 +115,14 @@ where
             RepositoryCreation {
                 owner: repository.owner.clone(),
                 name: repository.name.clone(),
-                ..Default::default()
+                ..RepositoryCreation::default(config)
             },
         )?;
         repo_id_map.insert(repository.id, repo.id);
         repository.id = repo.id;
         repository.save(conn)?;
+
+        repo_map.insert(repository.id, repository);
     }
 
     // Create or update merge rules
@@ -159,7 +163,7 @@ where
             PullRequestCreation {
                 repository_id: *repo_id,
                 number: pull_request.get_number() as i32,
-                ..Default::default()
+                ..PullRequestCreation::from_repository(repo_map.get(repo_id).unwrap())
             },
         )?;
         pr_id_map.insert(pull_request.id, pr.id);

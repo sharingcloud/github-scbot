@@ -22,7 +22,8 @@ pub async fn handle_review_event(
     conn: &DbConn,
     event: &GHReviewEvent,
 ) -> Result<()> {
-    let (repo, mut pr) = process_pull_request(conn, &event.repository, &event.pull_request)?;
+    let (repo, mut pr) =
+        process_pull_request(config, conn, &event.repository, &event.pull_request)?;
     handle_review(conn, &pr, &event.review)?;
     update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
 

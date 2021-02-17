@@ -30,6 +30,7 @@ async fn parse_event(
     match event_type {
         EventType::CheckRun => {
             checks::check_run_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
@@ -55,6 +56,7 @@ async fn parse_event(
             .await
         }
         EventType::Ping => ping::ping_event(
+            config,
             conn,
             serde_json::from_str(body).map_err(|e| ServerError::EventParseError(event_type, e))?,
         )
@@ -80,6 +82,7 @@ async fn parse_event(
         }
         EventType::PullRequestReviewComment => {
             reviews::review_comment_event(
+                config,
                 conn,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,

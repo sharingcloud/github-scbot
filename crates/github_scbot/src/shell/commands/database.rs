@@ -34,7 +34,7 @@ pub(crate) fn import_json(config: &Config, input_path: &Path) -> Result<()> {
     let file = File::open(input_path.to_path_buf())
         .map_err(|e| ImportError::IOError(input_path.to_path_buf(), e))?;
     let reader = BufReader::new(file);
-    import_models_from_json(&conn, reader)?;
+    import_models_from_json(config, &conn, reader)?;
 
     Ok(())
 }

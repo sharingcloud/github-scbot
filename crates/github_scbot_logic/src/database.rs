@@ -14,15 +14,20 @@ use crate::errors::Result;
 ///
 /// # Arguments
 ///
+/// * `config` - Application config
 /// * `conn` - Database connection
 /// * `repository` - GitHub repository
-pub fn process_repository(conn: &DbConn, repository: &GHRepository) -> Result<RepositoryModel> {
+pub fn process_repository(
+    config: &Config,
+    conn: &DbConn,
+    repository: &GHRepository,
+) -> Result<RepositoryModel> {
     RepositoryModel::get_or_create(
         conn,
         RepositoryCreation {
             name: repository.name.clone(),
             owner: repository.owner.login.clone(),
-            ..Default::default()
+            ..RepositoryCreation::default(&config)
         },
     )
     .map_err(Into::into)
@@ -32,16 +37,18 @@ pub fn process_repository(conn: &DbConn, repository: &GHRepository) -> Result<Re
 ///
 /// # Arguments
 ///
+/// * `config` - Application config
 /// * `conn` - Database connection
 /// * `repository` - GitHub repository
 /// * `pull_request` - GitHub pull request
 pub fn process_pull_request(
+    config: &Config,
     conn: &DbConn,
     repository: &GHRepository,
     pull_request: &GHPullRequest,
 ) -> Result<(RepositoryModel, PullRequestModel)> {
-    let repo = process_repository(conn, repository)?;
-    let mut upstream = PullRequestCreation::from_upstream(repo.id, &pull_request);
+    let repo = process_repository(config, conn, repository)?;
+    let mut upstream = PullRequestCreation::from_upstream(&pull_request, &repo);
     upstream.needed_reviewers_count = repo.default_needed_reviewers_count;
 
     let pr = PullRequestModel::get_or_create(conn, upstream)?;
@@ -96,7 +103,7 @@ pub async fn get_or_fetch_pull_request(
 
         let pr_model = PullRequestModel::get_or_create(
             conn,
-            PullRequestCreation::from_upstream(repo_model.id, &pr),
+            PullRequestCreation::from_upstream(&pr, &repo_model),
         )?;
 
         Ok(pr_model)

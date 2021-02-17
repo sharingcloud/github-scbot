@@ -421,7 +421,7 @@ pub async fn handle_sync_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<bool> {
-    let pr = synchronize_pull_request(
+    let (pr, _sha) = synchronize_pull_request(
         config,
         conn,
         &repo_model.owner,

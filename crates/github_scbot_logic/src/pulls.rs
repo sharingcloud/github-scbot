@@ -46,7 +46,7 @@ pub async fn handle_pull_request_event(
     event: &GHPullRequestEvent,
 ) -> Result<()> {
     let (repo_model, mut pr_model) =
-        process_pull_request(conn, &event.repository, &event.pull_request)?;
+        process_pull_request(config, conn, &event.repository, &event.pull_request)?;
 
     // Welcome message
     if let GHPullRequestAction::Opened = event.action {
@@ -222,7 +222,7 @@ pub async fn synchronize_pull_request(
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
-) -> Result<PullRequestModel> {
+) -> Result<(PullRequestModel, String)> {
     // Get upstream pull request
     let upstream_pr =
         get_pull_request(config, repository_owner, repository_name, pr_number).await?;
@@ -261,13 +261,13 @@ pub async fn synchronize_pull_request(
         RepositoryCreation {
             name: repository_name.into(),
             owner: repository_owner.into(),
-            ..Default::default()
+            ..RepositoryCreation::default(config)
         },
     )?;
 
     let mut pr = PullRequestModel::get_or_create(
         conn,
-        PullRequestCreation::from_upstream(repo.id, &upstream_pr),
+        PullRequestCreation::from_upstream(&upstream_pr, &repo),
     )?;
 
     // Update reviews
@@ -299,7 +299,7 @@ pub async fn synchronize_pull_request(
     }
 
     pr.save(conn)?;
-    Ok(pr)
+    Ok((pr, upstream_pr.head.sha))
 }
 
 /// Try automerge pull request.

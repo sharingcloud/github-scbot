@@ -24,6 +24,7 @@ pub(crate) async fn review_event(
 }
 
 pub(crate) async fn review_comment_event(
+    config: &Config,
     conn: &DbConn,
     event: GHReviewCommentEvent,
 ) -> Result<HttpResponse> {
@@ -32,6 +33,6 @@ pub(crate) async fn review_comment_event(
         event.repository.full_name, event.pull_request.number, event.action, event.comment.user.login
     );
 
-    process_pull_request(conn, &event.repository, &event.pull_request)?;
+    process_pull_request(config, conn, &event.repository, &event.pull_request)?;
     Ok(HttpResponse::Ok().body("Pull request review comment."))
 }
