@@ -1,4 +1,18 @@
 table! {
+    account (username) {
+        username -> Varchar,
+        is_admin -> Bool,
+    }
+}
+
+table! {
+    account_right (username, repository_id) {
+        username -> Varchar,
+        repository_id -> Int4,
+    }
+}
+
+table! {
     external_account (username) {
         username -> Varchar,
         public_key -> Text,
@@ -41,6 +55,7 @@ table! {
         base_branch -> Varchar,
         head_branch -> Varchar,
         closed -> Bool,
+        creator -> Varchar,
     }
 }
 
@@ -65,6 +80,8 @@ table! {
     }
 }
 
+joinable!(account_right -> account (username));
+joinable!(account_right -> repository (repository_id));
 joinable!(external_account_right -> external_account (username));
 joinable!(external_account_right -> repository (repository_id));
 joinable!(merge_rule -> repository (repository_id));
@@ -72,6 +89,8 @@ joinable!(pull_request -> repository (repository_id));
 joinable!(review -> pull_request (pull_request_id));
 
 allow_tables_to_appear_in_same_query!(
+    account,
+    account_right,
     external_account,
     external_account_right,
     merge_rule,

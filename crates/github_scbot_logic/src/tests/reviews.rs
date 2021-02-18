@@ -37,6 +37,7 @@ fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) 
         PullRequestCreation {
             name: "PR 1".into(),
             number: 1,
+            creator: "me".into(),
             ..PullRequestCreation::from_repository(&repo)
         },
     )

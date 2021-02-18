@@ -55,6 +55,8 @@ pub struct PullRequestModel {
     pub head_branch: String,
     /// Is the PR closed?
     pub closed: bool,
+    /// PR creator
+    pub creator: String,
 }
 
 /// Pull request creation.
@@ -91,6 +93,8 @@ pub struct PullRequestCreation {
     pub head_branch: String,
     /// Is the PR closed?
     pub closed: bool,
+    /// PR creator
+    pub creator: String,
 }
 
 impl PullRequestCreation {
@@ -106,6 +110,7 @@ impl PullRequestCreation {
             number: upstream.number as i32,
             base_branch: upstream.base.reference.clone(),
             head_branch: upstream.head.reference.clone(),
+            creator: upstream.user.login.clone(),
             ..Self::from_repository(repository)
         }
     }
@@ -128,6 +133,7 @@ impl PullRequestCreation {
             base_branch: String::new(),
             head_branch: String::new(),
             closed: false,
+            creator: String::new(),
         }
     }
 }
@@ -152,6 +158,7 @@ impl PullRequestModel {
             base_branch: String::new(),
             head_branch: String::new(),
             closed: false,
+            creator: String::new(),
         }
     }
 
@@ -367,6 +374,7 @@ impl PullRequestModel {
         self.closed = upstream_pr.closed_at.is_some();
         self.base_branch = upstream_pr.base.reference.clone();
         self.head_branch = upstream_pr.head.reference.clone();
+        self.creator = upstream_pr.user.login.clone();
     }
 
     /// Remove closed pull requests.
