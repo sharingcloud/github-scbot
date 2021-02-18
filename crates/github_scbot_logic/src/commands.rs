@@ -14,15 +14,18 @@ use github_scbot_types::{issues::GHReactionType, labels::StepLabel, status::QASt
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
-use crate::pulls::{
-    determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request,
+use crate::{
+    auth::{has_right_on_pull_request, list_known_admin_usernames},
+    pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
 };
 
 /// Command handling status.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandHandlingStatus {
     /// Command handled.
     Handled,
+    /// Command denied.
+    Denied,
     /// Command ignored.
     Ignored,
 }
@@ -129,9 +132,11 @@ pub async fn parse_commands(
             line,
         )
         .await?;
-        if matches!(line_handling, CommandHandlingStatus::Handled) {
-            command_handling = line_handling;
-        }
+
+        command_handling = match line_handling {
+            CommandHandlingStatus::Ignored => command_handling,
+            status => status,
+        };
     }
 
     Ok(command_handling)
@@ -161,87 +166,121 @@ pub async fn parse_single_command(
 
     if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
         let action = Command::from_comment(command_line, &args);
-        info!(
-            "Interpreting action {:?} from author {} on repository {}, PR #{}",
-            action,
-            comment_author,
-            repo_model.get_path(),
-            pr_model.get_number()
-        );
+        if let Some(action) = action {
+            info!(
+                "Interpreting action {:?} from author {} on repository {}, PR #{}",
+                action,
+                comment_author,
+                repo_model.get_path(),
+                pr_model.get_number()
+            );
 
-        command_handled = CommandHandlingStatus::Handled;
-        let status_updated = match action {
-            Some(Command::Automerge(s)) => {
-                handle_auto_merge_command(config, conn, repo_model, pr_model, comment_author, s)
-                    .await?
-            }
-            Some(Command::SkipQAStatus(s)) => handle_skip_qa_command(conn, pr_model, s)?,
-            Some(Command::QAStatus(s)) => {
-                handle_qa_command(config, conn, repo_model, pr_model, comment_author, s).await?
-            }
-            Some(Command::Lock(s, reason)) => {
-                handle_lock_command(
-                    config,
-                    conn,
-                    repo_model,
-                    pr_model,
-                    comment_author,
-                    s,
-                    reason,
-                )
-                .await?
-            }
-            Some(Command::Ping) => {
-                handle_ping_command(config, repo_model, pr_model, comment_author).await?
-            }
-            Some(Command::Merge) => {
-                handle_merge_command(
-                    config,
-                    conn,
-                    repo_model,
-                    pr_model,
-                    comment_id,
-                    comment_author,
-                )
-                .await?
-            }
-            Some(Command::Synchronize) => {
-                handle_sync_command(config, conn, repo_model, pr_model).await?
-            }
-            Some(Command::AssignRequiredReviewers(reviewers)) => {
-                handle_assign_required_reviewers_command(
-                    config, conn, repo_model, pr_model, reviewers,
-                )
-                .await?
-            }
-            Some(Command::UnassignRequiredReviewers(reviewers)) => {
-                handle_unassign_required_reviewers_command(
-                    config, conn, repo_model, pr_model, reviewers,
-                )
-                .await?
-            }
-            Some(Command::Help) => {
-                handle_help_command(config, repo_model, pr_model, comment_author).await?
-            }
-            _ => {
-                command_handled = CommandHandlingStatus::Ignored;
-                false
-            }
-        };
+            if !validate_user_rights_on_command(conn, comment_author, pr_model, &action)? {
+                command_handled = CommandHandlingStatus::Denied;
+            } else {
+                command_handled = CommandHandlingStatus::Handled;
 
-        if status_updated {
-            let sha = get_pull_request_sha(
-                config,
-                &repo_model.owner,
-                &repo_model.name,
-                pr_model.get_number(),
-            )
-            .await?;
-            update_pull_request_status(config, conn, repo_model, pr_model, &sha).await?;
+                let status_updated = match action {
+                    Command::Automerge(s) => {
+                        handle_auto_merge_command(
+                            config,
+                            conn,
+                            repo_model,
+                            pr_model,
+                            comment_author,
+                            s,
+                        )
+                        .await?
+                    }
+                    Command::SkipQAStatus(s) => handle_skip_qa_command(conn, pr_model, s)?,
+                    Command::QAStatus(s) => {
+                        handle_qa_command(config, conn, repo_model, pr_model, comment_author, s)
+                            .await?
+                    }
+                    Command::Lock(s, reason) => {
+                        handle_lock_command(
+                            config,
+                            conn,
+                            repo_model,
+                            pr_model,
+                            comment_author,
+                            s,
+                            reason,
+                        )
+                        .await?
+                    }
+                    Command::Ping => {
+                        handle_ping_command(config, repo_model, pr_model, comment_author).await?
+                    }
+                    Command::Merge => {
+                        handle_merge_command(
+                            config,
+                            conn,
+                            repo_model,
+                            pr_model,
+                            comment_id,
+                            comment_author,
+                        )
+                        .await?
+                    }
+                    Command::Synchronize => {
+                        handle_sync_command(config, conn, repo_model, pr_model).await?
+                    }
+                    Command::AssignRequiredReviewers(reviewers) => {
+                        handle_assign_required_reviewers_command(
+                            config, conn, repo_model, pr_model, reviewers,
+                        )
+                        .await?
+                    }
+                    Command::UnassignRequiredReviewers(reviewers) => {
+                        handle_unassign_required_reviewers_command(
+                            config, conn, repo_model, pr_model, reviewers,
+                        )
+                        .await?
+                    }
+                    Command::Help => {
+                        handle_help_command(config, repo_model, pr_model, comment_author).await?
+                    }
+                };
+
+                if status_updated {
+                    let sha = get_pull_request_sha(
+                        config,
+                        &repo_model.owner,
+                        &repo_model.name,
+                        pr_model.get_number(),
+                    )
+                    .await?;
+                    update_pull_request_status(config, conn, repo_model, pr_model, &sha).await?;
+                }
+            }
         }
     }
 
     Ok(command_handled)
+}
+
+/// Validate user rights on command.
+///
+/// # Arguments
+///
+/// * `conn` - Database connection
+/// * `username` - Target username
+/// * `pr_model` - Pull request
+/// * `command` - Command
+pub fn validate_user_rights_on_command(
+    conn: &DbConn,
+    username: &str,
+    pr_model: &PullRequestModel,
+    command: &Command,
+) -> Result<bool> {
+    match command {
+        Command::Ping | Command::Help => Ok(true),
+        _ => {
+            let known_admins = list_known_admin_usernames(conn)?;
+            Ok(has_right_on_pull_request(username, pr_model, &known_admins))
+        }
+    }
 }
 
 /// Parse command string from comment line.

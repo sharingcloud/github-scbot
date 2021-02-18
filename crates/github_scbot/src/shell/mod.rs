@@ -185,6 +185,21 @@ enum AuthCommand {
         /// Account username
         username: String,
     },
+
+    /// Add admin rights
+    AddAdminRights {
+        /// Account username
+        username: String,
+    },
+
+    /// Remove admin rights
+    RemoveAdminRights {
+        /// Account username
+        username: String,
+    },
+
+    /// List admin accounts
+    ListAdminAccounts,
 }
 
 #[derive(StructOpt)]
@@ -319,6 +334,15 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             }
             AuthCommand::ListAccountRights { username } => {
                 commands::auth::list_account_rights(&config, &username)?;
+            }
+            AuthCommand::AddAdminRights { username } => {
+                commands::auth::add_admin_rights(&config, &username)?;
+            }
+            AuthCommand::RemoveAdminRights { username } => {
+                commands::auth::remove_admin_rights(&config, &username)?;
+            }
+            AuthCommand::ListAdminAccounts => {
+                commands::auth::list_admin_accounts(&config)?;
             }
         },
     }

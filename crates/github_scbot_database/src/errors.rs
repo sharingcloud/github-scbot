@@ -21,6 +21,10 @@ pub enum DatabaseError {
     #[error("Pull request review for pull request ID '{0}' and username '{1}' does not exist.")]
     UnknownReview(i32, String),
 
+    /// Unknown account.
+    #[error("Account '{0}' does not exist.")]
+    UnknownAccount(String),
+
     /// Unknown external account.
     #[error("External account '{0}' does not exist.")]
     UnknownExternalAccount(String),

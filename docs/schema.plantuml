@@ -23,6 +23,7 @@ class PullRequest {
     merged: Boolean
     base_branch: String
     head_branch: String
+    creator: String
 }
 class Review {
     #id: Integer
@@ -47,6 +48,11 @@ class ExternalAccount {
 class ExternalAccountRight {
     #*username: String
     #*repository_id: Integer
+}
+
+class Account {
+    #username: String
+    is_admin: Boolean
 }
 
 Repository *-- PullRequest : has

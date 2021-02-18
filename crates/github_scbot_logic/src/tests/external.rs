@@ -13,7 +13,7 @@ use super::test_config;
 fn test_repository_right_validation() {
     let config = test_config();
     let conn = establish_single_test_connection(&config).unwrap();
-    let account = ExternalAccountModel::create(&conn, "test-ext").unwrap();
+    let account = ExternalAccountModel::create_with_keys(&conn, "test-ext").unwrap();
     let repo = RepositoryModel::create(
         &conn,
         RepositoryCreation {

@@ -3,7 +3,7 @@
 use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
-    models::{ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},
+    models::{AccountModel, ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},
 };
 
 use super::errors::Result;
@@ -11,7 +11,7 @@ use super::errors::Result;
 pub(crate) fn create_external_account(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    ExternalAccountModel::create(&conn, username)?;
+    ExternalAccountModel::create_with_keys(&conn, username)?;
     println!("External account '{}' created.", username);
 
     Ok(())
@@ -109,6 +109,46 @@ pub(crate) fn list_account_rights(config: &Config, username: &str) -> Result<()>
             if let Ok(repo) = right.get_repository(&conn) {
                 println!("- {}", repo.get_path());
             }
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn add_admin_rights(config: &Config, username: &str) -> Result<()> {
+    let conn = establish_single_connection(&config)?;
+
+    let mut account = AccountModel::get_or_create(&conn, username, true)?;
+    account.is_admin = true;
+    account.save(&conn)?;
+
+    println!("Account '{}' added/edited with admin rights.", username);
+
+    Ok(())
+}
+
+pub(crate) fn remove_admin_rights(config: &Config, username: &str) -> Result<()> {
+    let conn = establish_single_connection(&config)?;
+
+    let mut account = AccountModel::get_or_create(&conn, username, false)?;
+    account.is_admin = false;
+    account.save(&conn)?;
+
+    println!("Account '{}' added/edited without admin rights.", username);
+
+    Ok(())
+}
+
+pub(crate) fn list_admin_accounts(config: &Config) -> Result<()> {
+    let conn = establish_single_connection(&config)?;
+
+    let accounts = AccountModel::list_admin_accounts(&conn)?;
+    if accounts.is_empty() {
+        println!("No admin account found.");
+    } else {
+        println!("Admin accounts:");
+        for account in accounts {
+            println!("- {}", account.username);
         }
     }
 

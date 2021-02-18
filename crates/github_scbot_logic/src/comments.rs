@@ -74,15 +74,28 @@ pub async fn handle_comment_creation(
             )
             .await?;
 
-            if matches!(status, CommandHandlingStatus::Handled) {
-                add_reaction_to_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    comment_id,
-                    GHReactionType::Eyes,
-                )
-                .await?;
+            match status {
+                CommandHandlingStatus::Handled => {
+                    add_reaction_to_comment(
+                        config,
+                        &repo_model.owner,
+                        &repo_model.name,
+                        comment_id,
+                        GHReactionType::Eyes,
+                    )
+                    .await?
+                }
+                CommandHandlingStatus::Denied => {
+                    add_reaction_to_comment(
+                        config,
+                        &repo_model.owner,
+                        &repo_model.name,
+                        comment_id,
+                        GHReactionType::MinusOne,
+                    )
+                    .await?
+                }
+                CommandHandlingStatus::Ignored => (),
             }
         }
         Err(e) => error!("{}", e),

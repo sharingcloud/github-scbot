@@ -13,8 +13,8 @@ use thiserror::Error;
 use super::{
     errors::Result,
     models::{
-        ExternalAccountModel, ExternalAccountRightModel, PullRequestCreation, PullRequestModel,
-        RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
+        AccountModel, ExternalAccountModel, ExternalAccountRightModel, PullRequestCreation,
+        PullRequestModel, RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
     },
     DbConn,
 };
@@ -58,6 +58,7 @@ struct ImportExportModel {
     pull_requests: Vec<PullRequestModel>,
     reviews: Vec<ReviewModel>,
     merge_rules: Vec<MergeRuleModel>,
+    accounts: Vec<AccountModel>,
     external_accounts: Vec<ExternalAccountModel>,
     external_account_rights: Vec<ExternalAccountRightModel>,
 }
@@ -77,6 +78,7 @@ where
         pull_requests: PullRequestModel::list(conn)?,
         reviews: ReviewModel::list(conn)?,
         merge_rules: MergeRuleModel::list(conn)?,
+        accounts: AccountModel::list(conn)?,
         external_accounts: ExternalAccountModel::list(conn)?,
         external_account_rights: ExternalAccountRightModel::list(conn)?,
     };
@@ -195,12 +197,22 @@ where
         review.save(conn)?;
     }
 
+    for account in &mut model.accounts {
+        println!("> Importing account '{}'", account.username);
+
+        // Try to create account
+        let _ = AccountModel::get_or_create(conn, &account.username, account.is_admin)?;
+
+        // Update
+        account.save(&conn)?;
+    }
+
     // Create or update external accounts
     for account in &mut model.external_accounts {
         println!("> Importing external account '{}'", account.username);
 
         // Try to create account
-        let _ = ExternalAccountModel::create_with_keys(
+        let _ = ExternalAccountModel::get_or_create(
             conn,
             &account.username,
             &account.public_key,
