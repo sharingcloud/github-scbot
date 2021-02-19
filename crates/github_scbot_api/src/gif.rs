@@ -78,8 +78,8 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         // Get first media found
         for result in &response.results {
             for media in &result.media {
-                if media.contains_key(&GifFormat::MediumGif) {
-                    url = media[&GifFormat::MediumGif].url.clone();
+                if media.contains_key(&GifFormat::TinyGif) {
+                    url = media[&GifFormat::TinyGif].url.clone();
                     break;
                 }
             }
