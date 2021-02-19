@@ -25,6 +25,10 @@ pub enum APIError {
     #[error("Octocrab error: {0}")]
     OctocrabError(#[from] octocrab::Error),
 
+    /// Wraps [`reqwest::Error`].
+    #[error("Reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+
     /// Wraps [`github_scbot_crypto::CryptoError`].
     #[error("Crypto error: {0}")]
     CryptoError(#[from] github_scbot_crypto::CryptoError),

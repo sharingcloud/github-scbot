@@ -16,6 +16,7 @@ use tracing::info;
 use super::{errors::Result, status::update_pull_request_status};
 use crate::{
     auth::{has_right_on_pull_request, list_known_admin_usernames},
+    gif::post_random_gif_comment,
     pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
 };
 
@@ -45,6 +46,8 @@ pub enum Command {
     UnassignRequiredReviewers(Vec<String>),
     /// Add/Remove lock with optional reason.
     Lock(bool, Option<String>),
+    /// Post a random gif.
+    Gif(String),
     /// Merge pull request.
     Merge,
     /// Ping the bot.
@@ -75,6 +78,7 @@ impl Command {
             "lock-" => Self::Lock(false, Self::parse_message(args)),
             "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)),
             "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)),
+            "gif" => Self::Gif(Self::parse_text(args)),
             "merge" => Self::Merge,
             "ping" => Self::Ping,
             "help" => Self::Help,
@@ -89,6 +93,10 @@ impl Command {
         } else {
             Some(args.join(" "))
         }
+    }
+
+    fn parse_text(words: &[&str]) -> String {
+        words.join(" ")
     }
 
     fn parse_reviewers(reviewers: &[&str]) -> Vec<String> {
@@ -237,6 +245,9 @@ pub async fn parse_single_command(
                             config, conn, repo_model, pr_model, reviewers,
                         )
                         .await?
+                    }
+                    Command::Gif(terms) => {
+                        handle_gif_command(config, repo_model, pr_model, &terms).await?
                     }
                     Command::Help => {
                         handle_help_command(config, repo_model, pr_model, comment_author).await?
@@ -540,7 +551,7 @@ pub async fn handle_qa_command(
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
 /// * `comment_author` - Comment author
 pub async fn handle_ping_command(
@@ -559,6 +570,25 @@ pub async fn handle_ping_command(
     .await?;
 
     Ok(true)
+}
+
+/// Handle `Gif` command.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+/// * `repo_model` - Repository model
+/// * `pr_model` - Pull request model
+/// * `search_terms` - Search terms
+pub async fn handle_gif_command(
+    config: &Config,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+    search_terms: &str,
+) -> Result<bool> {
+    post_random_gif_comment(config, repo_model, pr_model, search_terms).await?;
+
+    Ok(false)
 }
 
 /// Handle `AssignRequiredReviewers` command.

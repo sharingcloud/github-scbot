@@ -1010,6 +1010,7 @@ dependencies = [
  "heck",
  "http",
  "octocrab",
+ "reqwest",
  "serde",
  "serde_json",
  "serde_plain",
