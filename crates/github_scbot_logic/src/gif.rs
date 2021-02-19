@@ -25,7 +25,10 @@ pub async fn post_random_gif_comment(
     if random_gif.is_empty() {
         Ok(false)
     } else {
-        let body = format!("{url}\n[_Via Tenor_](https://tenor.com/)", url = random_gif);
+        let body = format!(
+            "![GIF]({url})\n[_Via Tenor_](https://tenor.com/)",
+            url = random_gif
+        );
 
         post_comment(
             config,

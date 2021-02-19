@@ -286,7 +286,7 @@ pub fn validate_user_rights_on_command(
     command: &Command,
 ) -> Result<bool> {
     match command {
-        Command::Ping | Command::Help => Ok(true),
+        Command::Ping | Command::Help | Command::Gif(_) => Ok(true),
         _ => {
             let known_admins = list_known_admin_usernames(conn)?;
             Ok(has_right_on_pull_request(username, pr_model, &known_admins))
@@ -762,6 +762,7 @@ pub async fn handle_help_command(
         - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
         - `merge`: _Try merging the pull request_\n\
         - `ping`: _Ping me_\n\
+        - `gif <search>`: _Post a random GIF with a tag_\n\
         - `help`: _Show this comment_\n\
         - `sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username

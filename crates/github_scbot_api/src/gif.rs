@@ -9,7 +9,7 @@ use github_scbot_conf::Config;
 
 const GIF_API_URL: &str = "https://g.tenor.com/v1";
 
-#[derive(Deserialize, PartialEq, Eq, Hash)]
+#[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 enum GifFormat {
     Gif,
@@ -32,7 +32,7 @@ struct MediaObject {
 
 #[derive(Deserialize)]
 struct GifObject {
-    media: HashMap<GifFormat, MediaObject>,
+    media: Vec<HashMap<GifFormat, MediaObject>>,
 }
 
 #[derive(Deserialize)]
@@ -53,21 +53,31 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         .query(&[
             ("q", search),
             ("key", &config.tenor_api_key),
-            ("limit", "1"),
+            ("limit", "10"),
             ("contentfilter", "low"),
             ("media_filter", "minimal"),
-            ("ar_range", "all"),
+            ("ar_range", "wide"),
         ])
         .send()
         .await?
         .json()
         .await?;
 
-    // Get first media found
     if response.results.is_empty() {
         Ok(String::new())
     } else {
-        let key = response.results[0].media.keys().next().unwrap();
-        Ok(response.results[0].media[key].url.clone())
+        let mut url = String::new();
+
+        // Get first media found
+        'top: for result in &response.results {
+            for media in &result.media {
+                if media.contains_key(&GifFormat::Gif) {
+                    url = media[&GifFormat::Gif].url.clone();
+                    break 'top;
+                }
+            }
+        }
+
+        Ok(url)
     }
 }
