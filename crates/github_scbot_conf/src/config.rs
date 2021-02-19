@@ -37,6 +37,8 @@ pub struct Config {
     pub server_disable_webhook_signature: bool,
     /// Enable welcome coments.
     pub server_enable_welcome_comments: bool,
+    /// Tenor API key.
+    pub tenor_api_key: String,
     /// Test database URL.
     pub test_database_url: String,
 }
@@ -70,6 +72,7 @@ impl Config {
                 "BOT_SERVER_ENABLE_WELCOME_COMMENTS",
                 false,
             ),
+            tenor_api_key: env_to_str("BOT_TENOR_API_KEY", ""),
             test_database_url: env_to_str("TEST_DATABASE_URL", ""),
         }
     }

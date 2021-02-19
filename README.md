@@ -46,6 +46,7 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Enable auto-merge
 - [x] Actions that can be triggered from external sources, with simple token-based authentication
 - [x] Give rights to external sources on specific repositories
+- [x] Send GIFs!
 - [ ] Terminal UI interface to manage pull request status
 
 ## Infrastructure schema
