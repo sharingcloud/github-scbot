@@ -6,9 +6,11 @@ use serde::Deserialize;
 
 use crate::Result;
 use github_scbot_conf::Config;
+use rand::prelude::*;
 
 const GIF_API_URL: &str = "https://g.tenor.com/v1";
 
+#[allow(non_camel_case_types)]
 #[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 enum GifFormat {
@@ -23,6 +25,7 @@ enum GifFormat {
     WebM,
     TinyWebM,
     NanoWebM,
+    WebP_Transparent,
 }
 
 #[derive(Deserialize)]
@@ -48,12 +51,12 @@ struct RandomResponse {
 /// * `search` - Search string
 pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<String> {
     let client = reqwest::Client::new();
-    let response: RandomResponse = client
+    let mut response: RandomResponse = client
         .get(&format!("{}/random", GIF_API_URL))
         .query(&[
             ("q", search),
             ("key", &config.tenor_api_key),
-            ("limit", "10"),
+            ("limit", "20"),
             ("contentfilter", "low"),
             ("media_filter", "minimal"),
             ("ar_range", "wide"),
@@ -68,12 +71,16 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
     } else {
         let mut url = String::new();
 
+        // Shuffle responses
+        let mut rng = thread_rng();
+        response.results.shuffle(&mut rng);
+
         // Get first media found
-        'top: for result in &response.results {
+        for result in &response.results {
             for media in &result.media {
-                if media.contains_key(&GifFormat::Gif) {
-                    url = media[&GifFormat::Gif].url.clone();
-                    break 'top;
+                if media.contains_key(&GifFormat::MediumGif) {
+                    url = media[&GifFormat::MediumGif].url.clone();
+                    break;
                 }
             }
         }
