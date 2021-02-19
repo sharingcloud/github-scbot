@@ -1,10 +1,10 @@
 //! Common types.
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// GitHub User.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHUser {
     /// Username.
     pub login: String,
@@ -43,7 +43,7 @@ pub struct GHCommit {
 }
 
 /// GitHub Branch.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHBranch {
     /// Label.
     pub label: Option<String>,
@@ -57,7 +57,7 @@ pub struct GHBranch {
 }
 
 /// GitHub Branch (short format).
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHBranchShort {
     /// Reference.
     #[serde(rename = "ref")]
@@ -67,7 +67,7 @@ pub struct GHBranchShort {
 }
 
 /// GitHub Repository.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHRepository {
     /// Name.
     pub name: String,
@@ -90,7 +90,7 @@ pub struct GHRepository {
 }
 
 /// GitHub Label.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHLabel {
     /// Name.
     pub name: String,
@@ -101,7 +101,7 @@ pub struct GHLabel {
 }
 
 /// GitHub Application.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHApplication {
     /// Slug name.
     pub slug: String,

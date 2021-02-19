@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use github_scbot_api::{
-    checks::list_check_suites_for_git_ref,
+    checks::list_check_suites_from_git_ref,
     comments::post_comment,
     pulls::{get_pull_request, merge_pull_request},
     reviews::list_reviews_for_pull_request,
@@ -11,14 +11,15 @@ use github_scbot_api::{
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
-        MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
-        ReviewModel,
+        HistoryWebhookModel, MergeRuleModel, PullRequestCreation, PullRequestModel,
+        RepositoryCreation, RepositoryModel, ReviewModel,
     },
     DbConn,
 };
 use github_scbot_types::{
     checks::GHCheckConclusion,
     common::GHUser,
+    events::EventType,
     labels::StepLabel,
     pulls::{GHMergeStrategy, GHPullRequestAction, GHPullRequestEvent},
     reviews::{GHReview, GHReviewState},
@@ -47,6 +48,15 @@ pub async fn handle_pull_request_event(
 ) -> Result<()> {
     let (repo_model, mut pr_model) =
         process_pull_request(config, conn, &event.repository, &event.pull_request)?;
+
+    HistoryWebhookModel::create_for_now(
+        conn,
+        &repo_model,
+        &pr_model,
+        &event.sender.login,
+        EventType::PullRequest,
+        event,
+    )?;
 
     // Welcome message
     if let GHPullRequestAction::Opened = event.action {
@@ -230,7 +240,7 @@ pub async fn synchronize_pull_request(
     let reviews =
         list_reviews_for_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get upstream checks
-    let check_suites = list_check_suites_for_git_ref(
+    let check_suites = list_check_suites_from_git_ref(
         config,
         repository_owner,
         repository_name,

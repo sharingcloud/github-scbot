@@ -128,13 +128,13 @@ impl ReviewModel {
         review::table.load::<Self>(conn).map_err(Into::into)
     }
 
-    /// List reviews for pull request database ID.
+    /// List reviews from pull request database ID.
     ///
     /// # Arguments
     ///
     /// * `conn` - Database connection
     /// * `pull_request_id` - Pull request database ID
-    pub fn list_for_pull_request_id(
+    pub fn list_from_pull_request_id(
         conn: &DbConn,
         pull_request_id: i32,
     ) -> Result<Vec<ReviewModel>> {

@@ -1,7 +1,7 @@
 //! Issue types.
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::common::{GHLabel, GHRepository, GHUser};
 
@@ -49,7 +49,7 @@ impl From<GHReactionType> for &'static str {
 }
 
 /// GitHub Issue comment action.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHIssueCommentAction {
     /// Created.
@@ -61,7 +61,7 @@ pub enum GHIssueCommentAction {
 }
 
 /// GitHub Issue state.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHIssueState {
     /// Open.
@@ -71,7 +71,7 @@ pub enum GHIssueState {
 }
 
 /// GitHub Issue.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHIssue {
     /// Number.
     pub number: u64,
@@ -94,21 +94,21 @@ pub struct GHIssue {
 }
 
 /// GitHub Issue comment changes body.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHIssueCommentChangesBody {
     /// From.
     pub from: String,
 }
 
 /// GitHub Issue comment changes.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHIssueCommentChanges {
     /// Body.
     pub body: GHIssueCommentChangesBody,
 }
 
 /// GitHub Issue comment.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHIssueComment {
     /// ID.
     pub id: u64,
@@ -123,7 +123,7 @@ pub struct GHIssueComment {
 }
 
 /// GitHub Issue comment event.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHIssueCommentEvent {
     /// Action.
     pub action: GHIssueCommentAction,

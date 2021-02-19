@@ -1,7 +1,7 @@
 //! Check types.
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{
     common::{GHApplication, GHRepository, GHUser},
@@ -23,7 +23,7 @@ pub enum GHCheckRunAction {
 }
 
 /// GitHub Check suite action.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHCheckSuiteAction {
     /// Completed.
@@ -35,7 +35,7 @@ pub enum GHCheckSuiteAction {
 }
 
 /// GitHub Check status.
-#[derive(Debug, Deserialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GHCheckStatus {
     /// Completed.
@@ -49,7 +49,7 @@ pub enum GHCheckStatus {
 }
 
 /// GitHub Check conclusion.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHCheckConclusion {
     /// Action required.
@@ -82,7 +82,7 @@ pub struct GHCheckRunOutput {
 }
 
 /// GitHub Check suite.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHCheckSuite {
     /// Head branch.
     pub head_branch: String,
@@ -143,7 +143,7 @@ pub struct GHCheckRunEvent {
 }
 
 /// GitHub Check suite event.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GHCheckSuiteEvent {
     /// Action.
     pub action: GHCheckSuiteAction,

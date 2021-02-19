@@ -2,8 +2,14 @@
 
 use github_scbot_api::comments::add_reaction_to_comment;
 use github_scbot_conf::Config;
-use github_scbot_database::{models::RepositoryModel, DbConn};
-use github_scbot_types::issues::{GHIssueCommentAction, GHIssueCommentEvent, GHReactionType};
+use github_scbot_database::{
+    models::{HistoryWebhookModel, RepositoryModel},
+    DbConn,
+};
+use github_scbot_types::{
+    events::EventType,
+    issues::{GHIssueCommentAction, GHIssueCommentEvent, GHReactionType},
+};
 use tracing::error;
 
 use crate::{
@@ -26,16 +32,7 @@ pub async fn handle_issue_comment_event(
 ) -> Result<()> {
     let repo_model = process_repository(config, conn, &event.repository)?;
     if let GHIssueCommentAction::Created = event.action {
-        handle_comment_creation(
-            config,
-            conn,
-            &repo_model,
-            event.issue.number,
-            event.comment.id,
-            &event.comment.user.login,
-            &event.comment.body,
-        )
-        .await?;
+        handle_comment_creation(config, conn, &repo_model, event).await?;
     }
 
     Ok(())
@@ -48,21 +45,29 @@ pub async fn handle_issue_comment_event(
 /// * `config` - Bot configuration
 /// * `conn` - Database connection
 /// * `repo_model` - Repository model
-/// * `issue_number` - Issue number
-/// * `comment_id` - Comment ID
-/// * `comment_author` - Comment author
-/// * `comment_body` - Comment body
+/// * `event` - GitHub Issue comment event
 pub async fn handle_comment_creation(
     config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
-    issue_number: u64,
-    comment_id: u64,
-    comment_author: &str,
-    comment_body: &str,
+    event: &GHIssueCommentEvent,
 ) -> Result<()> {
+    let issue_number = event.issue.number;
+    let comment_author = &event.comment.user.login;
+    let comment_body = &event.comment.body;
+    let comment_id = event.comment.id;
+
     match get_or_fetch_pull_request(config, conn, repo_model, issue_number).await {
         Ok(mut pr_model) => {
+            HistoryWebhookModel::create_for_now(
+                &conn,
+                &repo_model,
+                &pr_model,
+                comment_author,
+                EventType::IssueComment,
+                event,
+            )?;
+
             let status = parse_commands(
                 config,
                 conn,

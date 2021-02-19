@@ -55,9 +55,21 @@ class Account {
     is_admin: Boolean
 }
 
+class HistoryWebhook {
+    #id: Integer
+    *repository_id: Integer
+    *pull_request_id: Integer
+    username: String
+    received_at: DateTime
+    event_key: String
+    payload: String
+}
+
 Repository *-- PullRequest : has
 Repository *-- MergeRule : has
 PullRequest *-- Review : has
 ExternalAccount *-- ExternalAccountRight : has
 Repository *-- ExternalAccountRight : has
+Repository *-- HistoryWebhook : has
+PullRequest *-- HistoryWebhook : has
 @enduml
