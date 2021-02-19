@@ -31,9 +31,9 @@ pub(crate) fn show_pull_request(config: &Config, repository_path: &str, number: 
 pub(crate) fn list_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
     let conn = establish_single_connection(config)?;
 
-    let prs = PullRequestModel::list_for_repository_path(&conn, &repository_path)?;
+    let prs = PullRequestModel::list_from_repository_path(&conn, &repository_path)?;
     if prs.is_empty() {
-        println!("No PR found for repository '{}'.", repository_path);
+        println!("No PR found from repository '{}'.", repository_path);
     } else {
         for pr in prs {
             println!("- #{}: {}", pr.get_number(), pr.name);

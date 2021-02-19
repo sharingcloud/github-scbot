@@ -8,7 +8,7 @@ use actix_web::{
 };
 use futures::StreamExt;
 use github_scbot_conf::Config;
-use github_scbot_database::establish_test_connection;
+use github_scbot_database::{establish_test_connection, models::HistoryWebhookModel};
 use github_scbot_types::events::EventType;
 
 use super::fixtures;
@@ -123,6 +123,7 @@ async fn test_pull_request_opened() {
     let config = test_config();
 
     let pool = establish_test_connection(&config).unwrap();
+    let pool2 = pool.clone();
     let (req, payload) = test::TestRequest::default()
         .header("Content-Type", "application/json")
         .header("X-GitHub-Event", EventType::PullRequest.to_str())
@@ -130,6 +131,13 @@ async fn test_pull_request_opened() {
         .to_http_parts();
 
     test_event!(req, payload, config, pool, b"Pull request.");
+
+    // Get history
+    let conn = pool2.get().unwrap();
+    let histories = HistoryWebhookModel::list(&conn).unwrap();
+    assert_eq!(histories.len(), 1);
+    assert_eq!(histories[0].id, 1);
+    assert_eq!(histories[0].event_key, EventType::PullRequest.to_str());
 }
 
 #[actix_rt::test]
@@ -144,23 +152,6 @@ async fn test_pull_request_labeled() {
         .to_http_parts();
 
     test_event!(req, payload, config, pool, b"Pull request.");
-}
-
-#[actix_rt::test]
-async fn test_pull_request_review_comment_created() {
-    let config = test_config();
-
-    let pool = establish_test_connection(&config).unwrap();
-    let (req, payload) = test::TestRequest::default()
-        .header("Content-Type", "application/json")
-        .header(
-            "X-GitHub-Event",
-            EventType::PullRequestReviewComment.to_str(),
-        )
-        .set_payload(fixtures::PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA)
-        .to_http_parts();
-
-    test_event!(req, payload, config, pool, b"Pull request review comment.");
 }
 
 #[actix_rt::test]

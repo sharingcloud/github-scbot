@@ -1,9 +1,13 @@
 //! Checks logic.
 
 use github_scbot_conf::Config;
-use github_scbot_database::{models::PullRequestModel, DbConn};
+use github_scbot_database::{
+    models::{HistoryWebhookModel, PullRequestModel},
+    DbConn,
+};
 use github_scbot_types::{
     checks::{GHCheckConclusion, GHCheckSuiteAction, GHCheckSuiteEvent},
+    events::EventType,
     status::CheckStatus,
 };
 
@@ -45,6 +49,16 @@ pub async fn handle_check_suite_event(
                     _ => (),
                 }
             }
+
+            // Store history
+            HistoryWebhookModel::create_for_now(
+                conn,
+                &repo_model,
+                &pr_model,
+                &event.sender.login,
+                EventType::CheckSuite,
+                event,
+            )?;
 
             // Update status
             update_pull_request_status(

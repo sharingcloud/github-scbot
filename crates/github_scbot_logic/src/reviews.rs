@@ -1,12 +1,17 @@
 //! Reviews module.
 
-use github_scbot_api::reviews::request_reviewers_for_pull_request;
+use github_scbot_api::{
+    auth::get_user_permission_on_repository, reviews::request_reviewers_for_pull_request,
+};
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    models::{PullRequestModel, RepositoryModel, ReviewModel},
+    models::{HistoryWebhookModel, PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
 };
-use github_scbot_types::reviews::{GHReview, GHReviewEvent, GHReviewState};
+use github_scbot_types::{
+    events::EventType,
+    reviews::{GHReview, GHReviewEvent, GHReviewState},
+};
 
 use crate::{database::process_pull_request, status::update_pull_request_status, Result};
 
@@ -24,7 +29,17 @@ pub async fn handle_review_event(
 ) -> Result<()> {
     let (repo, mut pr) =
         process_pull_request(config, conn, &event.repository, &event.pull_request)?;
-    handle_review(conn, &pr, &event.review)?;
+
+    HistoryWebhookModel::create_for_now(
+        conn,
+        &repo,
+        &pr,
+        &event.review.user.login,
+        EventType::PullRequestReview,
+        event,
+    )?;
+
+    handle_review(config, conn, &repo, &pr, &event.review).await?;
     update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
 
     Ok(())
@@ -37,9 +52,28 @@ pub async fn handle_review_event(
 /// * `conn` - Database connection
 /// * `pr_model` - Pull request model
 /// * `review` - GitHub review
-pub fn handle_review(conn: &DbConn, pr_model: &PullRequestModel, review: &GHReview) -> Result<()> {
+pub async fn handle_review(
+    config: &Config,
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+    review: &GHReview,
+) -> Result<()> {
+    let permission = get_user_permission_on_repository(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        &review.user.login,
+    )
+    .await?;
+
     // Get or create in database
-    ReviewModel::create_or_update_from_github_review(conn, pr_model.id, review)?;
+    ReviewModel::create_or_update_from_github_review(
+        conn,
+        pr_model.id,
+        review,
+        permission.can_write(),
+    )?;
 
     Ok(())
 }
@@ -49,14 +83,30 @@ pub fn handle_review(conn: &DbConn, pr_model: &PullRequestModel, review: &GHRevi
 /// # Arguments
 ///
 /// * `conn` - Database connection
-pub fn handle_review_request(
+pub async fn handle_review_request(
+    config: &Config,
     conn: &DbConn,
+    repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     review_state: GHReviewState,
     requested_reviewers: &[&str],
 ) -> Result<()> {
     for reviewer in requested_reviewers {
-        ReviewModel::create_or_update(conn, pr_model.id, review_state, reviewer)?;
+        let permission = get_user_permission_on_repository(
+            config,
+            &repo_model.owner,
+            &repo_model.name,
+            reviewer,
+        )
+        .await?;
+
+        ReviewModel::create_or_update(
+            conn,
+            pr_model.id,
+            review_state,
+            reviewer,
+            permission.can_write(),
+        )?;
     }
 
     Ok(())

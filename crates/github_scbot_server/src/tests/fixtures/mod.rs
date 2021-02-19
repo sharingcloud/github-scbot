@@ -7,7 +7,5 @@ pub const CHECK_RUN_COMPLETED_DATA: &str = include_str!("check_run_completed.jso
 pub const ISSUE_COMMENT_CREATED_DATA: &str = include_str!("issue_comment_created.json");
 pub const PULL_REQUEST_OPENED_DATA: &str = include_str!("pull_request_opened.json");
 pub const PULL_REQUEST_LABELED_DATA: &str = include_str!("pull_request_labeled.json");
-pub const PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA: &str =
-    include_str!("pull_request_review_comment_created.json");
 pub const PULL_REQUEST_REVIEW_SUBMITTED_DATA: &str =
     include_str!("pull_request_review_submitted.json");

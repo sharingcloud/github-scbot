@@ -80,15 +80,6 @@ async fn parse_event(
             )
             .await
         }
-        EventType::PullRequestReviewComment => {
-            reviews::review_comment_event(
-                config,
-                conn,
-                serde_json::from_str(body)
-                    .map_err(|e| ServerError::EventParseError(event_type, e))?,
-            )
-            .await
-        }
     }
 }
 

@@ -49,6 +49,13 @@ enum Command {
         #[structopt(subcommand)]
         cmd: AuthCommand,
     },
+
+    /// History management
+    History {
+        /// History management ocmmand
+        #[structopt(subcommand)]
+        cmd: HistoryCommand,
+    },
 }
 
 #[derive(StructOpt)]
@@ -203,6 +210,18 @@ enum AuthCommand {
 }
 
 #[derive(StructOpt)]
+enum HistoryCommand {
+    /// List webhook events for repository
+    ListWebhookEvents {
+        /// Repository path (e.g. 'MyOrganization/my-project')
+        repository_path: String,
+    },
+
+    /// Remove all webhook events
+    RemoveWebhookEvents,
+}
+
+#[derive(StructOpt)]
 struct Opt {
     #[structopt(subcommand)]
     cmd: Command,
@@ -343,6 +362,14 @@ pub fn initialize_command_line() -> anyhow::Result<()> {
             }
             AuthCommand::ListAdminAccounts => {
                 commands::auth::list_admin_accounts(&config)?;
+            }
+        },
+        Command::History { cmd } => match cmd {
+            HistoryCommand::ListWebhookEvents { repository_path } => {
+                commands::history::list_webhook_events_from_repository(&config, &repository_path)?;
+            }
+            HistoryCommand::RemoveWebhookEvents => {
+                commands::history::remove_webhook_events(&config)?;
             }
         },
     }

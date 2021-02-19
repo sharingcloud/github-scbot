@@ -28,6 +28,18 @@ table! {
 }
 
 table! {
+    history_webhook (id) {
+        id -> Int4,
+        repository_id -> Int4,
+        pull_request_id -> Int4,
+        username -> Varchar,
+        received_at -> Timestamptz,
+        event_key -> Varchar,
+        payload -> Text,
+    }
+}
+
+table! {
     merge_rule (id) {
         id -> Int4,
         repository_id -> Int4,
@@ -77,6 +89,7 @@ table! {
         username -> Varchar,
         state -> Varchar,
         required -> Bool,
+        valid -> Bool,
     }
 }
 
@@ -84,6 +97,8 @@ joinable!(account_right -> account (username));
 joinable!(account_right -> repository (repository_id));
 joinable!(external_account_right -> external_account (username));
 joinable!(external_account_right -> repository (repository_id));
+joinable!(history_webhook -> pull_request (pull_request_id));
+joinable!(history_webhook -> repository (repository_id));
 joinable!(merge_rule -> repository (repository_id));
 joinable!(pull_request -> repository (repository_id));
 joinable!(review -> pull_request (pull_request_id));
@@ -93,6 +108,7 @@ allow_tables_to_appear_in_same_query!(
     account_right,
     external_account,
     external_account_right,
+    history_webhook,
     merge_rule,
     pull_request,
     repository,

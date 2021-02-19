@@ -36,7 +36,7 @@ impl TryFrom<&str> for GHMergeStrategy {
 }
 
 /// GitHub Pull request action.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHPullRequestAction {
     /// Assigned.
@@ -72,7 +72,7 @@ pub enum GHPullRequestAction {
 }
 
 /// GitHub Pull request state.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHPullRequestState {
     /// Open.
@@ -84,7 +84,7 @@ pub enum GHPullRequestState {
 }
 
 /// GitHub Pull request.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHPullRequest {
     /// Number.
     pub number: u64,
@@ -125,7 +125,7 @@ pub struct GHPullRequest {
 }
 
 /// GitHub Pull request short format.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHPullRequestShort {
     /// Number.
     pub number: u64,
@@ -136,7 +136,7 @@ pub struct GHPullRequestShort {
 }
 
 /// GitHub Pull request event.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHPullRequestEvent {
     /// Action.
     pub action: GHPullRequestAction,

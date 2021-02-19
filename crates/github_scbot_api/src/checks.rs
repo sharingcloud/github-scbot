@@ -9,7 +9,7 @@ use crate::{
     APIError, Result,
 };
 
-/// List check-suites for Git Reference.
+/// List check-suites from Git Reference.
 ///
 /// # Arguments
 ///
@@ -17,7 +17,7 @@ use crate::{
 /// * `repository_owner` - Repository owner
 /// * `repository_name` - Repository name
 /// * `git_ref` - Git reference
-pub async fn list_check_suites_for_git_ref(
+pub async fn list_check_suites_from_git_ref(
     config: &Config,
     repository_owner: &str,
     repository_name: &str,

@@ -191,13 +191,13 @@ impl PullRequestModel {
         pull_request::table.load::<Self>(conn).map_err(Into::into)
     }
 
-    /// List pull requests for repository path.
+    /// List pull requests from repository path.
     ///
     /// # Arguments
     ///
     /// * `conn` - Database connection
     /// * `path` - Repository path
-    pub fn list_for_repository_path(conn: &DbConn, path: &str) -> Result<Vec<Self>> {
+    pub fn list_from_repository_path(conn: &DbConn, path: &str) -> Result<Vec<Self>> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
         let values: Vec<(Self, Option<RepositoryModel>)> = pull_request::table
@@ -274,7 +274,7 @@ impl PullRequestModel {
     ///
     /// * `conn` - Database connection
     pub fn get_reviews(&self, conn: &DbConn) -> Result<Vec<ReviewModel>> {
-        ReviewModel::list_for_pull_request_id(conn, self.id)
+        ReviewModel::list_from_pull_request_id(conn, self.id)
     }
 
     /// Get pull request number as u64, to use with GitHub API.
