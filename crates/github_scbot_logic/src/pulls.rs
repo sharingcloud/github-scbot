@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use github_scbot_api::{
+    auth::get_user_permission_on_repository,
     checks::list_check_suites_from_git_ref,
     comments::post_comment,
     pulls::{get_pull_request, merge_pull_request},
@@ -98,20 +99,26 @@ pub async fn handle_pull_request_event(
         }
         GHPullRequestAction::ReviewRequested => {
             handle_review_request(
+                config,
                 conn,
+                &repo_model,
                 &pr_model,
                 GHReviewState::Pending,
                 &extract_usernames(&event.pull_request.requested_reviewers),
-            )?;
+            )
+            .await?;
             status_changed = true;
         }
         GHPullRequestAction::ReviewRequestRemoved => {
             handle_review_request(
+                config,
                 conn,
+                &repo_model,
                 &pr_model,
                 GHReviewState::Dismissed,
                 &extract_usernames(&event.pull_request.requested_reviewers),
-            )?;
+            )
+            .await?;
             status_changed = true;
         }
         GHPullRequestAction::Closed => {
@@ -284,7 +291,20 @@ pub async fn synchronize_pull_request(
     let review_map: HashMap<&str, &GHReview> =
         reviews.iter().map(|r| (&r.user.login[..], r)).collect();
     for review in &reviews {
-        ReviewModel::create_or_update(conn, pr.id, review.state, &review.user.login)?;
+        let permission = get_user_permission_on_repository(
+            config,
+            repository_owner,
+            repository_name,
+            &review.user.login,
+        )
+        .await?;
+        ReviewModel::create_or_update(
+            conn,
+            pr.id,
+            review.state,
+            &review.user.login,
+            permission.can_write(),
+        )?;
     }
 
     // Remove missing reviews

@@ -89,6 +89,7 @@ table! {
         username -> Varchar,
         state -> Varchar,
         required -> Bool,
+        valid -> Bool,
     }
 }
 

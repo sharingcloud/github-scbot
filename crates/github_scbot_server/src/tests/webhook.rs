@@ -155,23 +155,6 @@ async fn test_pull_request_labeled() {
 }
 
 #[actix_rt::test]
-async fn test_pull_request_review_comment_created() {
-    let config = test_config();
-
-    let pool = establish_test_connection(&config).unwrap();
-    let (req, payload) = test::TestRequest::default()
-        .header("Content-Type", "application/json")
-        .header(
-            "X-GitHub-Event",
-            EventType::PullRequestReviewComment.to_str(),
-        )
-        .set_payload(fixtures::PULL_REQUEST_REVIEW_COMMENT_CREATED_DATA)
-        .to_http_parts();
-
-    test_event!(req, payload, config, pool, b"Pull request review comment.");
-}
-
-#[actix_rt::test]
 async fn test_pull_request_review_submitted() {
     let config = test_config();
 

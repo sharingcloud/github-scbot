@@ -24,6 +24,8 @@ pub struct ReviewModel {
     state: String,
     /// Is the review required?
     pub required: bool,
+    /// Is the review valid?
+    pub valid: bool,
 }
 
 /// Review creation.
@@ -38,6 +40,8 @@ pub struct ReviewCreation<'a> {
     pub state: String,
     /// Is the review required?
     pub required: bool,
+    /// Is the review valid?
+    pub valid: bool,
 }
 
 impl Default for ReviewCreation<'_> {
@@ -47,6 +51,7 @@ impl Default for ReviewCreation<'_> {
             username: "",
             state: GHReviewState::Pending.to_string(),
             required: false,
+            valid: true,
         }
     }
 }
@@ -77,16 +82,19 @@ impl ReviewModel {
         conn: &DbConn,
         pull_request_id: i32,
         review: &GHReview,
+        valid: bool,
     ) -> Result<Self> {
         let entry = ReviewCreation {
             pull_request_id,
             required: false,
             state: review.state.to_string(),
             username: &review.user.login,
+            valid,
         };
 
         let mut model = Self::get_or_create(conn, entry)?;
         model.state = review.state.to_string();
+        model.valid = valid;
         model.save_changes::<Self>(conn)?;
 
         Ok(model)
@@ -104,16 +112,19 @@ impl ReviewModel {
         pull_request_id: i32,
         review_state: GHReviewState,
         username: &str,
+        valid: bool,
     ) -> Result<Self> {
         let entry = ReviewCreation {
             pull_request_id,
             required: false,
             state: review_state.to_string(),
             username,
+            valid,
         };
 
         let mut model = Self::get_or_create(conn, entry)?;
         model.state = review_state.to_string();
+        model.valid = valid;
         model.save_changes::<Self>(conn)?;
 
         Ok(model)

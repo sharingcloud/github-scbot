@@ -60,6 +60,17 @@ impl HistoryWebhookModel {
             .map_err(Into::into)
     }
 
+    /// Show entry.
+    pub fn show(&self) {
+        println!(
+            "[Repo <ID {repo_id}> | PR <ID {pr_id}>]: {event}\n{value}",
+            repo_id = self.repository_id,
+            pr_id = self.pull_request_id,
+            event = self.event_key,
+            value = self.payload
+        )
+    }
+
     /// Create history webhook entry from values.
     ///
     /// # Arguments

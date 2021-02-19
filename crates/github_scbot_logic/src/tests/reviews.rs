@@ -61,7 +61,9 @@ async fn test_review_creation() {
             login: "me".to_string(),
         },
     };
-    handle_review(&conn, &pr, &review).unwrap();
+    handle_review(&config, &conn, &repo, &pr, &review)
+        .await
+        .unwrap();
 
     // Simulate another review
     let review2 = GHReview {
@@ -71,7 +73,9 @@ async fn test_review_creation() {
             login: "him".to_string(),
         },
     };
-    handle_review(&conn, &pr, &review2).unwrap();
+    handle_review(&config, &conn, &repo, &pr, &review2)
+        .await
+        .unwrap();
 
     // List reviews
     let reviews = pr.get_reviews(&conn).unwrap();

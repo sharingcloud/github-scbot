@@ -45,6 +45,8 @@ pub struct PullRequestStatus {
     pub valid_pr_title: bool,
     /// PR is locked?
     pub locked: bool,
+    /// PR is in WIP?
+    pub wip: bool,
 }
 
 impl PullRequestStatus {
@@ -61,11 +63,12 @@ impl PullRequestStatus {
         reviews: &[ReviewModel],
     ) -> Result<Self> {
         // Validate reviews
+        let valid_reviews = Self::filter_valid_reviews(reviews);
         let needed_reviews = pr_model.needed_reviewers_count as usize;
         let mut approved_reviews = vec![];
         let mut required_reviews = vec![];
 
-        for review in reviews {
+        for review in valid_reviews {
             let state = review.get_review_state();
             if review.required && state != GHReviewState::Approved {
                 required_reviews.push(review.username.clone());
@@ -84,7 +87,12 @@ impl PullRequestStatus {
             missing_required_reviewers: required_reviews,
             valid_pr_title: check_pr_title(repo_model, pr_model)?,
             locked: pr_model.locked,
+            wip: pr_model.wip,
         })
+    }
+
+    fn filter_valid_reviews(reviews: &[ReviewModel]) -> Vec<&ReviewModel> {
+        reviews.iter().filter(|r| r.valid).collect()
     }
 
     /// Check if there are missing required reviews.
@@ -265,8 +273,10 @@ pub fn generate_pr_status_message(
     let mut status_message = "All good.".to_string();
     let pr_status = PullRequestStatus::from_pull_request(repo_model, pr_model, reviews)?;
 
-    // Check PR title
-    if pr_status.valid_pr_title {
+    if pr_status.wip {
+        status_message = "PR is still in WIP".to_string();
+        status_state = StatusState::Failure;
+    } else if pr_status.valid_pr_title {
         // Check CI status
         match pr_status.checks_status {
             CheckStatus::Fail => {
@@ -370,6 +380,12 @@ fn generate_status_comment_checks_section(
         "No :heavy_check_mark:"
     };
 
+    let wip_message = if pr_model.wip {
+        "Yes :x:"
+    } else {
+        "No :heavy_check_mark:"
+    };
+
     let code_review_section = if pull_request_status.missing_required_reviews() {
         format!(
             "_waiting on mandatory reviews..._ ({}) :clock2:",
@@ -392,14 +408,16 @@ fn generate_status_comment_checks_section(
     Ok(format!(
         ":speech_balloon: &mdash; **Status comment**\n\
         \n\
+        > - :construction: **WIP?** {wip_message}\n\
         > - :checkered_flag: **Checks**: {checks_message}\n\
         > - :mag: **Code reviews**: {reviews_message}\n\
         > - :test_tube: **QA**: {qa_message}\n\
         > - :lock: **Locked?**: {lock_message}",
+        wip_message = wip_message,
         checks_message = checks_message,
         reviews_message = code_review_section,
         qa_message = qa_message,
-        lock_message = lock_message
+        lock_message = lock_message,
     ))
 }
 

@@ -22,7 +22,7 @@ pub(crate) fn list_webhook_events_from_repository(
         println!("No events for repository {}.", repo.get_path());
     } else {
         for entry in entries {
-            println!("{:?}", entry);
+            entry.show();
         }
     }
 

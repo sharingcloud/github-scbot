@@ -7,7 +7,7 @@ use super::common::{GHRepository, GHUser};
 use crate::pulls::GHPullRequest;
 
 /// GitHub Review action.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GHReviewAction {
     /// Submitted.
@@ -16,18 +16,6 @@ pub enum GHReviewAction {
     Edited,
     /// Dismissed.
     Dismissed,
-}
-
-/// GitHub Review comment action.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GHReviewCommentAction {
-    /// Created.
-    Created,
-    /// Edited.
-    Edited,
-    /// Deleted.
-    Deleted,
 }
 
 /// GitHub Review state.
@@ -59,7 +47,7 @@ impl From<&str> for GHReviewState {
 }
 
 /// GitHub Review.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHReview {
     /// User.
     pub user: GHUser,
@@ -70,56 +58,12 @@ pub struct GHReview {
 }
 
 /// GitHub Review event.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GHReviewEvent {
     /// Action.
     pub action: GHReviewAction,
     /// Review.
     pub review: GHReview,
-    /// Pull request.
-    pub pull_request: GHPullRequest,
-    /// Repository.
-    pub repository: GHRepository,
-    /// Organization.
-    pub organization: GHUser,
-    /// Sender.
-    pub sender: GHUser,
-}
-
-/// GitHub Review comment.
-#[derive(Debug, Deserialize)]
-pub struct GHReviewComment {
-    /// Review ID.
-    pub pull_request_review_id: u64,
-    /// Diff hunk.
-    pub diff_hunk: String,
-    /// Path.
-    pub path: String,
-    /// Position.
-    pub position: usize,
-    /// Original position.
-    pub original_position: usize,
-    /// User.
-    pub user: GHUser,
-    /// Body.
-    pub body: String,
-    /// Created at.
-    pub created_at: DateTime<Utc>,
-    /// Updated at.
-    pub updated_at: DateTime<Utc>,
-    /// Line.
-    pub line: usize,
-    /// Original line.
-    pub original_line: usize,
-}
-
-/// GitHub Review comment event.
-#[derive(Debug, Deserialize)]
-pub struct GHReviewCommentEvent {
-    /// Action.
-    pub action: GHReviewCommentAction,
-    /// Comment.
-    pub comment: GHReviewComment,
     /// Pull request.
     pub pull_request: GHPullRequest,
     /// Repository.

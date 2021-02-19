@@ -19,8 +19,6 @@ pub enum EventType {
     PullRequest,
     /// Pull request review event.
     PullRequestReview,
-    /// Pull request review comment event.
-    PullRequestReviewComment,
 }
 
 impl EventType {
@@ -41,7 +39,6 @@ impl TryFrom<&str> for EventType {
             "ping" => Ok(Self::Ping),
             "pull_request" => Ok(Self::PullRequest),
             "pull_request_review" => Ok(Self::PullRequestReview),
-            "pull_request_review_comment" => Ok(Self::PullRequestReviewComment),
             name => Err(TypeError::UnsupportedEvent(name.to_owned())),
         }
     }
@@ -56,7 +53,6 @@ impl From<EventType> for &'static str {
             EventType::Ping => "ping",
             EventType::PullRequest => "pull_request",
             EventType::PullRequestReview => "pull_request_review",
-            EventType::PullRequestReviewComment => "pull_request_review_comment",
         }
     }
 }
@@ -69,9 +65,5 @@ mod tests {
     fn test_event_as_str() {
         assert_eq!(EventType::Ping.to_str(), "ping");
         assert_eq!(EventType::PullRequest.to_str(), "pull_request");
-        assert_eq!(
-            EventType::PullRequestReviewComment.to_str(),
-            "pull_request_review_comment"
-        );
     }
 }

@@ -31,6 +31,7 @@ class Review {
     username: String
     state: String
     required: Boolean
+    valid: Boolean
 }
 class MergeRule {
     #id: Integer

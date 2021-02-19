@@ -132,6 +132,7 @@ fn test_export_models_to_json() {
             required: true,
             state: GHReviewState::Commented.to_string(),
             username: "toto",
+            valid: true,
         },
     )
     .unwrap();
@@ -251,7 +252,8 @@ fn test_import_models_from_json() {
                 "pull_request_id": 1,
                 "username": "tutu",
                 "state": "commented",
-                "required": true
+                "required": true,
+                "valid": true
             }
         ],
         "merge_rules": [

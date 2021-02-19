@@ -5,6 +5,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod auth;
 pub mod checks;
 pub mod comments;
 pub mod errors;
