@@ -50,14 +50,11 @@ pub async fn handle_pull_request_event(
     let (repo_model, mut pr_model) =
         process_pull_request(config, conn, &event.repository, &event.pull_request)?;
 
-    HistoryWebhookModel::create_for_now(
-        conn,
-        &repo_model,
-        &pr_model,
-        &event.sender.login,
-        EventType::PullRequest,
-        event,
-    )?;
+    HistoryWebhookModel::builder(&repo_model, &pr_model)
+        .username(&event.sender.login)
+        .event_key(EventType::PullRequest)
+        .payload(event)
+        .create(conn)?;
 
     // Welcome message
     if let GHPullRequestAction::Opened = event.action {

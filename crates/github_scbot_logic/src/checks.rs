@@ -48,15 +48,11 @@ pub async fn handle_check_suite_event(
                 }
             }
 
-            // Store history
-            HistoryWebhookModel::create_for_now(
-                conn,
-                &repo_model,
-                &pr_model,
-                &event.sender.login,
-                EventType::CheckSuite,
-                event,
-            )?;
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(&event.sender.login)
+                .event_key(EventType::CheckSuite)
+                .payload(event)
+                .create(conn)?;
 
             // Update status
             update_pull_request_status(

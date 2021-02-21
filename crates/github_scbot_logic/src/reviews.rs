@@ -30,14 +30,11 @@ pub async fn handle_review_event(
     let (repo, mut pr) =
         process_pull_request(config, conn, &event.repository, &event.pull_request)?;
 
-    HistoryWebhookModel::create_for_now(
-        conn,
-        &repo,
-        &pr,
-        &event.review.user.login,
-        EventType::PullRequestReview,
-        event,
-    )?;
+    HistoryWebhookModel::builder(&repo, &pr)
+        .username(&event.sender.login)
+        .event_key(EventType::PullRequestReview)
+        .payload(event)
+        .create(conn)?;
 
     handle_review(config, conn, &repo, &pr, &event.review).await?;
     update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;

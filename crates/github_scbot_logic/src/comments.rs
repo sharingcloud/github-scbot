@@ -59,14 +59,11 @@ pub async fn handle_comment_creation(
 
     match get_or_fetch_pull_request(config, conn, repo_model, issue_number).await {
         Ok(mut pr_model) => {
-            HistoryWebhookModel::create_for_now(
-                &conn,
-                &repo_model,
-                &pr_model,
-                comment_author,
-                EventType::IssueComment,
-                event,
-            )?;
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(comment_author)
+                .event_key(EventType::IssueComment)
+                .payload(event)
+                .create(conn)?;
 
             let status = parse_commands(
                 config,
