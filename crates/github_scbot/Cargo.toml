@@ -12,8 +12,9 @@ github-scbot-server = { path = "../github_scbot_server" }
 github-scbot-tui = { path = "../github_scbot_tui" }
 github-scbot-types = { path = "../github_scbot_types" }
 actix-rt = "1"
-anyhow = "1.0"
 dialoguer = "0.7.1"
 owo-colors = "1.2"
+stable-eyre = "0.2"
+sentry-eyre = { path = "../sentry_eyre" }
 structopt = "0.3"
 thiserror = "1.0"

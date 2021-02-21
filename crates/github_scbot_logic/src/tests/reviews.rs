@@ -97,7 +97,7 @@ async fn test_review_creation() {
     .unwrap();
 
     // Retrieve "him" review
-    let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
+    let review = ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
     assert_eq!(review.required, true);
 
     // Parse comment
@@ -119,7 +119,7 @@ async fn test_review_creation() {
         .unwrap();
 
     // Retrieve "him" review
-    let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
+    let review = ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
     assert_eq!(review.required, false);
 
     // Generate status

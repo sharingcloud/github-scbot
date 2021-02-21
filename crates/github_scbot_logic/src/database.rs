@@ -51,7 +51,7 @@ pub fn process_pull_request(
     let mut upstream = PullRequestCreation::from_upstream(&pull_request, &repo);
     upstream.needed_reviewers_count = repo.default_needed_reviewers_count;
 
-    let pr = PullRequestModel::get_or_create(conn, upstream)?;
+    let pr = PullRequestModel::get_or_create(conn, &repo, upstream)?;
 
     Ok((repo, pr))
 }
@@ -95,7 +95,7 @@ pub async fn get_or_fetch_pull_request(
 ) -> Result<PullRequestModel> {
     // Try fetching pull request
     if let Ok(pr_model) =
-        PullRequestModel::get_from_repository_id_and_number(conn, repo_model.id, pr_number as i32)
+        PullRequestModel::get_from_repository_and_number(conn, repo_model, pr_number)
     {
         Ok(pr_model)
     } else {
@@ -103,6 +103,7 @@ pub async fn get_or_fetch_pull_request(
 
         let pr_model = PullRequestModel::get_or_create(
             conn,
+            repo_model,
             PullRequestCreation::from_upstream(&pr, &repo_model),
         )?;
 

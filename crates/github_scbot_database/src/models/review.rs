@@ -10,6 +10,8 @@ use crate::{
     DbConn,
 };
 
+use super::{PullRequestModel, RepositoryModel};
+
 /// Review model.
 #[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, AsChangeset)]
 #[table_name = "review"]
@@ -57,18 +59,11 @@ impl Default for ReviewCreation<'_> {
 }
 
 impl ReviewModel {
-    /// Create a review.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `entry` - Review creation entry
-    pub fn create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
+    fn create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
         diesel::insert_into(review::table)
             .values(&entry)
-            .execute(conn)?;
-
-        Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
+            .get_result(conn)
+            .map_err(Into::into)
     }
 
     /// Create or update from GitHub review.
@@ -80,21 +75,29 @@ impl ReviewModel {
     /// * `review` - GitHub review
     pub fn create_or_update_from_github_review(
         conn: &DbConn,
-        pull_request_id: i32,
+        repository: &RepositoryModel,
+        pull_request: &PullRequestModel,
         review: &GHReview,
-        valid: bool,
+        required: Option<bool>,
+        valid: Option<bool>,
     ) -> Result<Self> {
         let entry = ReviewCreation {
-            pull_request_id,
-            required: false,
+            pull_request_id: pull_request.id,
             state: review.state.to_string(),
             username: &review.user.login,
-            valid,
+            ..Default::default()
         };
 
-        let mut model = Self::get_or_create(conn, entry)?;
+        let mut model = Self::get_or_create(conn, repository, pull_request, entry)?;
         model.state = review.state.to_string();
-        model.valid = valid;
+
+        if let Some(valid) = valid {
+            model.valid = valid;
+        }
+        if let Some(required) = required {
+            model.required = required;
+        }
+
         model.save_changes::<Self>(conn)?;
 
         Ok(model)
@@ -109,22 +112,29 @@ impl ReviewModel {
     /// * `review` - GitHub review
     pub fn create_or_update(
         conn: &DbConn,
-        pull_request_id: i32,
-        review_state: GHReviewState,
+        repository: &RepositoryModel,
+        pull_request: &PullRequestModel,
         username: &str,
-        valid: bool,
+        review_state: Option<GHReviewState>,
+        required: Option<bool>,
+        valid: Option<bool>,
     ) -> Result<Self> {
         let entry = ReviewCreation {
-            pull_request_id,
-            required: false,
-            state: review_state.to_string(),
+            pull_request_id: pull_request.id,
             username,
-            valid,
+            ..Default::default()
         };
 
-        let mut model = Self::get_or_create(conn, entry)?;
-        model.state = review_state.to_string();
-        model.valid = valid;
+        let mut model = Self::get_or_create(conn, repository, pull_request, entry)?;
+        if let Some(state) = review_state {
+            model.state = state.to_string();
+        }
+        if let Some(valid) = valid {
+            model.valid = valid;
+        }
+        if let Some(required) = required {
+            model.required = required;
+        }
         model.save_changes::<Self>(conn)?;
 
         Ok(model)
@@ -165,30 +175,35 @@ impl ReviewModel {
     /// * `username` - Reviewer username
     pub fn get_from_pull_request_and_username(
         conn: &DbConn,
-        pull_request_id: i32,
+        repository: &RepositoryModel,
+        pull_request: &PullRequestModel,
         username: &str,
     ) -> Result<Self> {
         review::table
-            .filter(review::pull_request_id.eq(pull_request_id))
+            .filter(review::pull_request_id.eq(pull_request.id))
             .filter(review::username.eq(username))
             .first(conn)
             .map_err(|_e| {
                 DatabaseError::UnknownReviewState(
                     username.to_string(),
-                    format!("<ID {}>", pull_request_id),
+                    repository.get_path(),
+                    pull_request.get_number(),
                 )
             })
     }
 
-    /// Get or create review.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `entry` - Review creation entry
-    pub fn get_or_create(conn: &DbConn, entry: ReviewCreation) -> Result<Self> {
-        match Self::get_from_pull_request_and_username(conn, entry.pull_request_id, &entry.username)
-        {
+    fn get_or_create(
+        conn: &DbConn,
+        repository: &RepositoryModel,
+        pull_request: &PullRequestModel,
+        entry: ReviewCreation,
+    ) -> Result<Self> {
+        match Self::get_from_pull_request_and_username(
+            conn,
+            repository,
+            pull_request,
+            &entry.username,
+        ) {
             Ok(v) => Ok(v),
             Err(_) => Self::create(conn, entry),
         }

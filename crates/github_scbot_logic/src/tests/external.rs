@@ -25,9 +25,9 @@ fn test_repository_right_validation() {
     .unwrap();
 
     // No right
-    assert!(ExternalAccountRightModel::get_right(&conn, &account.username, repo.id).is_err());
+    assert!(ExternalAccountRightModel::get_right(&conn, &account.username, &repo).is_err());
 
     // Give right
-    ExternalAccountRightModel::add_right(&conn, &account.username, repo.id).unwrap();
-    assert!(ExternalAccountRightModel::get_right(&conn, &account.username, repo.id).is_ok());
+    ExternalAccountRightModel::add_right(&conn, &account.username, &repo).unwrap();
+    assert!(ExternalAccountRightModel::get_right(&conn, &account.username, &repo).is_ok());
 }

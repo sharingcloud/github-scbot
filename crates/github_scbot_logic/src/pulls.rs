@@ -284,6 +284,7 @@ pub async fn synchronize_pull_request(
 
     let mut pr = PullRequestModel::get_or_create(
         conn,
+        &repo,
         PullRequestCreation::from_upstream(&upstream_pr, &repo),
     )?;
 
@@ -300,10 +301,12 @@ pub async fn synchronize_pull_request(
         .await?;
         ReviewModel::create_or_update(
             conn,
-            pr.id,
-            review.state,
+            &repo,
+            &pr,
             &review.user.login,
-            permission.can_write(),
+            Some(review.state),
+            None,
+            Some(permission.can_write()),
         )?;
     }
 

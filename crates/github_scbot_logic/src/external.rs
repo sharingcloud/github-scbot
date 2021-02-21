@@ -29,11 +29,10 @@ pub async fn set_qa_status_for_pull_requests(
     status: Option<bool>,
 ) -> Result<()> {
     let repo = RepositoryModel::get_from_path(conn, repository_path)?;
-    ExternalAccountRightModel::get_right(conn, &account.username, repo.id)?;
+    ExternalAccountRightModel::get_right(conn, &account.username, &repo)?;
 
     for pr_num in pull_request_numbers {
-        let mut pr =
-            PullRequestModel::get_from_repository_id_and_number(conn, repo.id, *pr_num as i32)?;
+        let mut pr = PullRequestModel::get_from_repository_and_number(conn, &repo, *pr_num)?;
 
         handle_qa_command(config, conn, &repo, &mut pr, author, status).await?;
     }

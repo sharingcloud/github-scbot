@@ -14,7 +14,7 @@ use super::{
     errors::Result,
     models::{
         AccountModel, ExternalAccountModel, ExternalAccountRightModel, PullRequestCreation,
-        PullRequestModel, RepositoryCreation, RepositoryModel, ReviewCreation, ReviewModel,
+        PullRequestModel, RepositoryCreation, RepositoryModel, ReviewModel,
     },
     DbConn,
 };
@@ -28,8 +28,8 @@ pub enum ImportError {
     SerdeError(#[from] serde_json::Error),
 
     /// Wraps [`std::io::Error`] with a path.
-    #[error("IO error on file {0:?}: {1}")]
-    IOError(PathBuf, std::io::Error),
+    #[error("IO error on file {0}.")]
+    IOError(PathBuf, #[source] std::io::Error),
 
     /// Unknown repository ID.
     #[error("Unknown repository ID in file: {0}")]
@@ -48,8 +48,8 @@ pub enum ExportError {
     SerdeError(#[from] serde_json::Error),
 
     /// Wraps [`std::io::Error`] with a path.
-    #[error("IO error on file {0:?}: {1}")]
-    IOError(PathBuf, std::io::Error),
+    #[error("IO error on file {0}.")]
+    IOError(PathBuf, #[source] std::io::Error),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -104,6 +104,7 @@ where
     let mut repo_id_map = HashMap::new();
     let mut repo_map = HashMap::new();
     let mut pr_id_map = HashMap::new();
+    let mut pr_map = HashMap::new();
 
     // Create or update repositories
     for repository in &mut model.repositories {
@@ -160,17 +161,22 @@ where
         let repo_id = repo_id_map
             .get(&pull_request.repository_id)
             .ok_or(ImportError::UnknownRepositoryId(pull_request.repository_id))?;
+        let repo = repo_map.get(repo_id).unwrap();
+
         let pr = PullRequestModel::get_or_create(
             conn,
+            &repo,
             PullRequestCreation {
                 repository_id: *repo_id,
                 number: pull_request.get_number() as i32,
-                ..PullRequestCreation::from_repository(repo_map.get(repo_id).unwrap())
+                ..PullRequestCreation::from_repository(&repo)
             },
         )?;
         pr_id_map.insert(pull_request.id, pr.id);
         pull_request.id = pr.id;
         pull_request.save(conn)?;
+
+        pr_map.insert(pull_request.id, pull_request);
     }
 
     // Create or update reviews
@@ -183,13 +189,17 @@ where
         let pr_id = pr_id_map
             .get(&review.pull_request_id)
             .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
-        let rvw = ReviewModel::get_or_create(
+        let pr = pr_map.get(pr_id).unwrap();
+        let repo = repo_map.get(&pr.id).unwrap();
+
+        let rvw = ReviewModel::create_or_update(
             conn,
-            ReviewCreation {
-                pull_request_id: *pr_id,
-                username: &review.username,
-                ..Default::default()
-            },
+            &repo,
+            &pr,
+            &review.username,
+            Some(review.get_review_state()),
+            Some(review.required),
+            Some(review.valid),
         )?;
 
         // Update pull request if needed
@@ -233,7 +243,8 @@ where
         let repo_id = repo_id_map
             .get(&right.repository_id)
             .ok_or(ImportError::UnknownRepositoryId(right.repository_id))?;
-        ExternalAccountRightModel::add_right(conn, &right.username, *repo_id)?;
+        let repo = repo_map.get(repo_id).unwrap();
+        ExternalAccountRightModel::add_right(conn, &right.username, &repo)?;
     }
 
     Ok(())

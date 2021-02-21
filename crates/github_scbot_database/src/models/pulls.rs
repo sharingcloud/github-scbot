@@ -171,15 +171,8 @@ impl PullRequestModel {
     pub fn create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
         diesel::insert_into(pull_request::table)
             .values(&entry)
-            .execute(conn)?;
-
-        match Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number) {
-            Ok(e) => Ok(e),
-            Err(_) => Err(DatabaseError::UnknownPullRequest(
-                entry.repository_id.to_string(),
-                entry.number,
-            )),
-        }
+            .get_result(conn)
+            .map_err(Into::into)
     }
 
     /// List pull requests.
@@ -214,20 +207,18 @@ impl PullRequestModel {
     /// # Arguments
     ///
     /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
+    /// * `repository` - Repository
     /// * `pr_number` - PR number
-    pub fn get_from_repository_id_and_number(
+    pub fn get_from_repository_and_number(
         conn: &DbConn,
-        repository_id: i32,
-        pr_number: i32,
+        repository: &RepositoryModel,
+        pr_number: u64,
     ) -> Result<Self> {
         pull_request::table
-            .filter(pull_request::repository_id.eq(repository_id))
-            .filter(pull_request::number.eq(pr_number))
+            .filter(pull_request::repository_id.eq(repository.id))
+            .filter(pull_request::number.eq(pr_number as i32))
             .first(conn)
-            .map_err(|_e| {
-                DatabaseError::UnknownPullRequest(format!("<ID {}>", repository_id), pr_number)
-            })
+            .map_err(|_e| DatabaseError::UnknownPullRequest(repository.get_path(), pr_number))
     }
 
     /// Get pull request from repository path and PR number.
@@ -240,7 +231,7 @@ impl PullRequestModel {
     pub fn get_from_repository_path_and_number(
         conn: &DbConn,
         path: &str,
-        pr_number: i32,
+        pr_number: u64,
     ) -> Result<Self> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
@@ -248,7 +239,7 @@ impl PullRequestModel {
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
-            .filter(pull_request::id.eq(pr_number))
+            .filter(pull_request::id.eq(pr_number as i32))
             .first(conn)
             .map_err(|_e| DatabaseError::UnknownPullRequest(path.to_string(), pr_number))?;
 
@@ -261,8 +252,12 @@ impl PullRequestModel {
     ///
     /// * `conn` - Database connection
     /// * `entry` - Pull request creation entry
-    pub fn get_or_create(conn: &DbConn, entry: PullRequestCreation) -> Result<Self> {
-        match Self::get_from_repository_id_and_number(conn, entry.repository_id, entry.number) {
+    pub fn get_or_create(
+        conn: &DbConn,
+        repository: &RepositoryModel,
+        entry: PullRequestCreation,
+    ) -> Result<Self> {
+        match Self::get_from_repository_and_number(conn, repository, entry.number as u64) {
             Ok(v) => Ok(v),
             Err(_) => Self::create(conn, entry),
         }

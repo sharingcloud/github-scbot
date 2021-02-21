@@ -4,9 +4,10 @@ pub mod commands;
 
 use std::path::PathBuf;
 
-use github_scbot_conf::configure_startup;
+use github_scbot_conf::{configure_startup, Config};
 use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
+use stable_eyre::eyre;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -228,10 +229,14 @@ struct Opt {
 }
 
 /// Initialize command line.
-pub fn initialize_command_line() -> anyhow::Result<()> {
+pub fn initialize_command_line() -> eyre::Result<()> {
     // Prepare startup
     let config = configure_startup()?;
 
+    parse_args(config)
+}
+
+fn parse_args(config: Config) -> eyre::Result<()> {
     let opt = Opt::from_args();
     match opt.cmd {
         Command::Server => {

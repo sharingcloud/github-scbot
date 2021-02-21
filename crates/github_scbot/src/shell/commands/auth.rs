@@ -59,7 +59,7 @@ pub(crate) fn add_account_right(
     let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
-    ExternalAccountRightModel::add_right(&conn, &account.username, repo.id)?;
+    ExternalAccountRightModel::add_right(&conn, &account.username, &repo)?;
     println!(
         "Right added to repository '{}' for account '{}'.",
         repository_path, username
@@ -77,7 +77,7 @@ pub(crate) fn remove_account_right(
     let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
-    ExternalAccountRightModel::remove_right(&conn, &account.username, repo.id)?;
+    ExternalAccountRightModel::remove_right(&conn, &account.username, &repo)?;
     println!(
         "Right removed to repository '{}' for account '{}'.",
         repository_path, username

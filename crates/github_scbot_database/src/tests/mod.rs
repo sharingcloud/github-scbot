@@ -11,7 +11,7 @@ use crate::{
     models::{
         AccountModel, ExternalAccountModel, ExternalAccountRightModel, MergeRuleCreation,
         MergeRuleModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
-        ReviewCreation, ReviewModel,
+        ReviewModel,
     },
 };
 
@@ -125,15 +125,14 @@ fn test_export_models_to_json() {
     )
     .unwrap();
 
-    ReviewModel::create(
+    ReviewModel::create_or_update(
         &conn,
-        ReviewCreation {
-            pull_request_id: pr.id,
-            required: true,
-            state: GHReviewState::Commented.to_string(),
-            username: "toto",
-            valid: true,
-        },
+        &repo,
+        &pr,
+        "toto",
+        Some(GHReviewState::Commented),
+        Some(true),
+        Some(true),
     )
     .unwrap();
 
@@ -294,13 +293,14 @@ fn test_import_models_from_json() {
 
     let rep_1 = RepositoryModel::get_from_owner_and_name(&conn, "me", "TestRepo").unwrap();
     let rep_2 = RepositoryModel::get_from_owner_and_name(&conn, "me", "AnotherRepo").unwrap();
-    let pr_1 = PullRequestModel::get_from_repository_id_and_number(&conn, rep_1.id, 1234).unwrap();
-    let pr_2 = PullRequestModel::get_from_repository_id_and_number(&conn, rep_1.id, 1235).unwrap();
-    let review_1 = ReviewModel::get_from_pull_request_and_username(&conn, pr_1.id, "tutu").unwrap();
+    let pr_1 = PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1234).unwrap();
+    let pr_2 = PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1235).unwrap();
+    let review_1 =
+        ReviewModel::get_from_pull_request_and_username(&conn, &rep_1, &pr_1, "tutu").unwrap();
     let rule_1 = MergeRuleModel::get_from_branches(&conn, rep_1.id, "base", "head").unwrap();
     let acc_1 = AccountModel::get_from_username(&conn, "me").unwrap();
     let ext_acc_1 = ExternalAccountModel::get_from_username(&conn, "ext").unwrap();
-    let ext_acc_right_1 = ExternalAccountRightModel::get_right(&conn, "ext", rep_1.id).unwrap();
+    let ext_acc_right_1 = ExternalAccountRightModel::get_right(&conn, "ext", &rep_1).unwrap();
 
     assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
     assert_eq!(rep_2.pr_title_validation_regex, "");

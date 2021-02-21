@@ -79,3 +79,7 @@ export:
 # Run server
 server:
 	cargo run -- server
+
+# Run dev-server
+dev-server:
+	cargo watch -x 'run -- server'
