@@ -1,1 +1,0 @@
-ALTER TABLE pull_request ADD COLUMN locked BOOLEAN NOT NULL DEFAULT false;

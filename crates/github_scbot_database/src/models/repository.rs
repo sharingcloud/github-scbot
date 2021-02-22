@@ -25,12 +25,12 @@ pub struct RepositoryModel {
     pub name: String,
     /// Repository owner.
     pub owner: String,
-    /// Validation regex for pull request titles.
-    pub pr_title_validation_regex: String,
-    /// Default reviewers count needed for a pull request.
-    pub default_needed_reviewers_count: i32,
     /// Default strategy.
     default_strategy: String,
+    /// Default reviewers count needed for a pull request.
+    pub default_needed_reviewers_count: i32,
+    /// Validation regex for pull request titles.
+    pub pr_title_validation_regex: String,
 }
 
 #[derive(Debug, Insertable)]
@@ -38,9 +38,9 @@ pub struct RepositoryModel {
 struct RepositoryCreation {
     pub name: String,
     pub owner: String,
-    pub pr_title_validation_regex: String,
-    pub default_needed_reviewers_count: i32,
     pub default_strategy: String,
+    pub default_needed_reviewers_count: i32,
+    pub pr_title_validation_regex: String,
 }
 
 #[must_use]
@@ -48,9 +48,9 @@ pub struct RepositoryModelBuilder<'a> {
     owner: String,
     name: String,
     config: &'a Config,
-    pr_title_validation_regex: Option<String>,
-    default_needed_reviewers_count: Option<u64>,
     default_strategy: Option<GHMergeStrategy>,
+    default_needed_reviewers_count: Option<u64>,
+    pr_title_validation_regex: Option<String>,
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
@@ -59,9 +59,9 @@ impl<'a> RepositoryModelBuilder<'a> {
             owner: owner.into(),
             name: repo_name.into(),
             config,
-            pr_title_validation_regex: None,
-            default_needed_reviewers_count: None,
             default_strategy: None,
+            default_needed_reviewers_count: None,
+            pr_title_validation_regex: None,
         }
     }
 
@@ -70,9 +70,9 @@ impl<'a> RepositoryModelBuilder<'a> {
             owner: model.owner.clone(),
             name: model.name.clone(),
             config,
-            pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
-            default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
             default_strategy: Some(model.get_default_merge_strategy()),
+            default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
+            pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
         }
     }
 
@@ -81,9 +81,9 @@ impl<'a> RepositoryModelBuilder<'a> {
             owner: repo.owner.login.clone(),
             name: repo.name.clone(),
             config,
-            pr_title_validation_regex: None,
             default_strategy: None,
             default_needed_reviewers_count: None,
+            pr_title_validation_regex: None,
         }
     }
 

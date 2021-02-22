@@ -18,10 +18,10 @@ pub struct HistoryWebhookModel {
     pub repository_id: i32,
     /// Pull request ID.
     pub pull_request_id: i32,
-    /// Username.
-    pub username: String,
     /// Received at.
     pub received_at: chrono::NaiveDateTime,
+    /// Username.
+    pub username: String,
     /// Event key.
     pub event_key: String,
     /// Payload.
@@ -33,8 +33,8 @@ pub struct HistoryWebhookModel {
 struct HistoryWebhookCreation {
     pub repository_id: i32,
     pub pull_request_id: i32,
-    pub username: String,
     pub received_at: chrono::NaiveDateTime,
+    pub username: String,
     pub event_key: String,
     pub payload: String,
 }

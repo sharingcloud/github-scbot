@@ -29,34 +29,34 @@ pub struct PullRequestModel {
     pub repository_id: i32,
     /// Pull request number.
     number: i32,
+    /// PR creator
+    pub creator: String,
     /// Pull request title.
     pub name: String,
-    /// Is automerge enabled?.
-    pub automerge: bool,
-    /// Current step label.
-    step: Option<String>,
-    /// Current check status.
-    check_status: String,
-    /// Status comment ID.
-    status_comment_id: i32,
-    /// QA status.
-    qa_status: String,
-    /// Is it WIP?.
-    pub wip: bool,
-    /// Needed reviewers count.
-    pub needed_reviewers_count: i32,
-    /// Is the PR locked?
-    pub locked: bool,
-    /// Is the PR merged?
-    pub merged: bool,
     /// Base branch.
     pub base_branch: String,
     /// Head branch.
     pub head_branch: String,
+    /// Current step label.
+    step: Option<String>,
+    /// Current check status.
+    check_status: String,
+    /// QA status.
+    qa_status: String,
+    /// Needed reviewers count.
+    pub needed_reviewers_count: i32,
+    /// Status comment ID.
+    status_comment_id: i32,
+    /// Is automerge enabled?.
+    pub automerge: bool,
+    /// Is it WIP?.
+    pub wip: bool,
+    /// Is the PR locked?
+    pub locked: bool,
+    /// Is the PR merged?
+    pub merged: bool,
     /// Is the PR closed?
     pub closed: bool,
-    /// PR creator
-    pub creator: String,
 }
 
 #[derive(Debug, Insertable)]
@@ -64,20 +64,20 @@ pub struct PullRequestModel {
 struct PullRequestCreation {
     pub repository_id: i32,
     pub number: i32,
+    pub creator: String,
     pub name: String,
-    pub automerge: bool,
-    pub step: Option<String>,
-    pub check_status: String,
-    pub status_comment_id: i32,
-    pub qa_status: String,
-    pub wip: bool,
-    pub needed_reviewers_count: i32,
-    pub locked: bool,
-    pub merged: bool,
     pub base_branch: String,
     pub head_branch: String,
+    pub step: Option<String>,
+    pub check_status: String,
+    pub qa_status: String,
+    pub needed_reviewers_count: i32,
+    pub status_comment_id: i32,
+    pub automerge: bool,
+    pub wip: bool,
+    pub locked: bool,
+    pub merged: bool,
     pub closed: bool,
-    pub creator: String,
 }
 
 pub struct PullRequestModelBuilder<'a> {
