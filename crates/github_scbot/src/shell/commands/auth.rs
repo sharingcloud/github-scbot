@@ -11,7 +11,9 @@ use super::errors::Result;
 pub(crate) fn create_external_account(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    ExternalAccountModel::create_with_keys(&conn, username)?;
+    ExternalAccountModel::builder(username)
+        .generate_keys()
+        .create_or_update(&conn)?;
     println!("External account '{}' created.", username);
 
     Ok(())

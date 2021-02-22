@@ -147,7 +147,11 @@ fn test_export_models_to_json() {
     )
     .unwrap();
 
-    ExternalAccountModel::create(&conn, "ext", "pub", "pri").unwrap();
+    ExternalAccountModel::builder("ext")
+        .public_key("pub")
+        .private_key("pri")
+        .create_or_update(&conn)
+        .unwrap();
 
     let mut buffer = Vec::new();
     export_models_to_json(&conn, &mut buffer).unwrap();

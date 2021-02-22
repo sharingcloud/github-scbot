@@ -222,15 +222,7 @@ where
         println!("> Importing external account '{}'", account.username);
 
         // Try to create account
-        let _ = ExternalAccountModel::get_or_create(
-            conn,
-            &account.username,
-            &account.public_key,
-            &account.private_key,
-        )?;
-
-        // Update
-        account.save(&conn)?;
+        ExternalAccountModel::create_or_update(conn, account)?;
     }
 
     // Create or update external account rights
