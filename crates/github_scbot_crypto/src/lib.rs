@@ -36,7 +36,7 @@ pub fn create_jwt<T: Serialize>(rsa_priv_key: &str, claims: &T) -> Result<String
     let key = EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes()).unwrap();
 
     match encode(&Header::new(Algorithm::RS256), &claims, &key) {
-        Err(e) => Err(CryptoError::JWTCreationFailed(e.to_string())),
+        Err(e) => Err(CryptoError::JWTCreationFailed(e)),
         Ok(s) => Ok(s),
     }
 }
@@ -56,7 +56,7 @@ where
     validation.validate_exp = false;
 
     match decode(token, &key, &validation) {
-        Err(e) => Err(CryptoError::JWTVerificationFailed(e.to_string())),
+        Err(e) => Err(CryptoError::JWTVerificationFailed(e)),
         Ok(s) => Ok(s.claims),
     }
 }

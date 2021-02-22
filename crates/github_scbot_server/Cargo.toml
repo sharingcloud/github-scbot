@@ -15,15 +15,15 @@ actix-http = "2.2"
 actix-service = "1"
 actix-web = "3"
 actix-web-httpauth = "0.5"
-anyhow = "1.0"
 futures = "0.3"
 hex = "0.4"
 regex = "1.4"
 rust-crypto = "0.2"
-sentry = { version = "0.21.0", features = ["log"] }
-sentry-actix = "0.21.0"
+sentry = "0.21"
+sentry-actix = { path = "../sentry_actix", features = ["eyre"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+stable-eyre = "0.2"
 thiserror = "1.0"
 tracing = "0.1"
 

@@ -21,9 +21,6 @@ pub mod import_export;
 pub mod models;
 mod schema;
 
-#[cfg(test)]
-mod tests;
-
 pub use errors::{DatabaseError, Result};
 
 /// Database connection alias.

@@ -6,7 +6,7 @@ use dialoguer::Confirm;
 use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_connection,
-    models::{MergeRuleCreation, MergeRuleModel, PullRequestModel, RepositoryModel},
+    models::{MergeRuleModel, PullRequestModel, RepositoryModel},
 };
 use github_scbot_types::pulls::GHMergeStrategy;
 use owo_colors::OwoColorize;
@@ -95,25 +95,10 @@ pub(crate) fn set_merge_rule(
             strategy, repository_path
         );
     } else {
-        // Try to get rule
-        if let Ok(mut rule) =
-            MergeRuleModel::get_from_branches(&conn, repo.id, base_branch, head_branch)
-        {
-            rule.set_strategy(strategy_enum);
-            rule.save(&conn)?;
-            println!("Merge rule updated to '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", strategy, repository_path, base_branch, head_branch);
-        } else {
-            MergeRuleModel::create(
-                &conn,
-                MergeRuleCreation {
-                    repository_id: repo.id,
-                    base_branch: base_branch.into(),
-                    head_branch: head_branch.into(),
-                    strategy: strategy.into(),
-                },
-            )?;
-            println!("Merge rule created with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", strategy, repository_path, base_branch, head_branch);
-        }
+        MergeRuleModel::builder(&repo, base_branch, head_branch)
+            .strategy(strategy_enum)
+            .create_or_update(&conn)?;
+        println!("Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", strategy, repository_path, base_branch, head_branch);
     }
 
     Ok(())
@@ -132,7 +117,7 @@ pub(crate) fn remove_merge_rule(
         return Err(CommandError::CannotRemoveDefaultStrategy);
     } else {
         // Try to get rule
-        let rule = MergeRuleModel::get_from_branches(&conn, repo.id, base_branch, head_branch)?;
+        let rule = MergeRuleModel::get_from_branches(&conn, &repo, base_branch, head_branch)?;
         rule.remove(&conn)?;
         println!(
             "Merge rule for repository '{}' and branches '{}' (base) <- '{}' (head) deleted.",

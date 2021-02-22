@@ -11,7 +11,9 @@ use super::errors::Result;
 pub(crate) fn create_external_account(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    ExternalAccountModel::create_with_keys(&conn, username)?;
+    ExternalAccountModel::builder(username)
+        .generate_keys()
+        .create_or_update(&conn)?;
     println!("External account '{}' created.", username);
 
     Ok(())
@@ -59,7 +61,7 @@ pub(crate) fn add_account_right(
     let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
-    ExternalAccountRightModel::add_right(&conn, &account.username, repo.id)?;
+    ExternalAccountRightModel::add_right(&conn, &account.username, &repo)?;
     println!(
         "Right added to repository '{}' for account '{}'.",
         repository_path, username
@@ -77,7 +79,7 @@ pub(crate) fn remove_account_right(
     let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
-    ExternalAccountRightModel::remove_right(&conn, &account.username, repo.id)?;
+    ExternalAccountRightModel::remove_right(&conn, &account.username, &repo)?;
     println!(
         "Right removed to repository '{}' for account '{}'.",
         repository_path, username
@@ -118,9 +120,9 @@ pub(crate) fn list_account_rights(config: &Config, username: &str) -> Result<()>
 pub(crate) fn add_admin_rights(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    let mut account = AccountModel::get_or_create(&conn, username, true)?;
-    account.is_admin = true;
-    account.save(&conn)?;
+    AccountModel::builder(username)
+        .admin(true)
+        .create_or_update(&conn)?;
 
     println!("Account '{}' added/edited with admin rights.", username);
 
@@ -130,9 +132,9 @@ pub(crate) fn add_admin_rights(config: &Config, username: &str) -> Result<()> {
 pub(crate) fn remove_admin_rights(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    let mut account = AccountModel::get_or_create(&conn, username, false)?;
-    account.is_admin = false;
-    account.save(&conn)?;
+    AccountModel::builder(username)
+        .admin(false)
+        .create_or_update(&conn)?;
 
     println!("Account '{}' added/edited without admin rights.", username);
 

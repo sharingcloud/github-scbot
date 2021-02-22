@@ -3,9 +3,7 @@
 use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_test_connection,
-    models::{
-        AccountModel, PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel,
-    },
+    models::{AccountModel, PullRequestModel, RepositoryModel},
     DbConn,
 };
 
@@ -114,8 +112,12 @@ async fn test_command_rights() {
         CommandHandlingStatus::Denied
     );
 
-    // Ad admin should be authorized
-    AccountModel::create(&conn, "admin", true).unwrap();
+    // An admin should be authorized
+    AccountModel::builder("admin")
+        .admin(true)
+        .create_or_update(&conn)
+        .unwrap();
+
     assert_eq!(
         parse_commands(
             &config,
@@ -134,25 +136,14 @@ async fn test_command_rights() {
 
 fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
     // Create a repository and a pull request
-    let repo = RepositoryModel::create(
-        &conn,
-        RepositoryCreation {
-            name: "TestRepo".into(),
-            owner: "me".into(),
-            ..RepositoryCreation::default(conf)
-        },
-    )
-    .unwrap();
-    let pr = PullRequestModel::create(
-        &conn,
-        PullRequestCreation {
-            name: "PR 1".into(),
-            number: 1,
-            creator: "me".into(),
-            ..PullRequestCreation::from_repository(&repo)
-        },
-    )
-    .unwrap();
+    let repo = RepositoryModel::builder(&conf, "me", "TestRepo")
+        .create_or_update(&conn)
+        .unwrap();
+
+    let pr = PullRequestModel::builder(&repo, 1, "me")
+        .name("PR 1")
+        .create_or_update(&conn)
+        .unwrap();
 
     (repo, pr)
 }

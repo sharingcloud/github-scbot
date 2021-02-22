@@ -22,14 +22,14 @@ impl ExternalAccountRightModel {
     ///
     /// * `conn` - Database connection
     /// * `username` - Username
-    /// * `repository_id` - Repository ID
-    pub fn add_right(conn: &DbConn, username: &str, repository_id: i32) -> Result<Self> {
-        match Self::get_right(conn, username, repository_id) {
+    /// * `repository` - Repository
+    pub fn add_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<Self> {
+        match Self::get_right(conn, username, repository) {
             Ok(existing) => Ok(existing),
             Err(_) => {
                 let entry = Self {
                     username: username.into(),
-                    repository_id,
+                    repository_id: repository.id,
                 };
 
                 let data = diesel::insert_into(external_account_right::table)
@@ -47,12 +47,12 @@ impl ExternalAccountRightModel {
     ///
     /// * `conn` - Database connection
     /// * `username` - Username
-    /// * `repository_id` - Repository ID
-    pub fn remove_right(conn: &DbConn, username: &str, repository_id: i32) -> Result<()> {
+    /// * `repository` - Repository
+    pub fn remove_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<()> {
         diesel::delete(
             external_account_right::table
                 .filter(external_account_right::username.eq(username))
-                .filter(external_account_right::repository_id.eq(repository_id)),
+                .filter(external_account_right::repository_id.eq(repository.id)),
         )
         .execute(conn)?;
 
@@ -65,7 +65,6 @@ impl ExternalAccountRightModel {
     ///
     /// * `conn` - Database connection
     /// * `username` - Username
-    /// * `repository_id` - Repository ID
     pub fn remove_rights(conn: &DbConn, username: &str) -> Result<()> {
         diesel::delete(
             external_account_right::table.filter(external_account_right::username.eq(username)),
@@ -81,16 +80,16 @@ impl ExternalAccountRightModel {
     ///
     /// * `conn` - Database connection
     /// * `username` - Username
-    /// * `repository_id` - Repository ID
-    pub fn get_right(conn: &DbConn, username: &str, repository_id: i32) -> Result<Self> {
+    /// * `repository` - Repository
+    pub fn get_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<Self> {
         external_account_right::table
             .filter(external_account_right::username.eq(username))
-            .filter(external_account_right::repository_id.eq(repository_id))
+            .filter(external_account_right::repository_id.eq(repository.id))
             .first(conn)
             .map_err(|_e| {
                 DatabaseError::UnknownExternalAccountRight(
                     username.to_string(),
-                    format!("<ID {}>", repository_id),
+                    repository.get_path(),
                 )
             })
     }

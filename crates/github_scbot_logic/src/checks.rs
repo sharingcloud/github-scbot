@@ -29,11 +29,9 @@ pub async fn handle_check_suite_event(
 
     // Only look for first PR
     if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
-        if let Ok(mut pr_model) = PullRequestModel::get_from_repository_id_and_number(
-            conn,
-            repo_model.id,
-            pr_number as i32,
-        ) {
+        if let Ok(mut pr_model) =
+            PullRequestModel::get_from_repository_and_number(conn, &repo_model, pr_number)
+        {
             if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GHCheckConclusion::Success) => {
@@ -50,15 +48,11 @@ pub async fn handle_check_suite_event(
                 }
             }
 
-            // Store history
-            HistoryWebhookModel::create_for_now(
-                conn,
-                &repo_model,
-                &pr_model,
-                &event.sender.login,
-                EventType::CheckSuite,
-                event,
-            )?;
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(&event.sender.login)
+                .event_key(EventType::CheckSuite)
+                .payload(event)
+                .create(conn)?;
 
             // Update status
             update_pull_request_status(

@@ -1,0 +1,15 @@
+[package]
+name = "sentry-eyre"
+version = "0.1.0"
+authors = ["Denis BOURGE <bourge.denis@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+description = """
+Sentry integration for eyre.
+"""
+edition = "2018"
+
+[dependencies]
+sentry-backtrace = { version = "0.21.0" }
+sentry-core = { version = "0.21.0" }
+stable-eyre = "0.2"

@@ -58,6 +58,12 @@ impl CheckStatus {
     }
 }
 
+impl ToString for CheckStatus {
+    fn to_string(&self) -> String {
+        self.to_str().into()
+    }
+}
+
 impl TryFrom<&str> for CheckStatus {
     type Error = TypeError;
 
@@ -101,6 +107,12 @@ impl QAStatus {
     /// Convert QA status to static str.
     pub fn to_str(self) -> &'static str {
         self.into()
+    }
+}
+
+impl ToString for QAStatus {
+    fn to_string(&self) -> String {
+        self.to_str().into()
     }
 }
 

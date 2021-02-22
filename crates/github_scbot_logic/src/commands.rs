@@ -7,7 +7,7 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    models::{PullRequestModel, RepositoryModel, ReviewCreation, ReviewModel},
+    models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
 };
 use github_scbot_types::{issues::GHReactionType, labels::StepLabel, status::QAStatus};
@@ -624,17 +624,9 @@ pub async fn handle_assign_required_reviewers_command(
     .await?;
 
     for reviewer in &reviewers {
-        let mut entry = ReviewModel::get_or_create(
-            conn,
-            ReviewCreation {
-                pull_request_id: pr_model.id,
-                username: reviewer,
-                ..Default::default()
-            },
-        )?;
-
-        entry.required = true;
-        entry.save(conn)?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .required(true)
+            .create_or_update(conn)?;
     }
 
     Ok(true)
@@ -672,17 +664,9 @@ pub async fn handle_unassign_required_reviewers_command(
     .await?;
 
     for reviewer in &reviewers {
-        let mut entry = ReviewModel::get_or_create(
-            conn,
-            ReviewCreation {
-                pull_request_id: pr_model.id,
-                username: reviewer,
-                ..Default::default()
-            },
-        )?;
-
-        entry.required = false;
-        entry.save(conn)?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .required(false)
+            .create_or_update(conn)?;
     }
 
     Ok(true)

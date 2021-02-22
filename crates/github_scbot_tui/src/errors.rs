@@ -6,15 +6,15 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum UIError {
     /// Wraps [`std::io::IOError`].
-    #[error("IO error: {0}")]
+    #[error(transparent)]
     IOError(#[from] std::io::Error),
 
     /// Wraps [`std::sync::mpsc::RecvError`].
-    #[error("Channel error: {0}")]
+    #[error("Channel communication error.")]
     RecvError(#[from] std::sync::mpsc::RecvError),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error("Database error: {0}")]
+    #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 }
 

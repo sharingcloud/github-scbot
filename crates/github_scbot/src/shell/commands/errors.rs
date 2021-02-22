@@ -1,5 +1,6 @@
 //! Command error.
 
+use stable_eyre::eyre;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -21,4 +22,4 @@ pub(crate) enum CommandError {
     ImportError(#[from] github_scbot_database::import_export::ImportError),
 }
 
-pub(crate) type Result<T, E = CommandError> = anyhow::Result<T, E>;
+pub(crate) type Result<T, E = CommandError> = eyre::Result<T, E>;

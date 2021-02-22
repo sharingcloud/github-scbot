@@ -22,15 +22,15 @@ pub enum APIError {
     GitHubError(String),
 
     /// Wraps [`octocrab::Error`].
-    #[error("Octocrab error: {0}")]
+    #[error("Error while using GitHub HTTP client.")]
     OctocrabError(#[from] octocrab::Error),
 
     /// Wraps [`reqwest::Error`].
-    #[error("Reqwest error: {0}")]
+    #[error("Error while using HTTP client.")]
     ReqwestError(#[from] reqwest::Error),
 
     /// Wraps [`github_scbot_crypto::CryptoError`].
-    #[error("Crypto error: {0}")]
+    #[error(transparent)]
     CryptoError(#[from] github_scbot_crypto::CryptoError),
 }
 

@@ -331,12 +331,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.38"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afddf7f520a80dbf76e6f50a35bca42a2331ef227a28b3b6dc5c2e2338d114b1"
-
-[[package]]
 name = "arc-swap"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -631,6 +625,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fbaabec2c953050352311293be5c6aba8e141ba19d6811862b232d6fd020484"
+dependencies = [
+ "quote 1.0.7",
+ "syn",
+]
+
+[[package]]
 name = "debugid"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -697,6 +701,12 @@ dependencies = [
  "migrations_internals",
  "migrations_macros",
 ]
+
+[[package]]
+name = "difference"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
 
 [[package]]
 name = "digest"
@@ -766,6 +776,16 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "syn",
+]
+
+[[package]]
+name = "eyre"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "221239d1d5ea86bf5d6f91c9d6bc3646ffe471b08ff9b0f91c44f115ac969d2b"
+dependencies = [
+ "indenter",
+ "once_cell",
 ]
 
 [[package]]
@@ -986,7 +1006,6 @@ name = "github-scbot"
 version = "0.1.0"
 dependencies = [
  "actix-rt",
- "anyhow",
  "dialoguer",
  "github-scbot-conf",
  "github-scbot-database",
@@ -995,6 +1014,8 @@ dependencies = [
  "github-scbot-tui",
  "github-scbot-types",
  "owo-colors",
+ "sentry-eyre",
+ "stable-eyre",
  "structopt",
  "thiserror",
 ]
@@ -1025,7 +1046,11 @@ version = "0.1.0"
 dependencies = [
  "dotenv",
  "jsonwebtoken",
+ "sentry",
+ "sentry-eyre",
+ "stable-eyre",
  "thiserror",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -1050,6 +1075,7 @@ dependencies = [
  "github-scbot-crypto",
  "github-scbot-types",
  "openssl",
+ "pretty_assertions",
  "r2d2",
  "r2d2-diesel",
  "serde",
@@ -1082,7 +1108,6 @@ dependencies = [
  "actix-service",
  "actix-web",
  "actix-web-httpauth",
- "anyhow",
  "futures",
  "github-scbot-conf",
  "github-scbot-crypto",
@@ -1096,6 +1121,7 @@ dependencies = [
  "sentry-actix",
  "serde",
  "serde_json",
+ "stable-eyre",
  "thiserror",
  "tracing",
 ]
@@ -1295,6 +1321,12 @@ dependencies = [
  "typenum",
  "version_check",
 ]
+
+[[package]]
+name = "indenter"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4d5eb2e114fec2b7fe0fadc22888ad2658789bb7acac4dbee9cf8389f971ec8"
 
 [[package]]
 name = "indexmap"
@@ -1697,6 +1729,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "output_vt100"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53cdc5b785b7a58c5aad8216b3dfa114df64b0b06ae6e1501cef91df2fbdf8f9"
+dependencies = [
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "owo-colors"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1821,6 +1862,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ac25eee5a0582f45a67e837e350d784e7003bd29a5f460796772061ca49ffda"
 dependencies = [
  "vcpkg",
+]
+
+[[package]]
+name = "pretty_assertions"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f81e1644e1b54f5a68959a29aa86cde704219254669da328ecfdf6a1f09d427"
+dependencies = [
+ "ansi_term 0.11.0",
+ "ctor",
+ "difference",
+ "output_vt100",
 ]
 
 [[package]]
@@ -2302,19 +2355,19 @@ dependencies = [
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
- "sentry-log",
  "sentry-panic",
 ]
 
 [[package]]
 name = "sentry-actix"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10bb43a95ba5d5fdb1bbe9ed8916697239c1732165ff271dec9d16807585870f"
 dependencies = [
  "actix-web",
  "futures-util",
  "sentry-core",
+ "sentry-eyre",
+ "serde_json",
+ "stable-eyre",
 ]
 
 [[package]]
@@ -2359,13 +2412,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "sentry-log"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af91b9d4f34cc53ebd109cae92b0e1373df2524e915af95f212b9d0601bff241"
+name = "sentry-eyre"
+version = "0.1.0"
 dependencies = [
- "log",
+ "sentry-backtrace",
  "sentry-core",
+ "stable-eyre",
 ]
 
 [[package]]
@@ -2563,6 +2615,17 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "stable-eyre"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556fec8c2da34c70b75f16d88df8a8cd7e652e567ff097b7e9df0022c8695cc4"
+dependencies = [
+ "backtrace",
+ "eyre",
+ "indenter",
+]
 
 [[package]]
 name = "standback"

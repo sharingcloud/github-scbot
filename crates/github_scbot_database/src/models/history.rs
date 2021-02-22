@@ -28,32 +28,104 @@ pub struct HistoryWebhookModel {
     pub payload: String,
 }
 
-/// History webhook creation.
 #[derive(Debug, Insertable)]
 #[table_name = "history_webhook"]
-pub struct HistoryWebhookCreation {
-    /// Repository ID.
+struct HistoryWebhookCreation {
     pub repository_id: i32,
-    /// Pull request ID.
     pub pull_request_id: i32,
-    /// Username.
     pub username: String,
-    /// Received at.
     pub received_at: chrono::NaiveDateTime,
-    /// Event key.
     pub event_key: String,
-    /// Payload.
     pub payload: String,
 }
 
+impl From<HistoryWebhookModel> for HistoryWebhookCreation {
+    fn from(model: HistoryWebhookModel) -> Self {
+        Self {
+            repository_id: model.repository_id,
+            pull_request_id: model.pull_request_id,
+            username: model.username,
+            received_at: model.received_at,
+            event_key: model.event_key,
+            payload: model.payload,
+        }
+    }
+}
+
+#[must_use]
+pub struct HistoryWebhookModelBuilder<'a> {
+    repo_model: &'a RepositoryModel,
+    pr_model: &'a PullRequestModel,
+    username: String,
+    received_at: chrono::NaiveDateTime,
+    event_key: EventType,
+    payload: String,
+}
+
+impl<'a> HistoryWebhookModelBuilder<'a> {
+    pub fn default(repo_model: &'a RepositoryModel, pr_model: &'a PullRequestModel) -> Self {
+        Self {
+            repo_model,
+            pr_model,
+            username: String::new(),
+            received_at: chrono::Utc::now().naive_utc(),
+            event_key: EventType::Ping,
+            payload: String::new(),
+        }
+    }
+
+    pub fn username<T: Into<String>>(mut self, username: T) -> Self {
+        self.username = username.into();
+        self
+    }
+
+    pub fn payload<T: Serialize>(mut self, payload: &T) -> Self {
+        self.payload = serde_json::to_string_pretty(payload).unwrap();
+        self
+    }
+
+    pub fn received_at<T: Into<chrono::NaiveDateTime>>(mut self, received_at: T) -> Self {
+        self.received_at = received_at.into();
+        self
+    }
+
+    pub fn event_key<T: Into<EventType>>(mut self, event_key: T) -> Self {
+        self.event_key = event_key.into();
+        self
+    }
+
+    fn build(self) -> HistoryWebhookModel {
+        HistoryWebhookModel {
+            id: -1,
+            repository_id: self.repo_model.id,
+            pull_request_id: self.pr_model.id,
+            username: self.username,
+            event_key: self.event_key.to_str().into(),
+            received_at: self.received_at,
+            payload: self.payload,
+        }
+    }
+
+    pub fn create(self, conn: &DbConn) -> Result<HistoryWebhookModel> {
+        HistoryWebhookModel::create(conn, self.build().into())
+    }
+}
+
 impl HistoryWebhookModel {
-    /// Create history webhook entry.
+    /// Create builder.
     ///
     /// # Arguments
     ///
-    /// * `conn` - Database connection
-    /// * `entry` - Creation entry
-    pub fn create(conn: &DbConn, entry: HistoryWebhookCreation) -> Result<Self> {
+    /// * `repo_model` - Repository
+    /// * `pr_model` - Pull request
+    pub fn builder<'a>(
+        repo_model: &'a RepositoryModel,
+        pr_model: &'a PullRequestModel,
+    ) -> HistoryWebhookModelBuilder<'a> {
+        HistoryWebhookModelBuilder::default(repo_model, pr_model)
+    }
+
+    fn create(conn: &DbConn, entry: HistoryWebhookCreation) -> Result<Self> {
         diesel::insert_into(history_webhook::table)
             .values(&entry)
             .get_result(conn)
@@ -68,70 +140,6 @@ impl HistoryWebhookModel {
             pr_id = self.pull_request_id,
             event = self.event_key,
             value = self.payload
-        )
-    }
-
-    /// Create history webhook entry from values.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repo` - Repository
-    /// * `pr` - Pull request
-    /// * `username` - Username
-    /// * `received_at` - Received at
-    /// * `event_key` - Event key
-    /// * `payload` - Payload
-    pub fn create_for_time(
-        conn: &DbConn,
-        repo: &RepositoryModel,
-        pr: &PullRequestModel,
-        username: &str,
-        received_at: chrono::NaiveDateTime,
-        event_key: EventType,
-        payload: &str,
-    ) -> Result<Self> {
-        Self::create(
-            conn,
-            HistoryWebhookCreation {
-                repository_id: repo.id,
-                pull_request_id: pr.id,
-                username: username.into(),
-                received_at,
-                event_key: event_key.to_str().into(),
-                payload: payload.into(),
-            },
-        )
-    }
-
-    /// Create history webhook entry from values, for now.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repo` - Repository
-    /// * `pr` - Pull request
-    /// * `username` - Username
-    /// * `event_key` - Event key
-    /// * `payload` - Payload
-    pub fn create_for_now<T: Serialize>(
-        conn: &DbConn,
-        repo: &RepositoryModel,
-        pr: &PullRequestModel,
-        username: &str,
-        event_key: EventType,
-        payload: &T,
-    ) -> Result<Self> {
-        Self::create(
-            conn,
-            HistoryWebhookCreation {
-                repository_id: repo.id,
-                pull_request_id: pr.id,
-                username: username.into(),
-                received_at: chrono::Utc::now().naive_utc(),
-                event_key: event_key.to_str().into(),
-                payload: serde_json::to_string_pretty(payload).unwrap(),
-            },
         )
     }
 

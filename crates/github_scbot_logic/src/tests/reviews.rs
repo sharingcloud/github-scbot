@@ -3,9 +3,7 @@
 use github_scbot_conf::Config;
 use github_scbot_database::{
     establish_single_test_connection,
-    models::{
-        PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel, ReviewModel,
-    },
+    models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn,
 };
 use github_scbot_types::{
@@ -23,25 +21,14 @@ use crate::{
 
 fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
     // Create a repository and a pull request
-    let repo = RepositoryModel::create(
-        &conn,
-        RepositoryCreation {
-            name: "TestRepo".into(),
-            owner: "me".into(),
-            ..RepositoryCreation::default(conf)
-        },
-    )
-    .unwrap();
-    let pr = PullRequestModel::create(
-        &conn,
-        PullRequestCreation {
-            name: "PR 1".into(),
-            number: 1,
-            creator: "me".into(),
-            ..PullRequestCreation::from_repository(&repo)
-        },
-    )
-    .unwrap();
+    let repo = RepositoryModel::builder(&conf, "me", "TestRepo")
+        .create_or_update(&conn)
+        .unwrap();
+
+    let pr = PullRequestModel::builder(&repo, 1, "me")
+        .name("PR 1")
+        .create_or_update(&conn)
+        .unwrap();
 
     (repo, pr)
 }
@@ -97,7 +84,7 @@ async fn test_review_creation() {
     .unwrap();
 
     // Retrieve "him" review
-    let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
+    let review = ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
     assert_eq!(review.required, true);
 
     // Parse comment
@@ -119,7 +106,7 @@ async fn test_review_creation() {
         .unwrap();
 
     // Retrieve "him" review
-    let review = ReviewModel::get_from_pull_request_and_username(&conn, pr.id, "him").unwrap();
+    let review = ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
     assert_eq!(review.required, false);
 
     // Generate status

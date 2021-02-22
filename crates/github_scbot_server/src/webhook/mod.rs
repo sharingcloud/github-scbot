@@ -12,7 +12,7 @@ use actix_web::{error, web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_conf::Config;
 use github_scbot_database::DbConn;
 use github_scbot_types::events::EventType;
-use tracing::info;
+use sentry_actix::eyre::WrapEyre;
 
 use crate::{
     constants::GITHUB_EVENT_HEADER,
@@ -99,17 +99,23 @@ pub(crate) async fn event_handler(
     if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
             let conn = ctx.pool.get().map_err(error::ErrorInternalServerError)?;
-            info!("Incoming event: {:?}", event_type);
+
+            sentry::configure_scope(|scope| {
+                scope.set_extra("Event type", event_type.to_str().into());
+                scope.set_extra("Payload", body.clone().into());
+            });
 
             parse_event(&ctx.config, &conn, event_type, &body)
                 .await
-                .map_err(Into::into)
+                .map_err(|e| WrapEyre::internal_server_error(e).into())
         } else {
             let event_type: &str = event_type.into();
-            Ok(HttpResponse::BadRequest().body(format!("Bad payload for event '{}'.", event_type)))
+            Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": format!("Bad payload for event '{}'.", event_type)
+            })))
         }
     } else {
-        Ok(HttpResponse::BadRequest().body("Unhandled event."))
+        Ok(HttpResponse::BadRequest().json(serde_json::json!({"error": "Unhandled event."})))
     }
 }
 

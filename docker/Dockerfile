@@ -1,7 +1,7 @@
 # Build stage
 FROM clux/muslrust:stable AS builder
 COPY . /volume
-RUN cargo build --release && strip /volume/target/x86_64-unknown-linux-musl/release/github-scbot
+RUN cargo build --release
 
 # Bundle stage
 FROM scratch

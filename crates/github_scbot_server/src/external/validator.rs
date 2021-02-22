@@ -1,16 +1,13 @@
 //! External API validator.
 
-use actix_web::{
-    dev::{HttpResponseBuilder, ServiceRequest},
-    http::{header, StatusCode},
-    web, Error, HttpResponse, ResponseError,
-};
+use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_crypto::{decode_jwt, verify_jwt};
+use github_scbot_crypto::{decode_jwt, verify_jwt, CryptoError};
 use github_scbot_database::{
     models::{ExternalAccountModel, ExternalJwtClaims},
     DbConn,
 };
+use sentry_actix::eyre::WrapEyre;
 use thiserror::Error;
 
 use crate::server::AppContext;
@@ -20,25 +17,19 @@ use crate::server::AppContext;
 pub enum ValidationError {
     #[error("Unknown account.")]
     UnknownAccount,
-    #[error("JWT decoding failure.")]
-    JWTDecodeFailure,
-    #[error("JWT verification failure.")]
-    JWTVerificationFailure,
     #[error("Database connection failure.")]
     DatabaseConnectionFailure,
+    #[error(transparent)]
+    TokenError(#[from] CryptoError),
 }
 
-impl ResponseError for ValidationError {
-    fn error_response(&self) -> HttpResponse {
-        HttpResponseBuilder::new(self.status_code())
-            .set_header(header::CONTENT_TYPE, "application/json; charset=utf-8")
-            .body(serde_json::json!({
-                "error": self.to_string()
-            }))
-    }
+impl ValidationError {
+    pub fn token_error(token: &str, source: github_scbot_crypto::CryptoError) -> Self {
+        sentry::configure_scope(|scope| {
+            scope.set_extra("Token", token.into());
+        });
 
-    fn status_code(&self) -> StatusCode {
-        StatusCode::FORBIDDEN
+        Self::TokenError(source)
     }
 }
 
@@ -47,7 +38,7 @@ pub async fn jwt_auth_validator(
     req: ServiceRequest,
     credentials: BearerAuth,
 ) -> Result<ServiceRequest, Error> {
-    jwt_auth_validator_inner(req, credentials).map_err(Into::into)
+    jwt_auth_validator_inner(req, credentials).map_err(|e| WrapEyre::bad_request(e).into())
 }
 
 fn jwt_auth_validator_inner(
@@ -64,7 +55,7 @@ fn jwt_auth_validator_inner(
     // Validate token with ISS
     let tok = credentials.token();
     let _: ExternalJwtClaims = verify_jwt(tok, &target_account.public_key)
-        .map_err(|_e| ValidationError::JWTVerificationFailure)?;
+        .map_err(|e| ValidationError::token_error(tok, e))?;
 
     Ok(req)
 }
@@ -81,7 +72,7 @@ pub fn extract_account_from_auth(
 ) -> Result<ExternalAccountModel, ValidationError> {
     let tok = credentials.token();
     let claims: ExternalJwtClaims =
-        decode_jwt(tok).map_err(|_e| ValidationError::JWTDecodeFailure)?;
+        decode_jwt(tok).map_err(|e| ValidationError::token_error(tok, e))?;
     ExternalAccountModel::get_from_username(&conn, &claims.iss)
         .map_err(|_e| ValidationError::UnknownAccount)
 }

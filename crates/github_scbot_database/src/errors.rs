@@ -15,11 +15,7 @@ pub enum DatabaseError {
 
     /// Unknown pull request.
     #[error("Pull request '{0}' #{1} does not exist.")]
-    UnknownPullRequest(String, i32),
-
-    /// Unknown review.
-    #[error("Pull request review for pull request ID '{0}' and username '{1}' does not exist.")]
-    UnknownReview(i32, String),
+    UnknownPullRequest(String, u64),
 
     /// Unknown account.
     #[error("Account '{0}' does not exist.")]
@@ -40,40 +36,40 @@ pub enum DatabaseError {
     UnknownMergeRule(String, String, String),
 
     /// Unknown review state.
-    #[error("Review state by user '{0}' on pull request ID '{0}' does not exist.")]
-    UnknownReviewState(String, String),
-
-    /// Wraps [`super::import_export::ExportError`].
-    #[error("Export error: {0}")]
-    ExportError(#[from] super::import_export::ExportError),
-
-    /// Wraps [`super::import_export::ImportError`].
-    #[error("Import error: {0}")]
-    ImportError(#[from] super::import_export::ImportError),
-
-    /// Wraps [`github_scbot_types::TypeError`].
-    #[error("Type error: {0}")]
-    TypeError(#[from] github_scbot_types::TypeError),
+    #[error("Review state by user '{0}' on pull request '{1}' #{2} does not exist.")]
+    UnknownReviewState(String, String, u64),
 
     /// Wraps [`diesel::ConnectionError`].
-    #[error("Connection error: {0}")]
+    #[error("Could not connect to database.")]
     ConnectionError(#[from] diesel::ConnectionError),
 
     /// Wraps [`diesel_migrations::RunMigrationsError`].
-    #[error("Migration error: {0}")]
+    #[error("Could not execute migrations.")]
     MigrationError(#[from] diesel_migrations::RunMigrationsError),
 
-    /// Wraps [`github_scbot_crypto::CryptoError`].
-    #[error("Crypto error: {0}")]
-    CryptoError(#[from] github_scbot_crypto::CryptoError),
-
     /// Wraps [`r2d2::Error`].
-    #[error("Database pool error: {0}")]
-    R2d2Error(#[from] r2d2::Error),
+    #[error("Could not get a database connection from pool.")]
+    DbPoolError(#[from] r2d2::Error),
 
     /// Wraps [`diesel::result::Error`].
-    #[error("SQL error: {0}")]
+    #[error("Could not run SQL query.")]
     SQLError(#[from] diesel::result::Error),
+
+    /// Wraps [`super::import_export::ExportError`].
+    #[error("Error while exporting data.")]
+    ExportError(#[from] super::import_export::ExportError),
+
+    /// Wraps [`super::import_export::ImportError`].
+    #[error("Error while importing data.")]
+    ImportError(#[from] super::import_export::ImportError),
+
+    /// Wraps [`github_scbot_types::TypeError`].
+    #[error(transparent)]
+    TypeError(#[from] github_scbot_types::TypeError),
+
+    /// Wraps [`github_scbot_crypto::CryptoError`].
+    #[error(transparent)]
+    CryptoError(#[from] github_scbot_crypto::CryptoError),
 }
 
 /// Result alias for `DatabaseError`.

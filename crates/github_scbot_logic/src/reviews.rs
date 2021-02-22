@@ -30,14 +30,11 @@ pub async fn handle_review_event(
     let (repo, mut pr) =
         process_pull_request(config, conn, &event.repository, &event.pull_request)?;
 
-    HistoryWebhookModel::create_for_now(
-        conn,
-        &repo,
-        &pr,
-        &event.review.user.login,
-        EventType::PullRequestReview,
-        event,
-    )?;
+    HistoryWebhookModel::builder(&repo, &pr)
+        .username(&event.sender.login)
+        .event_key(EventType::PullRequestReview)
+        .payload(event)
+        .create(conn)?;
 
     handle_review(config, conn, &repo, &pr, &event.review).await?;
     update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
@@ -68,12 +65,9 @@ pub async fn handle_review(
     .await?;
 
     // Get or create in database
-    ReviewModel::create_or_update_from_github_review(
-        conn,
-        pr_model.id,
-        review,
-        permission.can_write(),
-    )?;
+    ReviewModel::builder_from_github(&repo_model, &pr_model, review)
+        .valid(permission.can_write())
+        .create_or_update(conn)?;
 
     Ok(())
 }
@@ -100,13 +94,10 @@ pub async fn handle_review_request(
         )
         .await?;
 
-        ReviewModel::create_or_update(
-            conn,
-            pr_model.id,
-            review_state,
-            reviewer,
-            permission.can_write(),
-        )?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .state(review_state)
+            .valid(permission.can_write())
+            .create_or_update(conn)?;
     }
 
     Ok(())

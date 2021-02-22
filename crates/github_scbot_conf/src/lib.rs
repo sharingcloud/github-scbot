@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod errors;
+pub mod sentry;
 pub mod validation;
 
 pub use crate::{
@@ -15,6 +16,7 @@ pub use crate::{
 /// Configure application startup.
 pub fn configure_startup() -> Result<Config> {
     dotenv::dotenv().ok();
+    stable_eyre::install().ok();
     std::env::set_var("RUST_LOG", "info");
     tracing_subscriber::fmt::init();
     let config = Config::from_env();
