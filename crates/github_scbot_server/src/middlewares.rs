@@ -12,7 +12,6 @@ use std::{
 use actix_service::{Service, Transform};
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
-    error::{ErrorUnauthorized, ParseError},
     http::Method,
     web::BytesMut,
     Error, HttpMessage,
@@ -23,7 +22,10 @@ use futures::{
     Future,
 };
 use github_scbot_conf::Config;
+use sentry_actix::eyre::WrapEyre;
 use tracing::warn;
+
+use crate::ServerError;
 
 use super::{
     constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH},
@@ -120,9 +122,22 @@ where
                     let headers = req.headers().clone();
                     let signature = headers
                         .get(GITHUB_SIGNATURE_HEADER)
-                        .ok_or_else(|| ErrorUnauthorized(ParseError::Header))?
+                        .ok_or_else(|| {
+                            WrapEyre::unauthorized(ServerError::MissingWebhookSignature)
+                        })?
                         .to_str()
-                        .map_err(ErrorUnauthorized)?;
+                        .map_err(|_e| WrapEyre::forbidden(ServerError::InvalidWebhookSignature))
+                        .map_err(|e| {
+                            let err: actix_http::Error = e.into();
+                            err
+                        })?;
+
+                    // Quick check because split_at can panic.
+                    if signature.len() <= SIGNATURE_PREFIX_LENGTH {
+                        return Err(
+                            WrapEyre::forbidden(ServerError::InvalidWebhookSignature).into()
+                        );
+                    }
 
                     // Strip signature prefix
                     let (_, sig) = signature.split_at(SIGNATURE_PREFIX_LENGTH);
@@ -135,7 +150,9 @@ where
                     }
 
                     if !is_valid_signature(sig, &body, &secret) {
-                        return Err(ErrorUnauthorized(ParseError::Header));
+                        return Err(
+                            WrapEyre::forbidden(ServerError::InvalidWebhookSignature).into()
+                        );
                     }
 
                     // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438

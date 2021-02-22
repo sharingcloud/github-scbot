@@ -80,10 +80,10 @@ impl PullRequestStatus {
         Ok(Self {
             approved_reviewers: approved_reviews,
             automerge: pr_model.automerge,
-            checks_status: pr_model.get_checks_status()?,
+            checks_status: pr_model.get_checks_status(),
             checks_url: pr_model.get_checks_url(repo_model),
             needed_reviewers_count: needed_reviews,
-            qa_status: pr_model.get_qa_status()?,
+            qa_status: pr_model.get_qa_status(),
             missing_required_reviewers: required_reviews,
             valid_pr_title: check_pr_title(repo_model, pr_model)?,
             locked: pr_model.locked,
@@ -190,6 +190,8 @@ pub async fn update_pull_request_status(
     let reviews = pr_model.get_reviews(conn)?;
     let step_label = determine_automatic_step(repo_model, pr_model, &reviews)?;
     pr_model.set_step_label(step_label);
+    pr_model.save(conn)?;
+
     apply_pull_request_step(config, repo_model, pr_model).await?;
 
     // Post status.
@@ -214,7 +216,7 @@ pub async fn update_pull_request_status(
         let result = try_automerge_pull_request(config, conn, &repo_model, &pr_model).await?;
         if !result {
             pr_model.automerge = false;
-            pr_model.save(&conn)?;
+            pr_model.save(conn)?;
 
             // Update status
             create_or_update_status_comment(config, conn, repo_model, pr_model).await?;
@@ -250,7 +252,7 @@ pub fn generate_pr_status_comment(
         \n\
         {footer}",
         rules_section = generate_status_comment_rule_section(repo_model, pr_model, strategy)?,
-        checks_section = generate_status_comment_checks_section(&review_status, pr_model)?,
+        checks_section = generate_status_comment_checks_section(&review_status, pr_model),
         config_section = generate_status_comment_config_section(pr_model),
         footer = generate_status_comment_footer(repo_model, pr_model)
     ))
@@ -359,15 +361,15 @@ fn generate_status_comment_rule_section(
 fn generate_status_comment_checks_section(
     pull_request_status: &PullRequestStatus,
     pr_model: &PullRequestModel,
-) -> Result<String> {
-    let checks_message = match pr_model.get_checks_status()? {
+) -> String {
+    let checks_message = match pr_model.get_checks_status() {
         CheckStatus::Pass => "_passed!_ :heavy_check_mark:",
         CheckStatus::Waiting => "_running..._ :clock2:",
         CheckStatus::Fail => "_failed._ :x:",
         CheckStatus::Skipped => "_skipped._ :heavy_check_mark:",
     };
 
-    let qa_message = match pr_model.get_qa_status()? {
+    let qa_message = match pr_model.get_qa_status() {
         QAStatus::Pass => "_passed!_ :heavy_check_mark:",
         QAStatus::Waiting => "_waiting..._ :clock2:",
         QAStatus::Fail => "_failed._ :x:",
@@ -405,7 +407,7 @@ fn generate_status_comment_checks_section(
         )
     };
 
-    Ok(format!(
+    format!(
         ":speech_balloon: &mdash; **Status comment**\n\
         \n\
         > - :construction: **WIP?** {wip_message}\n\
@@ -418,7 +420,7 @@ fn generate_status_comment_checks_section(
         reviews_message = code_review_section,
         qa_message = qa_message,
         lock_message = lock_message,
-    ))
+    )
 }
 
 fn generate_status_comment_config_section(pr_model: &PullRequestModel) -> String {

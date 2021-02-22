@@ -1,15 +1,15 @@
-//! Database repository models.
+//! Repository model.
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 use diesel::prelude::*;
 use github_scbot_conf::Config;
-use github_scbot_types::pulls::GHMergeStrategy;
+use github_scbot_types::{common::GHRepository, pulls::GHMergeStrategy};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{DatabaseError, Result},
-    schema::{merge_rule, repository},
+    schema::repository,
     DbConn,
 };
 
@@ -33,68 +33,182 @@ pub struct RepositoryModel {
     default_strategy: String,
 }
 
-/// Repository creation.
 #[derive(Debug, Insertable)]
 #[table_name = "repository"]
-pub struct RepositoryCreation {
-    /// Repository name.
+struct RepositoryCreation {
     pub name: String,
-    /// Repository owner.
     pub owner: String,
-    /// Validation regex for pull request titles.
     pub pr_title_validation_regex: String,
-    /// Default reviewers count needed for a pull request.
     pub default_needed_reviewers_count: i32,
-    /// Default strategy.
     pub default_strategy: String,
 }
 
-impl RepositoryCreation {
-    /// Create default repository.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Application configuration
-    pub fn default(config: &Config) -> Self {
+#[must_use]
+pub struct RepositoryModelBuilder<'a> {
+    owner: String,
+    name: String,
+    config: &'a Config,
+    pr_title_validation_regex: Option<String>,
+    default_needed_reviewers_count: Option<u64>,
+    default_strategy: Option<GHMergeStrategy>,
+}
+
+impl<'a> RepositoryModelBuilder<'a> {
+    pub fn default(config: &'a Config, owner: &str, repo_name: &str) -> Self {
         Self {
-            name: String::new(),
-            owner: String::new(),
-            pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
-            default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-            default_strategy: config.default_merge_strategy.clone(),
+            owner: owner.into(),
+            name: repo_name.into(),
+            config,
+            pr_title_validation_regex: None,
+            default_needed_reviewers_count: None,
+            default_strategy: None,
         }
+    }
+
+    pub fn from_model(config: &'a Config, model: &RepositoryModel) -> Self {
+        Self {
+            owner: model.owner.clone(),
+            name: model.name.clone(),
+            config,
+            pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
+            default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
+            default_strategy: Some(model.get_default_merge_strategy()),
+        }
+    }
+
+    pub fn from_github(config: &'a Config, repo: &GHRepository) -> Self {
+        Self {
+            owner: repo.owner.login.clone(),
+            name: repo.name.clone(),
+            config,
+            pr_title_validation_regex: None,
+            default_strategy: None,
+            default_needed_reviewers_count: None,
+        }
+    }
+
+    pub fn pr_title_validation_regex<T: Into<String>>(mut self, regex: T) -> Self {
+        self.pr_title_validation_regex = Some(regex.into());
+        self
+    }
+
+    pub fn default_needed_reviewers_count(mut self, count: u64) -> Self {
+        self.default_needed_reviewers_count = Some(count);
+        self
+    }
+
+    pub fn default_strategy(mut self, strategy: GHMergeStrategy) -> Self {
+        self.default_strategy = Some(strategy);
+        self
+    }
+
+    fn build(&self) -> RepositoryCreation {
+        RepositoryCreation {
+            owner: self.owner.clone(),
+            name: self.name.clone(),
+            pr_title_validation_regex: self
+                .pr_title_validation_regex
+                .clone()
+                .unwrap_or_else(|| self.config.default_pr_title_validation_regex.clone()),
+            default_needed_reviewers_count: self
+                .default_needed_reviewers_count
+                .unwrap_or(self.config.default_needed_reviewers_count)
+                as i32,
+            default_strategy: self
+                .default_strategy
+                .clone()
+                .unwrap_or_else(|| {
+                    GHMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
+                })
+                .to_string(),
+        }
+    }
+
+    pub fn create_or_update(self, conn: &DbConn) -> Result<RepositoryModel> {
+        let mut handle =
+            match RepositoryModel::get_from_owner_and_name(conn, &self.owner, &self.name) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    RepositoryModel::create(conn, entry)?
+                }
+            };
+
+        handle.pr_title_validation_regex = match self.pr_title_validation_regex {
+            Some(p) => p,
+            None => handle.pr_title_validation_regex,
+        };
+        handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
+            Some(d) => d as i32,
+            None => handle.default_needed_reviewers_count,
+        };
+        handle.default_strategy = match self.default_strategy {
+            Some(d) => d.to_string(),
+            None => handle.default_strategy,
+        };
+        handle.save(conn)?;
+
+        Ok(handle)
     }
 }
 
 impl RepositoryModel {
-    /// Create a repository.
+    /// Create builder.
     ///
     /// # Arguments
     ///
-    /// * `entry` - Database entry
-    pub fn create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
+    /// * `config` - Bot configuration
+    /// * `owner` - Repository owner
+    /// * `name` - Repository name
+    pub fn builder<'a>(config: &'a Config, owner: &str, name: &str) -> RepositoryModelBuilder<'a> {
+        RepositoryModelBuilder::default(config, owner, name)
+    }
+
+    /// Create builder from model.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Bot configuration
+    /// * `model` - Repository
+    pub fn builder_from_model<'a>(config: &'a Config, model: &Self) -> RepositoryModelBuilder<'a> {
+        RepositoryModelBuilder::from_model(config, model)
+    }
+
+    /// Create builder from GitHub repository.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Bot configuration
+    /// * `repo` - Repository
+    pub fn builder_from_github<'a>(
+        config: &'a Config,
+        repo: &GHRepository,
+    ) -> RepositoryModelBuilder<'a> {
+        RepositoryModelBuilder::from_github(config, repo)
+    }
+
+    fn create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
         diesel::insert_into(repository::table)
             .values(&entry)
-            .execute(conn)?;
-
-        Self::get_from_owner_and_name(conn, &entry.owner, &entry.name)
+            .get_result(conn)
+            .map_err(Into::into)
     }
 
-    /// Create default repository.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Application configuration
-    pub fn default(config: &Config) -> Self {
-        Self {
-            id: 0,
-            name: String::new(),
-            owner: String::new(),
-            pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
-            default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-            default_strategy: config.default_merge_strategy.clone(),
-        }
-    }
+    // /// Create default repository.
+    // ///
+    // /// # Arguments
+    // ///
+    // /// * `config` - Application configuration
+    // pub fn default(config: &Config) -> Self {
+    //     Self {
+    //         id: 0,
+    //         name: String::new(),
+    //         owner: String::new(),
+    //         pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
+    //         default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
+    //         default_strategy: config.default_merge_strategy.clone(),
+    //     }
+    // }
 
     /// List repositories.
     ///
@@ -142,19 +256,6 @@ impl RepositoryModel {
     pub fn get_from_path(conn: &DbConn, path: &str) -> Result<Self> {
         let (owner, name) = Self::extract_owner_and_name_from_path(path)?;
         Self::get_from_owner_and_name(conn, owner, name)
-    }
-
-    /// Get or create a repository.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `entry` - Repository creation entry
-    pub fn get_or_create(conn: &DbConn, entry: RepositoryCreation) -> Result<Self> {
-        match Self::get_from_owner_and_name(conn, &entry.owner, &entry.name) {
-            Err(_) => Self::create(conn, entry),
-            Ok(v) => Ok(v),
-        }
     }
 
     /// Get default merge strategy.
@@ -207,161 +308,55 @@ impl RepositoryModel {
     }
 }
 
-/// Merge rule model.
-#[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, AsChangeset)]
-#[table_name = "merge_rule"]
-pub struct MergeRuleModel {
-    /// Merge rule ID.
-    pub id: i32,
-    /// Repository ID.
-    pub repository_id: i32,
-    /// Base branch name.
-    pub base_branch: String,
-    /// Head branch name.
-    pub head_branch: String,
-    /// Strategy name.
-    strategy: String,
-}
+#[cfg(test)]
+mod tests {
+    use github_scbot_conf::Config;
 
-/// Merge rule creation.
-#[derive(Debug, Insertable)]
-#[table_name = "merge_rule"]
-pub struct MergeRuleCreation {
-    /// Repository ID.
-    pub repository_id: i32,
-    /// Base branch name.
-    pub base_branch: String,
-    /// Head branch name.
-    pub head_branch: String,
-    /// Strategy name.
-    pub strategy: String,
-}
+    use pretty_assertions::assert_eq;
 
-impl MergeRuleModel {
-    /// Create merge rule from creation entry.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `entry` - Merge rule creation entry
-    pub fn create(conn: &DbConn, entry: MergeRuleCreation) -> Result<Self> {
-        diesel::insert_into(merge_rule::table)
-            .values(&entry)
-            .execute(conn)?;
+    use crate::{establish_single_test_connection, models::RepositoryModel, DbConn};
 
-        Self::get_from_branches(
-            conn,
-            entry.repository_id,
-            &entry.base_branch,
-            &entry.head_branch,
-        )
+    fn test_init() -> (Config, DbConn) {
+        let config = Config::from_env();
+        let conn = establish_single_test_connection(&config).unwrap();
+
+        (config, conn)
     }
 
-    /// Get or create a merge rule.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `entry` - Merge rule creation entry
-    pub fn get_or_create(conn: &DbConn, entry: MergeRuleCreation) -> Result<Self> {
-        match Self::get_from_branches(
-            conn,
-            entry.repository_id,
-            &entry.base_branch,
-            &entry.head_branch,
-        ) {
-            Ok(v) => Ok(v),
-            Err(_) => Self::create(conn, entry),
-        }
+    #[test]
+    fn create_repository() {
+        let (config, conn) = test_init();
+
+        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+            .create_or_update(&conn)
+            .unwrap();
+
+        assert_eq!(
+            repo,
+            RepositoryModel {
+                id: repo.id,
+                name: "TestRepo".into(),
+                owner: "me".into(),
+                default_strategy: config.default_merge_strategy,
+                default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
+                pr_title_validation_regex: config.default_pr_title_validation_regex
+            }
+        );
     }
 
-    /// Get strategy.
-    pub fn get_strategy(&self) -> GHMergeStrategy {
-        (&self.strategy[..]).try_into().unwrap()
-    }
+    #[test]
+    fn list_repositories() {
+        let (config, conn) = test_init();
 
-    /// Set strategy.
-    ///
-    /// # Arguments
-    ///
-    /// * `strategy` - Merge strategy
-    pub fn set_strategy(&mut self, strategy: GHMergeStrategy) {
-        self.strategy = strategy.to_string();
-    }
+        RepositoryModel::builder(&config, "me", "TestRepo")
+            .create_or_update(&conn)
+            .unwrap();
 
-    /// Get merge rule for branches.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
-    /// * `base_branch` - Base branch
-    /// * `head_branch` - Head branch
-    pub fn get_from_branches(
-        conn: &DbConn,
-        repository_id: i32,
-        base_branch: &str,
-        head_branch: &str,
-    ) -> Result<Self> {
-        merge_rule::table
-            .filter(merge_rule::repository_id.eq(repository_id))
-            .filter(merge_rule::base_branch.eq(base_branch))
-            .filter(merge_rule::head_branch.eq(head_branch))
-            .first(conn)
-            .map_err(|_e| {
-                DatabaseError::UnknownMergeRule(
-                    format!("<ID {}>", repository_id),
-                    base_branch.to_string(),
-                    head_branch.to_string(),
-                )
-            })
-    }
+        RepositoryModel::builder(&config, "me", "AnotherRepo")
+            .create_or_update(&conn)
+            .unwrap();
 
-    /// List rules from repository ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
-    pub fn list_from_repository_id(
-        conn: &DbConn,
-        repository_id: i32,
-    ) -> Result<Vec<MergeRuleModel>> {
-        let rules = merge_rule::table
-            .filter(merge_rule::repository_id.eq(repository_id))
-            .get_results(conn)?;
-
-        Ok(rules)
-    }
-
-    /// List merge rules.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
-        merge_rule::table.load::<Self>(conn).map_err(Into::into)
-    }
-
-    /// Remove merge rule.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    pub fn remove(&self, conn: &DbConn) -> Result<()> {
-        diesel::delete(merge_rule::table.filter(merge_rule::id.eq(self.id))).execute(conn)?;
-
-        Ok(())
-    }
-
-    /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    pub fn save(&mut self, conn: &DbConn) -> Result<()> {
-        self.save_changes::<Self>(conn)?;
-
-        Ok(())
+        let repos = RepositoryModel::list(&conn).unwrap();
+        assert_eq!(repos.len(), 2);
     }
 }

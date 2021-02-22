@@ -3,7 +3,7 @@
 use github_scbot_api::{labels::set_step_label, pulls::get_pull_request};
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    models::{PullRequestCreation, PullRequestModel, RepositoryCreation, RepositoryModel},
+    models::{PullRequestModel, RepositoryModel},
     DbConn,
 };
 use github_scbot_types::{common::GHRepository, pulls::GHPullRequest};
@@ -22,15 +22,9 @@ pub fn process_repository(
     conn: &DbConn,
     repository: &GHRepository,
 ) -> Result<RepositoryModel> {
-    RepositoryModel::get_or_create(
-        conn,
-        RepositoryCreation {
-            name: repository.name.clone(),
-            owner: repository.owner.login.clone(),
-            ..RepositoryCreation::default(&config)
-        },
-    )
-    .map_err(Into::into)
+    RepositoryModel::builder_from_github(config, repository)
+        .create_or_update(conn)
+        .map_err(Into::into)
 }
 
 /// Process GitHub pull request.
@@ -48,10 +42,7 @@ pub fn process_pull_request(
     pull_request: &GHPullRequest,
 ) -> Result<(RepositoryModel, PullRequestModel)> {
     let repo = process_repository(config, conn, repository)?;
-    let mut upstream = PullRequestCreation::from_upstream(&pull_request, &repo);
-    upstream.needed_reviewers_count = repo.default_needed_reviewers_count;
-
-    let pr = PullRequestModel::get_or_create(conn, &repo, upstream)?;
+    let pr = PullRequestModel::builder_from_github(&repo, pull_request).create_or_update(conn)?;
 
     Ok((repo, pr))
 }
@@ -100,12 +91,8 @@ pub async fn get_or_fetch_pull_request(
         Ok(pr_model)
     } else {
         let pr = get_pull_request(config, &repo_model.owner, &repo_model.name, pr_number).await?;
-
-        let pr_model = PullRequestModel::get_or_create(
-            conn,
-            repo_model,
-            PullRequestCreation::from_upstream(&pr, &repo_model),
-        )?;
+        let pr_model =
+            PullRequestModel::builder_from_github(&repo_model, &pr).create_or_update(conn)?;
 
         Ok(pr_model)
     }

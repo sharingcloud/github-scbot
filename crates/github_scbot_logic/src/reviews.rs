@@ -65,14 +65,9 @@ pub async fn handle_review(
     .await?;
 
     // Get or create in database
-    ReviewModel::create_or_update_from_github_review(
-        conn,
-        &repo_model,
-        &pr_model,
-        review,
-        None,
-        Some(permission.can_write()),
-    )?;
+    ReviewModel::builder_from_github(&repo_model, &pr_model, review)
+        .valid(permission.can_write())
+        .create_or_update(conn)?;
 
     Ok(())
 }
@@ -99,15 +94,10 @@ pub async fn handle_review_request(
         )
         .await?;
 
-        ReviewModel::create_or_update(
-            conn,
-            repo_model,
-            pr_model,
-            reviewer,
-            Some(review_state),
-            None,
-            Some(permission.can_write()),
-        )?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .state(review_state)
+            .valid(permission.can_write())
+            .create_or_update(conn)?;
     }
 
     Ok(())

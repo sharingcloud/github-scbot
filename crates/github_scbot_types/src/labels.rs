@@ -32,6 +32,12 @@ impl StepLabel {
     }
 }
 
+impl ToString for StepLabel {
+    fn to_string(&self) -> String {
+        self.to_str().into()
+    }
+}
+
 impl TryFrom<&str> for StepLabel {
     type Error = TypeError;
 

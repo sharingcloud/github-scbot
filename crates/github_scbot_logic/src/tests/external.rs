@@ -2,9 +2,7 @@
 
 use github_scbot_database::{
     establish_single_test_connection,
-    models::{
-        ExternalAccountModel, ExternalAccountRightModel, RepositoryCreation, RepositoryModel,
-    },
+    models::{ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},
 };
 
 use super::test_config;
@@ -17,15 +15,9 @@ fn test_repository_right_validation() {
         .generate_keys()
         .create_or_update(&conn)
         .unwrap();
-    let repo = RepositoryModel::create(
-        &conn,
-        RepositoryCreation {
-            name: "Test".to_string(),
-            owner: "test".to_string(),
-            ..RepositoryCreation::default(&config)
-        },
-    )
-    .unwrap();
+    let repo = RepositoryModel::builder(&config, "test", "Test")
+        .create_or_update(&conn)
+        .unwrap();
 
     // No right
     assert!(ExternalAccountRightModel::get_right(&conn, &account.username, &repo).is_err());

@@ -624,15 +624,9 @@ pub async fn handle_assign_required_reviewers_command(
     .await?;
 
     for reviewer in &reviewers {
-        ReviewModel::create_or_update(
-            conn,
-            repo_model,
-            pr_model,
-            reviewer,
-            None,
-            Some(true),
-            None,
-        )?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .required(true)
+            .create_or_update(conn)?;
     }
 
     Ok(true)
@@ -670,15 +664,9 @@ pub async fn handle_unassign_required_reviewers_command(
     .await?;
 
     for reviewer in &reviewers {
-        ReviewModel::create_or_update(
-            conn,
-            repo_model,
-            pr_model,
-            reviewer,
-            None,
-            Some(false),
-            None,
-        )?;
+        ReviewModel::builder(repo_model, pr_model, reviewer)
+            .required(false)
+            .create_or_update(conn)?;
     }
 
     Ok(true)

@@ -120,9 +120,9 @@ pub(crate) fn list_account_rights(config: &Config, username: &str) -> Result<()>
 pub(crate) fn add_admin_rights(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    let mut account = AccountModel::get_or_create(&conn, username, true)?;
-    account.is_admin = true;
-    account.save(&conn)?;
+    AccountModel::builder(username)
+        .admin(true)
+        .create_or_update(&conn)?;
 
     println!("Account '{}' added/edited with admin rights.", username);
 
@@ -132,9 +132,9 @@ pub(crate) fn add_admin_rights(config: &Config, username: &str) -> Result<()> {
 pub(crate) fn remove_admin_rights(config: &Config, username: &str) -> Result<()> {
     let conn = establish_single_connection(&config)?;
 
-    let mut account = AccountModel::get_or_create(&conn, username, false)?;
-    account.is_admin = false;
-    account.save(&conn)?;
+    AccountModel::builder(username)
+        .admin(false)
+        .create_or_update(&conn)?;
 
     println!("Account '{}' added/edited without admin rights.", username);
 

@@ -59,6 +59,8 @@ macro_rules! impl_err {
 impl WrapEyre {
     impl_err!(bad_request, StatusCode::BAD_REQUEST);
     impl_err!(internal_server_error, StatusCode::INTERNAL_SERVER_ERROR);
+    impl_err!(unauthorized, StatusCode::UNAUTHORIZED);
+    impl_err!(forbidden, StatusCode::FORBIDDEN);
 
     /// Create error with status.
     ///

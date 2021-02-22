@@ -52,6 +52,7 @@ impl From<HistoryWebhookModel> for HistoryWebhookCreation {
     }
 }
 
+#[must_use]
 pub struct HistoryWebhookModelBuilder<'a> {
     repo_model: &'a RepositoryModel,
     pr_model: &'a PullRequestModel,
@@ -93,7 +94,7 @@ impl<'a> HistoryWebhookModelBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> HistoryWebhookModel {
+    fn build(self) -> HistoryWebhookModel {
         HistoryWebhookModel {
             id: -1,
             repository_id: self.repo_model.id,

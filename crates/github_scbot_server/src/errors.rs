@@ -10,6 +10,14 @@ pub enum ServerError {
     #[error("Error while parsing webhook event {0:?}: {1}")]
     EventParseError(EventType, serde_json::Error),
 
+    /// Missing signature for webhook.
+    #[error("Missing webhook signature.")]
+    MissingWebhookSignature,
+
+    /// Invalid signature for webhook.
+    #[error("Invalid webhook signature.")]
+    InvalidWebhookSignature,
+
     /// Wraps [`std::io::Error`].
     #[error(transparent)]
     IOError(#[from] std::io::Error),

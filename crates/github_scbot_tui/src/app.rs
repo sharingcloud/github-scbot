@@ -206,7 +206,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.get_checks_status().unwrap();
+                        let status = selected_pr.get_checks_status();
                         let color = match status {
                             CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
                             CheckStatus::Fail => Color::Red,
@@ -219,7 +219,7 @@ impl<'a> App<'a> {
                     Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.get_qa_status().unwrap();
+                        let status = selected_pr.get_qa_status();
                         let color = match status {
                             QAStatus::Pass | QAStatus::Skipped => Color::Green,
                             QAStatus::Fail => Color::Red,

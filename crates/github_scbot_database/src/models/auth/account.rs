@@ -5,7 +5,16 @@ use crate::{schema::account, DatabaseError, DbConn, Result};
 
 /// Account model.
 #[derive(
-    Debug, Deserialize, Insertable, Identifiable, Serialize, Queryable, Clone, AsChangeset,
+    Debug,
+    Deserialize,
+    Insertable,
+    Identifiable,
+    Serialize,
+    Queryable,
+    Clone,
+    AsChangeset,
+    PartialEq,
+    Eq,
 )]
 #[primary_key(username)]
 #[table_name = "account"]
@@ -16,38 +25,82 @@ pub struct AccountModel {
     pub is_admin: bool,
 }
 
-impl AccountModel {
-    /// Create account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Account username
-    /// * `is_admin` - Is administrator?
-    pub fn create(conn: &DbConn, username: &str, is_admin: bool) -> Result<Self> {
-        let entry = Self {
-            username: username.into(),
-            is_admin,
-        };
+#[must_use]
+pub struct AccountModelBuilder {
+    username: String,
+    is_admin: Option<bool>,
+}
 
-        let data = diesel::insert_into(account::table)
-            .values(&entry)
-            .get_result(conn)?;
-        Ok(data)
+impl AccountModelBuilder {
+    pub fn default<T: Into<String>>(username: T) -> Self {
+        Self {
+            username: username.into(),
+            is_admin: None,
+        }
     }
 
-    /// Get or create account.
+    pub fn from_model(model: &AccountModel) -> Self {
+        Self {
+            username: model.username.clone(),
+            is_admin: Some(model.is_admin),
+        }
+    }
+
+    pub fn admin(mut self, value: bool) -> Self {
+        self.is_admin = Some(value);
+        self
+    }
+
+    pub fn create_or_update(self, conn: &DbConn) -> Result<AccountModel> {
+        let mut handle = match AccountModel::get_from_username(conn, &self.username) {
+            Ok(entry) => entry,
+            Err(_) => {
+                let entry = self.build();
+                AccountModel::create(conn, &entry)?
+            }
+        };
+
+        handle.is_admin = match self.is_admin {
+            Some(a) => a,
+            None => handle.is_admin,
+        };
+        handle.save(conn)?;
+
+        Ok(handle)
+    }
+
+    fn build(&self) -> AccountModel {
+        AccountModel {
+            username: self.username.clone(),
+            is_admin: self.is_admin.unwrap_or(false),
+        }
+    }
+}
+
+impl AccountModel {
+    /// Create builder.
     ///
     /// # Arguments
     ///
-    /// * `conn` - Database connection
-    /// * `username` - Account username
-    /// * `is_admin` - Is administrator?
-    pub fn get_or_create(conn: &DbConn, username: &str, is_admin: bool) -> Result<Self> {
-        match Self::get_from_username(conn, username) {
-            Err(_) => Self::create(conn, username, is_admin),
-            Ok(v) => Ok(v),
-        }
+    /// * `username` - Username
+    pub fn builder<T: Into<String>>(username: T) -> AccountModelBuilder {
+        AccountModelBuilder::default(username)
+    }
+
+    /// Create builder from model.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - Model
+    pub fn builder_from_model(model: &Self) -> AccountModelBuilder {
+        AccountModelBuilder::from_model(model)
+    }
+
+    fn create(conn: &DbConn, entry: &Self) -> Result<Self> {
+        diesel::insert_into(account::table)
+            .values(entry)
+            .get_result(conn)
+            .map_err(Into::into)
     }
 
     /// Get account from username.
@@ -105,5 +158,55 @@ impl AccountModel {
         self.save_changes::<Self>(conn)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_conf::Config;
+    use pretty_assertions::assert_eq;
+
+    use crate::establish_single_test_connection;
+
+    use super::*;
+
+    fn test_init() -> (Config, DbConn) {
+        let config = Config::from_env();
+        let conn = establish_single_test_connection(&config).unwrap();
+
+        (config, conn)
+    }
+
+    #[test]
+    fn create_and_update() {
+        let (_, conn) = test_init();
+
+        let acc = AccountModel::builder("acc")
+            .create_or_update(&conn)
+            .unwrap();
+
+        assert_eq!(
+            acc,
+            AccountModel {
+                username: "acc".into(),
+                is_admin: false
+            }
+        );
+
+        let acc = AccountModel::builder("acc")
+            .admin(true)
+            .create_or_update(&conn)
+            .unwrap();
+
+        assert_eq!(
+            acc,
+            AccountModel {
+                username: "acc".into(),
+                is_admin: true
+            }
+        );
+
+        // Only one account after 2 create_or_update.
+        assert_eq!(AccountModel::list(&conn).unwrap().len(), 1);
     }
 }
