@@ -117,7 +117,7 @@ where
             RepositoryModel::builder_from_model(config, repository).create_or_update(conn)?;
 
         repo_id_map.insert(repository.id, repo.id);
-        repo_map.insert(repo.id, repository);
+        repo_map.insert(repo.id, repo);
     }
 
     // Create or update merge rules
@@ -150,7 +150,7 @@ where
         let pr = PullRequestModel::builder_from_model(repo, pull_request).create_or_update(conn)?;
 
         pr_id_map.insert(pull_request.id, pr.id);
-        pr_map.insert(pr.id, pull_request);
+        pr_map.insert(pr.id, pr);
     }
 
     // Create or update reviews
@@ -164,7 +164,7 @@ where
             .get(&review.pull_request_id)
             .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
         let pr = pr_map.get(pr_id).unwrap();
-        let repo = repo_map.get(&pr.id).unwrap();
+        let repo = repo_map.get(&pr.repository_id).unwrap();
 
         ReviewModel::builder_from_model(&repo, &pr, review).create_or_update(conn)?;
     }

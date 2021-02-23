@@ -41,7 +41,8 @@ test:
 
 # Set crates version
 set-version v:
-	ls -d crates/*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+	ls -d crates/github_scbot_*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+	ls -d crates/github_scbot/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
 
 ###############
 # Documentation

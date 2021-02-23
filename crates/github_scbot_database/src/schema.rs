@@ -6,13 +6,6 @@ table! {
 }
 
 table! {
-    account_right (username, repository_id) {
-        username -> Varchar,
-        repository_id -> Int4,
-    }
-}
-
-table! {
     external_account (username) {
         username -> Varchar,
         public_key -> Text,
@@ -32,8 +25,8 @@ table! {
         id -> Int4,
         repository_id -> Int4,
         pull_request_id -> Int4,
-        username -> Varchar,
         received_at -> Timestamptz,
+        username -> Varchar,
         event_key -> Varchar,
         payload -> Text,
     }
@@ -54,20 +47,20 @@ table! {
         id -> Int4,
         repository_id -> Int4,
         number -> Int4,
+        creator -> Varchar,
         name -> Varchar,
-        automerge -> Bool,
-        step -> Nullable<Varchar>,
-        check_status -> Varchar,
-        status_comment_id -> Int4,
-        qa_status -> Varchar,
-        wip -> Bool,
-        needed_reviewers_count -> Int4,
-        locked -> Bool,
-        merged -> Bool,
         base_branch -> Varchar,
         head_branch -> Varchar,
+        step -> Nullable<Varchar>,
+        check_status -> Varchar,
+        qa_status -> Varchar,
+        needed_reviewers_count -> Int4,
+        status_comment_id -> Int4,
+        automerge -> Bool,
+        wip -> Bool,
+        locked -> Bool,
+        merged -> Bool,
         closed -> Bool,
-        creator -> Varchar,
     }
 }
 
@@ -76,9 +69,9 @@ table! {
         id -> Int4,
         name -> Varchar,
         owner -> Varchar,
-        pr_title_validation_regex -> Text,
-        default_needed_reviewers_count -> Int4,
         default_strategy -> Varchar,
+        default_needed_reviewers_count -> Int4,
+        pr_title_validation_regex -> Text,
     }
 }
 
@@ -93,8 +86,6 @@ table! {
     }
 }
 
-joinable!(account_right -> account (username));
-joinable!(account_right -> repository (repository_id));
 joinable!(external_account_right -> external_account (username));
 joinable!(external_account_right -> repository (repository_id));
 joinable!(history_webhook -> pull_request (pull_request_id));
@@ -105,7 +96,6 @@ joinable!(review -> pull_request (pull_request_id));
 
 allow_tables_to_appear_in_same_query!(
     account,
-    account_right,
     external_account,
     external_account_right,
     history_webhook,
