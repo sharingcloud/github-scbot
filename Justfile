@@ -62,9 +62,28 @@ doc-open:
 build:
 	cargo build
 
-# Build docker
+# Build docker image
 build-docker:
-	docker build --rm -t github-scbot:{{ version }} -f ./docker/Dockerfile .
+	@just build-docker-v {{ version }}
+
+# Build docker image with version
+build-docker-v v:
+	docker build --rm -t github-scbot:{{ v }} -f ./docker/Dockerfile .
+
+# Build docker image using current branch
+build-docker-b:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	BRANCH=`git branch --show-current`
+	just build-docker-v "${BRANCH}"
+
+# Tag Docker image
+tag-docker-v v t:
+	docker tag github-scbot:{{ v }} github-scbot:{{ t }}
+
+# Tag Docker latest image with current version
+tag-docker-latest:
+	docker tag github-scbot:{{ version }} github-scbot:latest
 
 # Build release
 export:

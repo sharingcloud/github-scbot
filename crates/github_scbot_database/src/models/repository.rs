@@ -194,22 +194,6 @@ impl RepositoryModel {
             .map_err(Into::into)
     }
 
-    // /// Create default repository.
-    // ///
-    // /// # Arguments
-    // ///
-    // /// * `config` - Application configuration
-    // pub fn default(config: &Config) -> Self {
-    //     Self {
-    //         id: 0,
-    //         name: String::new(),
-    //         owner: String::new(),
-    //         pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
-    //         default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-    //         default_strategy: config.default_merge_strategy.clone(),
-    //     }
-    // }
-
     /// List repositories.
     ///
     /// # Arguments

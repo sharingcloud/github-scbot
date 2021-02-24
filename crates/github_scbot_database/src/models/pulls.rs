@@ -553,21 +553,6 @@ impl PullRequestModel {
         self.status_comment_id = id as i32
     }
 
-    // /// Set attributes from upstream pull request.
-    // ///
-    // /// # Arguments
-    // ///
-    // /// * `upstream_pr` - GitHub Pull request
-    // pub fn set_from_upstream(&mut self, upstream_pr: &GHPullRequest) {
-    //     self.name = upstream_pr.title.clone();
-    //     self.wip = upstream_pr.draft;
-    //     self.merged = upstream_pr.merged_at.is_some();
-    //     self.closed = upstream_pr.closed_at.is_some();
-    //     self.base_branch = upstream_pr.base.reference.clone();
-    //     self.head_branch = upstream_pr.head.reference.clone();
-    //     self.creator = upstream_pr.user.login.clone();
-    // }
-
     /// Remove closed pull requests.
     ///
     /// # Arguments
