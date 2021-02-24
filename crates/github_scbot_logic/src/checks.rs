@@ -11,7 +11,10 @@ use github_scbot_types::{
     status::CheckStatus,
 };
 
-use crate::{database::process_repository, status::update_pull_request_status, Result};
+use crate::{
+    database::process_repository, pulls::get_checks_status_from_github,
+    status::update_pull_request_status, Result,
+};
 
 /// Handle GitHub check syite event.
 ///
@@ -28,15 +31,24 @@ pub async fn handle_check_suite_event(
     let repo_model = process_repository(config, conn, &event.repository)?;
 
     // Only look for first PR
-    if let Some(pr_number) = event.check_suite.pull_requests.get(0).map(|x| x.number) {
+    if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
         if let Ok(mut pr_model) =
-            PullRequestModel::get_from_repository_and_number(conn, &repo_model, pr_number)
+            PullRequestModel::get_from_repository_and_number(conn, &repo_model, gh_pr.number)
         {
             if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GHCheckConclusion::Success) => {
+                        // Check if other checks are still running
+                        let status = get_checks_status_from_github(
+                            config,
+                            &repo_model.owner,
+                            &repo_model.name,
+                            &gh_pr.head.sha,
+                        )
+                        .await?;
+
                         // Update check status
-                        pr_model.set_checks_status(CheckStatus::Pass);
+                        pr_model.set_checks_status(status);
                         pr_model.save(conn)?;
                     }
                     Some(GHCheckConclusion::Failure) => {
