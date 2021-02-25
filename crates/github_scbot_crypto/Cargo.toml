@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-crypto"
-version = "1.0.0"
+version = "0.9.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 

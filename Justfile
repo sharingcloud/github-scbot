@@ -43,6 +43,7 @@ test:
 set-version v:
 	ls -d crates/github_scbot_*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
 	ls -d crates/github_scbot/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+	sed -i "s/github-scbot:\(.*\)/github-scbot:{{ v }}/" docker/docker-compose.yml
 
 ###############
 # Documentation
@@ -62,40 +63,6 @@ doc-open:
 build:
 	cargo build
 
-# Build docker image
-build-docker:
-	@just build-docker-v {{ version }}
-
-# Build docker image with version
-build-docker-v v:
-	docker build --rm -t github-scbot:{{ v }} -f ./docker/Dockerfile .
-
-# Build docker image using current branch
-build-docker-b:
-	#!/usr/bin/env bash
-	set -euo pipefail
-	BRANCH=`git branch --show-current`
-	just build-docker-v "${BRANCH}"
-
-# Tag Docker image
-tag-docker-v v t:
-	docker tag github-scbot:{{ v }} github-scbot:{{ t }}
-
-# Tag Docker latest image with current version
-tag-docker-latest:
-	docker tag github-scbot:{{ version }} github-scbot:latest
-
-# Build release
-export:
-	@echo "Exporting github-scbot {{ version }} ..."
-	@cargo build --release
-	@mkdir -p ./export
-	@cp ./target/release/github-scbot ./export
-	@cp ./.env.sample ./export
-	@cp ./README.md ./export
-	@tar -zcf ./export/github-scbot-{{ version }}.tar.gz ./export/github-scbot ./export/.env.sample ./export/README.md
-	@echo "Exported to ./export/github-scbot-{{ version }}.tar.gz"
-
 # Run server
 server:
 	cargo run -- server
@@ -103,3 +70,36 @@ server:
 # Run dev-server
 dev-server:
 	cargo watch -x 'run -- server'
+
+#################
+# Docker specific
+
+# Build docker image
+docker-build:
+	@just docker-build-v {{ version }}
+
+# Build docker image with version
+docker-build-v v:
+	docker build --rm -t github-scbot:{{ v }} -f ./docker/Dockerfile .
+
+# Build docker image using current branch
+docker-build-b:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	BRANCH=`git branch --show-current`
+	just build-docker-v "${BRANCH}"
+
+# Tag Docker image
+docker-tag-v v t:
+	docker tag github-scbot:{{ v }} github-scbot:{{ t }}
+
+# Tag Docker latest image with current version
+docker-tag-latest:
+	docker tag github-scbot:{{ version }} github-scbot:latest
+
+# Push current version and latest image to registry
+docker-push reg:
+	docker tag github-scbot:{{ version }} {{ reg }}/github-scbot:{{ version }}
+	docker tag github-scbot:latest {{ reg }}/github-scbot:latest
+	docker push {{ reg }}/github-scbot:{{ version }}
+	docker push {{ reg }}/github-scbot:latest
