@@ -42,14 +42,7 @@ pub fn process_pull_request(
     pull_request: &GHPullRequest,
 ) -> Result<(RepositoryModel, PullRequestModel)> {
     let repo = process_repository(config, conn, repository)?;
-    let pr = match PullRequestModel::builder_from_github(&repo, pull_request).create_or_update(conn)
-    {
-        Ok(pr) => pr,
-        Err(_) => {
-            // Handle duplicate keys
-            PullRequestModel::get_from_repository_and_number(conn, &repo, pull_request.number)?
-        }
-    };
+    let pr = PullRequestModel::builder_from_github(&repo, pull_request).create_or_update(conn)?;
 
     Ok((repo, pr))
 }

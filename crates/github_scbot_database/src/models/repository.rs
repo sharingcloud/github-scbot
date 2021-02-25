@@ -125,30 +125,32 @@ impl<'a> RepositoryModelBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<RepositoryModel> {
-        let mut handle =
-            match RepositoryModel::get_from_owner_and_name(conn, &self.owner, &self.name) {
-                Ok(entry) => entry,
-                Err(_) => {
-                    let entry = self.build();
-                    RepositoryModel::create(conn, entry)?
-                }
+        conn.transaction(|| {
+            let mut handle =
+                match RepositoryModel::get_from_owner_and_name(conn, &self.owner, &self.name) {
+                    Ok(entry) => entry,
+                    Err(_) => {
+                        let entry = self.build();
+                        RepositoryModel::create(conn, entry)?
+                    }
+                };
+
+            handle.pr_title_validation_regex = match self.pr_title_validation_regex {
+                Some(p) => p,
+                None => handle.pr_title_validation_regex,
             };
+            handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
+                Some(d) => d as i32,
+                None => handle.default_needed_reviewers_count,
+            };
+            handle.default_strategy = match self.default_strategy {
+                Some(d) => d.to_string(),
+                None => handle.default_strategy,
+            };
+            handle.save(conn)?;
 
-        handle.pr_title_validation_regex = match self.pr_title_validation_regex {
-            Some(p) => p,
-            None => handle.pr_title_validation_regex,
-        };
-        handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
-            Some(d) => d as i32,
-            None => handle.default_needed_reviewers_count,
-        };
-        handle.default_strategy = match self.default_strategy {
-            Some(d) => d.to_string(),
-            None => handle.default_strategy,
-        };
-        handle.save(conn)?;
-
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 

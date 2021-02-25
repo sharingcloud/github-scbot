@@ -140,34 +140,36 @@ impl<'a> ReviewModelBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<ReviewModel> {
-        let mut handle = match ReviewModel::get_from_pull_request_and_username(
-            conn,
-            self.repo_model,
-            self.pr_model,
-            &self.username,
-        ) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                ReviewModel::create(conn, (&entry).into())?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match ReviewModel::get_from_pull_request_and_username(
+                conn,
+                self.repo_model,
+                self.pr_model,
+                &self.username,
+            ) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    ReviewModel::create(conn, (&entry).into())?
+                }
+            };
 
-        handle.state = match self.state {
-            Some(s) => s.to_string(),
-            None => handle.state,
-        };
-        handle.required = match self.required {
-            Some(r) => r,
-            None => handle.required,
-        };
-        handle.valid = match self.valid {
-            Some(v) => v,
-            None => handle.valid,
-        };
-        handle.save(conn)?;
+            handle.state = match self.state {
+                Some(s) => s.to_string(),
+                None => handle.state,
+            };
+            handle.required = match self.required {
+                Some(r) => r,
+                None => handle.required,
+            };
+            handle.valid = match self.valid {
+                Some(v) => v,
+                None => handle.valid,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 

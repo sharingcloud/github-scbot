@@ -259,73 +259,75 @@ impl<'a> PullRequestModelBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<PullRequestModel> {
-        let mut handle = match PullRequestModel::get_from_repository_and_number(
-            conn,
-            self.repository,
-            self.pr_number,
-        ) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                PullRequestModel::create(conn, entry)?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match PullRequestModel::get_from_repository_and_number(
+                conn,
+                self.repository,
+                self.pr_number,
+            ) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    PullRequestModel::create(conn, entry)?
+                }
+            };
 
-        handle.name = match self.name {
-            Some(n) => n,
-            None => handle.name,
-        };
-        handle.automerge = match self.automerge {
-            Some(a) => a,
-            None => handle.automerge,
-        };
-        handle.base_branch = match self.base_branch {
-            Some(b) => b,
-            None => handle.base_branch,
-        };
-        handle.head_branch = match self.head_branch {
-            Some(b) => b,
-            None => handle.head_branch,
-        };
-        handle.check_status = match self.check_status {
-            Some(c) => c.to_string(),
-            None => handle.check_status,
-        };
-        handle.qa_status = match self.qa_status {
-            Some(q) => q.to_string(),
-            None => handle.qa_status,
-        };
-        handle.status_comment_id = match self.status_comment_id {
-            Some(s) => s as i32,
-            None => handle.status_comment_id,
-        };
-        handle.needed_reviewers_count = match self.needed_reviewers_count {
-            Some(n) => n as i32,
-            None => handle.needed_reviewers_count,
-        };
-        handle.step = match self.step {
-            Some(s) => s.map(|x| x.to_string()),
-            None => handle.step,
-        };
-        handle.wip = match self.wip {
-            Some(w) => w,
-            None => handle.wip,
-        };
-        handle.closed = match self.closed {
-            Some(c) => c,
-            None => handle.closed,
-        };
-        handle.locked = match self.locked {
-            Some(l) => l,
-            None => handle.locked,
-        };
-        handle.merged = match self.merged {
-            Some(m) => m,
-            None => handle.merged,
-        };
-        handle.save(conn)?;
+            handle.name = match self.name {
+                Some(n) => n,
+                None => handle.name,
+            };
+            handle.automerge = match self.automerge {
+                Some(a) => a,
+                None => handle.automerge,
+            };
+            handle.base_branch = match self.base_branch {
+                Some(b) => b,
+                None => handle.base_branch,
+            };
+            handle.head_branch = match self.head_branch {
+                Some(b) => b,
+                None => handle.head_branch,
+            };
+            handle.check_status = match self.check_status {
+                Some(c) => c.to_string(),
+                None => handle.check_status,
+            };
+            handle.qa_status = match self.qa_status {
+                Some(q) => q.to_string(),
+                None => handle.qa_status,
+            };
+            handle.status_comment_id = match self.status_comment_id {
+                Some(s) => s as i32,
+                None => handle.status_comment_id,
+            };
+            handle.needed_reviewers_count = match self.needed_reviewers_count {
+                Some(n) => n as i32,
+                None => handle.needed_reviewers_count,
+            };
+            handle.step = match self.step {
+                Some(s) => s.map(|x| x.to_string()),
+                None => handle.step,
+            };
+            handle.wip = match self.wip {
+                Some(w) => w,
+                None => handle.wip,
+            };
+            handle.closed = match self.closed {
+                Some(c) => c,
+                None => handle.closed,
+            };
+            handle.locked = match self.locked {
+                Some(l) => l,
+                None => handle.locked,
+            };
+            handle.merged = match self.merged {
+                Some(m) => m,
+                None => handle.merged,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 

@@ -35,6 +35,17 @@ pub async fn handle_check_suite_event(
         if let Ok(mut pr_model) =
             PullRequestModel::get_from_repository_and_number(conn, &repo_model, gh_pr.number)
         {
+            // Skip non Github Actions checks
+            if event.check_suite.app.slug != "github-actions" {
+                return Ok(());
+            }
+
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(&event.sender.login)
+                .event_key(EventType::CheckSuite)
+                .payload(event)
+                .create(conn)?;
+
             if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GHCheckConclusion::Success) => {
@@ -59,12 +70,6 @@ pub async fn handle_check_suite_event(
                     _ => (),
                 }
             }
-
-            HistoryWebhookModel::builder(&repo_model, &pr_model)
-                .username(&event.sender.login)
-                .event_key(EventType::CheckSuite)
-                .payload(event)
-                .create(conn)?;
 
             // Update status
             update_pull_request_status(

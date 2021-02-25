@@ -52,21 +52,23 @@ impl AccountModelBuilder {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<AccountModel> {
-        let mut handle = match AccountModel::get_from_username(conn, &self.username) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                AccountModel::create(conn, &entry)?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match AccountModel::get_from_username(conn, &self.username) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    AccountModel::create(conn, &entry)?
+                }
+            };
 
-        handle.is_admin = match self.is_admin {
-            Some(a) => a,
-            None => handle.is_admin,
-        };
-        handle.save(conn)?;
+            handle.is_admin = match self.is_admin {
+                Some(a) => a,
+                None => handle.is_admin,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 
     fn build(&self) -> AccountModel {
