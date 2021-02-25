@@ -40,6 +40,11 @@ pub async fn handle_check_suite_event(
                 return Ok(());
             }
 
+            // Skip non up-to-date checks
+            if event.check_suite.head_sha != gh_pr.head.sha {
+                return Ok(());
+            }
+
             HistoryWebhookModel::builder(&repo_model, &pr_model)
                 .username(&event.sender.login)
                 .event_key(EventType::CheckSuite)
