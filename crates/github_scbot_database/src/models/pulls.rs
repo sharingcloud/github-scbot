@@ -244,7 +244,7 @@ impl<'a> PullRequestModelBuilder<'a> {
                 .check_status
                 .unwrap_or(CheckStatus::Skipped)
                 .to_string(),
-            qa_status: self.qa_status.unwrap_or(QAStatus::Skipped).to_string(),
+            qa_status: self.qa_status.unwrap_or(QAStatus::Waiting).to_string(),
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count
