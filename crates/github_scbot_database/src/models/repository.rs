@@ -125,30 +125,32 @@ impl<'a> RepositoryModelBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<RepositoryModel> {
-        let mut handle =
-            match RepositoryModel::get_from_owner_and_name(conn, &self.owner, &self.name) {
-                Ok(entry) => entry,
-                Err(_) => {
-                    let entry = self.build();
-                    RepositoryModel::create(conn, entry)?
-                }
+        conn.transaction(|| {
+            let mut handle =
+                match RepositoryModel::get_from_owner_and_name(conn, &self.owner, &self.name) {
+                    Ok(entry) => entry,
+                    Err(_) => {
+                        let entry = self.build();
+                        RepositoryModel::create(conn, entry)?
+                    }
+                };
+
+            handle.pr_title_validation_regex = match self.pr_title_validation_regex {
+                Some(p) => p,
+                None => handle.pr_title_validation_regex,
             };
+            handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
+                Some(d) => d as i32,
+                None => handle.default_needed_reviewers_count,
+            };
+            handle.default_strategy = match self.default_strategy {
+                Some(d) => d.to_string(),
+                None => handle.default_strategy,
+            };
+            handle.save(conn)?;
 
-        handle.pr_title_validation_regex = match self.pr_title_validation_regex {
-            Some(p) => p,
-            None => handle.pr_title_validation_regex,
-        };
-        handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
-            Some(d) => d as i32,
-            None => handle.default_needed_reviewers_count,
-        };
-        handle.default_strategy = match self.default_strategy {
-            Some(d) => d.to_string(),
-            None => handle.default_strategy,
-        };
-        handle.save(conn)?;
-
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 
@@ -193,22 +195,6 @@ impl RepositoryModel {
             .get_result(conn)
             .map_err(Into::into)
     }
-
-    // /// Create default repository.
-    // ///
-    // /// # Arguments
-    // ///
-    // /// * `config` - Application configuration
-    // pub fn default(config: &Config) -> Self {
-    //     Self {
-    //         id: 0,
-    //         name: String::new(),
-    //         owner: String::new(),
-    //         pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
-    //         default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-    //         default_strategy: config.default_merge_strategy.clone(),
-    //     }
-    // }
 
     /// List repositories.
     ///

@@ -133,28 +133,30 @@ impl<'a> MergeRuleBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<MergeRuleModel> {
-        let mut handle = match MergeRuleModel::get_from_branches(
-            conn,
-            self.repo_model,
-            self.base_branch.clone(),
-            self.head_branch.clone(),
-        ) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                MergeRuleModel::create(conn, (&entry).into())?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match MergeRuleModel::get_from_branches(
+                conn,
+                self.repo_model,
+                self.base_branch.clone(),
+                self.head_branch.clone(),
+            ) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    MergeRuleModel::create(conn, (&entry).into())?
+                }
+            };
 
-        handle.base_branch = self.base_branch.name();
-        handle.head_branch = self.head_branch.name();
-        handle.strategy = match self.strategy {
-            Some(s) => s.to_string(),
-            None => handle.strategy,
-        };
-        handle.save(conn)?;
+            handle.base_branch = self.base_branch.name();
+            handle.head_branch = self.head_branch.name();
+            handle.strategy = match self.strategy {
+                Some(s) => s.to_string(),
+                None => handle.strategy,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 

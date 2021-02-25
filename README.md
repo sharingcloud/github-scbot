@@ -43,6 +43,7 @@ import/export), and if possible a terminal-like user interface (TUI, à la htop)
 - [x] Validate PR titles depending on per-repository regexes
 - [x] Reacts to comments: Set QA status (or skip), ping, lock/unlock, merge, etc.
 - [x] Require mandatory reviewers
+- [x] Merge support with merge rules depending on head and base branches (specific merge strategies)
 - [x] Enable auto-merge
 - [x] Actions that can be triggered from external sources, with simple token-based authentication
 - [x] Give rights to external sources on specific repositories
@@ -86,6 +87,7 @@ This README supposes the default bot handle: 'bot'.
 - `bot merge`: _Try merging the pull request_
 - `bot ping`: _Ping me_
 - `bot help`: _Show this comment_
+- `bot gif <search>`: _Post a random GIF with a tag_
 - `bot sync`: _Update status comment if needed (maintenance-type command)_
 
 ## Building

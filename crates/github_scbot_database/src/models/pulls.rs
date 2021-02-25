@@ -244,7 +244,7 @@ impl<'a> PullRequestModelBuilder<'a> {
                 .check_status
                 .unwrap_or(CheckStatus::Skipped)
                 .to_string(),
-            qa_status: self.qa_status.unwrap_or(QAStatus::Skipped).to_string(),
+            qa_status: self.qa_status.unwrap_or(QAStatus::Waiting).to_string(),
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count
@@ -259,73 +259,75 @@ impl<'a> PullRequestModelBuilder<'a> {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<PullRequestModel> {
-        let mut handle = match PullRequestModel::get_from_repository_and_number(
-            conn,
-            self.repository,
-            self.pr_number,
-        ) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                PullRequestModel::create(conn, entry)?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match PullRequestModel::get_from_repository_and_number(
+                conn,
+                self.repository,
+                self.pr_number,
+            ) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    PullRequestModel::create(conn, entry)?
+                }
+            };
 
-        handle.name = match self.name {
-            Some(n) => n,
-            None => handle.name,
-        };
-        handle.automerge = match self.automerge {
-            Some(a) => a,
-            None => handle.automerge,
-        };
-        handle.base_branch = match self.base_branch {
-            Some(b) => b,
-            None => handle.base_branch,
-        };
-        handle.head_branch = match self.head_branch {
-            Some(b) => b,
-            None => handle.head_branch,
-        };
-        handle.check_status = match self.check_status {
-            Some(c) => c.to_string(),
-            None => handle.check_status,
-        };
-        handle.qa_status = match self.qa_status {
-            Some(q) => q.to_string(),
-            None => handle.qa_status,
-        };
-        handle.status_comment_id = match self.status_comment_id {
-            Some(s) => s as i32,
-            None => handle.status_comment_id,
-        };
-        handle.needed_reviewers_count = match self.needed_reviewers_count {
-            Some(n) => n as i32,
-            None => handle.needed_reviewers_count,
-        };
-        handle.step = match self.step {
-            Some(s) => s.map(|x| x.to_string()),
-            None => handle.step,
-        };
-        handle.wip = match self.wip {
-            Some(w) => w,
-            None => handle.wip,
-        };
-        handle.closed = match self.closed {
-            Some(c) => c,
-            None => handle.closed,
-        };
-        handle.locked = match self.locked {
-            Some(l) => l,
-            None => handle.locked,
-        };
-        handle.merged = match self.merged {
-            Some(m) => m,
-            None => handle.merged,
-        };
-        handle.save(conn)?;
+            handle.name = match self.name {
+                Some(n) => n,
+                None => handle.name,
+            };
+            handle.automerge = match self.automerge {
+                Some(a) => a,
+                None => handle.automerge,
+            };
+            handle.base_branch = match self.base_branch {
+                Some(b) => b,
+                None => handle.base_branch,
+            };
+            handle.head_branch = match self.head_branch {
+                Some(b) => b,
+                None => handle.head_branch,
+            };
+            handle.check_status = match self.check_status {
+                Some(c) => c.to_string(),
+                None => handle.check_status,
+            };
+            handle.qa_status = match self.qa_status {
+                Some(q) => q.to_string(),
+                None => handle.qa_status,
+            };
+            handle.status_comment_id = match self.status_comment_id {
+                Some(s) => s as i32,
+                None => handle.status_comment_id,
+            };
+            handle.needed_reviewers_count = match self.needed_reviewers_count {
+                Some(n) => n as i32,
+                None => handle.needed_reviewers_count,
+            };
+            handle.step = match self.step {
+                Some(s) => s.map(|x| x.to_string()),
+                None => handle.step,
+            };
+            handle.wip = match self.wip {
+                Some(w) => w,
+                None => handle.wip,
+            };
+            handle.closed = match self.closed {
+                Some(c) => c,
+                None => handle.closed,
+            };
+            handle.locked = match self.locked {
+                Some(l) => l,
+                None => handle.locked,
+            };
+            handle.merged = match self.merged {
+                Some(m) => m,
+                None => handle.merged,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 }
 
@@ -553,21 +555,6 @@ impl PullRequestModel {
         self.status_comment_id = id as i32
     }
 
-    // /// Set attributes from upstream pull request.
-    // ///
-    // /// # Arguments
-    // ///
-    // /// * `upstream_pr` - GitHub Pull request
-    // pub fn set_from_upstream(&mut self, upstream_pr: &GHPullRequest) {
-    //     self.name = upstream_pr.title.clone();
-    //     self.wip = upstream_pr.draft;
-    //     self.merged = upstream_pr.merged_at.is_some();
-    //     self.closed = upstream_pr.closed_at.is_some();
-    //     self.base_branch = upstream_pr.base.reference.clone();
-    //     self.head_branch = upstream_pr.head.reference.clone();
-    //     self.creator = upstream_pr.user.login.clone();
-    // }
-
     /// Remove closed pull requests.
     ///
     /// # Arguments
@@ -674,7 +661,7 @@ mod tests {
                 merged: false,
                 name: "Toto".into(),
                 needed_reviewers_count: repo.default_needed_reviewers_count,
-                qa_status: QAStatus::Skipped.to_string(),
+                qa_status: QAStatus::Waiting.to_string(),
                 status_comment_id: 0,
                 step: None,
                 wip: false

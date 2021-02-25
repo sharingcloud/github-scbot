@@ -217,6 +217,41 @@ pub fn get_merge_strategy_for_branches(
     }
 }
 
+/// Get checks status from GitHub.
+///
+/// # Arguments
+///
+/// * `config` - Bot configuration
+/// * `repository_owner` - Repository owner
+/// * `repository_name` - Repository name
+/// * `sha` - SHA
+pub async fn get_checks_status_from_github(
+    config: &Config,
+    repository_owner: &str,
+    repository_name: &str,
+    sha: &str,
+) -> Result<CheckStatus> {
+    // Get upstream checks
+    let check_suites =
+        list_check_suites_from_git_ref(config, repository_owner, repository_name, sha).await?;
+
+    // Extract status
+    if check_suites.is_empty() {
+        Ok(CheckStatus::Skipped)
+    } else {
+        Ok(check_suites
+            .iter()
+            // Only fetch GitHub Actions statuses
+            .filter(|&s| s.app.slug == "github-actions")
+            .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
+                (CheckStatus::Fail, _) => CheckStatus::Fail,
+                (_, Some(GHCheckConclusion::Failure)) => CheckStatus::Fail,
+                (_, None) => CheckStatus::Waiting,
+                (_, _) => acc,
+            }))
+    }
+}
+
 /// Synchronize pull request from upstream.
 ///
 /// # Arguments
@@ -240,31 +275,13 @@ pub async fn synchronize_pull_request(
     let reviews =
         list_reviews_for_pull_request(config, repository_owner, repository_name, pr_number).await?;
     // Get upstream checks
-    let check_suites = list_check_suites_from_git_ref(
+    let status = get_checks_status_from_github(
         config,
         repository_owner,
         repository_name,
         &upstream_pr.head.sha,
     )
     .await?;
-
-    // Extract status
-    let status: CheckStatus = {
-        if check_suites.is_empty() {
-            CheckStatus::Skipped
-        } else {
-            check_suites
-                .iter()
-                // Only fetch GitHub apps, like GitHub Actions
-                .filter(|&s| s.app.owner.login == "github")
-                .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
-                    (CheckStatus::Fail, _) => CheckStatus::Fail,
-                    (_, Some(GHCheckConclusion::Failure)) => CheckStatus::Fail,
-                    (_, None) => CheckStatus::Waiting,
-                    (_, _) => acc,
-                })
-        }
-    };
 
     let repo = RepositoryModel::builder(config, repository_owner, repository_name)
         .create_or_update(conn)?;

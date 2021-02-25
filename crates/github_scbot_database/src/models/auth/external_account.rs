@@ -79,25 +79,27 @@ impl ExternalAccountModelBuilder {
     }
 
     pub fn create_or_update(self, conn: &DbConn) -> Result<ExternalAccountModel> {
-        let mut handle = match ExternalAccountModel::get_from_username(conn, &self.username) {
-            Ok(entry) => entry,
-            Err(_) => {
-                let entry = self.build();
-                ExternalAccountModel::create(conn, &entry)?
-            }
-        };
+        conn.transaction(|| {
+            let mut handle = match ExternalAccountModel::get_from_username(conn, &self.username) {
+                Ok(entry) => entry,
+                Err(_) => {
+                    let entry = self.build();
+                    ExternalAccountModel::create(conn, &entry)?
+                }
+            };
 
-        handle.public_key = match self.public_key {
-            Some(k) => k,
-            None => handle.public_key,
-        };
-        handle.private_key = match self.private_key {
-            Some(k) => k,
-            None => handle.private_key,
-        };
-        handle.save(conn)?;
+            handle.public_key = match self.public_key {
+                Some(k) => k,
+                None => handle.public_key,
+            };
+            handle.private_key = match self.private_key {
+                Some(k) => k,
+                None => handle.private_key,
+            };
+            handle.save(conn)?;
 
-        Ok(handle)
+            Ok(handle)
+        })
     }
 
     fn build(&self) -> ExternalAccountModel {
