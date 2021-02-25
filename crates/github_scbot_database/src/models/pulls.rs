@@ -661,7 +661,7 @@ mod tests {
                 merged: false,
                 name: "Toto".into(),
                 needed_reviewers_count: repo.default_needed_reviewers_count,
-                qa_status: QAStatus::Skipped.to_string(),
+                qa_status: QAStatus::Waiting.to_string(),
                 status_comment_id: 0,
                 step: None,
                 wip: false
