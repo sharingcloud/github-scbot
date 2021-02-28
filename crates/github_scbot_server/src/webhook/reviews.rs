@@ -10,7 +10,7 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn review_event(
-    config: &Config,
+    config: Config,
     pool: DbPool,
     event: GHReviewEvent,
 ) -> Result<HttpResponse> {
@@ -19,6 +19,6 @@ pub(crate) async fn review_event(
         event.repository.full_name, event.pull_request.number, event.action, event.review.user.login
     );
 
-    handle_review_event(config, &*get_connection(&pool)?, &event).await?;
+    handle_review_event(&config, &*get_connection(&pool)?, &event).await?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }

@@ -10,7 +10,7 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn issue_comment_event(
-    config: &Config,
+    config: Config,
     pool: DbPool,
     event: GHIssueCommentEvent,
 ) -> Result<HttpResponse> {
@@ -19,6 +19,6 @@ pub(crate) async fn issue_comment_event(
         event.repository.full_name, event.issue.number, event.action, event.comment.user.login
     );
 
-    handle_issue_comment_event(config, &*get_connection(&pool)?, &event).await?;
+    handle_issue_comment_event(&config, &*get_connection(&pool)?, &event).await?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

@@ -22,7 +22,7 @@ use crate::{
 };
 
 async fn parse_event(
-    config: &Config,
+    config: Config,
     pool: DbPool,
     event_type: EventType,
     body: &str,
@@ -103,7 +103,7 @@ pub(crate) async fn event_handler(
                 scope.set_extra("Payload", body.clone().into());
             });
 
-            parse_event(&ctx.config, ctx.pool.clone(), event_type, &body)
+            parse_event(ctx.config.clone(), ctx.pool.clone(), event_type, &body)
                 .await
                 .map_err(|e| WrapEyre::internal_server_error(e).into())
         } else {

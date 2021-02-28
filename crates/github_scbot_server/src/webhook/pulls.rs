@@ -10,7 +10,7 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn pull_request_event(
-    config: &Config,
+    config: Config,
     pool: DbPool,
     event: GHPullRequestEvent,
 ) -> Result<HttpResponse> {
@@ -22,6 +22,6 @@ pub(crate) async fn pull_request_event(
         event.pull_request.user.login
     );
 
-    handle_pull_request_event(config, &*get_connection(&pool)?, &event).await?;
+    handle_pull_request_event(&config, &*get_connection(&pool)?, &event).await?;
     Ok(HttpResponse::Ok().body("Pull request."))
 }

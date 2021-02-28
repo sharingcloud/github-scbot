@@ -1,5 +1,8 @@
 //! Webhook errors.
 
+use std::fmt;
+
+use actix_http::error::BlockingError;
 use github_scbot_types::events::EventType;
 use thiserror::Error;
 
@@ -33,6 +36,19 @@ pub enum ServerError {
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error(transparent)]
     LogicError(#[from] github_scbot_logic::LogicError),
+
+    /// Threadpool error.
+    #[error("Threadpool error.")]
+    ThreadpoolError,
+}
+
+impl<E: Into<ServerError> + fmt::Debug + Sync + 'static> From<BlockingError<E>> for ServerError {
+    fn from(err: BlockingError<E>) -> Self {
+        match err {
+            BlockingError::Canceled => Self::ThreadpoolError,
+            BlockingError::Error(e) => e.into(),
+        }
+    }
 }
 
 /// Result alias for `ServerError`.
