@@ -13,7 +13,7 @@ extern crate diesel_migrations;
 
 use diesel::prelude::*;
 use github_scbot_conf::Config;
-use r2d2::Pool;
+use r2d2::{Pool, PooledConnection};
 use r2d2_diesel::ConnectionManager;
 
 pub mod errors;
@@ -70,6 +70,11 @@ pub fn establish_connection(config: &Config) -> Result<DbPool> {
 /// * `config` - Bot configuration
 pub fn establish_test_connection(config: &Config) -> Result<DbPool> {
     ConnectionBuilder::configure_for_test(config).build_pool()
+}
+
+/// Get connection from pool.
+pub fn get_connection(pool: &DbPool) -> Result<PooledConnection<ConnectionManager<DbConn>>> {
+    pool.get().map_err(Into::into)
 }
 
 struct ConnectionBuilder {

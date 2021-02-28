@@ -8,9 +8,9 @@ mod reviews;
 
 use std::convert::TryFrom;
 
-use actix_web::{error, web, HttpRequest, HttpResponse, Result as ActixResult};
+use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_conf::Config;
-use github_scbot_database::DbConn;
+use github_scbot_database::DbPool;
 use github_scbot_types::events::EventType;
 use sentry_actix::eyre::WrapEyre;
 
@@ -23,7 +23,7 @@ use crate::{
 
 async fn parse_event(
     config: &Config,
-    conn: &DbConn,
+    pool: DbPool,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {
@@ -31,7 +31,7 @@ async fn parse_event(
         EventType::CheckRun => {
             checks::check_run_event(
                 config,
-                conn,
+                pool,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
@@ -40,7 +40,7 @@ async fn parse_event(
         EventType::CheckSuite => {
             checks::check_suite_event(
                 config,
-                conn,
+                pool,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
@@ -49,7 +49,7 @@ async fn parse_event(
         EventType::IssueComment => {
             issues::issue_comment_event(
                 config,
-                conn,
+                pool,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
@@ -57,7 +57,7 @@ async fn parse_event(
         }
         EventType::Ping => ping::ping_event(
             config,
-            conn,
+            pool,
             serde_json::from_str(body).map_err(|e| ServerError::EventParseError(event_type, e))?,
         )
         .await
@@ -65,7 +65,7 @@ async fn parse_event(
         EventType::PullRequest => {
             pulls::pull_request_event(
                 config,
-                conn,
+                pool,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
@@ -74,7 +74,7 @@ async fn parse_event(
         EventType::PullRequestReview => {
             reviews::review_event(
                 config,
-                conn,
+                pool,
                 serde_json::from_str(body)
                     .map_err(|e| ServerError::EventParseError(event_type, e))?,
             )
@@ -98,14 +98,12 @@ pub(crate) async fn event_handler(
     // Route event depending on header
     if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
-            let conn = ctx.pool.get().map_err(error::ErrorInternalServerError)?;
-
             sentry::configure_scope(|scope| {
                 scope.set_extra("Event type", event_type.to_str().into());
                 scope.set_extra("Payload", body.clone().into());
             });
 
-            parse_event(&ctx.config, &conn, event_type, &body)
+            parse_event(&ctx.config, ctx.pool.clone(), event_type, &body)
                 .await
                 .map_err(|e| WrapEyre::internal_server_error(e).into())
         } else {
