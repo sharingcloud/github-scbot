@@ -620,52 +620,52 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        establish_single_test_connection,
         models::{PullRequestModel, RepositoryModel},
-        DbConn,
+        Result,
     };
 
-    fn test_init() -> (Config, DbConn) {
+    use crate::tests::using_test_db;
+    use crate::DatabaseError;
+
+    #[actix_rt::test]
+    async fn create_pull_request() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config.clone(), "test_db_pulls", |pool| async move {
+            let conn = pool.get()?;
+            let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+                .create_or_update(&conn)
+                .unwrap();
 
-    #[test]
-    fn create_pull_request() {
-        let (config, conn) = test_init();
+            let pr = PullRequestModel::builder(&repo, 1234, "me")
+                .name("Toto")
+                .create_or_update(&conn)
+                .unwrap();
 
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
-
-        let pr = PullRequestModel::builder(&repo, 1234, "me")
-            .name("Toto")
-            .create_or_update(&conn)
-            .unwrap();
-
-        assert_eq!(
-            pr,
-            PullRequestModel {
-                id: pr.id,
-                repository_id: repo.id,
-                number: 1234,
-                creator: "me".into(),
-                automerge: false,
-                base_branch: "unknown".into(),
-                head_branch: "unknown".into(),
-                check_status: CheckStatus::Skipped.to_string(),
-                closed: false,
-                locked: false,
-                merged: false,
-                name: "Toto".into(),
-                needed_reviewers_count: repo.default_needed_reviewers_count,
-                qa_status: QAStatus::Waiting.to_string(),
-                status_comment_id: 0,
-                step: None,
-                wip: false
-            }
-        );
+            assert_eq!(
+                pr,
+                PullRequestModel {
+                    id: pr.id,
+                    repository_id: repo.id,
+                    number: 1234,
+                    creator: "me".into(),
+                    automerge: false,
+                    base_branch: "unknown".into(),
+                    head_branch: "unknown".into(),
+                    check_status: CheckStatus::Skipped.to_string(),
+                    closed: false,
+                    locked: false,
+                    merged: false,
+                    name: "Toto".into(),
+                    needed_reviewers_count: repo.default_needed_reviewers_count,
+                    qa_status: QAStatus::Waiting.to_string(),
+                    status_comment_id: 0,
+                    step: None,
+                    wip: false
+                }
+            );
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

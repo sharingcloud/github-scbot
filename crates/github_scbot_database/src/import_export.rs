@@ -209,202 +209,224 @@ mod tests {
         status::{CheckStatus, QAStatus},
     };
 
-    use crate::establish_single_test_connection;
-
     use super::*;
+    use crate::tests::using_test_db;
+    use crate::DatabaseError;
 
-    fn test_init() -> (Config, DbConn) {
+    #[actix_rt::test]
+    async fn test_export_models_to_json() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
+        using_test_db(
+            &config.clone(),
+            "test_db_export_models",
+            |pool| async move {
+                let conn = pool.get()?;
+
+                let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+                    .create_or_update(&conn)
+                    .unwrap();
+
+                let pr = PullRequestModel::builder(&repo, 1234, "me")
+                    .create_or_update(&conn)
+                    .unwrap();
+
+                ReviewModel::builder(&repo, &pr, "toto")
+                    .state(GHReviewState::Commented)
+                    .required(true)
+                    .valid(true)
+                    .create_or_update(&conn)
+                    .unwrap();
+
+                MergeRuleModel::builder(&repo, "base", "head")
+                    .strategy(GHMergeStrategy::Merge)
+                    .create_or_update(&conn)
+                    .unwrap();
+
+                ExternalAccountModel::builder("ext")
+                    .public_key("pub")
+                    .private_key("pri")
+                    .create_or_update(&conn)
+                    .unwrap();
+
+                let mut buffer = Vec::new();
+                export_models_to_json(&conn, &mut buffer).unwrap();
+
+                let buffer_string = String::from_utf8(buffer).unwrap();
+                assert!(buffer_string.contains(r#""name": "TestRepo""#));
+                assert!(buffer_string.contains(r#""number": 1234"#));
+                assert!(buffer_string.contains(r#""username": "toto"#));
+                assert!(buffer_string.contains(r#""username": "ext"#));
+                assert!(buffer_string.contains(r#""strategy": "merge"#));
+
+                Ok::<_, DatabaseError>(())
+            },
+        )
+        .await
     }
 
-    #[test]
-    fn test_export_models_to_json() {
-        let (config, conn) = test_init();
+    #[actix_rt::test]
+    async fn test_import_models_from_json() -> Result<()> {
+        let config = Config::from_env();
 
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
+        using_test_db(
+            &config.clone(),
+            "test_db_import_models",
+            |pool| async move {
+                let conn = pool.get()?;
 
-        let pr = PullRequestModel::builder(&repo, 1234, "me")
-            .create_or_update(&conn)
-            .unwrap();
+                let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+                    .create_or_update(&conn)
+                    .unwrap();
 
-        ReviewModel::builder(&repo, &pr, "toto")
-            .state(GHReviewState::Commented)
-            .required(true)
-            .valid(true)
-            .create_or_update(&conn)
-            .unwrap();
+                PullRequestModel::builder(&repo, 1234, "me")
+                    .name("Toto")
+                    .create_or_update(&conn)
+                    .unwrap();
 
-        MergeRuleModel::builder(&repo, "base", "head")
-            .strategy(GHMergeStrategy::Merge)
-            .create_or_update(&conn)
-            .unwrap();
+                let sample = serde_json::json!({
+                    "repositories": [
+                        {
+                            "id": 1,
+                            "name": "TestRepo",
+                            "owner": "me",
+                            "pr_title_validation_regex": "[a-z]*",
+                            "default_needed_reviewers_count": 2,
+                            "default_strategy": "merge"
+                        },
+                        {
+                            "id": 2,
+                            "name": "AnotherRepo",
+                            "owner": "me",
+                            "pr_title_validation_regex": "",
+                            "default_needed_reviewers_count": 3,
+                            "default_strategy": "merge"
+                        }
+                    ],
+                    "pull_requests": [
+                        {
+                            "id": 1,
+                            "repository_id": 1,
+                            "number": 1234,
+                            "name": "Tutu",
+                            "automerge": false,
+                            "step": "step/awaiting-review",
+                            "check_status": "waiting",
+                            "status_comment_id": 1,
+                            "qa_status": "waiting",
+                            "wip": false,
+                            "needed_reviewers_count": 2,
+                            "locked": false,
+                            "merged": false,
+                            "base_branch": "a",
+                            "head_branch": "b",
+                            "closed": false,
+                            "creator": "ghost"
+                        },
+                        {
+                            "id": 2,
+                            "repository_id": 1,
+                            "number": 1235,
+                            "name": "Tata",
+                            "automerge": true,
+                            "step": "step/wip",
+                            "check_status": "pass",
+                            "status_comment_id": 0,
+                            "qa_status": "pass",
+                            "wip": true,
+                            "needed_reviewers_count": 2,
+                            "locked": true,
+                            "merged": false,
+                            "base_branch": "a",
+                            "head_branch": "b",
+                            "closed": false,
+                            "creator": "me"
+                        }
+                    ],
+                    "reviews": [
+                        {
+                            "id": 1,
+                            "pull_request_id": 1,
+                            "username": "tutu",
+                            "state": "commented",
+                            "required": true,
+                            "valid": true
+                        }
+                    ],
+                    "merge_rules": [
+                        {
+                            "id": 1,
+                            "repository_id": 1,
+                            "base_branch": "base",
+                            "head_branch": "head",
+                            "strategy": "merge"
+                        }
+                    ],
+                    "accounts": [
+                        {
+                            "username": "ghost",
+                            "is_admin": false
+                        },
+                        {
+                            "username": "me",
+                            "is_admin": true
+                        }
+                    ],
+                    "external_accounts": [
+                        {
+                            "username": "ext",
+                            "public_key": "pub",
+                            "private_key": "priv"
+                        }
+                    ],
+                    "external_account_rights": [
+                        {
+                            "username": "ext",
+                            "repository_id": 1
+                        }
+                    ]
+                });
 
-        ExternalAccountModel::builder("ext")
-            .public_key("pub")
-            .private_key("pri")
-            .create_or_update(&conn)
-            .unwrap();
+                import_models_from_json(&config, &conn, sample.to_string().as_bytes()).unwrap();
 
-        let mut buffer = Vec::new();
-        export_models_to_json(&conn, &mut buffer).unwrap();
+                let rep_1 =
+                    RepositoryModel::get_from_owner_and_name(&conn, "me", "TestRepo").unwrap();
+                let rep_2 =
+                    RepositoryModel::get_from_owner_and_name(&conn, "me", "AnotherRepo").unwrap();
+                let pr_1 =
+                    PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1234).unwrap();
+                let pr_2 =
+                    PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1235).unwrap();
+                let review_1 =
+                    ReviewModel::get_from_pull_request_and_username(&conn, &rep_1, &pr_1, "tutu")
+                        .unwrap();
+                let rule_1 =
+                    MergeRuleModel::get_from_branches(&conn, &rep_1, "base", "head").unwrap();
+                let acc_1 = AccountModel::get_from_username(&conn, "me").unwrap();
+                let ext_acc_1 = ExternalAccountModel::get_from_username(&conn, "ext").unwrap();
+                let ext_acc_right_1 =
+                    ExternalAccountRightModel::get_right(&conn, "ext", &rep_1).unwrap();
 
-        let buffer_string = String::from_utf8(buffer).unwrap();
-        assert!(buffer_string.contains(r#""name": "TestRepo""#));
-        assert!(buffer_string.contains(r#""number": 1234"#));
-        assert!(buffer_string.contains(r#""username": "toto"#));
-        assert!(buffer_string.contains(r#""username": "ext"#));
-        assert!(buffer_string.contains(r#""strategy": "merge"#));
-    }
+                assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
+                assert_eq!(rep_2.pr_title_validation_regex, "");
+                assert_eq!(pr_1.name, "Tutu");
+                assert_eq!(pr_1.automerge, false);
+                assert_eq!(pr_1.get_checks_status(), CheckStatus::Waiting);
+                assert_eq!(pr_1.get_qa_status(), QAStatus::Waiting);
+                assert_eq!(pr_2.name, "Tata");
+                assert_eq!(pr_2.automerge, true);
+                assert_eq!(pr_2.get_checks_status(), CheckStatus::Pass);
+                assert_eq!(pr_2.get_qa_status(), QAStatus::Pass);
+                assert_eq!(review_1.required, true);
+                assert_eq!(acc_1.is_admin, true);
+                assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
+                assert!(matches!(rule_1.get_strategy(), GHMergeStrategy::Merge));
+                assert_eq!(ext_acc_1.public_key, "pub");
+                assert_eq!(ext_acc_right_1.username, "ext");
 
-    #[test]
-    fn test_import_models_from_json() {
-        let (config, conn) = test_init();
-
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
-
-        PullRequestModel::builder(&repo, 1234, "me")
-            .name("Toto")
-            .create_or_update(&conn)
-            .unwrap();
-
-        let sample = serde_json::json!({
-            "repositories": [
-                {
-                    "id": 1,
-                    "name": "TestRepo",
-                    "owner": "me",
-                    "pr_title_validation_regex": "[a-z]*",
-                    "default_needed_reviewers_count": 2,
-                    "default_strategy": "merge"
-                },
-                {
-                    "id": 2,
-                    "name": "AnotherRepo",
-                    "owner": "me",
-                    "pr_title_validation_regex": "",
-                    "default_needed_reviewers_count": 3,
-                    "default_strategy": "merge"
-                }
-            ],
-            "pull_requests": [
-                {
-                    "id": 1,
-                    "repository_id": 1,
-                    "number": 1234,
-                    "name": "Tutu",
-                    "automerge": false,
-                    "step": "step/awaiting-review",
-                    "check_status": "waiting",
-                    "status_comment_id": 1,
-                    "qa_status": "waiting",
-                    "wip": false,
-                    "needed_reviewers_count": 2,
-                    "locked": false,
-                    "merged": false,
-                    "base_branch": "a",
-                    "head_branch": "b",
-                    "closed": false,
-                    "creator": "ghost"
-                },
-                {
-                    "id": 2,
-                    "repository_id": 1,
-                    "number": 1235,
-                    "name": "Tata",
-                    "automerge": true,
-                    "step": "step/wip",
-                    "check_status": "pass",
-                    "status_comment_id": 0,
-                    "qa_status": "pass",
-                    "wip": true,
-                    "needed_reviewers_count": 2,
-                    "locked": true,
-                    "merged": false,
-                    "base_branch": "a",
-                    "head_branch": "b",
-                    "closed": false,
-                    "creator": "me"
-                }
-            ],
-            "reviews": [
-                {
-                    "id": 1,
-                    "pull_request_id": 1,
-                    "username": "tutu",
-                    "state": "commented",
-                    "required": true,
-                    "valid": true
-                }
-            ],
-            "merge_rules": [
-                {
-                    "id": 1,
-                    "repository_id": 1,
-                    "base_branch": "base",
-                    "head_branch": "head",
-                    "strategy": "merge"
-                }
-            ],
-            "accounts": [
-                {
-                    "username": "ghost",
-                    "is_admin": false
-                },
-                {
-                    "username": "me",
-                    "is_admin": true
-                }
-            ],
-            "external_accounts": [
-                {
-                    "username": "ext",
-                    "public_key": "pub",
-                    "private_key": "priv"
-                }
-            ],
-            "external_account_rights": [
-                {
-                    "username": "ext",
-                    "repository_id": 1
-                }
-            ]
-        });
-
-        import_models_from_json(&config, &conn, sample.to_string().as_bytes()).unwrap();
-
-        let rep_1 = RepositoryModel::get_from_owner_and_name(&conn, "me", "TestRepo").unwrap();
-        let rep_2 = RepositoryModel::get_from_owner_and_name(&conn, "me", "AnotherRepo").unwrap();
-        let pr_1 = PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1234).unwrap();
-        let pr_2 = PullRequestModel::get_from_repository_and_number(&conn, &rep_1, 1235).unwrap();
-        let review_1 =
-            ReviewModel::get_from_pull_request_and_username(&conn, &rep_1, &pr_1, "tutu").unwrap();
-        let rule_1 = MergeRuleModel::get_from_branches(&conn, &rep_1, "base", "head").unwrap();
-        let acc_1 = AccountModel::get_from_username(&conn, "me").unwrap();
-        let ext_acc_1 = ExternalAccountModel::get_from_username(&conn, "ext").unwrap();
-        let ext_acc_right_1 = ExternalAccountRightModel::get_right(&conn, "ext", &rep_1).unwrap();
-
-        assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
-        assert_eq!(rep_2.pr_title_validation_regex, "");
-        assert_eq!(pr_1.name, "Tutu");
-        assert_eq!(pr_1.automerge, false);
-        assert_eq!(pr_1.get_checks_status(), CheckStatus::Waiting);
-        assert_eq!(pr_1.get_qa_status(), QAStatus::Waiting);
-        assert_eq!(pr_2.name, "Tata");
-        assert_eq!(pr_2.automerge, true);
-        assert_eq!(pr_2.get_checks_status(), CheckStatus::Pass);
-        assert_eq!(pr_2.get_qa_status(), QAStatus::Pass);
-        assert_eq!(review_1.required, true);
-        assert_eq!(acc_1.is_admin, true);
-        assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
-        assert!(matches!(rule_1.get_strategy(), GHMergeStrategy::Merge));
-        assert_eq!(ext_acc_1.public_key, "pub");
-        assert_eq!(ext_acc_right_1.username, "ext");
+                Ok::<_, DatabaseError>(())
+            },
+        )
+        .await
     }
 }

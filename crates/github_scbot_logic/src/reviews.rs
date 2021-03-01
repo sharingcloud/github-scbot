@@ -5,8 +5,9 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::{
+    get_connection,
     models::{HistoryWebhookModel, PullRequestModel, RepositoryModel, ReviewModel},
-    DbConn,
+    DbConn, DbPool,
 };
 use github_scbot_types::{
     events::EventType,
@@ -20,24 +21,27 @@ use crate::{database::process_pull_request, status::update_pull_request_status, 
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `event` - GitHub pull request review event
-pub async fn handle_review_event(
-    config: &Config,
-    conn: &DbConn,
-    event: &GHReviewEvent,
-) -> Result<()> {
-    let (repo, mut pr) =
-        process_pull_request(config, conn, &event.repository, &event.pull_request)?;
+pub async fn handle_review_event(config: Config, pool: DbPool, event: GHReviewEvent) -> Result<()> {
+    let (repo, mut pr) = process_pull_request(
+        config.clone(),
+        pool.clone(),
+        event.repository.clone(),
+        event.pull_request.clone(),
+    )
+    .await?;
 
+    let conn = get_connection(&pool)?;
     HistoryWebhookModel::builder(&repo, &pr)
         .username(&event.sender.login)
         .event_key(EventType::PullRequestReview)
-        .payload(event)
-        .create(conn)?;
+        .payload(&event)
+        .create(&conn)?;
 
-    handle_review(config, conn, &repo, &pr, &event.review).await?;
-    update_pull_request_status(config, conn, &repo, &mut pr, &event.pull_request.head.sha).await?;
+    handle_review(&config, &conn, &repo, &pr, &event.review).await?;
+    update_pull_request_status(&config, &conn, &repo, &mut pr, &event.pull_request.head.sha)
+        .await?;
 
     Ok(())
 }

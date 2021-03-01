@@ -2,8 +2,9 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database::{
+    get_connection,
     models::{HistoryWebhookModel, PullRequestModel},
-    DbConn,
+    DbPool,
 };
 use github_scbot_types::{
     checks::{GHCheckConclusion, GHCheckSuiteAction, GHCheckSuiteEvent},
@@ -21,19 +22,21 @@ use crate::{
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `event` - GitHub check suite event
 pub async fn handle_check_suite_event(
-    config: &Config,
-    conn: &DbConn,
-    event: &GHCheckSuiteEvent,
+    config: Config,
+    pool: DbPool,
+    event: GHCheckSuiteEvent,
 ) -> Result<()> {
-    let repo_model = process_repository(config, conn, &event.repository)?;
+    let repo_model =
+        process_repository(config.clone(), pool.clone(), event.repository.clone()).await?;
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
+        let conn = get_connection(&pool)?;
         if let Ok(mut pr_model) =
-            PullRequestModel::get_from_repository_and_number(conn, &repo_model, gh_pr.number)
+            PullRequestModel::get_from_repository_and_number(&conn, &repo_model, gh_pr.number)
         {
             // Skip non Github Actions checks
             if event.check_suite.app.slug != "github-actions" {
@@ -48,15 +51,15 @@ pub async fn handle_check_suite_event(
             HistoryWebhookModel::builder(&repo_model, &pr_model)
                 .username(&event.sender.login)
                 .event_key(EventType::CheckSuite)
-                .payload(event)
-                .create(conn)?;
+                .payload(&event)
+                .create(&conn)?;
 
             if let GHCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GHCheckConclusion::Success) => {
                         // Check if other checks are still running
                         let status = get_checks_status_from_github(
-                            config,
+                            &config,
                             &repo_model.owner,
                             &repo_model.name,
                             &gh_pr.head.sha,
@@ -65,12 +68,12 @@ pub async fn handle_check_suite_event(
 
                         // Update check status
                         pr_model.set_checks_status(status);
-                        pr_model.save(conn)?;
+                        pr_model.save(&conn)?;
                     }
                     Some(GHCheckConclusion::Failure) => {
                         // Update check status
                         pr_model.set_checks_status(CheckStatus::Fail);
-                        pr_model.save(conn)?;
+                        pr_model.save(&conn)?;
                     }
                     _ => (),
                 }
@@ -78,8 +81,8 @@ pub async fn handle_check_suite_event(
 
             // Update status
             update_pull_request_status(
-                config,
-                conn,
+                &config,
+                &conn,
                 &repo_model,
                 &mut pr_model,
                 &event.check_suite.head_sha,

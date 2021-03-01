@@ -300,49 +300,39 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use crate::{establish_single_test_connection, models::RepositoryModel, DbConn};
+    use crate::models::RepositoryModel;
+    use crate::tests::using_test_db;
+    use crate::DatabaseError;
+    use crate::Result;
 
-    fn test_init() -> (Config, DbConn) {
+    #[actix_rt::test]
+    async fn create_repository() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config.clone(), "test_db_repository", |pool| async move {
+            let conn = pool.get()?;
+            let repo =
+                RepositoryModel::builder(&config, "me", "TestRepo").create_or_update(&conn)?;
 
-    #[test]
-    fn create_repository() {
-        let (config, conn) = test_init();
+            assert_eq!(
+                repo,
+                RepositoryModel {
+                    id: repo.id,
+                    name: "TestRepo".into(),
+                    owner: "me".into(),
+                    default_strategy: config.default_merge_strategy.clone(),
+                    default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
+                    pr_title_validation_regex: config.default_pr_title_validation_regex.clone()
+                }
+            );
 
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
+            RepositoryModel::builder(&config, "me", "AnotherRepo").create_or_update(&conn)?;
 
-        assert_eq!(
-            repo,
-            RepositoryModel {
-                id: repo.id,
-                name: "TestRepo".into(),
-                owner: "me".into(),
-                default_strategy: config.default_merge_strategy,
-                default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-                pr_title_validation_regex: config.default_pr_title_validation_regex
-            }
-        );
-    }
+            let repos = RepositoryModel::list(&conn)?;
+            assert_eq!(repos.len(), 2);
 
-    #[test]
-    fn list_repositories() {
-        let (config, conn) = test_init();
-
-        RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
-
-        RepositoryModel::builder(&config, "me", "AnotherRepo")
-            .create_or_update(&conn)
-            .unwrap();
-
-        let repos = RepositoryModel::list(&conn).unwrap();
-        assert_eq!(repos.len(), 2);
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

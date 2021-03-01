@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
-use github_scbot_database::DbConn;
+use github_scbot_database::DbPool;
 use github_scbot_logic::{checks::handle_check_suite_event, database::process_repository};
 use github_scbot_types::checks::{GHCheckRunEvent, GHCheckSuiteEvent};
 use tracing::info;
@@ -10,20 +10,20 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn check_run_event(
-    config: &Config,
-    conn: &DbConn,
+    config: Config,
+    pool: DbPool,
     event: GHCheckRunEvent,
 ) -> Result<HttpResponse> {
-    process_repository(config, conn, &event.repository)?;
-
     info!("Check run event from repository '{}', name '{}', action '{:?}', status '{:?}', conclusion '{:?}'", event.repository.full_name, event.check_run.name, event.action, event.check_run.status, event.check_run.conclusion);
+
+    process_repository(config, pool, event.repository).await?;
 
     Ok(HttpResponse::Ok().body("Check run."))
 }
 
 pub(crate) async fn check_suite_event(
-    config: &Config,
-    conn: &DbConn,
+    config: Config,
+    pool: DbPool,
     event: GHCheckSuiteEvent,
 ) -> Result<HttpResponse> {
     info!(
@@ -34,7 +34,7 @@ pub(crate) async fn check_suite_event(
         event.check_suite.conclusion
     );
 
-    handle_check_suite_event(config, conn, &event).await?;
+    handle_check_suite_event(config, pool, event).await?;
 
     Ok(HttpResponse::Ok().body("Check suite."))
 }

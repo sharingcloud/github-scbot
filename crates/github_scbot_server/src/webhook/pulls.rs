@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
-use github_scbot_database::DbConn;
+use github_scbot_database::DbPool;
 use github_scbot_logic::pulls::handle_pull_request_event;
 use github_scbot_types::pulls::GHPullRequestEvent;
 use tracing::info;
@@ -10,8 +10,8 @@ use tracing::info;
 use crate::errors::Result;
 
 pub(crate) async fn pull_request_event(
-    config: &Config,
-    conn: &DbConn,
+    config: Config,
+    pool: DbPool,
     event: GHPullRequestEvent,
 ) -> Result<HttpResponse> {
     info!(
@@ -22,6 +22,6 @@ pub(crate) async fn pull_request_event(
         event.pull_request.user.login
     );
 
-    handle_pull_request_event(config, conn, &event).await?;
+    handle_pull_request_event(config, pool, event).await?;
     Ok(HttpResponse::Ok().body("Pull request."))
 }

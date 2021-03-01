@@ -3,8 +3,9 @@
 use github_scbot_api::comments::add_reaction_to_comment;
 use github_scbot_conf::Config;
 use github_scbot_database::{
+    get_connection,
     models::{HistoryWebhookModel, RepositoryModel},
-    DbConn,
+    DbConn, DbPool,
 };
 use github_scbot_types::{
     events::EventType,
@@ -23,16 +24,18 @@ use crate::{
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `event` - GitHub Issue comment event
 pub async fn handle_issue_comment_event(
-    config: &Config,
-    conn: &DbConn,
-    event: &GHIssueCommentEvent,
+    config: Config,
+    pool: DbPool,
+    event: GHIssueCommentEvent,
 ) -> Result<()> {
-    let repo_model = process_repository(config, conn, &event.repository)?;
+    let repo_model =
+        process_repository(config.clone(), pool.clone(), event.repository.clone()).await?;
     if let GHIssueCommentAction::Created = event.action {
-        handle_comment_creation(config, conn, &repo_model, event).await?;
+        let conn = get_connection(&pool)?;
+        handle_comment_creation(&config, &conn, &repo_model, &event).await?;
     }
 
     Ok(())

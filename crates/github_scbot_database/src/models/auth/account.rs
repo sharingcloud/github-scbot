@@ -168,47 +168,47 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::establish_single_test_connection;
+    use crate::tests::using_test_db;
 
     use super::*;
 
-    fn test_init() -> (Config, DbConn) {
+    #[actix_rt::test]
+    async fn create_and_update() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config, "test_db_account", |pool| async move {
+            let conn = pool.get()?;
 
-    #[test]
-    fn create_and_update() {
-        let (_, conn) = test_init();
+            let acc = AccountModel::builder("acc")
+                .create_or_update(&conn)
+                .unwrap();
 
-        let acc = AccountModel::builder("acc")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                acc,
+                AccountModel {
+                    username: "acc".into(),
+                    is_admin: false
+                }
+            );
 
-        assert_eq!(
-            acc,
-            AccountModel {
-                username: "acc".into(),
-                is_admin: false
-            }
-        );
+            let acc = AccountModel::builder("acc")
+                .admin(true)
+                .create_or_update(&conn)
+                .unwrap();
 
-        let acc = AccountModel::builder("acc")
-            .admin(true)
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                acc,
+                AccountModel {
+                    username: "acc".into(),
+                    is_admin: true
+                }
+            );
 
-        assert_eq!(
-            acc,
-            AccountModel {
-                username: "acc".into(),
-                is_admin: true
-            }
-        );
+            // Only one account after 2 create_or_update.
+            assert_eq!(AccountModel::list(&conn).unwrap().len(), 1);
 
-        // Only one account after 2 create_or_update.
-        assert_eq!(AccountModel::list(&conn).unwrap().len(), 1);
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

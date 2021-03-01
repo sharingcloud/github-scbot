@@ -763,3 +763,128 @@ pub async fn handle_help_command(
 
     Ok(false)
 }
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database::models::AccountModel;
+    use github_scbot_database::tests::using_test_db;
+    use github_scbot_database::Result;
+
+    use super::*;
+    use crate::LogicError;
+
+    fn create_test_config() -> Config {
+        let mut config = Config::from_env();
+        config.bot_username = "test-bot".into();
+        config.api_disable_client = true;
+        config
+    }
+
+    #[actix_rt::test]
+    async fn test_validate_user_rights_on_command() -> Result<()> {
+        let config = create_test_config();
+
+        using_test_db(&config.clone(), "test_logic_commands", |pool| async move {
+            let conn = pool.get().unwrap();
+            let creator = "me";
+            let repo = RepositoryModel::builder(&config, "me", "test")
+                .create_or_update(&conn)
+                .unwrap();
+
+            let pr = PullRequestModel::builder(&repo, 1, creator)
+                .create_or_update(&conn)
+                .unwrap();
+
+            AccountModel::builder("non-admin")
+                .admin(false)
+                .create_or_update(&conn)
+                .unwrap();
+
+            AccountModel::builder("admin")
+                .admin(true)
+                .create_or_update(&conn)
+                .unwrap();
+
+            // PR creator should be valid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, creator, &pr, &Command::Merge).unwrap(),
+                true
+            );
+            // Non-admin should be invalid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, "non-admin", &pr, &Command::Merge).unwrap(),
+                false
+            );
+            // Admin should be valid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, "admin", &pr, &Command::Merge).unwrap(),
+                true
+            );
+
+            Ok::<_, LogicError>(())
+        })
+        .await
+    }
+
+    #[test]
+    fn test_parse_command_string_from_comment_line() {
+        let config = create_test_config();
+
+        assert_eq!(
+            parse_command_string_from_comment_line(
+                &config,
+                &format!("{} this-is-a-command", config.bot_username)
+            ),
+            Some(("this-is-a-command", vec![]))
+        );
+
+        assert_eq!(
+            parse_command_string_from_comment_line(
+                &config,
+                &format!("{} lock+ Because I choosed to", config.bot_username)
+            ),
+            Some(("lock+", vec!["Because", "I", "choosed", "to"]))
+        );
+
+        assert_eq!(
+            parse_command_string_from_comment_line(&config, "this-is-a-command"),
+            None
+        )
+    }
+
+    #[test]
+    fn test_command_from_comment() {
+        assert_eq!(
+            Command::from_comment("noqa+", &Vec::new()),
+            Some(Command::SkipQAStatus(true))
+        );
+        assert_eq!(
+            Command::from_comment("noqa-", &Vec::new()),
+            Some(Command::SkipQAStatus(false))
+        );
+        assert_eq!(
+            Command::from_comment("qa+", &Vec::new()),
+            Some(Command::QAStatus(Some(true)))
+        );
+        assert_eq!(
+            Command::from_comment("qa-", &Vec::new()),
+            Some(Command::QAStatus(Some(false)))
+        );
+        assert_eq!(
+            Command::from_comment("qa?", &Vec::new()),
+            Some(Command::QAStatus(None))
+        );
+        assert_eq!(
+            Command::from_comment("automerge+", &Vec::new()),
+            Some(Command::Automerge(true))
+        );
+        assert_eq!(
+            Command::from_comment("automerge-", &Vec::new()),
+            Some(Command::Automerge(false))
+        );
+        assert_eq!(
+            Command::from_comment("this-is-a-command", &Vec::new()),
+            None
+        );
+    }
+}

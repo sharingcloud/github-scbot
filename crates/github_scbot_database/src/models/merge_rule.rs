@@ -295,56 +295,55 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::establish_single_test_connection;
-
     use super::*;
 
-    fn test_init() -> (Config, DbConn) {
+    use crate::tests::using_test_db;
+    use crate::DatabaseError;
+
+    #[actix_rt::test]
+    async fn create_and_update() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config.clone(), "test_db_merge_rule", |pool| async move {
+            let conn = pool.get()?;
+            let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+                .create_or_update(&conn)
+                .unwrap();
 
-    #[test]
-    fn create_and_update() {
-        let (config, conn) = test_init();
+            let rule = MergeRuleModel::builder(&repo, "test", RuleBranch::Wildcard)
+                .create_or_update(&conn)
+                .unwrap();
 
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                rule,
+                MergeRuleModel {
+                    id: rule.id,
+                    repository_id: repo.id,
+                    base_branch: "test".into(),
+                    head_branch: "*".into(),
+                    strategy: "merge".into()
+                }
+            );
 
-        let rule = MergeRuleModel::builder(&repo, "test", RuleBranch::Wildcard)
-            .create_or_update(&conn)
-            .unwrap();
+            let rule = MergeRuleModel::builder(&repo, "test", RuleBranch::Wildcard)
+                .strategy(GHMergeStrategy::Squash)
+                .create_or_update(&conn)
+                .unwrap();
 
-        assert_eq!(
-            rule,
-            MergeRuleModel {
-                id: rule.id,
-                repository_id: repo.id,
-                base_branch: "test".into(),
-                head_branch: "*".into(),
-                strategy: "merge".into()
-            }
-        );
+            assert_eq!(
+                rule,
+                MergeRuleModel {
+                    id: rule.id,
+                    repository_id: repo.id,
+                    base_branch: "test".into(),
+                    head_branch: "*".into(),
+                    strategy: "squash".into()
+                }
+            );
 
-        let rule = MergeRuleModel::builder(&repo, "test", RuleBranch::Wildcard)
-            .strategy(GHMergeStrategy::Squash)
-            .create_or_update(&conn)
-            .unwrap();
-
-        assert_eq!(
-            rule,
-            MergeRuleModel {
-                id: rule.id,
-                repository_id: repo.id,
-                base_branch: "test".into(),
-                head_branch: "*".into(),
-                strategy: "squash".into()
-            }
-        );
-
-        assert_eq!(MergeRuleModel::list(&conn).unwrap().len(), 1);
+            assert_eq!(MergeRuleModel::list(&conn).unwrap().len(), 1);
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

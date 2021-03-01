@@ -1,5 +1,6 @@
 //! Logic errors.
 
+use actix_threadpool::BlockingError;
 use thiserror::Error;
 
 /// Logic error.
@@ -16,6 +17,19 @@ pub enum LogicError {
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
+
+    /// Threadpool error.
+    #[error("Threadpool error.")]
+    ThreadpoolError,
+}
+
+impl<E: Into<LogicError> + std::fmt::Debug + Sync + 'static> From<BlockingError<E>> for LogicError {
+    fn from(err: BlockingError<E>) -> Self {
+        match err {
+            BlockingError::Canceled => Self::ThreadpoolError,
+            BlockingError::Error(e) => e.into(),
+        }
+    }
 }
 
 /// Result alias for `LogicError`.

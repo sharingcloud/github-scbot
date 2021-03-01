@@ -1,6 +1,5 @@
 use github_scbot_conf::Config;
 
-mod commands;
 mod external;
 mod reviews;
 
