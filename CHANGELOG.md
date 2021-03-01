@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Adding missing CA certificates in Docker image
+- Removing unneeded fields from GitHub types
+
 ## [0.9.1] - 2021-03-01
 
 ### Changed
@@ -28,5 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/0.9.0...HEAD
-[0.9.0]: https://github.com/sharingcloud/github-scbot/compare/6d8ff170f7f36cc91a37e3af3766f62a3caefbe2...0.9.0
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/sharingcloud/github-scbot/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/sharingcloud/github-scbot/compare/6d8ff170f7f36cc91a37e3af3766f62a3caefbe2...v0.9.0

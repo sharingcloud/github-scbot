@@ -45,8 +45,6 @@ pub struct GHCommitUser {
 /// GitHub Commit.
 #[derive(Debug, Deserialize)]
 pub struct GHCommit {
-    /// Distinct.
-    pub distinct: bool,
     /// Message.
     pub message: String,
     /// Timestamp.
@@ -94,20 +92,8 @@ pub struct GHRepository {
     pub name: String,
     /// Full name.
     pub full_name: String,
-    /// Private?
-    pub private: bool,
     /// Owner.
     pub owner: GHUser,
-    /// HTML URL.
-    pub html_url: String,
-    /// Description.
-    pub description: String,
-    /// Is a fork?
-    pub fork: bool,
-    /// Language.
-    pub language: String,
-    /// Default branch name.
-    pub default_branch: String,
 }
 
 /// GitHub Label.
@@ -130,6 +116,4 @@ pub struct GHApplication {
     pub owner: GHUser,
     /// Name.
     pub name: String,
-    /// Description.
-    pub description: String,
 }
