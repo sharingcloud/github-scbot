@@ -2,7 +2,7 @@ version: "3"
 
 services:
   server:
-    image: github-scbot:0.9.0
+    image: github-scbot:0.9.1
     env_file: ../.env
     environment:
       DATABASE_URL: postgresql://user:pass@postgres:5432/bot
