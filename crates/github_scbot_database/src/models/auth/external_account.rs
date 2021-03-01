@@ -205,64 +205,63 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::establish_single_test_connection;
+    use crate::tests::using_test_db;
 
     use super::*;
 
-    fn test_init() -> (Config, DbConn) {
+    #[actix_rt::test]
+    async fn create_and_update() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config, "test_db_external_account", |pool| async move {
+            let conn = pool.get()?;
 
-    #[test]
-    fn create_and_update() {
-        let (_, conn) = test_init();
+            let acc = ExternalAccountModel::builder("ext1")
+                .create_or_update(&conn)
+                .unwrap();
 
-        let acc = ExternalAccountModel::builder("ext1")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                acc,
+                ExternalAccountModel {
+                    username: "ext1".into(),
+                    public_key: String::new(),
+                    private_key: String::new(),
+                }
+            );
 
-        assert_eq!(
-            acc,
-            ExternalAccountModel {
-                username: "ext1".into(),
-                public_key: String::new(),
-                private_key: String::new(),
-            }
-        );
+            let acc = ExternalAccountModel::builder("ext1")
+                .private_key("pri")
+                .public_key("pub")
+                .create_or_update(&conn)
+                .unwrap();
 
-        let acc = ExternalAccountModel::builder("ext1")
-            .private_key("pri")
-            .public_key("pub")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                acc,
+                ExternalAccountModel {
+                    username: "ext1".into(),
+                    private_key: "pri".into(),
+                    public_key: "pub".into()
+                }
+            );
 
-        assert_eq!(
-            acc,
-            ExternalAccountModel {
-                username: "ext1".into(),
-                private_key: "pri".into(),
-                public_key: "pub".into()
-            }
-        );
+            let acc = ExternalAccountModel::builder("ext1")
+                .public_key("public")
+                .create_or_update(&conn)
+                .unwrap();
 
-        let acc = ExternalAccountModel::builder("ext1")
-            .public_key("public")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                acc,
+                ExternalAccountModel {
+                    username: "ext1".into(),
+                    private_key: "pri".into(),
+                    public_key: "public".into()
+                }
+            );
 
-        assert_eq!(
-            acc,
-            ExternalAccountModel {
-                username: "ext1".into(),
-                private_key: "pri".into(),
-                public_key: "public".into()
-            }
-        );
-
-        // Only one account after 3 create_or_update.
-        assert_eq!(ExternalAccountModel::list(&conn).unwrap().len(), 1);
+            // Only one account after 3 create_or_update.
+            assert_eq!(ExternalAccountModel::list(&conn).unwrap().len(), 1);
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

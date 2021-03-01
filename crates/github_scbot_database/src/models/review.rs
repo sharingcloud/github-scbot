@@ -333,70 +333,64 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::establish_single_test_connection;
+    use crate::tests::using_test_db;
+    use crate::Result;
 
     use super::*;
 
-    fn test_init() -> (Config, DbConn) {
+    #[actix_rt::test]
+    async fn create_and_update() -> Result<()> {
         let config = Config::from_env();
-        let conn = establish_single_test_connection(&config).unwrap();
 
-        (config, conn)
-    }
+        using_test_db(&config.clone(), "test_db_review", |pool| async move {
+            let conn = pool.get()?;
+            let repo =
+                RepositoryModel::builder(&config, "me", "TestRepo").create_or_update(&conn)?;
 
-    #[test]
-    fn create_and_update() {
-        let (config, conn) = test_init();
+            let pr = PullRequestModel::builder(&repo, 1234, "me").create_or_update(&conn)?;
 
-        let repo = RepositoryModel::builder(&config, "me", "TestRepo")
-            .create_or_update(&conn)
-            .unwrap();
+            // Create review
+            let mut entry = ReviewModel::builder(&repo, &pr, "him").create_or_update(&conn)?;
 
-        let pr = PullRequestModel::builder(&repo, 1234, "me")
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(
+                entry,
+                ReviewModel {
+                    id: entry.id,
+                    pull_request_id: pr.id,
+                    username: "him".into(),
+                    state: GHReviewState::Pending.to_string(),
+                    required: false,
+                    valid: false
+                }
+            );
 
-        // Create review
-        let mut entry = ReviewModel::builder(&repo, &pr, "him")
-            .create_or_update(&conn)
-            .unwrap();
+            // Manually update review
+            entry.set_review_state(GHReviewState::Commented);
+            entry.required = true;
+            entry.valid = true;
+            entry.save(&conn)?;
 
-        assert_eq!(
-            entry,
-            ReviewModel {
-                id: entry.id,
-                pull_request_id: pr.id,
-                username: "him".into(),
-                state: GHReviewState::Pending.to_string(),
-                required: false,
-                valid: false
-            }
-        );
+            // Now, update review with builder
+            let entry = ReviewModel::builder(&repo, &pr, "him")
+                .required(false)
+                .create_or_update(&conn)?;
 
-        // Manually update review
-        entry.set_review_state(GHReviewState::Commented);
-        entry.required = true;
-        entry.valid = true;
-        entry.save(&conn).unwrap();
+            assert_eq!(
+                entry,
+                ReviewModel {
+                    id: entry.id,
+                    pull_request_id: pr.id,
+                    username: "him".into(),
+                    state: GHReviewState::Commented.to_string(),
+                    required: false,
+                    valid: true
+                }
+            );
 
-        // Now, update review with builder
-        let entry = ReviewModel::builder(&repo, &pr, "him")
-            .required(false)
-            .create_or_update(&conn)
-            .unwrap();
+            assert_eq!(ReviewModel::list(&conn)?.len(), 1);
 
-        assert_eq!(
-            entry,
-            ReviewModel {
-                id: entry.id,
-                pull_request_id: pr.id,
-                username: "him".into(),
-                state: GHReviewState::Commented.to_string(),
-                required: false,
-                valid: true
-            }
-        );
-
-        assert_eq!(ReviewModel::list(&conn).unwrap().len(), 1);
+            Ok::<_, DatabaseError>(())
+        })
+        .await
     }
 }

@@ -4,7 +4,7 @@ use actix_cors::Cors;
 use actix_web::{error, middleware::Logger, rt, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use github_scbot_conf::{sentry::with_sentry_configuration, Config};
-use github_scbot_database::{establish_connection, DbPool};
+use github_scbot_database::{establish_pool_connection, DbPool};
 use sentry_actix::Sentry;
 use tracing::{error, info};
 
@@ -45,7 +45,7 @@ fn get_bind_address(config: &Config) -> String {
 }
 
 async fn run_bot_server_internal(config: Config, ip_with_port: String) -> Result<()> {
-    if let Ok(pool) = establish_connection(&config) {
+    if let Ok(pool) = establish_pool_connection(&config) {
         let app_context = AppContext {
             config: config.clone(),
             pool: pool.clone(),

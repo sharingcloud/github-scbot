@@ -766,9 +766,12 @@ pub async fn handle_help_command(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_database::{establish_single_test_connection, models::AccountModel};
+    use github_scbot_database::models::AccountModel;
+    use github_scbot_database::tests::using_test_db;
+    use github_scbot_database::Result;
 
     use super::*;
+    use crate::LogicError;
 
     fn create_test_config() -> Config {
         let mut config = Config::from_env();
@@ -777,44 +780,50 @@ mod tests {
         config
     }
 
-    #[test]
-    fn test_validate_user_rights_on_command() {
-        let creator = "me";
+    #[actix_rt::test]
+    async fn test_validate_user_rights_on_command() -> Result<()> {
         let config = create_test_config();
-        let conn = establish_single_test_connection(&config).unwrap();
-        let repo = RepositoryModel::builder(&config, "me", "test")
-            .create_or_update(&conn)
-            .unwrap();
 
-        let pr = PullRequestModel::builder(&repo, 1, creator)
-            .create_or_update(&conn)
-            .unwrap();
+        using_test_db(&config.clone(), "test_logic_commands", |pool| async move {
+            let conn = pool.get().unwrap();
+            let creator = "me";
+            let repo = RepositoryModel::builder(&config, "me", "test")
+                .create_or_update(&conn)
+                .unwrap();
 
-        AccountModel::builder("non-admin")
-            .admin(false)
-            .create_or_update(&conn)
-            .unwrap();
+            let pr = PullRequestModel::builder(&repo, 1, creator)
+                .create_or_update(&conn)
+                .unwrap();
 
-        AccountModel::builder("admin")
-            .admin(true)
-            .create_or_update(&conn)
-            .unwrap();
+            AccountModel::builder("non-admin")
+                .admin(false)
+                .create_or_update(&conn)
+                .unwrap();
 
-        // PR creator should be valid
-        assert_eq!(
-            validate_user_rights_on_command(&conn, creator, &pr, &Command::Merge).unwrap(),
-            true
-        );
-        // Non-admin should be invalid
-        assert_eq!(
-            validate_user_rights_on_command(&conn, "non-admin", &pr, &Command::Merge).unwrap(),
-            false
-        );
-        // Admin should be valid
-        assert_eq!(
-            validate_user_rights_on_command(&conn, "admin", &pr, &Command::Merge).unwrap(),
-            true
-        );
+            AccountModel::builder("admin")
+                .admin(true)
+                .create_or_update(&conn)
+                .unwrap();
+
+            // PR creator should be valid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, creator, &pr, &Command::Merge).unwrap(),
+                true
+            );
+            // Non-admin should be invalid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, "non-admin", &pr, &Command::Merge).unwrap(),
+                false
+            );
+            // Admin should be valid
+            assert_eq!(
+                validate_user_rights_on_command(&conn, "admin", &pr, &Command::Merge).unwrap(),
+                true
+            );
+
+            Ok::<_, LogicError>(())
+        })
+        .await
     }
 
     #[test]

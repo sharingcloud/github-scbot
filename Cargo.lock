@@ -1068,6 +1068,7 @@ dependencies = [
 name = "github-scbot-database"
 version = "0.9.0"
 dependencies = [
+ "actix-rt",
  "chrono",
  "diesel",
  "diesel_migrations",
@@ -1077,7 +1078,6 @@ dependencies = [
  "openssl",
  "pretty_assertions",
  "r2d2",
- "r2d2-diesel",
  "serde",
  "serde_json",
  "thiserror",
@@ -1963,16 +1963,6 @@ dependencies = [
  "log",
  "parking_lot",
  "scheduled-thread-pool",
-]
-
-[[package]]
-name = "r2d2-diesel"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb9c29bad92da76d02bc2c020452ebc3a3fe6fa74cfab91e711c43116e4fb1a3"
-dependencies = [
- "diesel",
- "r2d2",
 ]
 
 [[package]]
