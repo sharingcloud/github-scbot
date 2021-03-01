@@ -11,11 +11,12 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::{
+    get_connection,
     models::{
         HistoryWebhookModel, MergeRuleModel, PullRequestModel, RepositoryModel, ReviewModel,
         RuleBranch,
     },
-    DbConn,
+    DbConn, DbPool,
 };
 use github_scbot_types::{
     checks::GHCheckConclusion,
@@ -40,21 +41,27 @@ use crate::{
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `event` - GitHub pull request event
 pub async fn handle_pull_request_event(
-    config: &Config,
-    conn: &DbConn,
-    event: &GHPullRequestEvent,
+    config: Config,
+    pool: DbPool,
+    event: GHPullRequestEvent,
 ) -> Result<()> {
-    let (repo_model, mut pr_model) =
-        process_pull_request(config, conn, &event.repository, &event.pull_request)?;
+    let (repo_model, mut pr_model) = process_pull_request(
+        config.clone(),
+        pool.clone(),
+        event.repository.clone(),
+        event.pull_request.clone(),
+    )
+    .await?;
+    let conn = get_connection(&pool)?;
 
     HistoryWebhookModel::builder(&repo_model, &pr_model)
         .username(&event.sender.login)
         .event_key(EventType::PullRequest)
-        .payload(event)
-        .create(conn)?;
+        .payload(&event)
+        .create(&conn)?;
 
     // Welcome message
     if let GHPullRequestAction::Opened = event.action {
@@ -63,7 +70,7 @@ pub async fn handle_pull_request_event(
         pr_model.save(&conn)?;
 
         post_welcome_comment(
-            config,
+            &config,
             &repo_model,
             &pr_model,
             &event.pull_request.user.login,
@@ -81,7 +88,7 @@ pub async fn handle_pull_request_event(
             pr_model.save(&conn)?;
             status_changed = true;
 
-            rerequest_existing_reviews(config, conn, &repo_model, &pr_model).await?;
+            rerequest_existing_reviews(&config, &conn, &repo_model, &pr_model).await?;
         }
         GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
             status_changed = true;
@@ -91,8 +98,8 @@ pub async fn handle_pull_request_event(
         }
         GHPullRequestAction::ReviewRequested => {
             handle_review_request(
-                config,
-                conn,
+                &config,
+                &conn,
                 &repo_model,
                 &pr_model,
                 GHReviewState::Pending,
@@ -103,8 +110,8 @@ pub async fn handle_pull_request_event(
         }
         GHPullRequestAction::ReviewRequestRemoved => {
             handle_review_request(
-                config,
-                conn,
+                &config,
+                &conn,
                 &repo_model,
                 &pr_model,
                 GHReviewState::Dismissed,
@@ -126,8 +133,8 @@ pub async fn handle_pull_request_event(
 
     if status_changed {
         update_pull_request_status(
-            config,
-            conn,
+            &config,
+            &conn,
             &repo_model,
             &mut pr_model,
             &event.pull_request.head.sha,

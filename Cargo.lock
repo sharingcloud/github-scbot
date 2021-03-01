@@ -1088,6 +1088,7 @@ name = "github-scbot-logic"
 version = "0.9.0"
 dependencies = [
  "actix-rt",
+ "actix-threadpool",
  "chrono",
  "github-scbot-api",
  "github-scbot-conf",

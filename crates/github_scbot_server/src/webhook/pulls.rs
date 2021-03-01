@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
-use github_scbot_database::{get_connection, DbPool};
+use github_scbot_database::DbPool;
 use github_scbot_logic::pulls::handle_pull_request_event;
 use github_scbot_types::pulls::GHPullRequestEvent;
 use tracing::info;
@@ -22,6 +22,6 @@ pub(crate) async fn pull_request_event(
         event.pull_request.user.login
     );
 
-    handle_pull_request_event(&config, &*get_connection(&pool)?, &event).await?;
+    handle_pull_request_event(config, pool, event).await?;
     Ok(HttpResponse::Ok().body("Pull request."))
 }

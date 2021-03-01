@@ -72,7 +72,7 @@ pub enum GHPullRequestAction {
 }
 
 /// GitHub Pull request state.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GHPullRequestState {
     /// Open.
@@ -84,7 +84,7 @@ pub enum GHPullRequestState {
 }
 
 /// GitHub Pull request.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GHPullRequest {
     /// Number.
     pub number: u64,

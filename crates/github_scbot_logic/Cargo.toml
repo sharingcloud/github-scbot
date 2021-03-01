@@ -9,6 +9,7 @@ github-scbot-api = { path = "../github_scbot_api" }
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
+actix-threadpool = "0.3"
 regex = "1.4"
 thiserror = "1.0"
 tracing = "0.1"

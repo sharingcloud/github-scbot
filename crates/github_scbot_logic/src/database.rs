@@ -4,7 +4,7 @@ use github_scbot_api::{labels::set_step_label, pulls::get_pull_request};
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel},
-    DbConn,
+    DatabaseError, DbConn, DbPool,
 };
 use github_scbot_types::{common::GHRepository, pulls::GHPullRequest};
 
@@ -15,16 +15,21 @@ use crate::errors::Result;
 /// # Arguments
 ///
 /// * `config` - Application config
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `repository` - GitHub repository
-pub fn process_repository(
-    config: &Config,
-    conn: &DbConn,
-    repository: &GHRepository,
+pub async fn process_repository(
+    config: Config,
+    pool: DbPool,
+    repository: GHRepository,
 ) -> Result<RepositoryModel> {
-    RepositoryModel::builder_from_github(config, repository)
-        .create_or_update(conn)
-        .map_err(Into::into)
+    actix_threadpool::run(move || {
+        let conn = pool.get()?;
+        RepositoryModel::builder_from_github(&config, &repository)
+            .create_or_update(&conn)
+            .map_err(DatabaseError::from)
+    })
+    .await
+    .map_err(Into::into)
 }
 
 /// Process GitHub pull request.
@@ -32,17 +37,25 @@ pub fn process_repository(
 /// # Arguments
 ///
 /// * `config` - Application config
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `repository` - GitHub repository
 /// * `pull_request` - GitHub pull request
-pub fn process_pull_request(
-    config: &Config,
-    conn: &DbConn,
-    repository: &GHRepository,
-    pull_request: &GHPullRequest,
+pub async fn process_pull_request(
+    config: Config,
+    pool: DbPool,
+    repository: GHRepository,
+    pull_request: GHPullRequest,
 ) -> Result<(RepositoryModel, PullRequestModel)> {
-    let repo = process_repository(config, conn, repository)?;
-    let pr = PullRequestModel::builder_from_github(&repo, pull_request).create_or_update(conn)?;
+    let (repo, pr) = actix_threadpool::run(move || {
+        let conn = pool.get()?;
+
+        let repo =
+            RepositoryModel::builder_from_github(&config, &repository).create_or_update(&conn)?;
+        let pr =
+            PullRequestModel::builder_from_github(&repo, &pull_request).create_or_update(&conn)?;
+        Ok::<_, DatabaseError>((repo, pr))
+    })
+    .await?;
 
     Ok((repo, pr))
 }

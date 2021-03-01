@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// GitHub User.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GHUser {
     /// Username.
     pub login: String,
@@ -64,7 +64,7 @@ pub struct GHCommit {
 }
 
 /// GitHub Branch.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GHBranch {
     /// Label.
     pub label: Option<String>,
@@ -88,7 +88,7 @@ pub struct GHBranchShort {
 }
 
 /// GitHub Repository.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GHRepository {
     /// Name.
     pub name: String,
@@ -111,7 +111,7 @@ pub struct GHRepository {
 }
 
 /// GitHub Label.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GHLabel {
     /// Name.
     pub name: String,
