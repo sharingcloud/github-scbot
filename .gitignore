@@ -4,3 +4,4 @@
 /.vscode
 lcov.info
 /export
+/tarpaulin-report.html
