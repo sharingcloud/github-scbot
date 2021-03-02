@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- Added a `debug test-sentry` command to test Sentry connection
+
 ### Fixed
 
-- Adding missing CA certificates in Docker image
-- Removing unneeded fields from GitHub types
+- Added missing CA certificates in Docker image
+- Removed unneeded fields from GitHub types
+
+### Changed
+
+- Use Rust nightly for formatting (more options)
 
 ## [0.9.1] - 2021-03-01
 

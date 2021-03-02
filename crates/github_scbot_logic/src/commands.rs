@@ -766,9 +766,7 @@ pub async fn handle_help_command(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_database::models::AccountModel;
-    use github_scbot_database::tests::using_test_db;
-    use github_scbot_database::Result;
+    use github_scbot_database::{models::AccountModel, tests::using_test_db, Result};
 
     use super::*;
     use crate::LogicError;

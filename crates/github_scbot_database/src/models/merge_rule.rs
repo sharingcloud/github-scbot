@@ -6,13 +6,12 @@ use diesel::prelude::*;
 use github_scbot_types::pulls::GHMergeStrategy;
 use serde::{Deserialize, Serialize};
 
+use super::RepositoryModel;
 use crate::{
     errors::{DatabaseError, Result},
     schema::merge_rule,
     DbConn,
 };
-
-use super::RepositoryModel;
 
 /// Rule branch.
 #[derive(Clone)]
@@ -296,9 +295,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
-
-    use crate::tests::using_test_db;
-    use crate::DatabaseError;
+    use crate::{tests::using_test_db, DatabaseError};
 
     #[actix_rt::test]
     async fn create_and_update() -> Result<()> {

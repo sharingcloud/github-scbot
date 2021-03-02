@@ -7,6 +7,8 @@ use thiserror::Error;
 pub(crate) enum CommandError {
     #[error("Cannot remove default strategy.")]
     CannotRemoveDefaultStrategy,
+    #[error("Sentry is not configured.")]
+    SentryNotConfigured,
 
     #[error(transparent)]
     IOError(#[from] std::io::Error),

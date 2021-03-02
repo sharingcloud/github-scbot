@@ -12,8 +12,7 @@ use github_scbot_database::{models::HistoryWebhookModel, tests::using_test_db, R
 use github_scbot_types::events::EventType;
 
 use super::fixtures;
-use crate::ServerError;
-use crate::{server::AppContext, webhook::event_handler};
+use crate::{server::AppContext, webhook::event_handler, ServerError};
 
 fn test_config() -> Config {
     let mut config = Config::from_env();

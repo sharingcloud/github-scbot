@@ -25,12 +25,11 @@ use github_scbot_conf::Config;
 use sentry_actix::eyre::WrapEyre;
 use tracing::warn;
 
-use crate::ServerError;
-
 use super::{
     constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH},
     utils::is_valid_signature,
 };
+use crate::ServerError;
 
 /// Signature verification configuration.
 pub struct VerifySignature {
@@ -73,12 +72,12 @@ where
     S::Future: 'static,
     B: 'static,
 {
+    type Error = Error;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+    type InitError = ();
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
     type Transform = VerifySignatureMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
         ok(VerifySignatureMiddleware {
@@ -102,10 +101,10 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)

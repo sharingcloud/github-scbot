@@ -205,9 +205,8 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::tests::using_test_db;
-
     use super::*;
+    use crate::tests::using_test_db;
 
     #[actix_rt::test]
     async fn create_and_update() -> Result<()> {

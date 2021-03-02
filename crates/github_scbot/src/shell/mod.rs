@@ -57,6 +57,13 @@ enum Command {
         #[structopt(subcommand)]
         cmd: HistoryCommand,
     },
+
+    /// Debug commands
+    Debug {
+        /// Debug command
+        #[structopt(subcommand)]
+        cmd: DebugCommand,
+    },
 }
 
 #[derive(StructOpt)]
@@ -223,6 +230,15 @@ enum HistoryCommand {
 }
 
 #[derive(StructOpt)]
+enum DebugCommand {
+    /// Send a test event to Sentry to troubleshoot connection issues
+    TestSentry {
+        /// Custom message. Default: "This is a test".
+        message: Option<String>,
+    },
+}
+
+#[derive(StructOpt)]
 struct Opt {
     #[structopt(subcommand)]
     cmd: Command,
@@ -375,6 +391,11 @@ fn parse_args(config: Config) -> eyre::Result<()> {
             }
             HistoryCommand::RemoveWebhookEvents => {
                 commands::history::remove_webhook_events(&config)?;
+            }
+        },
+        Command::Debug { cmd } => match cmd {
+            DebugCommand::TestSentry { message } => {
+                commands::debug::send_test_event_to_sentry(&config, message)?;
             }
         },
     }

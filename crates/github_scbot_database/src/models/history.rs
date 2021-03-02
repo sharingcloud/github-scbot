@@ -4,9 +4,8 @@ use diesel::prelude::*;
 use github_scbot_types::events::EventType;
 use serde::{Deserialize, Serialize};
 
-use crate::{schema::history_webhook, DbConn, Result};
-
 use super::{PullRequestModel, RepositoryModel};
+use crate::{schema::history_webhook, DbConn, Result};
 
 /// History webhook model.
 #[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, PartialEq, Eq)]

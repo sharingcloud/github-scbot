@@ -210,8 +210,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::tests::using_test_db;
-    use crate::DatabaseError;
+    use crate::{tests::using_test_db, DatabaseError};
 
     #[actix_rt::test]
     async fn test_export_models_to_json() -> Result<()> {

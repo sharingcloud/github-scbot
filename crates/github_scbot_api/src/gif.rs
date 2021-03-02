@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
+use github_scbot_conf::Config;
+use rand::prelude::*;
 use serde::Deserialize;
 
 use crate::Result;
-use github_scbot_conf::Config;
-use rand::prelude::*;
 
 const GIF_API_URL: &str = "https://g.tenor.com/v1";
 
