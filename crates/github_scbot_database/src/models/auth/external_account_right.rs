@@ -1,8 +1,9 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::models::RepositoryModel;
-use crate::{schema::external_account_right, DatabaseError, DbConn, Result};
+use crate::{
+    models::RepositoryModel, schema::external_account_right, DatabaseError, DbConn, Result,
+};
 
 /// External account right.
 #[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, Insertable)]

@@ -63,7 +63,7 @@ enum Command {
         /// Debug command
         #[structopt(subcommand)]
         cmd: DebugCommand,
-    }
+    },
 }
 
 #[derive(StructOpt)]
@@ -234,8 +234,8 @@ enum DebugCommand {
     /// Send a test event to Sentry to troubleshoot connection issues
     TestSentry {
         /// Custom message. Default: "This is a test".
-        message: Option<String>
-    }
+        message: Option<String>,
+    },
 }
 
 #[derive(StructOpt)]
@@ -397,7 +397,7 @@ fn parse_args(config: Config) -> eyre::Result<()> {
             DebugCommand::TestSentry { message } => {
                 commands::debug::send_test_event_to_sentry(&config, message)?;
             }
-        }
+        },
     }
 
     Ok(())

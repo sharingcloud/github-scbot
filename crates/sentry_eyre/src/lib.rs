@@ -36,8 +36,7 @@
 #![deny(unsafe_code)]
 
 use sentry_backtrace::{backtrace_to_stacktrace, process_event_stacktrace};
-use sentry_core::types::Uuid;
-use sentry_core::Hub;
+use sentry_core::{types::Uuid, Hub};
 use stable_eyre::{eyre, BacktraceExt};
 
 /// Captures an [`eyre::Report`].

@@ -4,13 +4,12 @@ use diesel::prelude::*;
 use github_scbot_types::reviews::{GHReview, GHReviewState};
 use serde::{Deserialize, Serialize};
 
+use super::{PullRequestModel, RepositoryModel};
 use crate::{
     errors::{DatabaseError, Result},
     schema::review,
     DbConn,
 };
-
-use super::{PullRequestModel, RepositoryModel};
 
 /// Review model.
 #[derive(Debug, Deserialize, Serialize, Queryable, Identifiable, AsChangeset, PartialEq, Eq)]
@@ -333,10 +332,8 @@ mod tests {
     use github_scbot_conf::Config;
     use pretty_assertions::assert_eq;
 
-    use crate::tests::using_test_db;
-    use crate::Result;
-
     use super::*;
+    use crate::{tests::using_test_db, Result};
 
     #[actix_rt::test]
     async fn create_and_update() -> Result<()> {

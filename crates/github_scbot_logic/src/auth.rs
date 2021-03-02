@@ -1,10 +1,11 @@
 //! Authentication logic module.
 
-use crate::Result;
 use github_scbot_database::{
     models::{AccountModel, PullRequestModel},
     DbConn,
 };
+
+use crate::Result;
 
 /// List known admin usernames.
 ///

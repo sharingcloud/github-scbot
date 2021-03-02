@@ -615,17 +615,14 @@ impl PullRequestModel {
 #[cfg(test)]
 mod tests {
     use github_scbot_conf::Config;
-
     use github_scbot_types::status::{CheckStatus, QAStatus};
     use pretty_assertions::assert_eq;
 
     use crate::{
         models::{PullRequestModel, RepositoryModel},
-        Result,
+        tests::using_test_db,
+        DatabaseError, Result,
     };
-
-    use crate::tests::using_test_db;
-    use crate::DatabaseError;
 
     #[actix_rt::test]
     async fn create_pull_request() -> Result<()> {

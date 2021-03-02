@@ -6,8 +6,7 @@ use github_scbot_database::{
     establish_single_connection,
     models::{PullRequestModel, RepositoryModel},
 };
-use github_scbot_logic::pulls::synchronize_pull_request;
-use github_scbot_logic::status::update_pull_request_status;
+use github_scbot_logic::{pulls::synchronize_pull_request, status::update_pull_request_status};
 
 use super::errors::Result;
 

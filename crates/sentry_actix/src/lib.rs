@@ -57,20 +57,21 @@
 #![allow(deprecated)]
 #![allow(clippy::type_complexity)]
 
-use std::borrow::Cow;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{borrow::Cow, pin::Pin, sync::Arc};
 
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::Error;
-use futures_util::future::{ok, Future, Ready};
-use futures_util::FutureExt;
-
+use actix_web::{
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    Error,
+};
+use futures_util::{
+    future::{ok, Future, Ready},
+    FutureExt,
+};
 use sentry_core::{
     protocol::{ClientSdkPackage, Event, Request},
     types::Uuid,
+    Hub, SentryFutureExt,
 };
-use sentry_core::{Hub, SentryFutureExt};
 
 #[cfg(feature = "eyre")]
 pub mod eyre;
@@ -163,12 +164,12 @@ where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
 {
+    type Error = Error;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+    type InitError = ();
     type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
-    type Error = Error;
     type Transform = SentryMiddleware<S>;
-    type InitError = ();
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
         ok(SentryMiddleware {
@@ -189,10 +190,10 @@ where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
 {
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
 
     fn poll_ready(
         &mut self,
@@ -260,8 +261,9 @@ fn process_error(hub: Arc<Hub>, e: &actix_web::Error) -> Uuid {
 
 #[cfg(feature = "eyre")]
 fn process_eyre_report(hub: Arc<Hub>, e: &actix_web::Error) -> Option<Uuid> {
-    use self::eyre::WrapEyre;
     use sentry_eyre::EyreHubExt;
+
+    use self::eyre::WrapEyre;
 
     e.as_error::<WrapEyre>()
         .map(|report| hub.capture_eyre(report))

@@ -297,13 +297,9 @@ impl RepositoryModel {
 #[cfg(test)]
 mod tests {
     use github_scbot_conf::Config;
-
     use pretty_assertions::assert_eq;
 
-    use crate::models::RepositoryModel;
-    use crate::tests::using_test_db;
-    use crate::DatabaseError;
-    use crate::Result;
+    use crate::{models::RepositoryModel, tests::using_test_db, DatabaseError, Result};
 
     #[actix_rt::test]
     async fn create_repository() -> Result<()> {

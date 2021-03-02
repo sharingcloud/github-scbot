@@ -1,8 +1,9 @@
 //! Debug commands.
 
-use github_scbot_conf::{Config, sentry::with_sentry_configuration};
+use github_scbot_conf::{sentry::with_sentry_configuration, Config};
+use sentry_core::{protocol::Event, Hub, Level};
+
 use super::errors::{CommandError, Result};
-use sentry_core::{Hub, Level, protocol::Event};
 
 pub(crate) fn send_test_event_to_sentry(config: &Config, message: Option<String>) -> Result<()> {
     if config.sentry_url.is_empty() {

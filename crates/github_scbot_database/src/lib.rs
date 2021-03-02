@@ -11,8 +11,7 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
-use diesel::prelude::*;
-use diesel::r2d2::ConnectionManager;
+use diesel::{prelude::*, r2d2::ConnectionManager};
 use github_scbot_conf::Config;
 use r2d2::{Pool, PooledConnection};
 
@@ -88,8 +87,7 @@ pub mod tests {
     use github_scbot_conf::Config;
     use r2d2::Pool;
 
-    use crate::Result;
-    use crate::{DbConn, DbPool};
+    use crate::{DbConn, DbPool, Result};
 
     fn get_base_url(config: &Config) -> String {
         config
