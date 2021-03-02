@@ -14,7 +14,8 @@ github-scbot-types = { path = "../github_scbot_types" }
 actix-rt = "1"
 dialoguer = "0.7.1"
 owo-colors = "1.2"
-stable-eyre = "0.2"
+sentry-core = "0.21.0"
 sentry-eyre = { path = "../sentry_eyre" }
+stable-eyre = "0.2"
 structopt = "0.3"
 thiserror = "1.0"

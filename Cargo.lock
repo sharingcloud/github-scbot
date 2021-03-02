@@ -1014,6 +1014,7 @@ dependencies = [
  "github-scbot-tui",
  "github-scbot-types",
  "owo-colors",
+ "sentry-core",
  "sentry-eyre",
  "stable-eyre",
  "structopt",
