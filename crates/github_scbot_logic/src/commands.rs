@@ -7,8 +7,9 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::{
+    get_connection,
     models::{PullRequestModel, RepositoryModel, ReviewModel},
-    DbConn,
+    DbConn, DbPool,
 };
 use github_scbot_types::{issues::GHReactionType, labels::StepLabel, status::QAStatus};
 use tracing::info;
@@ -112,7 +113,7 @@ impl Command {
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `repo_model` - Repository model
 /// * `pr_model` - Pull request model
 /// * `comment_id` - Comment ID
@@ -120,7 +121,7 @@ impl Command {
 /// * `comment_body` - Comment body
 pub async fn parse_commands(
     config: &Config,
-    conn: &DbConn,
+    pool: DbPool,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_id: u64,
@@ -132,7 +133,7 @@ pub async fn parse_commands(
     for line in comment_body.lines() {
         let line_handling = parse_single_command(
             config,
-            conn,
+            pool.clone(),
             repo_model,
             pr_model,
             comment_id,
@@ -163,13 +164,14 @@ pub async fn parse_commands(
 /// * `line` - Comment line
 pub async fn parse_single_command(
     config: &Config,
-    conn: &DbConn,
+    pool: DbPool,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_id: u64,
     comment_author: &str,
     line: &str,
 ) -> Result<CommandHandlingStatus> {
+    let conn = get_connection(&pool.clone())?;
     let mut command_handled = CommandHandlingStatus::Ignored;
 
     if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
@@ -183,7 +185,7 @@ pub async fn parse_single_command(
                 pr_model.get_number()
             );
 
-            if !validate_user_rights_on_command(conn, comment_author, pr_model, &action)? {
+            if !validate_user_rights_on_command(&conn, comment_author, pr_model, &action)? {
                 command_handled = CommandHandlingStatus::Denied;
             } else {
                 command_handled = CommandHandlingStatus::Handled;
@@ -192,7 +194,7 @@ pub async fn parse_single_command(
                     Command::Automerge(s) => {
                         handle_auto_merge_command(
                             config,
-                            conn,
+                            &conn,
                             repo_model,
                             pr_model,
                             comment_author,
@@ -200,15 +202,15 @@ pub async fn parse_single_command(
                         )
                         .await?
                     }
-                    Command::SkipQAStatus(s) => handle_skip_qa_command(conn, pr_model, s)?,
+                    Command::SkipQAStatus(s) => handle_skip_qa_command(&conn, pr_model, s)?,
                     Command::QAStatus(s) => {
-                        handle_qa_command(config, conn, repo_model, pr_model, comment_author, s)
+                        handle_qa_command(config, &conn, repo_model, pr_model, comment_author, s)
                             .await?
                     }
                     Command::Lock(s, reason) => {
                         handle_lock_command(
                             config,
-                            conn,
+                            &conn,
                             repo_model,
                             pr_model,
                             comment_author,
@@ -223,7 +225,7 @@ pub async fn parse_single_command(
                     Command::Merge => {
                         handle_merge_command(
                             config,
-                            conn,
+                            &conn,
                             repo_model,
                             pr_model,
                             comment_id,
@@ -232,17 +234,17 @@ pub async fn parse_single_command(
                         .await?
                     }
                     Command::Synchronize => {
-                        handle_sync_command(config, conn, repo_model, pr_model).await?
+                        handle_sync_command(config, &conn, repo_model, pr_model).await?
                     }
                     Command::AssignRequiredReviewers(reviewers) => {
                         handle_assign_required_reviewers_command(
-                            config, conn, repo_model, pr_model, reviewers,
+                            config, &conn, repo_model, pr_model, reviewers,
                         )
                         .await?
                     }
                     Command::UnassignRequiredReviewers(reviewers) => {
                         handle_unassign_required_reviewers_command(
-                            config, conn, repo_model, pr_model, reviewers,
+                            config, &conn, repo_model, pr_model, reviewers,
                         )
                         .await?
                     }
@@ -262,7 +264,8 @@ pub async fn parse_single_command(
                         pr_model.get_number(),
                     )
                     .await?;
-                    update_pull_request_status(config, conn, repo_model, pr_model, &sha).await?;
+                    update_pull_request_status(config, pool.clone(), repo_model, pr_model, &sha)
+                        .await?;
                 }
             }
         }

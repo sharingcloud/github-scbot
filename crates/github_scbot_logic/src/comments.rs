@@ -5,7 +5,7 @@ use github_scbot_conf::Config;
 use github_scbot_database::{
     get_connection,
     models::{HistoryWebhookModel, RepositoryModel},
-    DbConn, DbPool,
+    DbPool,
 };
 use github_scbot_types::{
     events::EventType,
@@ -34,8 +34,7 @@ pub async fn handle_issue_comment_event(
     let repo_model =
         process_repository(config.clone(), pool.clone(), event.repository.clone()).await?;
     if let GHIssueCommentAction::Created = event.action {
-        let conn = get_connection(&pool)?;
-        handle_comment_creation(&config, &conn, &repo_model, &event).await?;
+        handle_comment_creation(&config, pool, &repo_model, &event).await?;
     }
 
     Ok(())
@@ -46,31 +45,32 @@ pub async fn handle_issue_comment_event(
 /// # Arguments
 ///
 /// * `config` - Bot configuration
-/// * `conn` - Database connection
+/// * `pool` - Database pool
 /// * `repo_model` - Repository model
 /// * `event` - GitHub Issue comment event
 pub async fn handle_comment_creation(
     config: &Config,
-    conn: &DbConn,
+    pool: DbPool,
     repo_model: &RepositoryModel,
     event: &GHIssueCommentEvent,
 ) -> Result<()> {
+    let conn = get_connection(&pool.clone())?;
     let issue_number = event.issue.number;
     let comment_author = &event.comment.user.login;
     let comment_body = &event.comment.body;
     let comment_id = event.comment.id;
 
-    match get_or_fetch_pull_request(config, conn, repo_model, issue_number).await {
+    match get_or_fetch_pull_request(config, &conn, repo_model, issue_number).await {
         Ok(mut pr_model) => {
             HistoryWebhookModel::builder(&repo_model, &pr_model)
                 .username(comment_author)
                 .event_key(EventType::IssueComment)
                 .payload(event)
-                .create(conn)?;
+                .create(&conn)?;
 
             let status = parse_commands(
                 config,
-                conn,
+                pool,
                 &repo_model,
                 &mut pr_model,
                 comment_id,

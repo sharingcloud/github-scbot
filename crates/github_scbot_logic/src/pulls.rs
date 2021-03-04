@@ -134,7 +134,7 @@ pub async fn handle_pull_request_event(
     if status_changed {
         update_pull_request_status(
             &config,
-            &conn,
+            pool,
             &repo_model,
             &mut pr_model,
             &event.pull_request.head.sha,

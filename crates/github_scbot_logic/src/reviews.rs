@@ -40,8 +40,14 @@ pub async fn handle_review_event(config: Config, pool: DbPool, event: GHReviewEv
         .create(&conn)?;
 
     handle_review(&config, &conn, &repo, &pr, &event.review).await?;
-    update_pull_request_status(&config, &conn, &repo, &mut pr, &event.pull_request.head.sha)
-        .await?;
+    update_pull_request_status(
+        &config,
+        pool.clone(),
+        &repo,
+        &mut pr,
+        &event.pull_request.head.sha,
+    )
+    .await?;
 
     Ok(())
 }

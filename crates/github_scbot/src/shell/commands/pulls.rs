@@ -3,7 +3,7 @@
 use actix_rt::System;
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    establish_single_connection,
+    establish_pool_connection, establish_single_connection, get_connection,
     models::{PullRequestModel, RepositoryModel},
 };
 use github_scbot_logic::{pulls::synchronize_pull_request, status::update_pull_request_status};
@@ -47,10 +47,11 @@ pub(crate) fn sync_pull_request(
     async fn sync(config: Config, repository_path: String, number: u64) -> Result<()> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
 
-        let conn = establish_single_connection(&config)?;
+        let pool = establish_pool_connection(&config)?;
+        let conn = get_connection(&pool)?;
         let (mut pr, sha) = synchronize_pull_request(&config, &conn, owner, name, number).await?;
         let repo = RepositoryModel::get_from_owner_and_name(&conn, owner, name)?;
-        update_pull_request_status(&config, &conn, &repo, &mut pr, &sha).await?;
+        update_pull_request_status(&config, pool, &repo, &mut pr, &sha).await?;
 
         println!(
             "Pull request #{} from {} updated from GitHub.",

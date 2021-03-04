@@ -82,7 +82,7 @@ pub async fn handle_check_suite_event(
             // Update status
             update_pull_request_status(
                 &config,
-                &conn,
+                pool,
                 &repo_model,
                 &mut pr_model,
                 &event.check_suite.head_sha,

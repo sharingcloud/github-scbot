@@ -73,7 +73,7 @@ async fn test_review_creation() -> Result<()> {
         // Parse comment
         parse_commands(
             &config,
-            &conn,
+            pool.clone(),
             &repo,
             &mut pr,
             0,
@@ -90,7 +90,7 @@ async fn test_review_creation() -> Result<()> {
         // Parse comment
         parse_commands(
             &config,
-            &conn,
+            pool.clone(),
             &repo,
             &mut pr,
             0,
@@ -100,7 +100,16 @@ async fn test_review_creation() -> Result<()> {
         .await?;
 
         // Lock PR
-        parse_commands(&config, &conn, &repo, &mut pr, 0, "me", "test-bot lock+").await?;
+        parse_commands(
+            &config,
+            pool.clone(),
+            &repo,
+            &mut pr,
+            0,
+            "me",
+            "test-bot lock+",
+        )
+        .await?;
 
         // Retrieve "him" review
         let review =

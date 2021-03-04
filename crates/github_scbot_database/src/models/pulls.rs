@@ -13,8 +13,9 @@ use serde::{Deserialize, Serialize};
 use super::{repository::RepositoryModel, ReviewModel};
 use crate::{
     errors::{DatabaseError, Result},
+    get_connection,
     schema::{pull_request, repository},
-    DbConn,
+    DbConn, DbPool,
 };
 
 /// Pull request model.
@@ -378,6 +379,50 @@ impl PullRequestModel {
             .values(&entry)
             .get_result(conn)
             .map_err(Into::into)
+    }
+
+    /// Try to lock the status comment ID field.
+    ///
+    /// # Arguments
+    ///
+    /// * `pull_request_id` - Pull request ID
+    /// * `pool` - Database pool
+    pub async fn try_lock_status_comment_id(pull_request_id: i32, pool: DbPool) -> Result<bool> {
+        actix_threadpool::run(move || {
+            let conn = get_connection(&pool)?;
+            let lock: usize = diesel::update(
+                pull_request::table
+                    .filter(pull_request::id.eq(pull_request_id))
+                    .filter(pull_request::status_comment_id.eq(0)),
+            )
+            // Use the -1 value as a lock
+            .set(pull_request::status_comment_id.eq(-1))
+            .execute(&conn)?;
+
+            Ok::<_, DatabaseError>(lock > 0)
+        })
+        .await
+        .map_err(Into::into)
+    }
+
+    /// Fetch status comment ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `pull_request_id` - Pull request ID
+    /// * `pool` - Database pool
+    pub async fn fetch_status_comment_id(pull_request_id: i32, pool: DbPool) -> Result<i32> {
+        actix_threadpool::run(move || {
+            let conn = get_connection(&pool)?;
+            let status_id = pull_request::table
+                .filter(pull_request::id.eq(pull_request_id))
+                .select(pull_request::status_comment_id)
+                .get_result(&conn)?;
+
+            Ok::<_, DatabaseError>(status_id)
+        })
+        .await
+        .map_err(Into::into)
     }
 
     /// List pull requests.
