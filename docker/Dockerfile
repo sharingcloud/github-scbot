@@ -1,11 +1,11 @@
 # Build stage
-FROM clux/muslrust:stable AS builder
-COPY . /volume
+FROM rust:1.51.0-buster as builder
+WORKDIR /usr/src/app
+COPY . /usr/src/app
 RUN cargo build --release
 
 # Bundle stage
-FROM scratch
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /volume/target/x86_64-unknown-linux-musl/release/github-scbot .
+FROM debian:buster-slim
+COPY --from=builder /usr/src/app/target/release/github-scbot .
 USER 1000
 CMD ["./github-scbot", "server"]

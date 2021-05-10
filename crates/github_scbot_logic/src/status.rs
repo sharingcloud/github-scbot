@@ -12,9 +12,9 @@ use github_scbot_database::{
 };
 use github_scbot_types::{
     labels::StepLabel,
-    pulls::GHMergeStrategy,
-    reviews::GHReviewState,
-    status::{CheckStatus, QAStatus, StatusState},
+    pulls::GhMergeStrategy,
+    reviews::GhReviewState,
+    status::{CheckStatus, QaStatus, StatusState},
 };
 use regex::Regex;
 
@@ -39,7 +39,7 @@ pub struct PullRequestStatus {
     /// Needed reviewers count.
     pub needed_reviewers_count: usize,
     /// QA status.
-    pub qa_status: QAStatus,
+    pub qa_status: QaStatus,
     /// Missing required reviewers.
     pub missing_required_reviewers: Vec<String>,
     /// PR title is valid?
@@ -52,12 +52,6 @@ pub struct PullRequestStatus {
 
 impl PullRequestStatus {
     /// Create status from pull request.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository model
-    /// * `pr_model` - Pull request model
-    /// * `reviews` - Review models
     pub fn from_pull_request(
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
@@ -71,9 +65,9 @@ impl PullRequestStatus {
 
         for review in valid_reviews {
             let state = review.get_review_state();
-            if review.required && state != GHReviewState::Approved {
+            if review.required && state != GhReviewState::Approved {
                 required_reviews.push(review.username.clone());
-            } else if state == GHReviewState::Approved {
+            } else if state == GhReviewState::Approved {
                 approved_reviews.push(review.username.clone());
             }
         }
@@ -109,13 +103,6 @@ impl PullRequestStatus {
 }
 
 /// Create or update status comment.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
 pub async fn create_or_update_status_comment(
     config: &Config,
     pool: DbPool,
@@ -183,14 +170,6 @@ async fn post_new_status_comment(
 }
 
 /// Update pull request status.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `commit_sha` - Commit SHA.
 pub async fn update_pull_request_status(
     config: &Config,
     pool: DbPool,
@@ -241,17 +220,11 @@ pub async fn update_pull_request_status(
 }
 
 /// Generate status comment.
-///
-/// # Arguments
-///
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `reviews` - Review models
 pub fn generate_pr_status_comment(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     reviews: &[ReviewModel],
-    strategy: GHMergeStrategy,
+    strategy: GhMergeStrategy,
 ) -> Result<String> {
     let review_status = PullRequestStatus::from_pull_request(repo_model, pr_model, reviews)?;
 
@@ -273,12 +246,6 @@ pub fn generate_pr_status_comment(
 }
 
 /// Generate pull request status message.
-///
-/// # Arguments
-///
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `reviews` - Review models
 pub fn generate_pr_status_message(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -317,15 +284,15 @@ pub fn generate_pr_status_message(
                 } else {
                     // Check QA status
                     match pr_status.qa_status {
-                        QAStatus::Fail => {
+                        QaStatus::Fail => {
                             status_message = "QA failed. Please fix.".to_string();
                             status_state = StatusState::Failure;
                         }
-                        QAStatus::Waiting => {
+                        QaStatus::Waiting => {
                             status_message = "Waiting for QA".to_string();
                             status_state = StatusState::Pending;
                         }
-                        QAStatus::Pass | QAStatus::Skipped => {
+                        QaStatus::Pass | QaStatus::Skipped => {
                             if pr_status.locked {
                                 status_message = "PR is locked".to_string();
                                 status_state = StatusState::Failure;
@@ -346,7 +313,7 @@ pub fn generate_pr_status_message(
 fn generate_status_comment_rule_section(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
-    strategy: GHMergeStrategy,
+    strategy: GhMergeStrategy,
 ) -> Result<String> {
     let validation_regex = if repo_model.pr_title_validation_regex.is_empty() {
         "None".to_owned()
@@ -384,10 +351,10 @@ fn generate_status_comment_checks_section(
     };
 
     let qa_message = match pr_model.get_qa_status() {
-        QAStatus::Pass => "_passed!_ :heavy_check_mark:",
-        QAStatus::Waiting => "_waiting..._ :clock2:",
-        QAStatus::Fail => "_failed._ :x:",
-        QAStatus::Skipped => "_skipped._ :heavy_check_mark:",
+        QaStatus::Pass => "_passed!_ :heavy_check_mark:",
+        QaStatus::Waiting => "_waiting..._ :clock2:",
+        QaStatus::Fail => "_failed._ :x:",
+        QaStatus::Skipped => "_skipped._ :heavy_check_mark:",
     };
 
     let lock_message = if pr_model.locked {

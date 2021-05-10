@@ -2,7 +2,7 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    establish_single_connection,
+    establish_pool_connection, establish_single_connection, get_connection,
     models::{AccountModel, ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},
 };
 
@@ -52,13 +52,15 @@ pub(crate) fn create_external_token(config: &Config, username: &str) -> Result<(
     Ok(())
 }
 
-pub(crate) fn add_account_right(
+pub(crate) async fn add_account_right(
     config: &Config,
     username: &str,
     repository_path: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection(&config)?;
-    let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
     ExternalAccountRightModel::add_right(&conn, &account.username, &repo)?;
@@ -70,13 +72,15 @@ pub(crate) fn add_account_right(
     Ok(())
 }
 
-pub(crate) fn remove_account_right(
+pub(crate) async fn remove_account_right(
     config: &Config,
     username: &str,
     repository_path: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection(&config)?;
-    let repo = RepositoryModel::get_from_path(&conn, repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
     let account = ExternalAccountModel::get_from_username(&conn, username)?;
 
     ExternalAccountRightModel::remove_right(&conn, &account.username, &repo)?;

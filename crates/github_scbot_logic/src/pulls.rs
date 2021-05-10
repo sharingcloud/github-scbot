@@ -16,142 +16,223 @@ use github_scbot_database::{
         HistoryWebhookModel, MergeRuleModel, PullRequestModel, RepositoryModel, ReviewModel,
         RuleBranch,
     },
-    DbConn, DbPool,
+    DatabaseError, DbConn, DbPool,
 };
 use github_scbot_types::{
-    checks::GHCheckConclusion,
-    common::GHUser,
+    checks::GhCheckConclusion,
+    common::GhUser,
     events::EventType,
     labels::StepLabel,
-    pulls::{GHMergeStrategy, GHPullRequestAction, GHPullRequestEvent},
-    reviews::{GHReview, GHReviewState},
-    status::{CheckStatus, QAStatus},
+    pulls::{GhMergeStrategy, GhPullRequestAction, GhPullRequestEvent},
+    reviews::{GhReview, GhReviewState},
+    status::{CheckStatus, QaStatus},
 };
 
 use crate::{
-    database::process_pull_request,
+    commands::{parse_commands, Command},
     reviews::{handle_review_request, rerequest_existing_reviews},
     status::{update_pull_request_status, PullRequestStatus},
     welcome::post_welcome_comment,
     Result,
 };
 
+/// Pull request opened status.
+pub enum PullRequestOpenedStatus {
+    /// Pull request is already created.
+    AlreadyCreated,
+    /// Pull request is created.
+    Created,
+    /// Pull request is ignored.
+    Ignored,
+}
+
+pub(crate) fn should_create_pull_request(
+    config: &Config,
+    repo_model: &RepositoryModel,
+    event: &GhPullRequestEvent,
+) -> Result<bool> {
+    if repo_model.manual_interaction {
+        // Check for magic instruction to enable bot
+        let commands = parse_commands(&config, &event.pull_request.body)?;
+        println!("{:?}", commands);
+        for command in commands {
+            if let Command::AdminEnable = command {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    } else {
+        Ok(true)
+    }
+}
+
+/// Handle pull request Opened event.
+pub async fn handle_pull_request_opened(
+    config: Config,
+    pool: DbPool,
+    event: GhPullRequestEvent,
+) -> Result<PullRequestOpenedStatus> {
+    let conn = get_connection(&pool)?;
+
+    // Get or create repository
+    let repo_model =
+        RepositoryModel::builder_from_github(&config, &event.repository).create_or_update(&conn)?;
+
+    if let Err(DatabaseError::UnknownPullRequest(_, _)) =
+        PullRequestModel::get_from_repository_and_number(
+            &conn,
+            &repo_model,
+            event.pull_request.number,
+        )
+    {
+        if should_create_pull_request(&config, &repo_model, &event)? {
+            let (_, mut pr_model) = PullRequestModel::create_or_update_from_github(
+                config.clone(),
+                pool.clone(),
+                event.repository.clone(),
+                event.pull_request.clone(),
+            )
+            .await?;
+
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(&event.sender.login)
+                .event_key(EventType::PullRequest)
+                .payload(&event)
+                .create(&conn)?;
+
+            pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
+            pr_model.set_checks_status(CheckStatus::Waiting);
+            pr_model.save(&conn)?;
+
+            // Get up-to-date data
+            let (mut pr_model, _) = synchronize_pull_request(
+                &config,
+                &conn,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+            )
+            .await?;
+
+            update_pull_request_status(
+                &config,
+                pool,
+                &repo_model,
+                &mut pr_model,
+                &event.pull_request.head.sha,
+            )
+            .await?;
+
+            post_welcome_comment(
+                &config,
+                &repo_model,
+                &pr_model,
+                &event.pull_request.user.login,
+            )
+            .await?;
+
+            Ok(PullRequestOpenedStatus::Created)
+        } else {
+            Ok(PullRequestOpenedStatus::Ignored)
+        }
+    } else {
+        Ok(PullRequestOpenedStatus::AlreadyCreated)
+    }
+}
+
 /// Handle GitHub pull request event.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `event` - GitHub pull request event
 pub async fn handle_pull_request_event(
     config: Config,
     pool: DbPool,
-    event: GHPullRequestEvent,
+    event: GhPullRequestEvent,
 ) -> Result<()> {
-    let (repo_model, mut pr_model) = process_pull_request(
-        config.clone(),
-        pool.clone(),
-        event.repository.clone(),
-        event.pull_request.clone(),
-    )
-    .await?;
     let conn = get_connection(&pool)?;
 
-    HistoryWebhookModel::builder(&repo_model, &pr_model)
-        .username(&event.sender.login)
-        .event_key(EventType::PullRequest)
-        .payload(&event)
-        .create(&conn)?;
+    // Get or create repository
+    let repo_model =
+        RepositoryModel::builder_from_github(&config, &event.repository).create_or_update(&conn)?;
 
-    // Welcome message
-    if let GHPullRequestAction::Opened = event.action {
-        // Define needed reviewers count.
-        pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
-        pr_model.save(&conn)?;
+    if let Ok(mut pr_model) = PullRequestModel::get_from_repository_and_number(
+        &conn,
+        &repo_model,
+        event.pull_request.number,
+    ) {
+        HistoryWebhookModel::builder(&repo_model, &pr_model)
+            .username(&event.sender.login)
+            .event_key(EventType::PullRequest)
+            .payload(&event)
+            .create(&conn)?;
 
-        post_welcome_comment(
-            &config,
-            &repo_model,
-            &pr_model,
-            &event.pull_request.user.login,
-        )
-        .await?;
-    }
+        let mut status_changed = false;
 
-    let mut status_changed = false;
+        // Status update
+        match event.action {
+            GhPullRequestAction::Synchronize => {
+                // Force status to waiting
+                pr_model.set_checks_status(CheckStatus::Waiting);
+                pr_model.save(&conn)?;
+                status_changed = true;
 
-    // Status update
-    match event.action {
-        GHPullRequestAction::Opened | GHPullRequestAction::Synchronize => {
-            // Force status to waiting
-            pr_model.set_checks_status(CheckStatus::Waiting);
-            pr_model.save(&conn)?;
-            status_changed = true;
-
-            rerequest_existing_reviews(&config, &conn, &repo_model, &pr_model).await?;
+                rerequest_existing_reviews(&config, &conn, &repo_model, &pr_model).await?;
+            }
+            GhPullRequestAction::Reopened | GhPullRequestAction::ReadyForReview => {
+                status_changed = true;
+            }
+            GhPullRequestAction::ConvertedToDraft => {
+                status_changed = true;
+            }
+            GhPullRequestAction::ReviewRequested => {
+                handle_review_request(
+                    &config,
+                    &conn,
+                    &repo_model,
+                    &pr_model,
+                    GhReviewState::Pending,
+                    &extract_usernames(&event.pull_request.requested_reviewers),
+                )
+                .await?;
+                status_changed = true;
+            }
+            GhPullRequestAction::ReviewRequestRemoved => {
+                handle_review_request(
+                    &config,
+                    &conn,
+                    &repo_model,
+                    &pr_model,
+                    GhReviewState::Dismissed,
+                    &extract_usernames(&event.pull_request.requested_reviewers),
+                )
+                .await?;
+                status_changed = true;
+            }
+            GhPullRequestAction::Closed => {
+                status_changed = true;
+            }
+            _ => (),
         }
-        GHPullRequestAction::Reopened | GHPullRequestAction::ReadyForReview => {
+
+        if let GhPullRequestAction::Edited = event.action {
+            // Update PR title
             status_changed = true;
         }
-        GHPullRequestAction::ConvertedToDraft => {
-            status_changed = true;
-        }
-        GHPullRequestAction::ReviewRequested => {
-            handle_review_request(
+
+        if status_changed {
+            update_pull_request_status(
                 &config,
-                &conn,
+                pool,
                 &repo_model,
-                &pr_model,
-                GHReviewState::Pending,
-                &extract_usernames(&event.pull_request.requested_reviewers),
+                &mut pr_model,
+                &event.pull_request.head.sha,
             )
             .await?;
-            status_changed = true;
         }
-        GHPullRequestAction::ReviewRequestRemoved => {
-            handle_review_request(
-                &config,
-                &conn,
-                &repo_model,
-                &pr_model,
-                GHReviewState::Dismissed,
-                &extract_usernames(&event.pull_request.requested_reviewers),
-            )
-            .await?;
-            status_changed = true;
-        }
-        GHPullRequestAction::Closed => {
-            status_changed = true;
-        }
-        _ => (),
-    }
-
-    if let GHPullRequestAction::Edited = event.action {
-        // Update PR title
-        status_changed = true;
-    }
-
-    if status_changed {
-        update_pull_request_status(
-            &config,
-            pool,
-            &repo_model,
-            &mut pr_model,
-            &event.pull_request.head.sha,
-        )
-        .await?;
     }
 
     Ok(())
 }
 
 /// Determine automatic step for a pull request.
-///
-/// # Arguments
-///
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `reviews` - Reviews
 pub fn determine_automatic_step(
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -172,9 +253,9 @@ pub fn determine_automatic_step(
                     StepLabel::AwaitingReview
                 } else {
                     match status.qa_status {
-                        QAStatus::Fail => StepLabel::AwaitingChanges,
-                        QAStatus::Waiting => StepLabel::AwaitingQA,
-                        QAStatus::Pass | QAStatus::Skipped => {
+                        QaStatus::Fail => StepLabel::AwaitingChanges,
+                        QaStatus::Waiting => StepLabel::AwaitingQa,
+                        QaStatus::Pass | QaStatus::Skipped => {
                             if status.locked {
                                 StepLabel::Locked
                             } else {
@@ -191,19 +272,12 @@ pub fn determine_automatic_step(
 }
 
 /// Get merge strategy for branches.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `base_branch` - Base branch
-/// * `head_branch` - Head branch
 pub fn get_merge_strategy_for_branches(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     base_branch: &str,
     head_branch: &str,
-) -> GHMergeStrategy {
+) -> GhMergeStrategy {
     match MergeRuleModel::get_from_branches(conn, repo_model, base_branch, head_branch)
         .map(|x| x.get_strategy())
     {
@@ -225,13 +299,6 @@ pub fn get_merge_strategy_for_branches(
 }
 
 /// Get checks status from GitHub.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `sha` - SHA
 pub async fn get_checks_status_from_github(
     config: &Config,
     repository_owner: &str,
@@ -252,7 +319,7 @@ pub async fn get_checks_status_from_github(
             .filter(|&s| s.app.slug == "github-actions")
             .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
                 (CheckStatus::Fail, _) => CheckStatus::Fail,
-                (_, Some(GHCheckConclusion::Failure)) => CheckStatus::Fail,
+                (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
                 (_, None) => CheckStatus::Waiting,
                 (_, _) => acc,
             }))
@@ -260,14 +327,6 @@ pub async fn get_checks_status_from_github(
 }
 
 /// Synchronize pull request from upstream.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
 pub async fn synchronize_pull_request(
     config: &Config,
     conn: &DbConn,
@@ -298,7 +357,7 @@ pub async fn synchronize_pull_request(
         .create_or_update(conn)?;
 
     // Update reviews
-    let review_map: HashMap<&str, &GHReview> =
+    let review_map: HashMap<&str, &GhReview> =
         reviews.iter().map(|r| (&r.user.login[..], r)).collect();
     for review in &reviews {
         let permission = get_user_permission_on_repository(
@@ -337,13 +396,6 @@ pub async fn synchronize_pull_request(
 }
 
 /// Try automerge pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
 pub async fn try_automerge_pull_request(
     config: &Config,
     conn: &DbConn,
@@ -400,6 +452,6 @@ pub async fn try_automerge_pull_request(
     }
 }
 
-fn extract_usernames(users: &[GHUser]) -> Vec<&str> {
+fn extract_usernames(users: &[GhUser]) -> Vec<&str> {
     users.iter().map(|r| &r.login[..]).collect()
 }

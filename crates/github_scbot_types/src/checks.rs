@@ -2,31 +2,19 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 
 use super::{
-    common::{GHApplication, GHRepository, GHUser},
-    pulls::GHPullRequestShort,
+    common::{GhApplication, GhRepository, GhUser},
+    pulls::GhPullRequestShort,
 };
 
-/// GitHub Check run action.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GHCheckRunAction {
-    /// Completed.
-    Completed,
-    /// Created.
-    Created,
-    /// Requested action.
-    RequestedAction,
-    /// Re-requested.
-    Rerequested,
-}
-
 /// GitHub Check suite action.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum GHCheckSuiteAction {
+pub enum GhCheckSuiteAction {
     /// Completed.
+    #[default]
     Completed,
     /// Requested.
     Requested,
@@ -35,10 +23,11 @@ pub enum GHCheckSuiteAction {
 }
 
 /// GitHub Check status.
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, SmartDefault, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum GHCheckStatus {
+pub enum GhCheckStatus {
     /// Completed.
+    #[default]
     Completed,
     /// In progress.
     InProgress,
@@ -49,9 +38,9 @@ pub enum GHCheckStatus {
 }
 
 /// GitHub Check conclusion.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum GHCheckConclusion {
+pub enum GhCheckConclusion {
     /// Action required.
     ActionRequired,
     /// Cancelled.
@@ -65,94 +54,46 @@ pub enum GHCheckConclusion {
     /// Stale.
     Stale,
     /// Success.
+    #[default]
     Success,
     /// Timed out.
     TimedOut,
 }
 
-/// GitHub Check run output.
-#[derive(Debug, Deserialize)]
-pub struct GHCheckRunOutput {
-    /// Title.
-    pub title: Option<String>,
-    /// Summary.
-    pub summary: Option<String>,
-    /// Text content.
-    pub text: Option<String>,
-}
-
 /// GitHub Check suite.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHCheckSuite {
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+pub struct GhCheckSuite {
     /// Head branch.
     pub head_branch: String,
     /// Head commit SHA.
     pub head_sha: String,
     /// Status.
-    pub status: GHCheckStatus,
+    pub status: GhCheckStatus,
     /// Conclusion.
-    pub conclusion: Option<GHCheckConclusion>,
+    pub conclusion: Option<GhCheckConclusion>,
     /// Pull requests.
-    pub pull_requests: Vec<GHPullRequestShort>,
+    pub pull_requests: Vec<GhPullRequestShort>,
     /// Application.
-    pub app: GHApplication,
+    pub app: GhApplication,
     /// Created at.
+    #[default(chrono::Utc::now())]
     pub created_at: DateTime<Utc>,
     /// Updated at.
+    #[default(chrono::Utc::now())]
     pub updated_at: DateTime<Utc>,
 }
 
-/// GitHub Check run.
-#[derive(Debug, Deserialize)]
-pub struct GHCheckRun {
-    /// Head commit SHA.
-    pub head_sha: String,
-    /// External ID.
-    pub external_id: String,
-    /// Status.
-    pub status: GHCheckStatus,
-    /// Conclusion.
-    pub conclusion: Option<GHCheckConclusion>,
-    /// Started at.
-    pub started_at: DateTime<Utc>,
-    /// Completed at.
-    pub completed_at: Option<DateTime<Utc>>,
-    /// Output.
-    pub output: GHCheckRunOutput,
-    /// Name.
-    pub name: String,
-    /// Check suite.
-    pub check_suite: GHCheckSuite,
-    /// Application.
-    pub app: GHApplication,
-}
-
-/// GitHub Check run event.
-#[derive(Debug, Deserialize)]
-pub struct GHCheckRunEvent {
-    /// Action.
-    pub action: GHCheckRunAction,
-    /// Check run.
-    pub check_run: GHCheckRun,
-    /// Repository.
-    pub repository: GHRepository,
-    /// Organization.
-    pub organization: GHUser,
-    /// Sender.
-    pub sender: GHUser,
-}
-
 /// GitHub Check suite event.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GHCheckSuiteEvent {
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+pub struct GhCheckSuiteEvent {
     /// Action.
-    pub action: GHCheckSuiteAction,
+    pub action: GhCheckSuiteAction,
     /// Check suite.
-    pub check_suite: GHCheckSuite,
+    pub check_suite: GhCheckSuite,
     /// Repository.
-    pub repository: GHRepository,
+    pub repository: GhRepository,
     /// Organization.
-    pub organization: GHUser,
+    pub organization: GhUser,
     /// Sender.
-    pub sender: GHUser,
+    pub sender: GhUser,
 }

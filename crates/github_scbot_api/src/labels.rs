@@ -11,11 +11,6 @@ use crate::{
 };
 
 /// Add pull request step label in existing labels by returning a new vector.
-///
-/// # Arguments
-///
-/// * `existing_labels` - Existing labels
-/// * `step` - Optional step label
 pub fn add_step_in_existing_labels(
     existing_labels: &[String],
     step: Option<StepLabel>,
@@ -34,13 +29,6 @@ pub fn add_step_in_existing_labels(
 }
 
 /// Get existing labels from an issue.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `issue_number` - Issue number
 pub async fn get_issue_labels(
     config: &Config,
     repository_owner: &str,
@@ -65,14 +53,6 @@ pub async fn get_issue_labels(
 }
 
 /// Apply or remove a step label on a pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
-/// * `label` - Optional step label
 pub async fn set_step_label(
     config: &Config,
     repository_owner: &str,

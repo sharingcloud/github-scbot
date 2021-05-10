@@ -18,12 +18,6 @@ pub struct ExternalAccountRightModel {
 
 impl ExternalAccountRightModel {
     /// Add right to external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Username
-    /// * `repository` - Repository
     pub fn add_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<Self> {
         match Self::get_right(conn, username, repository) {
             Ok(existing) => Ok(existing),
@@ -43,12 +37,6 @@ impl ExternalAccountRightModel {
     }
 
     /// Remove right from external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Username
-    /// * `repository` - Repository
     pub fn remove_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<()> {
         diesel::delete(
             external_account_right::table
@@ -61,11 +49,6 @@ impl ExternalAccountRightModel {
     }
 
     /// Remove all rights from external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Username
     pub fn remove_rights(conn: &DbConn, username: &str) -> Result<()> {
         diesel::delete(
             external_account_right::table.filter(external_account_right::username.eq(username)),
@@ -76,12 +59,6 @@ impl ExternalAccountRightModel {
     }
 
     /// Get right from external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Username
-    /// * `repository` - Repository
     pub fn get_right(conn: &DbConn, username: &str, repository: &RepositoryModel) -> Result<Self> {
         external_account_right::table
             .filter(external_account_right::username.eq(username))
@@ -96,11 +73,6 @@ impl ExternalAccountRightModel {
     }
 
     /// List rights from external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Username
     pub fn list_rights(conn: &DbConn, username: &str) -> Result<Vec<Self>> {
         external_account_right::table
             .filter(external_account_right::username.eq(username))
@@ -109,19 +81,11 @@ impl ExternalAccountRightModel {
     }
 
     /// Get repository from right.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn get_repository(&self, conn: &DbConn) -> Result<RepositoryModel> {
         RepositoryModel::get_from_id(conn, self.repository_id)
     }
 
     /// List all external account rights.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         external_account_right::table
             .load::<Self>(conn)

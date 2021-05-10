@@ -54,7 +54,7 @@ pub enum DatabaseError {
 
     /// Wraps [`diesel::result::Error`].
     #[error("Could not run SQL query.")]
-    SQLError(#[from] diesel::result::Error),
+    SqlError(#[from] diesel::result::Error),
 
     /// Wraps [`super::import_export::ExportError`].
     #[error("Error while exporting data.")]

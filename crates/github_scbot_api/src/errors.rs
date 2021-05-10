@@ -4,14 +4,14 @@ use thiserror::Error;
 
 /// API error.
 #[derive(Debug, Error)]
-pub enum APIError {
+pub enum ApiError {
     /// Missing pull request.
     #[error("Could not get pull-request #{1} from repository {0}")]
     MissingPullRequest(String, u64),
 
-    /// JWT creation error.
-    #[error("JWT creation error: {0}")]
-    JWTCreationError(String),
+    /// Jwt creation error.
+    #[error("Jwt creation error: {0}")]
+    JwtCreationError(String),
 
     /// Merge error.
     #[error("Merge error: {0}")]
@@ -34,5 +34,5 @@ pub enum APIError {
     CryptoError(#[from] github_scbot_crypto::CryptoError),
 }
 
-/// Result alias for `APIError`.
-pub type Result<T> = core::result::Result<T, APIError>;
+/// Result alias for `ApiError`.
+pub type Result<T> = core::result::Result<T, ApiError>;

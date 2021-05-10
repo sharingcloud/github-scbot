@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{schema::external_account, DatabaseError, DbConn, Result};
 
-/// External JWT claims.
+/// External Jwt claims.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExternalJwtClaims {
     /// Issued at time
@@ -120,19 +120,11 @@ impl ExternalAccountModel {
     }
 
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - Username
     pub fn builder(username: &str) -> ExternalAccountModelBuilder {
         ExternalAccountModelBuilder::default(username)
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - Username
     pub fn builder_from_model(model: &Self) -> ExternalAccountModelBuilder {
         ExternalAccountModelBuilder::from_model(model)
     }
@@ -151,11 +143,6 @@ impl ExternalAccountModel {
     }
 
     /// Get external account from username.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Account username
     pub fn get_from_username(conn: &DbConn, username: &str) -> Result<Self> {
         external_account::table
             .filter(external_account::username.eq(username))
@@ -164,10 +151,6 @@ impl ExternalAccountModel {
     }
 
     /// List all external accounts.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         external_account::table
             .load::<Self>(conn)
@@ -175,10 +158,6 @@ impl ExternalAccountModel {
     }
 
     /// Remove external account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(
             external_account::table.filter(external_account::username.eq(&self.username)),
@@ -189,10 +168,6 @@ impl ExternalAccountModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)
             .map_err(Into::into)

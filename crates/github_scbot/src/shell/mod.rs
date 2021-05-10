@@ -4,6 +4,8 @@ pub mod commands;
 
 use std::path::PathBuf;
 
+use actix_rt::System;
+use commands::errors::Result;
 use github_scbot_conf::{configure_startup, Config};
 use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
@@ -122,6 +124,15 @@ enum RepositoryCommand {
         head_branch: String,
         /// Strategy
         strategy: String,
+    },
+
+    /// Set manual interaction mode
+    SetManualInteraction {
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+        // Mode
+        #[structopt(parse(try_from_str))]
+        manual_interaction: bool,
     },
 
     /// Remove merge rule
@@ -267,66 +278,88 @@ fn parse_args(config: Config) -> eyre::Result<()> {
         Command::Import { input_file } => {
             commands::database::import_json(&config, &input_file)?;
         }
-        Command::Repository { cmd } => match cmd {
-            RepositoryCommand::SetTitleRegex {
-                repository_path,
-                value,
-            } => {
-                commands::repository::set_pull_request_title_regex(
-                    &config,
-                    &repository_path,
-                    &value,
-                )?;
+        Command::Repository { cmd } => {
+            async fn sync(config: Config, cmd: RepositoryCommand) -> Result<()> {
+                match cmd {
+                    RepositoryCommand::SetTitleRegex {
+                        repository_path,
+                        value,
+                    } => {
+                        commands::repository::set_pull_request_title_regex(
+                            &config,
+                            &repository_path,
+                            &value,
+                        )
+                        .await?
+                    }
+                    RepositoryCommand::SetReviewersCount {
+                        repository_path,
+                        reviewers_count,
+                    } => {
+                        commands::repository::set_reviewers_count(
+                            &config,
+                            &repository_path,
+                            reviewers_count,
+                        )
+                        .await?
+                    }
+                    RepositoryCommand::ListMergeRules { repository_path } => {
+                        commands::repository::list_merge_rules(&config, &repository_path).await?
+                    }
+                    RepositoryCommand::SetMergeRule {
+                        repository_path,
+                        base_branch,
+                        head_branch,
+                        strategy,
+                    } => {
+                        commands::repository::set_merge_rule(
+                            &config,
+                            &repository_path,
+                            &base_branch,
+                            &head_branch,
+                            &strategy,
+                        )
+                        .await?
+                    }
+                    RepositoryCommand::RemoveMergeRule {
+                        repository_path,
+                        base_branch,
+                        head_branch,
+                    } => {
+                        commands::repository::remove_merge_rule(
+                            &config,
+                            &repository_path,
+                            &base_branch,
+                            &head_branch,
+                        )
+                        .await?
+                    }
+                    RepositoryCommand::SetManualInteraction {
+                        repository_path,
+                        manual_interaction,
+                    } => {
+                        commands::repository::set_manual_interaction_mode(
+                            &config,
+                            &repository_path,
+                            manual_interaction,
+                        )
+                        .await?
+                    }
+                    RepositoryCommand::Show { repository_path } => {
+                        commands::repository::show_repository(&config, &repository_path).await?
+                    }
+                    RepositoryCommand::List => commands::repository::list_repositories(&config)?,
+                    RepositoryCommand::Purge { repository_path } => {
+                        commands::repository::purge_pull_requests(&config, &repository_path).await?
+                    }
+                }
+
+                Ok(())
             }
-            RepositoryCommand::SetReviewersCount {
-                repository_path,
-                reviewers_count,
-            } => {
-                commands::repository::set_reviewers_count(
-                    &config,
-                    &repository_path,
-                    reviewers_count,
-                )?;
-            }
-            RepositoryCommand::ListMergeRules { repository_path } => {
-                commands::repository::list_merge_rules(&config, &repository_path)?;
-            }
-            RepositoryCommand::SetMergeRule {
-                repository_path,
-                base_branch,
-                head_branch,
-                strategy,
-            } => {
-                commands::repository::set_merge_rule(
-                    &config,
-                    &repository_path,
-                    &base_branch,
-                    &head_branch,
-                    &strategy,
-                )?;
-            }
-            RepositoryCommand::RemoveMergeRule {
-                repository_path,
-                base_branch,
-                head_branch,
-            } => {
-                commands::repository::remove_merge_rule(
-                    &config,
-                    &repository_path,
-                    &base_branch,
-                    &head_branch,
-                )?;
-            }
-            RepositoryCommand::Show { repository_path } => {
-                commands::repository::show_repository(&config, &repository_path)?;
-            }
-            RepositoryCommand::List => {
-                commands::repository::list_repositories(&config)?;
-            }
-            RepositoryCommand::Purge { repository_path } => {
-                commands::repository::purge_pull_requests(&config, &repository_path)?;
-            }
-        },
+
+            let mut sys = System::new("sync");
+            sys.block_on(sync(config, cmd))?;
+        }
         Command::PullRequest { cmd } => match cmd {
             PullRequestCommand::Show {
                 repository_path,
@@ -344,55 +377,77 @@ fn parse_args(config: Config) -> eyre::Result<()> {
                 commands::pulls::sync_pull_request(&config, repository_path, number)?;
             }
         },
-        Command::Auth { cmd } => match cmd {
-            AuthCommand::CreateExternalAccount { username } => {
-                commands::auth::create_external_account(&config, &username)?;
+        Command::Auth { cmd } => {
+            async fn sync(config: Config, cmd: AuthCommand) -> Result<()> {
+                match cmd {
+                    AuthCommand::CreateExternalAccount { username } => {
+                        commands::auth::create_external_account(&config, &username)?
+                    }
+                    AuthCommand::CreateExternalToken { username } => {
+                        commands::auth::create_external_token(&config, &username)?
+                    }
+                    AuthCommand::RemoveExternalAccount { username } => {
+                        commands::auth::remove_external_account(&config, &username)?
+                    }
+                    AuthCommand::ListExternalAccounts => {
+                        commands::auth::list_external_accounts(&config)?
+                    }
+                    AuthCommand::AddAccountRight {
+                        username,
+                        repository_path,
+                    } => {
+                        commands::auth::add_account_right(&config, &username, &repository_path)
+                            .await?
+                    }
+                    AuthCommand::RemoveAccountRight {
+                        username,
+                        repository_path,
+                    } => {
+                        commands::auth::remove_account_right(&config, &username, &repository_path)
+                            .await?
+                    }
+                    AuthCommand::RemoveAccountRights { username } => {
+                        commands::auth::remove_account_rights(&config, &username)?
+                    }
+                    AuthCommand::ListAccountRights { username } => {
+                        commands::auth::list_account_rights(&config, &username)?
+                    }
+                    AuthCommand::AddAdminRights { username } => {
+                        commands::auth::add_admin_rights(&config, &username)?
+                    }
+                    AuthCommand::RemoveAdminRights { username } => {
+                        commands::auth::remove_admin_rights(&config, &username)?
+                    }
+                    AuthCommand::ListAdminAccounts => commands::auth::list_admin_accounts(&config)?,
+                }
+
+                Ok(())
             }
-            AuthCommand::CreateExternalToken { username } => {
-                commands::auth::create_external_token(&config, &username)?;
+
+            let mut sys = System::new("sync");
+            sys.block_on(sync(config, cmd))?;
+        }
+        Command::History { cmd } => {
+            async fn sync(config: Config, cmd: HistoryCommand) -> Result<()> {
+                match cmd {
+                    HistoryCommand::ListWebhookEvents { repository_path } => {
+                        commands::history::list_webhook_events_from_repository(
+                            &config,
+                            &repository_path,
+                        )
+                        .await?
+                    }
+                    HistoryCommand::RemoveWebhookEvents => {
+                        commands::history::remove_webhook_events(&config)?
+                    }
+                }
+
+                Ok(())
             }
-            AuthCommand::RemoveExternalAccount { username } => {
-                commands::auth::remove_external_account(&config, &username)?;
-            }
-            AuthCommand::ListExternalAccounts => {
-                commands::auth::list_external_accounts(&config)?;
-            }
-            AuthCommand::AddAccountRight {
-                username,
-                repository_path,
-            } => {
-                commands::auth::add_account_right(&config, &username, &repository_path)?;
-            }
-            AuthCommand::RemoveAccountRight {
-                username,
-                repository_path,
-            } => {
-                commands::auth::remove_account_right(&config, &username, &repository_path)?;
-            }
-            AuthCommand::RemoveAccountRights { username } => {
-                commands::auth::remove_account_rights(&config, &username)?;
-            }
-            AuthCommand::ListAccountRights { username } => {
-                commands::auth::list_account_rights(&config, &username)?;
-            }
-            AuthCommand::AddAdminRights { username } => {
-                commands::auth::add_admin_rights(&config, &username)?;
-            }
-            AuthCommand::RemoveAdminRights { username } => {
-                commands::auth::remove_admin_rights(&config, &username)?;
-            }
-            AuthCommand::ListAdminAccounts => {
-                commands::auth::list_admin_accounts(&config)?;
-            }
-        },
-        Command::History { cmd } => match cmd {
-            HistoryCommand::ListWebhookEvents { repository_path } => {
-                commands::history::list_webhook_events_from_repository(&config, &repository_path)?;
-            }
-            HistoryCommand::RemoveWebhookEvents => {
-                commands::history::remove_webhook_events(&config)?;
-            }
-        },
+
+            let mut sys = System::new("sync");
+            sys.block_on(sync(config, cmd))?;
+        }
         Command::Debug { cmd } => match cmd {
             DebugCommand::TestSentry { message } => {
                 commands::debug::send_test_event_to_sentry(&config, message)?;

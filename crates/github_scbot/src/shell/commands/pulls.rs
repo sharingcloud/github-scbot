@@ -13,7 +13,7 @@ use super::errors::Result;
 pub(crate) fn show_pull_request(config: &Config, repository_path: &str, number: u64) -> Result<()> {
     let conn = establish_single_connection(config)?;
 
-    let pr =
+    let (pr, _repo) =
         PullRequestModel::get_from_repository_path_and_number(&conn, &repository_path, number)?;
     println!(
         "Accessing pull request #{} on repository {}",

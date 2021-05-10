@@ -4,20 +4,20 @@ use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     tests::using_test_db,
-    DbConn, Result,
+    DbConn, DbPool, Result,
 };
 use github_scbot_types::{
-    common::GHUser,
-    pulls::GHMergeStrategy,
-    reviews::{GHReview, GHReviewState},
+    common::GhUser,
+    pulls::GhMergeStrategy,
+    reviews::{GhReview, GhReviewState},
 };
 
 use super::test_config;
 use crate::{
-    commands::parse_commands,
+    commands::{execute_commands, parse_commands},
     reviews::handle_review,
     status::{generate_pr_status_comment, PullRequestStatus},
-    LogicError,
+    LogicError, Result as LogicResult,
 };
 
 fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
@@ -38,15 +38,29 @@ fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) 
 async fn test_review_creation() -> Result<()> {
     let config = test_config();
 
+    async fn parse_and_execute_command(
+        config: &Config,
+        pool: DbPool,
+        repo: &RepositoryModel,
+        pr: &mut PullRequestModel,
+        command_str: &str,
+    ) -> LogicResult<()> {
+        // Parse comment
+        let commands = parse_commands(&config, command_str)?;
+        execute_commands(&config, pool.clone(), repo, pr, 0, "me", commands).await?;
+
+        Ok(())
+    }
+
     using_test_db(&config.clone(), "test_logic_reviews", |pool| async move {
         let conn = pool.get().unwrap();
         let (repo, mut pr) = arrange(&config, &conn);
 
         // Simulate review
-        let review = GHReview {
-            state: GHReviewState::Pending,
+        let review = GhReview {
+            state: GhReviewState::Pending,
             submitted_at: chrono::Utc::now(),
-            user: GHUser {
+            user: GhUser {
                 login: "me".to_string(),
             },
         };
@@ -54,10 +68,10 @@ async fn test_review_creation() -> Result<()> {
         handle_review(&config, &conn, &repo, &pr, &review).await?;
 
         // Simulate another review
-        let review2 = GHReview {
-            state: GHReviewState::ChangesRequested,
+        let review2 = GhReview {
+            state: GhReviewState::ChangesRequested,
             submitted_at: chrono::Utc::now(),
-            user: GHUser {
+            user: GhUser {
                 login: "him".to_string(),
             },
         };
@@ -71,16 +85,8 @@ async fn test_review_creation() -> Result<()> {
         assert_eq!(reviews[1].required, false);
 
         // Parse comment
-        parse_commands(
-            &config,
-            pool.clone(),
-            &repo,
-            &mut pr,
-            0,
-            "me",
-            "test-bot req+ @him",
-        )
-        .await?;
+        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot req+ @him")
+            .await?;
 
         // Retrieve "him" review
         let review =
@@ -88,28 +94,11 @@ async fn test_review_creation() -> Result<()> {
         assert_eq!(review.required, true);
 
         // Parse comment
-        parse_commands(
-            &config,
-            pool.clone(),
-            &repo,
-            &mut pr,
-            0,
-            "me",
-            "test-bot req- @him",
-        )
-        .await?;
+        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot req- @him")
+            .await?;
 
         // Lock PR
-        parse_commands(
-            &config,
-            pool.clone(),
-            &repo,
-            &mut pr,
-            0,
-            "me",
-            "test-bot lock+",
-        )
-        .await?;
+        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot lock+").await?;
 
         // Retrieve "him" review
         let review =
@@ -121,13 +110,16 @@ async fn test_review_creation() -> Result<()> {
         let status = PullRequestStatus::from_pull_request(&repo, &pr, &reviews).unwrap();
         assert!(status.approved_reviewers.is_empty());
         assert!(!status.automerge);
-        assert_eq!(status.needed_reviewers_count, 2);
+        assert_eq!(
+            status.needed_reviewers_count,
+            repo.default_needed_reviewers_count as usize
+        );
         assert!(status.missing_required_reviewers.is_empty());
         assert_eq!(status.locked, true);
 
         // Generate status comment
         let comment =
-            generate_pr_status_comment(&repo, &pr, &reviews, GHMergeStrategy::Merge).unwrap();
+            generate_pr_status_comment(&repo, &pr, &reviews, GhMergeStrategy::Merge).unwrap();
         assert!(!comment.is_empty());
 
         Ok::<_, LogicError>(())

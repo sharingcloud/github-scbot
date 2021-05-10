@@ -3,34 +3,29 @@
 use github_scbot_conf::Config;
 use github_scbot_database::{
     get_connection,
-    models::{HistoryWebhookModel, PullRequestModel},
+    models::{HistoryWebhookModel, PullRequestModel, RepositoryModel},
     DbPool,
 };
 use github_scbot_types::{
-    checks::{GHCheckConclusion, GHCheckSuiteAction, GHCheckSuiteEvent},
+    checks::{GhCheckConclusion, GhCheckSuiteAction, GhCheckSuiteEvent},
     events::EventType,
     status::CheckStatus,
 };
 
-use crate::{
-    database::process_repository, pulls::get_checks_status_from_github,
-    status::update_pull_request_status, Result,
-};
+use crate::{pulls::get_checks_status_from_github, status::update_pull_request_status, Result};
 
 /// Handle GitHub check syite event.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `event` - GitHub check suite event
 pub async fn handle_check_suite_event(
     config: Config,
     pool: DbPool,
-    event: GHCheckSuiteEvent,
+    event: GhCheckSuiteEvent,
 ) -> Result<()> {
-    let repo_model =
-        process_repository(config.clone(), pool.clone(), event.repository.clone()).await?;
+    let repo_model = RepositoryModel::create_or_update_from_github(
+        config.clone(),
+        pool.clone(),
+        event.repository.clone(),
+    )
+    .await?;
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
@@ -54,9 +49,9 @@ pub async fn handle_check_suite_event(
                 .payload(&event)
                 .create(&conn)?;
 
-            if let GHCheckSuiteAction::Completed = event.action {
+            if let GhCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
-                    Some(GHCheckConclusion::Success) => {
+                    Some(GhCheckConclusion::Success) => {
                         // Check if other checks are still running
                         let status = get_checks_status_from_github(
                             &config,
@@ -70,7 +65,7 @@ pub async fn handle_check_suite_event(
                         pr_model.set_checks_status(status);
                         pr_model.save(&conn)?;
                     }
-                    Some(GHCheckConclusion::Failure) => {
+                    Some(GhCheckConclusion::Failure) => {
                         // Update check status
                         pr_model.set_checks_status(CheckStatus::Fail);
                         pr_model.save(&conn)?;

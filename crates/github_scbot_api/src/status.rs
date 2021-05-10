@@ -11,16 +11,6 @@ use crate::{
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 
 /// Update status for repository.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `commit_sha` - Commit SHA
-/// * `status` - Status state
-/// * `title` - Status title
-/// * `body` - Status body
 pub async fn update_status_for_repository(
     config: &Config,
     repository_owner: &str,

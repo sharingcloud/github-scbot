@@ -9,7 +9,6 @@ opt_doc_open := "false"
 # Variables
 
 version := `cat ./crates/github_scbot/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
-test_database_url := "postgresql://user:pass@localhost:5432/test-bot"
 
 #################
 # Format and lint
@@ -35,11 +34,11 @@ lint-err:
 
 # Execute tests
 test:
-	TEST_DATABASE_URL={{ test_database_url }} cargo test --lib
+	cargo test --lib
 
 # Execute tests with coverage
 test-cov:
-	TEST_DATABASE_URL={{ test_database_url }} cargo tarpaulin --out Html
+	cargo tarpaulin --out Html
 
 #######
 # Tools

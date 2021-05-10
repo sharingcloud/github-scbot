@@ -8,7 +8,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use std::env;
 //! use std::io;
 //!
@@ -43,7 +43,7 @@
 //! This integration will automatically update the current Hub instance. For example,
 //! the following will capture a message in the current request's Hub:
 //!
-//! ```
+//! ```ignore
 //! # fn test(req: &actix_web::HttpRequest) {
 //! use sentry::Level;
 //! sentry::capture_message("Something is not well", Level::Warning);

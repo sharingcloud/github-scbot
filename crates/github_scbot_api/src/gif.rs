@@ -44,11 +44,6 @@ struct RandomResponse {
 }
 
 /// Get random GIF for query.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `search` - Search string
 pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<String> {
     let client = reqwest::Client::new();
     let mut response: RandomResponse = client

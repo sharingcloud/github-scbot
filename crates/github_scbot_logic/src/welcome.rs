@@ -7,13 +7,6 @@ use github_scbot_database::models::{PullRequestModel, RepositoryModel};
 use crate::errors::Result;
 
 /// Post welcome comment on a pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `pr_author` - Pull request author
 pub async fn post_welcome_comment(
     config: &Config,
     repo_model: &RepositoryModel,

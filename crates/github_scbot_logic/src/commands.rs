@@ -11,12 +11,12 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn, DbPool,
 };
-use github_scbot_types::{issues::GHReactionType, labels::StepLabel, status::QAStatus};
+use github_scbot_types::{issues::GhReactionType, labels::StepLabel, status::QaStatus};
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
 use crate::{
-    auth::{has_right_on_pull_request, list_known_admin_usernames},
+    auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
     gif::post_random_gif_comment,
     pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
 };
@@ -36,9 +36,9 @@ pub enum CommandHandlingStatus {
 #[derive(Debug, PartialEq)]
 pub enum Command {
     /// Skip QA status.
-    SkipQAStatus(bool),
+    SkipQaStatus(bool),
     /// Enable/Disable QA status.
-    QAStatus(Option<bool>),
+    QaStatus(Option<bool>),
     /// Enable/Disable automerge.
     Automerge(bool),
     /// Assign required reviewers.
@@ -55,24 +55,23 @@ pub enum Command {
     Ping,
     /// Show help message.
     Help,
+    /// Show admin help message.
+    AdminHelp,
     /// Synchronize status.
-    Synchronize,
+    AdminSynchronize,
+    /// Enable bot on pull request (used with manual interaction).
+    AdminEnable,
 }
 
 impl Command {
     /// Create a command from a comment and arguments.
-    ///
-    /// # Arguments
-    ///
-    /// * `comment` - Comment
-    /// * `args` - Arguments
     pub fn from_comment(comment: &str, args: &[&str]) -> Option<Self> {
         Some(match comment {
-            "noqa+" => Self::SkipQAStatus(true),
-            "noqa-" => Self::SkipQAStatus(false),
-            "qa+" => Self::QAStatus(Some(true)),
-            "qa-" => Self::QAStatus(Some(false)),
-            "qa?" => Self::QAStatus(None),
+            "noqa+" => Self::SkipQaStatus(true),
+            "noqa-" => Self::SkipQaStatus(false),
+            "qa+" => Self::QaStatus(Some(true)),
+            "qa-" => Self::QaStatus(Some(false)),
+            "qa?" => Self::QaStatus(None),
             "automerge+" => Self::Automerge(true),
             "automerge-" => Self::Automerge(false),
             "lock+" => Self::Lock(true, Self::parse_message(args)),
@@ -83,7 +82,9 @@ impl Command {
             "merge" => Self::Merge,
             "ping" => Self::Ping,
             "help" => Self::Help,
-            "sync" => Self::Synchronize,
+            // Admin commands
+            "admin-sync" => Self::AdminSynchronize,
+            "admin-enable" => Self::AdminEnable,
             _ => return None,
         })
     }
@@ -109,200 +110,181 @@ impl Command {
 }
 
 /// Parse commands from comment body.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_id` - Comment ID
-/// * `comment_author` - Comment author
-/// * `comment_body` - Comment body
-pub async fn parse_commands(
-    config: &Config,
-    pool: DbPool,
-    repo_model: &RepositoryModel,
-    pr_model: &mut PullRequestModel,
-    comment_id: u64,
-    comment_author: &str,
-    comment_body: &str,
-) -> Result<CommandHandlingStatus> {
-    let mut command_handling = CommandHandlingStatus::Ignored;
+pub fn parse_commands(config: &Config, comment_body: &str) -> Result<Vec<Command>> {
+    let mut commands = vec![];
 
     for line in comment_body.lines() {
-        let line_handling = parse_single_command(
-            config,
-            pool.clone(),
-            repo_model,
-            pr_model,
-            comment_id,
-            comment_author,
-            line,
-        )
-        .await?;
-
-        command_handling = match line_handling {
-            CommandHandlingStatus::Ignored => command_handling,
-            status => status,
-        };
+        if let Some(command) = parse_single_command(config, line)? {
+            commands.push(command);
+        }
     }
 
-    Ok(command_handling)
+    Ok(commands)
 }
 
-/// Parse command from a single comment line.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_id` - Comment ID
-/// * `comment_author` - Comment author
-/// * `line` - Comment line
-pub async fn parse_single_command(
+/// Execute multiple commands.
+pub async fn execute_commands(
     config: &Config,
     pool: DbPool,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_id: u64,
     comment_author: &str,
-    line: &str,
-) -> Result<CommandHandlingStatus> {
-    let conn = get_connection(&pool.clone())?;
-    let mut command_handled = CommandHandlingStatus::Ignored;
+    commands: Vec<Command>,
+) -> Result<Vec<CommandHandlingStatus>> {
+    let mut status = vec![];
 
-    if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
-        let action = Command::from_comment(command_line, &args);
-        if let Some(action) = action {
-            info!(
-                "Interpreting action {:?} from author {} on repository {}, PR #{}",
-                action,
+    for command in commands {
+        status.push(
+            execute_command(
+                config,
+                pool.clone(),
+                repo_model,
+                pr_model,
+                comment_id,
                 comment_author,
-                repo_model.get_path(),
-                pr_model.get_number()
-            );
+                command,
+            )
+            .await?,
+        );
+    }
 
-            if !validate_user_rights_on_command(&conn, comment_author, pr_model, &action)? {
-                command_handled = CommandHandlingStatus::Denied;
-            } else {
-                command_handled = CommandHandlingStatus::Handled;
+    Ok(status)
+}
 
-                let status_updated = match action {
-                    Command::Automerge(s) => {
-                        handle_auto_merge_command(
-                            config,
-                            &conn,
-                            repo_model,
-                            pr_model,
-                            comment_author,
-                            s,
-                        )
-                        .await?
-                    }
-                    Command::SkipQAStatus(s) => handle_skip_qa_command(&conn, pr_model, s)?,
-                    Command::QAStatus(s) => {
-                        handle_qa_command(config, &conn, repo_model, pr_model, comment_author, s)
-                            .await?
-                    }
-                    Command::Lock(s, reason) => {
-                        handle_lock_command(
-                            config,
-                            &conn,
-                            repo_model,
-                            pr_model,
-                            comment_author,
-                            s,
-                            reason,
-                        )
-                        .await?
-                    }
-                    Command::Ping => {
-                        handle_ping_command(config, repo_model, pr_model, comment_author).await?
-                    }
-                    Command::Merge => {
-                        handle_merge_command(
-                            config,
-                            &conn,
-                            repo_model,
-                            pr_model,
-                            comment_id,
-                            comment_author,
-                        )
-                        .await?
-                    }
-                    Command::Synchronize => {
-                        handle_sync_command(config, &conn, repo_model, pr_model).await?
-                    }
-                    Command::AssignRequiredReviewers(reviewers) => {
-                        handle_assign_required_reviewers_command(
-                            config, &conn, repo_model, pr_model, reviewers,
-                        )
-                        .await?
-                    }
-                    Command::UnassignRequiredReviewers(reviewers) => {
-                        handle_unassign_required_reviewers_command(
-                            config, &conn, repo_model, pr_model, reviewers,
-                        )
-                        .await?
-                    }
-                    Command::Gif(terms) => {
-                        handle_gif_command(config, repo_model, pr_model, &terms).await?
-                    }
-                    Command::Help => {
-                        handle_help_command(config, repo_model, pr_model, comment_author).await?
-                    }
-                };
+/// Execute command.
+pub async fn execute_command(
+    config: &Config,
+    pool: DbPool,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    comment_id: u64,
+    comment_author: &str,
+    command: Command,
+) -> Result<CommandHandlingStatus> {
+    let conn = get_connection(&pool)?;
+    let command_handled: CommandHandlingStatus;
 
-                if status_updated {
-                    let sha = get_pull_request_sha(
-                        config,
-                        &repo_model.owner,
-                        &repo_model.name,
-                        pr_model.get_number(),
-                    )
-                    .await?;
-                    update_pull_request_status(config, pool.clone(), repo_model, pr_model, &sha)
-                        .await?;
-                }
+    info!(
+        "Interpreting command {:?} from author {} on repository {}, PR #{}",
+        command,
+        comment_author,
+        repo_model.get_path(),
+        pr_model.get_number()
+    );
+
+    if !validate_user_rights_on_command(&conn, comment_author, pr_model, &command)? {
+        command_handled = CommandHandlingStatus::Denied;
+    } else {
+        command_handled = CommandHandlingStatus::Handled;
+
+        let status_updated = match command {
+            Command::Automerge(s) => {
+                handle_auto_merge_command(config, &conn, repo_model, pr_model, comment_author, s)
+                    .await?
             }
+            Command::SkipQaStatus(s) => handle_skip_qa_command(&conn, pr_model, s)?,
+            Command::QaStatus(s) => {
+                handle_qa_command(config, &conn, repo_model, pr_model, comment_author, s).await?
+            }
+            Command::Lock(s, reason) => {
+                handle_lock_command(
+                    config,
+                    &conn,
+                    repo_model,
+                    pr_model,
+                    comment_author,
+                    s,
+                    reason,
+                )
+                .await?
+            }
+            Command::Ping => {
+                handle_ping_command(config, repo_model, pr_model, comment_author).await?
+            }
+            Command::Merge => {
+                handle_merge_command(
+                    config,
+                    &conn,
+                    repo_model,
+                    pr_model,
+                    comment_id,
+                    comment_author,
+                )
+                .await?
+            }
+            Command::AssignRequiredReviewers(reviewers) => {
+                handle_assign_required_reviewers_command(
+                    config, &conn, repo_model, pr_model, reviewers,
+                )
+                .await?
+            }
+            Command::UnassignRequiredReviewers(reviewers) => {
+                handle_unassign_required_reviewers_command(
+                    config, &conn, repo_model, pr_model, reviewers,
+                )
+                .await?
+            }
+            Command::Gif(terms) => handle_gif_command(config, repo_model, pr_model, &terms).await?,
+            Command::Help => {
+                handle_help_command(config, repo_model, pr_model, comment_author).await?
+            }
+            Command::AdminHelp => {
+                handle_admin_help_command(config, repo_model, pr_model, comment_author).await?
+            }
+            Command::AdminEnable => {
+                // TODO: Do not handle enable command for now
+                false
+            }
+            Command::AdminSynchronize => {
+                handle_sync_command(config, &conn, repo_model, pr_model).await?
+            }
+        };
+
+        if status_updated {
+            let sha = get_pull_request_sha(
+                config,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+            )
+            .await?;
+            update_pull_request_status(config, pool.clone(), repo_model, pr_model, &sha).await?;
         }
     }
 
     Ok(command_handled)
 }
 
+/// Parse command from a single comment line.
+pub fn parse_single_command(config: &Config, line: &str) -> Result<Option<Command>> {
+    if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
+        let command = Command::from_comment(command_line, &args);
+        Ok(command)
+    } else {
+        Ok(None)
+    }
+}
+
 /// Validate user rights on command.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `username` - Target username
-/// * `pr_model` - Pull request
-/// * `command` - Command
 pub fn validate_user_rights_on_command(
     conn: &DbConn,
     username: &str,
     pr_model: &PullRequestModel,
     command: &Command,
 ) -> Result<bool> {
+    let known_admins = list_known_admin_usernames(conn)?;
+
     match command {
         Command::Ping | Command::Help | Command::Gif(_) => Ok(true),
-        _ => {
-            let known_admins = list_known_admin_usernames(conn)?;
-            Ok(has_right_on_pull_request(username, pr_model, &known_admins))
+        Command::AdminEnable | Command::AdminHelp | Command::AdminSynchronize => {
+            Ok(is_admin(username, &known_admins))
         }
+        _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
     }
 }
 
 /// Parse command string from comment line.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `comment` - Comment
 pub fn parse_command_string_from_comment_line<'a>(
     config: &Config,
     comment: &'a str,
@@ -322,15 +304,6 @@ pub fn parse_command_string_from_comment_line<'a>(
 }
 
 /// Handle `Automerge` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
-/// * `status` - Automerge status
 pub async fn handle_auto_merge_command(
     config: &Config,
     conn: &DbConn,
@@ -357,15 +330,6 @@ pub async fn handle_auto_merge_command(
 }
 
 /// Handle `Merge` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_id` - Comment ID
-/// * `comment_author` - Comment author
 pub async fn handle_merge_command(
     config: &Config,
     conn: &DbConn,
@@ -403,7 +367,7 @@ pub async fn handle_merge_command(
                     &repo_model.owner,
                     &repo_model.name,
                     comment_id,
-                    GHReactionType::MinusOne,
+                    GhReactionType::MinusOne,
                 )
                 .await?;
                 post_comment(
@@ -421,7 +385,7 @@ pub async fn handle_merge_command(
                     &repo_model.owner,
                     &repo_model.name,
                     comment_id,
-                    GHReactionType::PlusOne,
+                    GhReactionType::PlusOne,
                 )
                 .await?;
                 post_comment(
@@ -444,7 +408,7 @@ pub async fn handle_merge_command(
             &repo_model.owner,
             &repo_model.name,
             comment_id,
-            GHReactionType::MinusOne,
+            GhReactionType::MinusOne,
         )
         .await?;
         post_comment(
@@ -461,13 +425,6 @@ pub async fn handle_merge_command(
 }
 
 /// Handle `Sync` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
 pub async fn handle_sync_command(
     config: &Config,
     conn: &DbConn,
@@ -487,21 +444,15 @@ pub async fn handle_sync_command(
 }
 
 /// Handle `SkipQA` command.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `pr_model` - Pull request model
-/// * `status` - Skip QA status
 pub fn handle_skip_qa_command(
     conn: &DbConn,
     pr_model: &mut PullRequestModel,
     status: bool,
 ) -> Result<bool> {
     if status {
-        pr_model.set_qa_status(QAStatus::Skipped);
+        pr_model.set_qa_status(QaStatus::Skipped);
     } else {
-        pr_model.set_qa_status(QAStatus::Waiting);
+        pr_model.set_qa_status(QaStatus::Waiting);
     }
 
     pr_model.save(conn)?;
@@ -509,16 +460,7 @@ pub fn handle_skip_qa_command(
     Ok(true)
 }
 
-/// Handle `QAStatus` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
-/// * `status` - QA status
+/// Handle `QaStatus` command.
 pub async fn handle_qa_command(
     config: &Config,
     conn: &DbConn,
@@ -528,9 +470,9 @@ pub async fn handle_qa_command(
     status: Option<bool>,
 ) -> Result<bool> {
     let (status, status_text) = match status {
-        Some(true) => (QAStatus::Pass, "marked as pass"),
-        Some(false) => (QAStatus::Fail, "marked as fail"),
-        None => (QAStatus::Waiting, "marked as waiting"),
+        Some(true) => (QaStatus::Pass, "marked as pass"),
+        Some(false) => (QaStatus::Fail, "marked as fail"),
+        None => (QaStatus::Waiting, "marked as waiting"),
     };
 
     pr_model.set_qa_status(status);
@@ -550,13 +492,6 @@ pub async fn handle_qa_command(
 }
 
 /// Handle `Ping` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
 pub async fn handle_ping_command(
     config: &Config,
     repo_model: &RepositoryModel,
@@ -576,13 +511,6 @@ pub async fn handle_ping_command(
 }
 
 /// Handle `Gif` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `search_terms` - Search terms
 pub async fn handle_gif_command(
     config: &Config,
     repo_model: &RepositoryModel,
@@ -595,14 +523,6 @@ pub async fn handle_gif_command(
 }
 
 /// Handle `AssignRequiredReviewers` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `reviewers` - Reviewers
 pub async fn handle_assign_required_reviewers_command(
     config: &Config,
     conn: &DbConn,
@@ -636,14 +556,6 @@ pub async fn handle_assign_required_reviewers_command(
 }
 
 /// Handle `UnassignRequiredReviewers` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `reviewers` - Reviewers
 pub async fn handle_unassign_required_reviewers_command(
     config: &Config,
     conn: &DbConn,
@@ -676,16 +588,6 @@ pub async fn handle_unassign_required_reviewers_command(
 }
 
 /// Handle `Lock` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
-/// * `status` - Lock status
-/// * `reason` - Optional lock motivation
 pub async fn handle_lock_command(
     config: &Config,
     conn: &DbConn,
@@ -718,13 +620,6 @@ pub async fn handle_lock_command(
 }
 
 /// Handle `Help` command.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `comment_author` - Comment author
 pub async fn handle_help_command(
     config: &Config,
     repo_model: &RepositoryModel,
@@ -750,8 +645,37 @@ pub async fn handle_help_command(
         - `merge`: _Try merging the pull request_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
-        - `help`: _Show this comment_\n\
-        - `sync`: _Update status comment if needed (maintenance-type command)_\n",
+        - `help`: _Show this comment_\n",
+        comment_author, config.bot_username
+    );
+
+    post_comment(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &comment,
+    )
+    .await?;
+
+    Ok(false)
+}
+
+/// Handle `AdminHelp` command.
+pub async fn handle_admin_help_command(
+    config: &Config,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    comment_author: &str,
+) -> Result<bool> {
+    let comment = format!(
+        "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
+        You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
+        \n\
+        Supported admin commands:\n\
+        - `admin-help`: _Show this comment_\n\
+        - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
+        - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
     );
 
@@ -857,23 +781,23 @@ mod tests {
     fn test_command_from_comment() {
         assert_eq!(
             Command::from_comment("noqa+", &Vec::new()),
-            Some(Command::SkipQAStatus(true))
+            Some(Command::SkipQaStatus(true))
         );
         assert_eq!(
             Command::from_comment("noqa-", &Vec::new()),
-            Some(Command::SkipQAStatus(false))
+            Some(Command::SkipQaStatus(false))
         );
         assert_eq!(
             Command::from_comment("qa+", &Vec::new()),
-            Some(Command::QAStatus(Some(true)))
+            Some(Command::QaStatus(Some(true)))
         );
         assert_eq!(
             Command::from_comment("qa-", &Vec::new()),
-            Some(Command::QAStatus(Some(false)))
+            Some(Command::QaStatus(Some(false)))
         );
         assert_eq!(
             Command::from_comment("qa?", &Vec::new()),
-            Some(Command::QAStatus(None))
+            Some(Command::QaStatus(None))
         );
         assert_eq!(
             Command::from_comment("automerge+", &Vec::new()),

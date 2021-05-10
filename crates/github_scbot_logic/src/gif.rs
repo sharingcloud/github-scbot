@@ -7,13 +7,6 @@ use github_scbot_database::models::{PullRequestModel, RepositoryModel};
 use crate::Result;
 
 /// Post random GIF comment.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repo_model` - Repository model
-/// * `pr_model` - Pull request model
-/// * `search_terms` - Search terms
 pub async fn post_random_gif_comment(
     config: &Config,
     repo_model: &RepositoryModel,

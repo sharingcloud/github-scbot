@@ -11,7 +11,4 @@ pub mod server;
 pub mod utils;
 mod webhook;
 
-#[cfg(test)]
-mod tests;
-
 pub use errors::{Result, ServerError};

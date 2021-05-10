@@ -2,15 +2,17 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 
-use super::common::{GHRepository, GHUser};
-use crate::pulls::GHPullRequest;
+use super::common::{GhRepository, GhUser};
+use crate::pulls::GhPullRequest;
 
 /// GitHub Review action.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum GHReviewAction {
+pub enum GhReviewAction {
     /// Submitted.
+    #[default]
     Submitted,
     /// Edited.
     Edited,
@@ -19,10 +21,11 @@ pub enum GHReviewAction {
 }
 
 /// GitHub Review state.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
-pub enum GHReviewState {
+pub enum GhReviewState {
     /// Approved.
+    #[default]
     Approved,
     /// Changes requested.
     ChangesRequested,
@@ -34,42 +37,43 @@ pub enum GHReviewState {
     Pending,
 }
 
-impl ToString for GHReviewState {
+impl ToString for GhReviewState {
     fn to_string(&self) -> String {
         serde_plain::to_string(&self).unwrap()
     }
 }
 
-impl From<&str> for GHReviewState {
+impl From<&str> for GhReviewState {
     fn from(input: &str) -> Self {
         serde_plain::from_str(input).unwrap()
     }
 }
 
 /// GitHub Review.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHReview {
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+pub struct GhReview {
     /// User.
-    pub user: GHUser,
+    pub user: GhUser,
     /// Submitted at.
+    #[default(chrono::Utc::now())]
     pub submitted_at: DateTime<Utc>,
     /// State.
-    pub state: GHReviewState,
+    pub state: GhReviewState,
 }
 
 /// GitHub Review event.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHReviewEvent {
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+pub struct GhReviewEvent {
     /// Action.
-    pub action: GHReviewAction,
+    pub action: GhReviewAction,
     /// Review.
-    pub review: GHReview,
+    pub review: GhReview,
     /// Pull request.
-    pub pull_request: GHPullRequest,
+    pub pull_request: GhPullRequest,
     /// Repository.
-    pub repository: GHRepository,
+    pub repository: GhRepository,
     /// Organization.
-    pub organization: GHUser,
+    pub organization: GhUser,
     /// Sender.
-    pub sender: GHUser,
+    pub sender: GhUser,
 }

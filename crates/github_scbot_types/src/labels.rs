@@ -18,7 +18,7 @@ pub enum StepLabel {
     /// Awaiting required review.
     AwaitingRequiredReview,
     /// Awaiting QA.
-    AwaitingQA,
+    AwaitingQa,
     /// Locked
     Locked,
     /// Awaiting merge.
@@ -48,7 +48,7 @@ impl TryFrom<&str> for StepLabel {
             "step/awaiting-changes" => Ok(Self::AwaitingChanges),
             "step/awaiting-review" => Ok(Self::AwaitingReview),
             "step/awaiting-required-review" => Ok(Self::AwaitingRequiredReview),
-            "step/awaiting-qa" => Ok(Self::AwaitingQA),
+            "step/awaiting-qa" => Ok(Self::AwaitingQa),
             "step/awaiting-merge" => Ok(Self::AwaitingMerge),
             "step/locked" => Ok(Self::Locked),
             name => Err(TypeError::UnknownStepLabel(name.to_string())),
@@ -64,7 +64,7 @@ impl From<StepLabel> for &'static str {
             StepLabel::AwaitingChanges => "step/awaiting-changes",
             StepLabel::AwaitingReview => "step/awaiting-review",
             StepLabel::AwaitingRequiredReview => "step/awaiting-required-review",
-            StepLabel::AwaitingQA => "step/awaiting-qa",
+            StepLabel::AwaitingQa => "step/awaiting-qa",
             StepLabel::AwaitingMerge => "step/awaiting-merge",
             StepLabel::Locked => "step/locked",
         }

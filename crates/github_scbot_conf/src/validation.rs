@@ -6,8 +6,8 @@ use crate::{config::Config, ConfError, Result};
 
 enum ApiConfigError {
     MissingToken,
-    MissingAppID,
-    MissingInstallationID,
+    MissingAppId,
+    MissingInstallationId,
     MissingPrivateKey,
     InvalidPrivateKey,
 }
@@ -46,13 +46,13 @@ fn validate_env_vars(config: &Config) -> Result<()> {
         Err(ApiConfigError::MissingToken) => {
             _missing(&mut error, "ENV_GITHUB_API_TOKEN");
         }
-        Err(ApiConfigError::MissingAppID) => {
+        Err(ApiConfigError::MissingAppId) => {
             _missing(&mut error, "ENV_GITHUB_APP_ID");
         }
         Err(ApiConfigError::InvalidPrivateKey) => {
             _invalid_key(&mut error, "ENV_GITHUB_APP_PRIVATE_KEY");
         }
-        Err(ApiConfigError::MissingInstallationID) => {
+        Err(ApiConfigError::MissingInstallationId) => {
             _missing(&mut error, "ENV_GITHUB_APP_INSTALLATION_ID");
         }
         _ => (),
@@ -88,9 +88,9 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
             Ok(_) => {
                 // Check App ID
                 if config.github_app_id == 0 {
-                    Err(ApiConfigError::MissingAppID)
+                    Err(ApiConfigError::MissingAppId)
                 } else if config.github_app_installation_id == 0 {
-                    Err(ApiConfigError::MissingInstallationID)
+                    Err(ApiConfigError::MissingInstallationId)
                 } else {
                     Ok(())
                 }
@@ -100,10 +100,6 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
 }
 
 /// Validate configuration.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
 pub fn validate_configuration(config: &Config) -> Result<()> {
     validate_env_vars(config)
 }
@@ -154,13 +150,13 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
             0u64,
             0u64,
             SAMPLE_RSA_KEY,
-            Err(ApiConfigError::MissingAppID)
+            Err(ApiConfigError::MissingAppId)
         );
         test!(
             1234u64,
             0u64,
             SAMPLE_RSA_KEY,
-            Err(ApiConfigError::MissingInstallationID)
+            Err(ApiConfigError::MissingInstallationId)
         );
         test!(1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
     }
@@ -192,7 +188,7 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
             0u64,
             0u64,
             SAMPLE_RSA_KEY,
-            Err(ApiConfigError::MissingAppID)
+            Err(ApiConfigError::MissingAppId)
         );
         test!("", 1234u64, 0u64, "", Err(ApiConfigError::MissingToken));
         test!(
@@ -207,7 +203,7 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
             1234u64,
             0u64,
             SAMPLE_RSA_KEY,
-            Err(ApiConfigError::MissingInstallationID)
+            Err(ApiConfigError::MissingInstallationId)
         );
         test!("", 1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
         test!("iamatoken", 0u64, 0u64, "", Ok(()));

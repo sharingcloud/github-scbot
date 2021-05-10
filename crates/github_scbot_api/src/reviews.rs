@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use github_scbot_conf::Config;
 use github_scbot_types::{
-    common::GHUser,
-    reviews::{GHReview, GHReviewState},
+    common::GhUser,
+    reviews::{GhReview, GhReviewState},
 };
 use serde::{Deserialize, Serialize};
 use tracing::error;
@@ -18,7 +18,7 @@ use crate::{
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-enum GHReviewStateAPI {
+enum GhReviewStateApi {
     Approved,
     ChangesRequested,
     Commented,
@@ -26,8 +26,8 @@ enum GHReviewStateAPI {
     Pending,
 }
 
-impl From<GHReviewStateAPI> for GHReviewState {
-    fn from(state_api: GHReviewStateAPI) -> Self {
+impl From<GhReviewStateApi> for GhReviewState {
+    fn from(state_api: GhReviewStateApi) -> Self {
         use heck::SnakeCase;
 
         let str_value = serde_plain::to_string(&state_api).unwrap();
@@ -37,21 +37,13 @@ impl From<GHReviewStateAPI> for GHReviewState {
 }
 
 #[derive(Deserialize)]
-struct GHReviewAPI {
-    user: GHUser,
+struct GhReviewApi {
+    user: GhUser,
     submitted_at: DateTime<Utc>,
-    state: GHReviewStateAPI,
+    state: GhReviewStateApi,
 }
 
 /// Request reviewers for a pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
-/// * `reviewers` - Reviewers names
 pub async fn request_reviewers_for_pull_request(
     config: &Config,
     repository_owner: &str,
@@ -78,14 +70,6 @@ pub async fn request_reviewers_for_pull_request(
 }
 
 /// Remove requested reviewers for a pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
-/// * `reviewers` - Reviewers names
 pub async fn remove_reviewers_for_pull_request(
     config: &Config,
     repository_owner: &str,
@@ -123,23 +107,16 @@ pub async fn remove_reviewers_for_pull_request(
 
 /// List reviews for pull request.
 /// Dedupe reviews per reviewer (only last state is kept).
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
 pub async fn list_reviews_for_pull_request(
     config: &Config,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
-) -> Result<Vec<GHReview>> {
+) -> Result<Vec<GhReview>> {
     if is_client_enabled(config) {
         let client = get_client(config).await?;
 
-        let data: Vec<GHReviewAPI> = client
+        let data: Vec<GhReviewApi> = client
             .get(
                 format!(
                     "/repos/{owner}/{name}/pulls/{pr_number}/reviews",
@@ -157,13 +134,13 @@ pub async fn list_reviews_for_pull_request(
     }
 }
 
-fn filter_last_review_states(reviews: Vec<GHReviewAPI>) -> Vec<GHReview> {
-    let mut output: HashMap<String, GHReview> = HashMap::new();
+fn filter_last_review_states(reviews: Vec<GhReviewApi>) -> Vec<GhReview> {
+    let mut output: HashMap<String, GhReview> = HashMap::new();
 
     for review in reviews {
         output.insert(
             review.user.login.clone(),
-            GHReview {
+            GhReview {
                 submitted_at: review.submitted_at,
                 user: review.user,
                 state: review.state.into(),
@@ -178,15 +155,15 @@ fn filter_last_review_states(reviews: Vec<GHReviewAPI>) -> Vec<GHReview> {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_types::{common::GHUser, reviews::GHReviewState};
+    use github_scbot_types::{common::GhUser, reviews::GhReviewState};
 
-    use super::{filter_last_review_states, GHReviewAPI, GHReviewStateAPI};
+    use super::{filter_last_review_states, GhReviewApi, GhReviewStateApi};
 
-    fn new_review(username: &str, state: GHReviewStateAPI) -> GHReviewAPI {
-        GHReviewAPI {
+    fn new_review(username: &str, state: GhReviewStateApi) -> GhReviewApi {
+        GhReviewApi {
             state,
             submitted_at: chrono::Utc::now(),
-            user: GHUser {
+            user: GhUser {
                 login: username.into(),
             },
         }
@@ -195,28 +172,28 @@ mod tests {
     #[test]
     fn test_filter_last_review_states() {
         let reviews = vec![
-            new_review("test1", GHReviewStateAPI::Commented),
-            new_review("test1", GHReviewStateAPI::Approved),
-            new_review("test1", GHReviewStateAPI::Dismissed),
+            new_review("test1", GhReviewStateApi::Commented),
+            new_review("test1", GhReviewStateApi::Approved),
+            new_review("test1", GhReviewStateApi::Dismissed),
         ];
 
         let filtered = filter_last_review_states(reviews);
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].state, GHReviewState::Dismissed);
+        assert_eq!(filtered[0].state, GhReviewState::Dismissed);
         assert_eq!(&filtered[0].user.login, "test1");
 
         let reviews = vec![
-            new_review("test1", GHReviewStateAPI::Approved),
-            new_review("test2", GHReviewStateAPI::Approved),
-            new_review("test1", GHReviewStateAPI::Dismissed),
-            new_review("test2", GHReviewStateAPI::ChangesRequested),
+            new_review("test1", GhReviewStateApi::Approved),
+            new_review("test2", GhReviewStateApi::Approved),
+            new_review("test1", GhReviewStateApi::Dismissed),
+            new_review("test2", GhReviewStateApi::ChangesRequested),
         ];
 
         let filtered = filter_last_review_states(reviews);
         assert_eq!(filtered.len(), 2);
-        assert_eq!(filtered[0].state, GHReviewState::Dismissed);
+        assert_eq!(filtered[0].state, GhReviewState::Dismissed);
         assert_eq!(&filtered[0].user.login, "test1");
-        assert_eq!(filtered[1].state, GHReviewState::ChangesRequested);
+        assert_eq!(filtered[1].state, GhReviewState::ChangesRequested);
         assert_eq!(&filtered[1].user.login, "test2");
     }
 }

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{external::validator::extract_account_from_auth, server::AppContext};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct QAStatusJson {
+pub(crate) struct QaStatusJson {
     repository_path: String,
     pull_request_numbers: Vec<u64>,
     author: String,
@@ -18,7 +18,7 @@ pub(crate) struct QAStatusJson {
 
 pub(crate) async fn set_qa_status(
     ctx: web::Data<AppContext>,
-    data: web::Json<QAStatusJson>,
+    data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
     let conn = ctx.pool.get().unwrap();
@@ -33,7 +33,7 @@ pub(crate) async fn set_qa_status(
 
     set_qa_status_for_pull_requests(
         &ctx.config,
-        &conn,
+        ctx.pool.clone(),
         &target_account,
         &data.repository_path,
         &data.pull_request_numbers,
