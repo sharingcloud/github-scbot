@@ -61,6 +61,8 @@ pub enum Command {
     AdminSynchronize,
     /// Enable bot on pull request (used with manual interaction).
     AdminEnable,
+    /// Set needed reviewers count.
+    AdminSetNeededReviewers(u32),
 }
 
 impl Command {
@@ -86,8 +88,13 @@ impl Command {
             "admin-sync" => Self::AdminSynchronize,
             "admin-help" => Self::AdminHelp,
             "admin-enable" => Self::AdminEnable,
+            "admin-set-needed-reviewers" => Self::AdminSetNeededReviewers(Self::parse_u32(args)),
             _ => return None,
         })
+    }
+
+    fn parse_u32(args: &[&str]) -> u32 {
+        args.join(" ").parse().unwrap_or(2)
     }
 
     fn parse_message(args: &[&str]) -> Option<String> {
@@ -239,6 +246,10 @@ pub async fn execute_command(
             }
             Command::AdminSynchronize => {
                 handle_sync_command(config, &conn, repo_model, pr_model).await?
+            }
+            Command::AdminSetNeededReviewers(count) => {
+                handle_set_needed_reviewers_command(config, &conn, repo_model, pr_model, count)
+                    .await?
             }
         };
 
@@ -607,6 +618,31 @@ pub async fn handle_lock_command(
     if let Some(reason) = reason {
         comment = format!("{}\n**Reason**: {}", comment, reason);
     }
+
+    post_comment(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &comment,
+    )
+    .await?;
+
+    Ok(true)
+}
+
+/// Handle "Set needed reviewers" command.
+pub async fn handle_set_needed_reviewers_command(
+    config: &Config,
+    conn: &DbConn,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    count: u32,
+) -> Result<bool> {
+    pr_model.needed_reviewers_count = count as i32;
+    pr_model.save(&conn)?;
+
+    let comment = format!("Needed reviewers count set to **{}** for this PR.", count);
 
     post_comment(
         config,
