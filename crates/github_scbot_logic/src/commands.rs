@@ -84,6 +84,7 @@ impl Command {
             "help" => Self::Help,
             // Admin commands
             "admin-sync" => Self::AdminSynchronize,
+            "admin-help" => Self::AdminHelp,
             "admin-enable" => Self::AdminEnable,
             _ => return None,
         })

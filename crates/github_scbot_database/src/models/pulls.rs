@@ -464,7 +464,7 @@ impl PullRequestModel {
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
-            .filter(pull_request::id.eq(pr_number as i32))
+            .filter(pull_request::number.eq(pr_number as i32))
             .first(conn)
             .map_err(|_e| DatabaseError::UnknownPullRequest(path.to_string(), pr_number))?;
 

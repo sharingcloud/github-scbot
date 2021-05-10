@@ -11,6 +11,7 @@ use github_scbot_types::{
     events::EventType,
     issues::{GhIssueCommentAction, GhIssueCommentEvent, GhReactionType},
 };
+use tracing::info;
 
 use crate::{
     commands::{execute_commands, parse_commands, Command, CommandHandlingStatus},
@@ -52,6 +53,10 @@ pub async fn handle_issue_comment_event(
                         break;
                     }
                 }
+                info!(
+                    "Trying to execute commands {:?} from comment on repository {}, unknown PR #{}",
+                    commands, event.repository.full_name, event.issue.number
+                );
             }
             Err(e) => return Err(e.into()),
         }
@@ -78,6 +83,13 @@ pub async fn handle_comment_creation(
         .event_key(EventType::IssueComment)
         .payload(event)
         .create(&conn)?;
+
+    info!(
+        "Will execute commands {:?} on repository {}, PR #{}",
+        commands,
+        repo_model.get_path(),
+        pr_model.get_number()
+    );
 
     let statuses = execute_commands(
         config,
