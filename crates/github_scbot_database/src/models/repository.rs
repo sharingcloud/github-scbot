@@ -54,7 +54,7 @@ pub struct RepositoryModelBuilder<'a> {
     default_strategy: Option<GhMergeStrategy>,
     default_needed_reviewers_count: Option<u64>,
     pr_title_validation_regex: Option<String>,
-    manual_interaction: bool,
+    manual_interaction: Option<bool>,
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
@@ -66,7 +66,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
-            manual_interaction: false,
+            manual_interaction: None,
         }
     }
 
@@ -78,7 +78,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: Some(model.get_default_merge_strategy()),
             default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
             pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
-            manual_interaction: model.manual_interaction,
+            manual_interaction: Some(model.manual_interaction),
         }
     }
 
@@ -90,7 +90,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
-            manual_interaction: false,
+            manual_interaction: None,
         }
     }
 
@@ -110,7 +110,7 @@ impl<'a> RepositoryModelBuilder<'a> {
     }
 
     pub fn manual_interaction(mut self, mode: bool) -> Self {
-        self.manual_interaction = mode;
+        self.manual_interaction = Some(mode);
         self
     }
 
@@ -133,7 +133,7 @@ impl<'a> RepositoryModelBuilder<'a> {
                     GhMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
                 })
                 .to_string(),
-            manual_interaction: self.manual_interaction,
+            manual_interaction: self.manual_interaction.clone().unwrap_or(false),
         }
     }
 
@@ -160,7 +160,10 @@ impl<'a> RepositoryModelBuilder<'a> {
                 Some(d) => d.to_string(),
                 None => handle.default_strategy,
             };
-            handle.manual_interaction = self.manual_interaction;
+            handle.manual_interaction = match self.manual_interaction {
+                Some(m) => m,
+                None => handle.manual_interaction,
+            };
             handle.save(conn)?;
 
             Ok(handle)

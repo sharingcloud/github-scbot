@@ -1006,7 +1006,7 @@ checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
 
 [[package]]
 name = "github-scbot"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "actix-rt",
  "dialoguer",
@@ -1026,7 +1026,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-api"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "chrono",
  "github-scbot-conf",
@@ -1046,7 +1046,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-conf"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "dotenv",
  "jsonwebtoken",
@@ -1060,7 +1060,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "jsonwebtoken",
  "openssl",
@@ -1070,7 +1070,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "actix-rt",
  "actix-threadpool",
@@ -1090,7 +1090,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "actix-rt",
  "actix-threadpool",
@@ -1106,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1136,7 +1136,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
@@ -1148,7 +1148,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-types"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "chrono",
  "serde",
