@@ -16,6 +16,7 @@ use tracing::info;
 use crate::{
     commands::{execute_commands, parse_commands, Command, CommandHandlingStatus},
     pulls::synchronize_pull_request,
+    status::update_pull_request_status,
     Result,
 };
 
@@ -40,9 +41,10 @@ pub async fn handle_issue_comment_event(
             }
             Err(DatabaseError::UnknownPullRequest(_, _)) => {
                 // Parse admin enable
+                let mut handled = false;
                 for command in &commands {
                     if let Command::AdminEnable = command {
-                        synchronize_pull_request(
+                        let (mut pr, sha) = synchronize_pull_request(
                             &config,
                             &conn,
                             &event.repository.owner.login,
@@ -50,13 +52,26 @@ pub async fn handle_issue_comment_event(
                             event.issue.number,
                         )
                         .await?;
+
+                        info!(
+                            "Enabling PR #{}, repository {}",
+                            event.issue.number, event.repository.full_name
+                        );
+                        let repo = pr.get_repository(&conn)?;
+                        update_pull_request_status(&config, pool.clone(), &repo, &mut pr, &sha)
+                            .await?;
+
+                        handled = true;
                         break;
                     }
                 }
-                info!(
-                    "Trying to execute commands {:?} from comment on repository {}, unknown PR #{}",
-                    commands, event.repository.full_name, event.issue.number
-                );
+
+                if !handled {
+                    info!(
+                        "Trying to execute commands {:?} from comment on repository {}, unknown PR #{}",
+                        commands, event.repository.full_name, event.issue.number
+                    );
+                }
             }
             Err(e) => return Err(e.into()),
         }
