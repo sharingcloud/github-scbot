@@ -19,7 +19,7 @@ pub(crate) fn export_json(config: &Config, output_path: Option<PathBuf>) -> Resu
 
     if let Some(file_path) = output_path {
         let file =
-            File::create(file_path.clone()).map_err(|e| ExportError::IOError(file_path, e))?;
+            File::create(file_path.clone()).map_err(|e| ExportError::IoError(file_path, e))?;
         let mut writer = BufWriter::new(file);
         export_models_to_json(&conn, &mut writer).map_err(Into::into)
     } else {
@@ -32,7 +32,7 @@ pub(crate) fn import_json(config: &Config, input_path: &Path) -> Result<()> {
     let conn = establish_single_connection(config)?;
 
     let file = File::open(input_path.to_path_buf())
-        .map_err(|e| ImportError::IOError(input_path.to_path_buf(), e))?;
+        .map_err(|e| ImportError::IoError(input_path.to_path_buf(), e))?;
     let reader = BufReader::new(file);
     import_models_from_json(config, &conn, reader)?;
 

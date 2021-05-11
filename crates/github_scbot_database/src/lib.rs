@@ -3,9 +3,6 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
-// Force include openssl for static linking
-extern crate openssl;
-
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -30,19 +27,11 @@ pub type DbPool = Pool<ConnectionManager<DbConn>>;
 embed_migrations!();
 
 /// Establish a single database connection.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
 pub fn establish_single_connection(config: &Config) -> Result<DbConn> {
     ConnectionBuilder::configure(config).build()
 }
 
 /// Establish a connection to a database pool.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
 pub fn establish_pool_connection(config: &Config) -> Result<DbPool> {
     let pool = ConnectionBuilder::configure(config).build_pool()?;
     let conn = pool.get()?;
@@ -169,6 +158,7 @@ pub mod tests {
         Fut: Future<Output = core::result::Result<(), E>>,
     {
         let base_url = get_base_url(config);
+        teardown_test_db(&base_url, db_name)?;
         setup_test_db(&base_url, db_name)?;
         {
             let pool = create_pool(&base_url, db_name)?;

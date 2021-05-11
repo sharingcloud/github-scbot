@@ -5,22 +5,23 @@ use std::convert::TryFrom;
 use dialoguer::Confirm;
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    establish_single_connection,
+    establish_pool_connection, establish_single_connection, get_connection,
     models::{MergeRuleModel, PullRequestModel, RepositoryModel},
 };
-use github_scbot_types::pulls::GHMergeStrategy;
+use github_scbot_types::pulls::GhMergeStrategy;
 use owo_colors::OwoColorize;
 
 use super::errors::{CommandError, Result};
 
-pub(crate) fn set_pull_request_title_regex(
+pub(crate) async fn set_pull_request_title_regex(
     config: &Config,
     repository_path: &str,
     value: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let mut repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
 
+    let mut repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
     println!("Accessing repository {}", repository_path);
     println!("Setting value '{}' as PR title validation regex", value);
     repo.pr_title_validation_regex = value.to_owned();
@@ -29,10 +30,10 @@ pub(crate) fn set_pull_request_title_regex(
     Ok(())
 }
 
-pub(crate) fn show_repository(config: &Config, repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+pub(crate) async fn show_repository(config: &Config, repository_path: &str) -> Result<()> {
+    let pool = establish_pool_connection(&config)?;
 
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
     println!("Accessing repository {}", repository_path);
     println!("{:#?}", repo);
 
@@ -54,9 +55,11 @@ pub(crate) fn list_repositories(config: &Config) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn list_merge_rules(config: &Config, repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+pub(crate) async fn list_merge_rules(config: &Config, repository_path: &str) -> Result<()> {
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
     let default_strategy = repo.get_default_merge_strategy();
     let rules = MergeRuleModel::list_from_repository_id(&conn, repo.id)?;
 
@@ -74,16 +77,18 @@ pub(crate) fn list_merge_rules(config: &Config, repository_path: &str) -> Result
     Ok(())
 }
 
-pub(crate) fn set_merge_rule(
+pub(crate) async fn set_merge_rule(
     config: &Config,
     repository_path: &str,
     base_branch: &str,
     head_branch: &str,
     strategy: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let strategy_enum = GHMergeStrategy::try_from(strategy)?;
-    let mut repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+
+    let strategy_enum = GhMergeStrategy::try_from(strategy)?;
+    let mut repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
 
     if base_branch == "*" && head_branch == "*" {
         // Update default strategy
@@ -104,14 +109,15 @@ pub(crate) fn set_merge_rule(
     Ok(())
 }
 
-pub(crate) fn remove_merge_rule(
+pub(crate) async fn remove_merge_rule(
     config: &Config,
     repository_path: &str,
     base_branch: &str,
     head_branch: &str,
 ) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
 
     if base_branch == "*" && head_branch == "*" {
         return Err(CommandError::CannotRemoveDefaultStrategy);
@@ -128,13 +134,14 @@ pub(crate) fn remove_merge_rule(
     Ok(())
 }
 
-pub(crate) fn set_reviewers_count(
+pub(crate) async fn set_reviewers_count(
     config: &Config,
     repository_path: &str,
     reviewers_count: u32,
 ) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let mut repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+    let mut repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
 
     repo.default_needed_reviewers_count = reviewers_count as i32;
     println!(
@@ -146,9 +153,10 @@ pub(crate) fn set_reviewers_count(
     Ok(())
 }
 
-pub(crate) fn purge_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
-    let conn = establish_single_connection(config)?;
-    let repo = RepositoryModel::get_from_path(&conn, &repository_path)?;
+pub(crate) async fn purge_pull_requests(config: &Config, repository_path: &str) -> Result<()> {
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+    let repo = RepositoryModel::get_from_path(pool.clone(), repository_path.to_owned()).await?;
 
     let prs_to_purge = PullRequestModel::list_closed_pulls(&conn, repo.id)?;
     if prs_to_purge.is_empty() {
@@ -174,6 +182,26 @@ pub(crate) fn purge_pull_requests(config: &Config, repository_path: &str) -> Res
             println!("Cancelled.");
         }
     }
+
+    Ok(())
+}
+
+pub(crate) async fn set_manual_interaction_mode(
+    config: &Config,
+    repository_path: &str,
+    manual_interaction: bool,
+) -> Result<()> {
+    let pool = establish_pool_connection(&config)?;
+    let conn = get_connection(&pool.clone())?;
+
+    let mut repo = RepositoryModel::get_from_path(pool, repository_path.to_owned()).await?;
+    repo.manual_interaction = manual_interaction;
+    repo.save(&conn)?;
+
+    println!(
+        "Manual interaction mode set to '{}' for repository {}.",
+        manual_interaction, repository_path
+    );
 
     Ok(())
 }

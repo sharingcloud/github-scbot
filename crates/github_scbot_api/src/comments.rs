@@ -1,7 +1,7 @@
 //! Comments API module.
 
 use github_scbot_conf::Config;
-use github_scbot_types::issues::GHReactionType;
+use github_scbot_types::issues::GhReactionType;
 use tracing::error;
 
 use crate::{
@@ -12,14 +12,6 @@ use crate::{
 const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 
 /// Post a comment to a pull request.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `pr_number` - Pull request number
-/// * `body` - Comment body
 pub async fn post_comment(
     config: &Config,
     repository_owner: &str,
@@ -43,13 +35,6 @@ pub async fn post_comment(
 }
 
 /// Update a pull request comment.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `comment_id` - Comment ID
 pub async fn update_comment(
     config: &Config,
     repository_owner: &str,
@@ -71,20 +56,12 @@ pub async fn update_comment(
 }
 
 /// Add reaction emoji to comment.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `comment_id` - Comment ID
-/// * `reaction_type` - Reaction type
 pub async fn add_reaction_to_comment(
     config: &Config,
     repository_owner: &str,
     repository_name: &str,
     comment_id: u64,
-    reaction_type: GHReactionType,
+    reaction_type: GhReactionType,
 ) -> Result<()> {
     if is_client_enabled(config) {
         let client = get_client_builder(config)

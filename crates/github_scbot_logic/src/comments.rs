@@ -4,106 +4,130 @@ use github_scbot_api::comments::add_reaction_to_comment;
 use github_scbot_conf::Config;
 use github_scbot_database::{
     get_connection,
-    models::{HistoryWebhookModel, RepositoryModel},
-    DbConn, DbPool,
+    models::{HistoryWebhookModel, PullRequestModel, RepositoryModel},
+    DatabaseError, DbPool,
 };
 use github_scbot_types::{
     events::EventType,
-    issues::{GHIssueCommentAction, GHIssueCommentEvent, GHReactionType},
+    issues::{GhIssueCommentAction, GhIssueCommentEvent, GhReactionType},
 };
-use tracing::error;
+use tracing::info;
 
 use crate::{
-    commands::{parse_commands, CommandHandlingStatus},
-    database::{get_or_fetch_pull_request, process_repository},
+    commands::{execute_commands, parse_commands, Command, CommandHandlingStatus},
+    pulls::synchronize_pull_request,
     Result,
 };
 
 /// Handle an issue comment event.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `event` - GitHub Issue comment event
 pub async fn handle_issue_comment_event(
     config: Config,
     pool: DbPool,
-    event: GHIssueCommentEvent,
+    event: GhIssueCommentEvent,
 ) -> Result<()> {
-    let repo_model =
-        process_repository(config.clone(), pool.clone(), event.repository.clone()).await?;
-    if let GHIssueCommentAction::Created = event.action {
-        let conn = get_connection(&pool)?;
-        handle_comment_creation(&config, &conn, &repo_model, &event).await?;
+    if let GhIssueCommentAction::Created = event.action {
+        let conn = get_connection(&pool.clone())?;
+        let commands = parse_commands(&config, &event.comment.body)?;
+
+        match PullRequestModel::get_from_repository_path_and_number(
+            &conn,
+            &event.repository.full_name,
+            event.issue.number,
+        ) {
+            Ok((mut pr_model, repo_model)) => {
+                handle_comment_creation(&config, pool, &repo_model, &mut pr_model, &event, commands)
+                    .await?
+            }
+            Err(DatabaseError::UnknownPullRequest(_, _)) => {
+                // Parse admin enable
+                for command in &commands {
+                    if let Command::AdminEnable = command {
+                        synchronize_pull_request(
+                            &config,
+                            &conn,
+                            &event.repository.owner.login,
+                            &event.repository.name,
+                            event.issue.number,
+                        )
+                        .await?;
+                        break;
+                    }
+                }
+                info!(
+                    "Trying to execute commands {:?} from comment on repository {}, unknown PR #{}",
+                    commands, event.repository.full_name, event.issue.number
+                );
+            }
+            Err(e) => return Err(e.into()),
+        }
     }
 
     Ok(())
 }
 
 /// Handle comment creation.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` - Repository model
-/// * `event` - GitHub Issue comment event
 pub async fn handle_comment_creation(
     config: &Config,
-    conn: &DbConn,
+    pool: DbPool,
     repo_model: &RepositoryModel,
-    event: &GHIssueCommentEvent,
+    pr_model: &mut PullRequestModel,
+    event: &GhIssueCommentEvent,
+    commands: Vec<Command>,
 ) -> Result<()> {
-    let issue_number = event.issue.number;
+    let conn = get_connection(&pool.clone())?;
     let comment_author = &event.comment.user.login;
-    let comment_body = &event.comment.body;
     let comment_id = event.comment.id;
 
-    match get_or_fetch_pull_request(config, conn, repo_model, issue_number).await {
-        Ok(mut pr_model) => {
-            HistoryWebhookModel::builder(&repo_model, &pr_model)
-                .username(comment_author)
-                .event_key(EventType::IssueComment)
-                .payload(event)
-                .create(conn)?;
+    HistoryWebhookModel::builder(&repo_model, &pr_model)
+        .username(comment_author)
+        .event_key(EventType::IssueComment)
+        .payload(event)
+        .create(&conn)?;
 
-            let status = parse_commands(
-                config,
-                conn,
-                &repo_model,
-                &mut pr_model,
-                comment_id,
-                comment_author,
-                comment_body,
-            )
-            .await?;
+    info!(
+        "Will execute commands {:?} on repository {}, PR #{}",
+        commands,
+        repo_model.get_path(),
+        pr_model.get_number()
+    );
 
-            match status {
-                CommandHandlingStatus::Handled => {
-                    add_reaction_to_comment(
-                        config,
-                        &repo_model.owner,
-                        &repo_model.name,
-                        comment_id,
-                        GHReactionType::Eyes,
-                    )
-                    .await?
-                }
-                CommandHandlingStatus::Denied => {
-                    add_reaction_to_comment(
-                        config,
-                        &repo_model.owner,
-                        &repo_model.name,
-                        comment_id,
-                        GHReactionType::MinusOne,
-                    )
-                    .await?
-                }
-                CommandHandlingStatus::Ignored => (),
+    let statuses = execute_commands(
+        config,
+        pool.clone(),
+        repo_model,
+        pr_model,
+        comment_id,
+        comment_author,
+        commands,
+    )
+    .await?;
+
+    for status in statuses {
+        match status {
+            CommandHandlingStatus::Handled => {
+                add_reaction_to_comment(
+                    config,
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    GhReactionType::Eyes,
+                )
+                .await?;
+                break;
             }
+            CommandHandlingStatus::Denied => {
+                add_reaction_to_comment(
+                    config,
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    GhReactionType::MinusOne,
+                )
+                .await?;
+                break;
+            }
+            CommandHandlingStatus::Ignored => (),
         }
-        Err(e) => error!("{}", e),
     }
 
     Ok(())

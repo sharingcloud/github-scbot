@@ -112,11 +112,6 @@ impl<'a> HistoryWebhookModelBuilder<'a> {
 
 impl HistoryWebhookModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `pr_model` - Pull request
     pub fn builder<'a>(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
@@ -143,10 +138,6 @@ impl HistoryWebhookModel {
     }
 
     /// List all entries.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         history_webhook::table
             .load::<Self>(conn)
@@ -154,11 +145,6 @@ impl HistoryWebhookModel {
     }
 
     /// List entries from repository id.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
     pub fn list_from_repository_id(conn: &DbConn, repository_id: i32) -> Result<Vec<Self>> {
         history_webhook::table
             .filter(history_webhook::repository_id.eq(repository_id))
@@ -167,10 +153,6 @@ impl HistoryWebhookModel {
     }
 
     /// Remove all entries.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove_all(conn: &DbConn) -> Result<()> {
         diesel::delete(history_webhook::table).execute(conn)?;
 

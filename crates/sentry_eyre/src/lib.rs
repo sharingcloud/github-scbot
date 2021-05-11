@@ -16,7 +16,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use sentry_eyre::capture_eyre;
 //!
 //! fn function_that_might_fail() -> eyre::Result<()> {

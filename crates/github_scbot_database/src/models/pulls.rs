@@ -3,18 +3,21 @@
 use std::convert::TryFrom;
 
 use diesel::prelude::*;
+use github_scbot_conf::Config;
 use github_scbot_types::{
+    common::GhRepository,
     labels::StepLabel,
-    pulls::GHPullRequest,
-    status::{CheckStatus, QAStatus},
+    pulls::GhPullRequest,
+    status::{CheckStatus, QaStatus},
 };
 use serde::{Deserialize, Serialize};
 
 use super::{repository::RepositoryModel, ReviewModel};
 use crate::{
     errors::{DatabaseError, Result},
+    get_connection,
     schema::{pull_request, repository},
-    DbConn,
+    DbConn, DbPool,
 };
 
 /// Pull request model.
@@ -89,7 +92,7 @@ pub struct PullRequestModelBuilder<'a> {
     step: Option<Option<StepLabel>>,
     check_status: Option<CheckStatus>,
     status_comment_id: Option<u64>,
-    qa_status: Option<QAStatus>,
+    qa_status: Option<QaStatus>,
     wip: Option<bool>,
     needed_reviewers_count: Option<u64>,
     locked: Option<bool>,
@@ -142,7 +145,7 @@ impl<'a> PullRequestModelBuilder<'a> {
         }
     }
 
-    pub fn from_github(repository: &'a RepositoryModel, pr: &GHPullRequest) -> Self {
+    pub fn from_github(repository: &'a RepositoryModel, pr: &GhPullRequest) -> Self {
         Self {
             repository,
             pr_number: pr.number,
@@ -188,7 +191,7 @@ impl<'a> PullRequestModelBuilder<'a> {
         self
     }
 
-    pub fn qa_status(mut self, value: QAStatus) -> Self {
+    pub fn qa_status(mut self, value: QaStatus) -> Self {
         self.qa_status = Some(value);
         self
     }
@@ -244,7 +247,7 @@ impl<'a> PullRequestModelBuilder<'a> {
                 .check_status
                 .unwrap_or(CheckStatus::Skipped)
                 .to_string(),
-            qa_status: self.qa_status.unwrap_or(QAStatus::Waiting).to_string(),
+            qa_status: self.qa_status.unwrap_or(QaStatus::Waiting).to_string(),
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count
@@ -333,12 +336,6 @@ impl<'a> PullRequestModelBuilder<'a> {
 
 impl PullRequestModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `repository` - Repository
-    /// * `pr_number` - Pull request number
-    /// * `creator` - Pull request creator
     pub fn builder<'a>(
         repository: &'a RepositoryModel,
         pr_number: u64,
@@ -348,11 +345,6 @@ impl PullRequestModel {
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `repository` - Repository
-    /// * `model` - Pull request
     pub fn builder_from_model<'a>(
         repository: &'a RepositoryModel,
         model: &Self,
@@ -361,14 +353,9 @@ impl PullRequestModel {
     }
 
     /// Create builder from GitHub pull request.
-    ///
-    /// # Arguments
-    ///
-    /// * `repository` - Repository
-    /// * `pr` - Pull request
     pub fn builder_from_github<'a>(
         repository: &'a RepositoryModel,
-        pr: &GHPullRequest,
+        pr: &GhPullRequest,
     ) -> PullRequestModelBuilder<'a> {
         PullRequestModelBuilder::from_github(repository, pr)
     }
@@ -380,21 +367,66 @@ impl PullRequestModel {
             .map_err(Into::into)
     }
 
+    /// Create or update repository and pull request from GitHub objects.
+    pub async fn create_or_update_from_github(
+        config: Config,
+        pool: DbPool,
+        repository: GhRepository,
+        pull_request: GhPullRequest,
+    ) -> Result<(RepositoryModel, Self)> {
+        actix_threadpool::run(move || {
+            let conn = pool.get()?;
+
+            let repo = RepositoryModel::builder_from_github(&config, &repository)
+                .create_or_update(&conn)?;
+            let pr = PullRequestModel::builder_from_github(&repo, &pull_request)
+                .create_or_update(&conn)?;
+            Ok::<_, DatabaseError>((repo, pr))
+        })
+        .await
+        .map_err(Into::into)
+    }
+
+    /// Try to lock the status comment ID field.
+    pub async fn try_lock_status_comment_id(pull_request_id: i32, pool: DbPool) -> Result<bool> {
+        actix_threadpool::run(move || {
+            let conn = get_connection(&pool)?;
+            let lock: usize = diesel::update(
+                pull_request::table
+                    .filter(pull_request::id.eq(pull_request_id))
+                    .filter(pull_request::status_comment_id.eq(0)),
+            )
+            // Use the -1 value as a lock
+            .set(pull_request::status_comment_id.eq(-1))
+            .execute(&conn)?;
+
+            Ok::<_, DatabaseError>(lock > 0)
+        })
+        .await
+        .map_err(Into::into)
+    }
+
+    /// Fetch status comment ID.
+    pub async fn fetch_status_comment_id(pull_request_id: i32, pool: DbPool) -> Result<i32> {
+        actix_threadpool::run(move || {
+            let conn = get_connection(&pool)?;
+            let status_id = pull_request::table
+                .filter(pull_request::id.eq(pull_request_id))
+                .select(pull_request::status_comment_id)
+                .get_result(&conn)?;
+
+            Ok::<_, DatabaseError>(status_id)
+        })
+        .await
+        .map_err(Into::into)
+    }
+
     /// List pull requests.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         pull_request::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// List pull requests from repository path.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `path` - Repository path
     pub fn list_from_repository_path(conn: &DbConn, path: &str) -> Result<Vec<Self>> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
@@ -408,12 +440,6 @@ impl PullRequestModel {
     }
 
     /// Get pull request from repository ID and PR number.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository` - Repository
-    /// * `pr_number` - PR number
     pub fn get_from_repository_and_number(
         conn: &DbConn,
         repository: &RepositoryModel,
@@ -427,37 +453,35 @@ impl PullRequestModel {
     }
 
     /// Get pull request from repository path and PR number.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `path` - Repository path
-    /// * `pr_number` - PR number
     pub fn get_from_repository_path_and_number(
         conn: &DbConn,
         path: &str,
         pr_number: u64,
-    ) -> Result<Self> {
+    ) -> Result<(Self, RepositoryModel)> {
         let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
 
-        let (pr, _repo): (Self, Option<RepositoryModel>) = pull_request::table
+        let (pr, repo): (Self, Option<RepositoryModel>) = pull_request::table
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
-            .filter(pull_request::id.eq(pr_number as i32))
+            .filter(pull_request::number.eq(pr_number as i32))
             .first(conn)
             .map_err(|_e| DatabaseError::UnknownPullRequest(path.to_string(), pr_number))?;
 
-        Ok(pr)
+        Ok((
+            pr,
+            repo.expect("Invalid repository linked to pull request."),
+        ))
     }
 
     /// Get reviews from a pull request.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn get_reviews(&self, conn: &DbConn) -> Result<Vec<ReviewModel>> {
         ReviewModel::list_from_pull_request_id(conn, self.id)
+    }
+
+    /// Get pull request repository.
+    pub fn get_repository(&self, conn: &DbConn) -> Result<RepositoryModel> {
+        RepositoryModel::get_from_id(conn, self.repository_id)
     }
 
     /// Get pull request number as u64, to use with GitHub API.
@@ -486,8 +510,8 @@ impl PullRequestModel {
     }
 
     /// Get QA status enum from database value.
-    pub fn get_qa_status(&self) -> QAStatus {
-        QAStatus::try_from(&self.qa_status[..]).unwrap_or_else(|_| {
+    pub fn get_qa_status(&self) -> QaStatus {
+        QaStatus::try_from(&self.qa_status[..]).unwrap_or_else(|_| {
             panic!(
                 "Invalid qa_status '{}' stored in database for pull request ID {}",
                 self.qa_status, self.id
@@ -503,10 +527,6 @@ impl PullRequestModel {
     }
 
     /// Get checks URL for a repository.
-    ///
-    /// # Arguments
-    ///
-    /// * `repository` - Repository
     pub fn get_checks_url(&self, repository: &RepositoryModel) -> String {
         return format!(
             "https://github.com/{}/{}/pull/{}/checks",
@@ -515,19 +535,11 @@ impl PullRequestModel {
     }
 
     /// Set checks status.
-    ///
-    /// # Arguments
-    ///
-    /// * `checks_status` - Checks status
     pub fn set_checks_status(&mut self, checks_status: CheckStatus) {
         self.check_status = checks_status.to_str().to_string();
     }
 
     /// Set step label.
-    ///
-    /// # Arguments
-    ///
-    /// * `step_label` - Step label
     pub fn set_step_label(&mut self, step_label: StepLabel) {
         self.step = Some(step_label.to_str().to_string());
     }
@@ -538,29 +550,16 @@ impl PullRequestModel {
     }
 
     /// Set QA status.
-    ///
-    /// # Arguments
-    ///
-    /// * `qa_status` - QA status
-    pub fn set_qa_status(&mut self, status: QAStatus) {
+    pub fn set_qa_status(&mut self, status: QaStatus) {
         self.qa_status = status.to_str().to_string();
     }
 
     /// Set status comment ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Status comment ID
     pub fn set_status_comment_id(&mut self, id: u64) {
         self.status_comment_id = id as i32
     }
 
     /// Remove closed pull requests.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
     pub fn remove_closed_pulls(conn: &DbConn, repository_id: i32) -> Result<()> {
         let prs = Self::list_closed_pulls(conn, repository_id)?;
 
@@ -576,11 +575,6 @@ impl PullRequestModel {
     }
 
     /// List closed pull requests.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
     pub fn list_closed_pulls(conn: &DbConn, repository_id: i32) -> Result<Vec<Self>> {
         pull_request::table
             .filter(pull_request::repository_id.eq(repository_id))
@@ -590,10 +584,6 @@ impl PullRequestModel {
     }
 
     /// Remove pull request.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(pull_request::table.filter(pull_request::id.eq(self.id))).execute(conn)?;
 
@@ -601,10 +591,6 @@ impl PullRequestModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)?;
 
@@ -615,7 +601,7 @@ impl PullRequestModel {
 #[cfg(test)]
 mod tests {
     use github_scbot_conf::Config;
-    use github_scbot_types::status::{CheckStatus, QAStatus};
+    use github_scbot_types::status::{CheckStatus, QaStatus};
     use pretty_assertions::assert_eq;
 
     use crate::{
@@ -655,7 +641,7 @@ mod tests {
                     merged: false,
                     name: "Toto".into(),
                     needed_reviewers_count: repo.default_needed_reviewers_count,
-                    qa_status: QAStatus::Waiting.to_string(),
+                    qa_status: QaStatus::Waiting.to_string(),
                     status_comment_id: 0,
                     step: None,
                     wip: false

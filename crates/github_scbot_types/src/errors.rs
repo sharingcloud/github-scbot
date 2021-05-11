@@ -15,7 +15,7 @@ pub enum TypeError {
 
     /// Unknown QA status.
     #[error("Unknown QA status: {0}")]
-    UnknownQAStatus(String),
+    UnknownQaStatus(String),
 
     /// Unknown merge strategy.
     #[error("Unknown merge strategy: {0}")]

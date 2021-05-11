@@ -1,5 +1,6 @@
 //! Database errors.
 
+use actix_threadpool::BlockingError;
 use thiserror::Error;
 
 /// Database error.
@@ -53,7 +54,7 @@ pub enum DatabaseError {
 
     /// Wraps [`diesel::result::Error`].
     #[error("Could not run SQL query.")]
-    SQLError(#[from] diesel::result::Error),
+    SqlError(#[from] diesel::result::Error),
 
     /// Wraps [`super::import_export::ExportError`].
     #[error("Error while exporting data.")]
@@ -70,6 +71,21 @@ pub enum DatabaseError {
     /// Wraps [`github_scbot_crypto::CryptoError`].
     #[error(transparent)]
     CryptoError(#[from] github_scbot_crypto::CryptoError),
+
+    /// Threadpool error.
+    #[error("Threadpool error.")]
+    ThreadpoolError,
+}
+
+impl<E: Into<DatabaseError> + std::fmt::Debug + Sync + 'static> From<BlockingError<E>>
+    for DatabaseError
+{
+    fn from(err: BlockingError<E>) -> Self {
+        match err {
+            BlockingError::Canceled => Self::ThreadpoolError,
+            BlockingError::Error(e) => e.into(),
+        }
+    }
 }
 
 /// Result alias for `DatabaseError`.

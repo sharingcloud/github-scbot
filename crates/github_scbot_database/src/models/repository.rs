@@ -4,13 +4,13 @@ use std::convert::{TryFrom, TryInto};
 
 use diesel::prelude::*;
 use github_scbot_conf::Config;
-use github_scbot_types::{common::GHRepository, pulls::GHMergeStrategy};
+use github_scbot_types::{common::GhRepository, pulls::GhMergeStrategy};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{DatabaseError, Result},
     schema::repository,
-    DbConn,
+    DbConn, DbPool,
 };
 
 /// Repository model.
@@ -31,6 +31,8 @@ pub struct RepositoryModel {
     pub default_needed_reviewers_count: i32,
     /// Validation regex for pull request titles.
     pub pr_title_validation_regex: String,
+    /// Manual interaction.
+    pub manual_interaction: bool,
 }
 
 #[derive(Debug, Insertable)]
@@ -41,6 +43,7 @@ struct RepositoryCreation {
     pub default_strategy: String,
     pub default_needed_reviewers_count: i32,
     pub pr_title_validation_regex: String,
+    pub manual_interaction: bool,
 }
 
 #[must_use]
@@ -48,9 +51,10 @@ pub struct RepositoryModelBuilder<'a> {
     owner: String,
     name: String,
     config: &'a Config,
-    default_strategy: Option<GHMergeStrategy>,
+    default_strategy: Option<GhMergeStrategy>,
     default_needed_reviewers_count: Option<u64>,
     pr_title_validation_regex: Option<String>,
+    manual_interaction: Option<bool>,
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
@@ -62,6 +66,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
+            manual_interaction: None,
         }
     }
 
@@ -73,10 +78,11 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: Some(model.get_default_merge_strategy()),
             default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
             pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
+            manual_interaction: Some(model.manual_interaction),
         }
     }
 
-    pub fn from_github(config: &'a Config, repo: &GHRepository) -> Self {
+    pub fn from_github(config: &'a Config, repo: &GhRepository) -> Self {
         Self {
             owner: repo.owner.login.clone(),
             name: repo.name.clone(),
@@ -84,6 +90,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
+            manual_interaction: None,
         }
     }
 
@@ -97,8 +104,13 @@ impl<'a> RepositoryModelBuilder<'a> {
         self
     }
 
-    pub fn default_strategy(mut self, strategy: GHMergeStrategy) -> Self {
+    pub fn default_strategy(mut self, strategy: GhMergeStrategy) -> Self {
         self.default_strategy = Some(strategy);
+        self
+    }
+
+    pub fn manual_interaction(mut self, mode: bool) -> Self {
+        self.manual_interaction = Some(mode);
         self
     }
 
@@ -118,9 +130,10 @@ impl<'a> RepositoryModelBuilder<'a> {
                 .default_strategy
                 .clone()
                 .unwrap_or_else(|| {
-                    GHMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
+                    GhMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
                 })
                 .to_string(),
+            manual_interaction: self.manual_interaction.clone().unwrap_or(false),
         }
     }
 
@@ -147,6 +160,10 @@ impl<'a> RepositoryModelBuilder<'a> {
                 Some(d) => d.to_string(),
                 None => handle.default_strategy,
             };
+            handle.manual_interaction = match self.manual_interaction {
+                Some(m) => m,
+                None => handle.manual_interaction,
+            };
             handle.save(conn)?;
 
             Ok(handle)
@@ -156,35 +173,19 @@ impl<'a> RepositoryModelBuilder<'a> {
 
 impl RepositoryModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Bot configuration
-    /// * `owner` - Repository owner
-    /// * `name` - Repository name
     pub fn builder<'a>(config: &'a Config, owner: &str, name: &str) -> RepositoryModelBuilder<'a> {
         RepositoryModelBuilder::default(config, owner, name)
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Bot configuration
-    /// * `model` - Repository
     pub fn builder_from_model<'a>(config: &'a Config, model: &Self) -> RepositoryModelBuilder<'a> {
         RepositoryModelBuilder::from_model(config, model)
     }
 
     /// Create builder from GitHub repository.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Bot configuration
-    /// * `repo` - Repository
     pub fn builder_from_github<'a>(
         config: &'a Config,
-        repo: &GHRepository,
+        repo: &GhRepository,
     ) -> RepositoryModelBuilder<'a> {
         RepositoryModelBuilder::from_github(config, repo)
     }
@@ -196,21 +197,28 @@ impl RepositoryModel {
             .map_err(Into::into)
     }
 
+    /// Create or update repository from GitHub object.
+    pub async fn create_or_update_from_github(
+        config: Config,
+        pool: DbPool,
+        repository: GhRepository,
+    ) -> Result<Self> {
+        actix_threadpool::run(move || {
+            let conn = pool.get()?;
+            RepositoryModel::builder_from_github(&config, &repository)
+                .create_or_update(&conn)
+                .map_err(DatabaseError::from)
+        })
+        .await
+        .map_err(Into::into)
+    }
+
     /// List repositories.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         repository::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// Get repository from database ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `id` - Repository ID
     pub fn get_from_id(conn: &DbConn, id: i32) -> Result<Self> {
         repository::table
             .filter(repository::id.eq(id))
@@ -219,12 +227,6 @@ impl RepositoryModel {
     }
 
     /// Get repository from owner and name.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `owner` - Repository owner
-    /// * `name` - Repository name
     pub fn get_from_owner_and_name(conn: &DbConn, owner: &str, name: &str) -> Result<Self> {
         repository::table
             .filter(repository::name.eq(name))
@@ -234,27 +236,23 @@ impl RepositoryModel {
     }
 
     /// Get repository from path.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `path` - Repository path
-    pub fn get_from_path(conn: &DbConn, path: &str) -> Result<Self> {
-        let (owner, name) = Self::extract_owner_and_name_from_path(path)?;
-        Self::get_from_owner_and_name(conn, owner, name)
+    pub async fn get_from_path(pool: DbPool, path: String) -> Result<Self> {
+        actix_threadpool::run(move || {
+            let conn = pool.get()?;
+            let (owner, name) = Self::extract_owner_and_name_from_path(&path)?;
+            Self::get_from_owner_and_name(&conn, owner, name)
+        })
+        .await
+        .map_err(Into::into)
     }
 
     /// Get default merge strategy.
-    pub fn get_default_merge_strategy(&self) -> GHMergeStrategy {
+    pub fn get_default_merge_strategy(&self) -> GhMergeStrategy {
         (&self.default_strategy[..]).try_into().unwrap()
     }
 
     /// Set default merge strategy.
-    ///
-    /// # Arguments
-    ///
-    /// * `strategy` - Merge strategy
-    pub fn set_default_merge_strategy(&mut self, strategy: GHMergeStrategy) {
+    pub fn set_default_merge_strategy(&mut self, strategy: GhMergeStrategy) {
         self.default_strategy = strategy.to_string();
     }
 
@@ -264,10 +262,6 @@ impl RepositoryModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)?;
 
@@ -275,10 +269,6 @@ impl RepositoryModel {
     }
 
     /// Extract repository owner and name from path.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Repository path
     pub fn extract_owner_and_name_from_path(path: &str) -> Result<(&str, &str)> {
         let mut split = path.split_terminator('/');
         let owner = split.next();
@@ -318,7 +308,8 @@ mod tests {
                     owner: "me".into(),
                     default_strategy: config.default_merge_strategy.clone(),
                     default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
-                    pr_title_validation_regex: config.default_pr_title_validation_regex.clone()
+                    pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
+                    manual_interaction: false
                 }
             );
 

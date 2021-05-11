@@ -72,6 +72,7 @@ table! {
         default_strategy -> Varchar,
         default_needed_reviewers_count -> Int4,
         pr_title_validation_regex -> Text,
+        manual_interaction -> Bool,
     }
 }
 

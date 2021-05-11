@@ -7,8 +7,6 @@ use super::errors::TypeError;
 /// Event type.
 #[derive(Debug, Clone, Copy)]
 pub enum EventType {
-    /// Check run event.
-    CheckRun,
     /// Check suite event.
     CheckSuite,
     /// Issue comment event.
@@ -33,7 +31,6 @@ impl TryFrom<&str> for EventType {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            "check_run" => Ok(Self::CheckRun),
             "check_suite" => Ok(Self::CheckSuite),
             "issue_comment" => Ok(Self::IssueComment),
             "ping" => Ok(Self::Ping),
@@ -47,7 +44,6 @@ impl TryFrom<&str> for EventType {
 impl From<EventType> for &'static str {
     fn from(event_type: EventType) -> Self {
         match event_type {
-            EventType::CheckRun => "check_run",
             EventType::CheckSuite => "check_suite",
             EventType::IssueComment => "issue_comment",
             EventType::Ping => "ping",

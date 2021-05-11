@@ -34,7 +34,11 @@ lint-err:
 
 # Execute tests
 test:
-	TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/test-bot cargo test --lib
+	cargo test --lib
+
+# Execute tests with coverage
+test-cov:
+	cargo tarpaulin --out Html
 
 #######
 # Tools

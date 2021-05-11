@@ -2,12 +2,13 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 
-use super::common::{GHLabel, GHRepository, GHUser};
+use super::common::{GhLabel, GhRepository, GhUser};
 
 /// GitHub Reaction type.
 #[derive(Debug, Clone, Copy)]
-pub enum GHReactionType {
+pub enum GhReactionType {
     /// 👍
     PlusOne,
     /// 👎
@@ -26,33 +27,34 @@ pub enum GHReactionType {
     Eyes,
 }
 
-impl GHReactionType {
+impl GhReactionType {
     /// Convert reaction type to static str.
     pub fn to_str(self) -> &'static str {
         self.into()
     }
 }
 
-impl From<GHReactionType> for &'static str {
-    fn from(reaction_type: GHReactionType) -> &'static str {
+impl From<GhReactionType> for &'static str {
+    fn from(reaction_type: GhReactionType) -> &'static str {
         match reaction_type {
-            GHReactionType::PlusOne => "+1",
-            GHReactionType::MinusOne => "-1",
-            GHReactionType::Laugh => "laugh",
-            GHReactionType::Confused => "confused",
-            GHReactionType::Heart => "heart",
-            GHReactionType::Hooray => "hooray",
-            GHReactionType::Rocket => "rocket",
-            GHReactionType::Eyes => "eyes",
+            GhReactionType::PlusOne => "+1",
+            GhReactionType::MinusOne => "-1",
+            GhReactionType::Laugh => "laugh",
+            GhReactionType::Confused => "confused",
+            GhReactionType::Heart => "heart",
+            GhReactionType::Hooray => "hooray",
+            GhReactionType::Rocket => "rocket",
+            GhReactionType::Eyes => "eyes",
         }
     }
 }
 
 /// GitHub Issue comment action.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
 #[serde(rename_all = "snake_case")]
-pub enum GHIssueCommentAction {
+pub enum GhIssueCommentAction {
     /// Created.
+    #[default]
     Created,
     /// Edited.
     Edited,
@@ -61,31 +63,34 @@ pub enum GHIssueCommentAction {
 }
 
 /// GitHub Issue state.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum GHIssueState {
+pub enum GhIssueState {
     /// Open.
+    #[default]
     Open,
     /// Closed.
     Closed,
 }
 
 /// GitHub Issue.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHIssue {
+#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
+pub struct GhIssue {
     /// Number.
     pub number: u64,
     /// Title.
     pub title: String,
     /// User.
-    pub user: GHUser,
+    pub user: GhUser,
     /// Labels.
-    pub labels: Vec<GHLabel>,
+    pub labels: Vec<GhLabel>,
     /// State.
-    pub state: GHIssueState,
+    pub state: GhIssueState,
     /// Created at.
+    #[default(chrono::Utc::now())]
     pub created_at: DateTime<Utc>,
     /// Updated at.
+    #[default(chrono::Utc::now())]
     pub updated_at: DateTime<Utc>,
     /// Closed at.
     pub closed_at: Option<DateTime<Utc>>,
@@ -94,49 +99,51 @@ pub struct GHIssue {
 }
 
 /// GitHub Issue comment changes body.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHIssueCommentChangesBody {
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
+pub struct GhIssueCommentChangesBody {
     /// From.
     pub from: String,
 }
 
 /// GitHub Issue comment changes.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHIssueCommentChanges {
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+pub struct GhIssueCommentChanges {
     /// Body.
-    pub body: GHIssueCommentChangesBody,
+    pub body: GhIssueCommentChangesBody,
 }
 
 /// GitHub Issue comment.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHIssueComment {
+#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
+pub struct GhIssueComment {
     /// ID.
     pub id: u64,
     /// User.
-    pub user: GHUser,
+    pub user: GhUser,
     /// Created at.
+    #[default(chrono::Utc::now())]
     pub created_at: DateTime<Utc>,
     /// Updated at.
+    #[default(chrono::Utc::now())]
     pub updated_at: DateTime<Utc>,
     /// Body.
     pub body: String,
 }
 
 /// GitHub Issue comment event.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GHIssueCommentEvent {
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
+pub struct GhIssueCommentEvent {
     /// Action.
-    pub action: GHIssueCommentAction,
+    pub action: GhIssueCommentAction,
     /// Changes.
-    pub changes: Option<GHIssueCommentChanges>,
+    pub changes: Option<GhIssueCommentChanges>,
     /// Issue.
-    pub issue: GHIssue,
+    pub issue: GhIssue,
     /// Comment.
-    pub comment: GHIssueComment,
+    pub comment: GhIssueComment,
     /// Repository.
-    pub repository: GHRepository,
+    pub repository: GhRepository,
     /// Organization.
-    pub organization: GHUser,
+    pub organization: GhUser,
     /// Sender.
-    pub sender: GHUser,
+    pub sender: GhUser,
 }

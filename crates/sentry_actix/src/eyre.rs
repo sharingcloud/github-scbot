@@ -49,7 +49,7 @@ where
 
 macro_rules! impl_err {
     ($name: ident, $code: expr) => {
-        /// Create a specific error. See [`with_status`] for reference.
+        /// Create a specific error. See `with_status` for reference.
         pub fn $name<E: std::error::Error + Send + Sync + 'static>(err: E) -> Self {
             Self::with_status(err, $code)
         }
@@ -66,11 +66,6 @@ impl WrapEyre {
     impl_err!(forbidden, StatusCode::FORBIDDEN);
 
     /// Create error with status.
-    ///
-    /// # Arguments
-    ///
-    /// * `err` - Error
-    /// * `status_code` - Status code
     pub fn with_status<E: std::error::Error + Send + Sync + 'static>(
         e: E,
         status_code: StatusCode,

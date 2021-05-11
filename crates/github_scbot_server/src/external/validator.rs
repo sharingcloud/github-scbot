@@ -33,7 +33,7 @@ impl ValidationError {
     }
 }
 
-/// JWT authentication validator.
+/// Jwt authentication validator.
 pub async fn jwt_auth_validator(
     req: ServiceRequest,
     credentials: BearerAuth,
@@ -61,11 +61,6 @@ fn jwt_auth_validator_inner(
 }
 
 /// Extract account from auth.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `credentials` - Auth credentials
 pub fn extract_account_from_auth(
     conn: &DbConn,
     credentials: &BearerAuth,

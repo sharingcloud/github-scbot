@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-database"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
@@ -8,6 +8,7 @@ edition = "2018"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-types = { path = "../github_scbot_types" }
+actix-threadpool = "0.3"
 chrono = { version = "0.4.19", features = ["serde"] }
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
 diesel_migrations = "1.4"

@@ -26,27 +26,17 @@ pub fn now() -> u64 {
     duration.as_secs()
 }
 
-/// Create JWT from RSA private key.
-///
-/// # Arguments
-///
-/// * `rsa_priv_key` - RSA private key
-/// * `claims` - Claims
+/// Create Jwt from RSA private key.
 pub fn create_jwt<T: Serialize>(rsa_priv_key: &str, claims: &T) -> Result<String> {
     let key = EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes()).unwrap();
 
     match encode(&Header::new(Algorithm::RS256), &claims, &key) {
-        Err(e) => Err(CryptoError::JWTCreationFailed(e)),
+        Err(e) => Err(CryptoError::JwtCreationFailed(e)),
         Ok(s) => Ok(s),
     }
 }
 
-/// Verify and decode JWT.
-///
-/// # Arguments
-///
-/// * `token` - Token
-/// * `rsa_pub_key` - RSA public key
+/// Verify and decode Jwt.
 pub fn verify_jwt<T>(token: &str, rsa_pub_key: &str) -> Result<T>
 where
     T: DeserializeOwned,
@@ -56,16 +46,12 @@ where
     validation.validate_exp = false;
 
     match decode(token, &key, &validation) {
-        Err(e) => Err(CryptoError::JWTVerificationFailed(e)),
+        Err(e) => Err(CryptoError::JwtVerificationFailed(e)),
         Ok(s) => Ok(s.claims),
     }
 }
 
-/// Decode JWT without signature check.
-///
-/// # Arguments
-///
-/// * `token` - Token
+/// Decode Jwt without signature check.
 pub fn decode_jwt<T>(token: &str) -> Result<T>
 where
     T: DeserializeOwned,

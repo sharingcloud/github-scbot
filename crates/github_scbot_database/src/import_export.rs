@@ -29,7 +29,7 @@ pub enum ImportError {
 
     /// Wraps [`std::io::Error`] with a path.
     #[error("IO error on file {0}.")]
-    IOError(PathBuf, #[source] std::io::Error),
+    IoError(PathBuf, #[source] std::io::Error),
 
     /// Unknown repository ID.
     #[error("Unknown repository ID in file: {0}")]
@@ -49,7 +49,7 @@ pub enum ExportError {
 
     /// Wraps [`std::io::Error`] with a path.
     #[error("IO error on file {0}.")]
-    IOError(PathBuf, #[source] std::io::Error),
+    IoError(PathBuf, #[source] std::io::Error),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -64,11 +64,6 @@ struct ImportExportModel {
 }
 
 /// Export database models to JSON.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `writer` - Output stream
 pub fn export_models_to_json<W>(conn: &DbConn, writer: &mut W) -> Result<()>
 where
     W: Write,
@@ -89,11 +84,6 @@ where
 }
 
 /// Import database models from JSON.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `reader` - Input stream
 pub fn import_models_from_json<R>(config: &Config, conn: &DbConn, reader: R) -> Result<()>
 where
     R: Read,
@@ -204,9 +194,9 @@ where
 #[cfg(test)]
 mod tests {
     use github_scbot_types::{
-        pulls::GHMergeStrategy,
-        reviews::GHReviewState,
-        status::{CheckStatus, QAStatus},
+        pulls::GhMergeStrategy,
+        reviews::GhReviewState,
+        status::{CheckStatus, QaStatus},
     };
 
     use super::*;
@@ -231,14 +221,14 @@ mod tests {
                     .unwrap();
 
                 ReviewModel::builder(&repo, &pr, "toto")
-                    .state(GHReviewState::Commented)
+                    .state(GhReviewState::Commented)
                     .required(true)
                     .valid(true)
                     .create_or_update(&conn)
                     .unwrap();
 
                 MergeRuleModel::builder(&repo, "base", "head")
-                    .strategy(GHMergeStrategy::Merge)
+                    .strategy(GhMergeStrategy::Merge)
                     .create_or_update(&conn)
                     .unwrap();
 
@@ -291,7 +281,8 @@ mod tests {
                             "owner": "me",
                             "pr_title_validation_regex": "[a-z]*",
                             "default_needed_reviewers_count": 2,
-                            "default_strategy": "merge"
+                            "default_strategy": "merge",
+                            "manual_interaction": false
                         },
                         {
                             "id": 2,
@@ -299,7 +290,8 @@ mod tests {
                             "owner": "me",
                             "pr_title_validation_regex": "",
                             "default_needed_reviewers_count": 3,
-                            "default_strategy": "merge"
+                            "default_strategy": "merge",
+                            "manual_interaction": true
                         }
                     ],
                     "pull_requests": [
@@ -407,19 +399,21 @@ mod tests {
                     ExternalAccountRightModel::get_right(&conn, "ext", &rep_1).unwrap();
 
                 assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
+                assert_eq!(rep_1.manual_interaction, false);
                 assert_eq!(rep_2.pr_title_validation_regex, "");
+                assert_eq!(rep_2.manual_interaction, true);
                 assert_eq!(pr_1.name, "Tutu");
                 assert_eq!(pr_1.automerge, false);
                 assert_eq!(pr_1.get_checks_status(), CheckStatus::Waiting);
-                assert_eq!(pr_1.get_qa_status(), QAStatus::Waiting);
+                assert_eq!(pr_1.get_qa_status(), QaStatus::Waiting);
                 assert_eq!(pr_2.name, "Tata");
                 assert_eq!(pr_2.automerge, true);
                 assert_eq!(pr_2.get_checks_status(), CheckStatus::Pass);
-                assert_eq!(pr_2.get_qa_status(), QAStatus::Pass);
+                assert_eq!(pr_2.get_qa_status(), QaStatus::Pass);
                 assert_eq!(review_1.required, true);
                 assert_eq!(acc_1.is_admin, true);
-                assert_eq!(review_1.get_review_state(), GHReviewState::Commented);
-                assert!(matches!(rule_1.get_strategy(), GHMergeStrategy::Merge));
+                assert_eq!(review_1.get_review_state(), GhReviewState::Commented);
+                assert!(matches!(rule_1.get_strategy(), GhMergeStrategy::Merge));
                 assert_eq!(ext_acc_1.public_key, "pub");
                 assert_eq!(ext_acc_right_1.username, "ext");
 

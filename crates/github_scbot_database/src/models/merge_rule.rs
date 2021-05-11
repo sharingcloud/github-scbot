@@ -3,7 +3,7 @@
 use std::convert::TryInto;
 
 use diesel::prelude::*;
-use github_scbot_types::pulls::GHMergeStrategy;
+use github_scbot_types::pulls::GhMergeStrategy;
 use serde::{Deserialize, Serialize};
 
 use super::RepositoryModel;
@@ -84,7 +84,7 @@ pub struct MergeRuleBuilder<'a> {
     repo_model: &'a RepositoryModel,
     base_branch: RuleBranch,
     head_branch: RuleBranch,
-    strategy: Option<GHMergeStrategy>,
+    strategy: Option<GhMergeStrategy>,
 }
 
 impl<'a> MergeRuleBuilder<'a> {
@@ -110,7 +110,7 @@ impl<'a> MergeRuleBuilder<'a> {
         }
     }
 
-    pub fn strategy(mut self, strategy: GHMergeStrategy) -> Self {
+    pub fn strategy(mut self, strategy: GhMergeStrategy) -> Self {
         self.strategy = Some(strategy);
         self
     }
@@ -127,7 +127,7 @@ impl<'a> MergeRuleBuilder<'a> {
                 RuleBranch::Named(named) => named,
                 RuleBranch::Wildcard => "*".into(),
             },
-            strategy: self.strategy.unwrap_or(GHMergeStrategy::Merge).to_string(),
+            strategy: self.strategy.unwrap_or(GhMergeStrategy::Merge).to_string(),
         }
     }
 
@@ -161,12 +161,6 @@ impl<'a> MergeRuleBuilder<'a> {
 
 impl MergeRuleModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `base_branch` - Base branch
-    /// * `head_branch` - Head branch
     pub fn builder<T1: Into<RuleBranch>, T2: Into<RuleBranch>>(
         repo_model: &RepositoryModel,
         base_branch: T1,
@@ -176,11 +170,6 @@ impl MergeRuleModel {
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `model` - Rule model
     pub fn builder_from_model<'a>(
         repo_model: &'a RepositoryModel,
         model: &MergeRuleModel,
@@ -196,27 +185,16 @@ impl MergeRuleModel {
     }
 
     /// Get strategy.
-    pub fn get_strategy(&self) -> GHMergeStrategy {
+    pub fn get_strategy(&self) -> GhMergeStrategy {
         (&self.strategy[..]).try_into().unwrap()
     }
 
     /// Set strategy.
-    ///
-    /// # Arguments
-    ///
-    /// * `strategy` - Merge strategy
-    pub fn set_strategy(&mut self, strategy: GHMergeStrategy) {
+    pub fn set_strategy(&mut self, strategy: GhMergeStrategy) {
         self.strategy = strategy.to_string();
     }
 
     /// Get merge rule for branches.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository` - Repository
-    /// * `base_branch` - Base branch
-    /// * `head_branch` - Head branch
     pub fn get_from_branches<T1: Into<RuleBranch>, T2: Into<RuleBranch>>(
         conn: &DbConn,
         repository: &RepositoryModel,
@@ -241,11 +219,6 @@ impl MergeRuleModel {
     }
 
     /// List rules from repository ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `repository_id` - Repository ID
     pub fn list_from_repository_id(
         conn: &DbConn,
         repository_id: i32,
@@ -258,19 +231,11 @@ impl MergeRuleModel {
     }
 
     /// List merge rules.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         merge_rule::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// Remove merge rule.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(merge_rule::table.filter(merge_rule::id.eq(self.id))).execute(conn)?;
 
@@ -278,10 +243,6 @@ impl MergeRuleModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)?;
 
@@ -323,7 +284,7 @@ mod tests {
             );
 
             let rule = MergeRuleModel::builder(&repo, "test", RuleBranch::Wildcard)
-                .strategy(GHMergeStrategy::Squash)
+                .strategy(GhMergeStrategy::Squash)
                 .create_or_update(&conn)
                 .unwrap();
 

@@ -5,12 +5,12 @@ use thiserror::Error;
 /// Crypto error.
 #[derive(Debug, Error)]
 pub enum CryptoError {
-    /// JWT creation failed.
-    #[error("JWT creation error.")]
-    JWTCreationFailed(#[source] jsonwebtoken::errors::Error),
-    /// JWT verification failed.
-    #[error("JWT verification error.")]
-    JWTVerificationFailed(#[source] jsonwebtoken::errors::Error),
+    /// Jwt creation failed.
+    #[error("Jwt creation error.")]
+    JwtCreationFailed(#[source] jsonwebtoken::errors::Error),
+    /// Jwt verification failed.
+    #[error("Jwt verification error.")]
+    JwtVerificationFailed(#[source] jsonwebtoken::errors::Error),
 }
 
 /// Result alias for `CryptoError`.

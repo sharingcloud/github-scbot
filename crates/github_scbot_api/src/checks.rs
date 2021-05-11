@@ -1,32 +1,25 @@
 //! Checks API module.
 
 use github_scbot_conf::Config;
-use github_scbot_types::checks::GHCheckSuite;
+use github_scbot_types::checks::GhCheckSuite;
 use serde::Deserialize;
 
 use crate::{
     utils::{get_client, is_client_enabled},
-    APIError, Result,
+    ApiError, Result,
 };
 
 /// List check-suites from Git Reference.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `repository_owner` - Repository owner
-/// * `repository_name` - Repository name
-/// * `git_ref` - Git reference
 pub async fn list_check_suites_from_git_ref(
     config: &Config,
     repository_owner: &str,
     repository_name: &str,
     git_ref: &str,
-) -> Result<Vec<GHCheckSuite>> {
+) -> Result<Vec<GhCheckSuite>> {
     if is_client_enabled(config) {
         #[derive(Deserialize)]
         struct Response {
-            check_suites: Vec<GHCheckSuite>,
+            check_suites: Vec<GhCheckSuite>,
         }
 
         let client = get_client(config).await?;
@@ -43,7 +36,7 @@ pub async fn list_check_suites_from_git_ref(
             .await?
             .json()
             .await
-            .map_err(|e| APIError::GitHubError(e.to_string()))?;
+            .map_err(|e| ApiError::GitHubError(e.to_string()))?;
 
         Ok(response.check_suites)
     } else {

@@ -25,10 +25,6 @@ pub struct AppContext {
 }
 
 /// Run bot server.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
 pub fn run_bot_server(config: Config) -> Result<()> {
     info!("Starting bot server v{} ...", env!("CARGO_PKG_VERSION"));
 

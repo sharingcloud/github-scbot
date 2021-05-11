@@ -4,7 +4,7 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel},
     DbConn,
 };
-use github_scbot_types::status::{CheckStatus, QAStatus};
+use github_scbot_types::status::{CheckStatus, QaStatus};
 use termion::event::Key;
 use tui::{
     backend::Backend,
@@ -221,9 +221,9 @@ impl<'a> App<'a> {
                     {
                         let status = selected_pr.get_qa_status();
                         let color = match status {
-                            QAStatus::Pass | QAStatus::Skipped => Color::Green,
-                            QAStatus::Fail => Color::Red,
-                            QAStatus::Waiting => Color::Yellow,
+                            QaStatus::Pass | QaStatus::Skipped => Color::Green,
+                            QaStatus::Fail => Color::Red,
+                            QaStatus::Waiting => Color::Yellow,
                         };
                         Span::styled(status.to_str(), Style::default().fg(color))
                     },

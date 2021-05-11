@@ -2,17 +2,17 @@
 
 use serde::Deserialize;
 
-use super::common::{GHRepository, GHUser};
+use super::common::{GhRepository, GhUser};
 
 /// GitHub Ping event.
-#[derive(Debug, Deserialize)]
-pub struct GHPingEvent {
+#[derive(Debug, Deserialize, Default, PartialEq)]
+pub struct GhPingEvent {
     /// Zen text.
     pub zen: String,
     /// Hook ID.
     pub hook_id: u64,
     /// Repository.
-    pub repository: Option<GHRepository>,
+    pub repository: Option<GhRepository>,
     /// Sender.
-    pub sender: Option<GHUser>,
+    pub sender: Option<GhUser>,
 }

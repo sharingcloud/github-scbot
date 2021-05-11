@@ -4,10 +4,10 @@ use thiserror::Error;
 
 /// UI error.
 #[derive(Debug, Error)]
-pub enum UIError {
-    /// Wraps [`std::io::IOError`].
+pub enum UiError {
+    /// Wraps [`std::io::IoError`].
     #[error(transparent)]
-    IOError(#[from] std::io::Error),
+    IoError(#[from] std::io::Error),
 
     /// Wraps [`std::sync::mpsc::RecvError`].
     #[error("Channel communication error.")]
@@ -18,5 +18,5 @@ pub enum UIError {
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 }
 
-/// Result alias for `UIError`.
-pub type Result<T> = core::result::Result<T, UIError>;
+/// Result alias for `UiError`.
+pub type Result<T> = core::result::Result<T, UiError>;

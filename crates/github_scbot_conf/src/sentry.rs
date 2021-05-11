@@ -6,11 +6,6 @@ use tracing::info;
 use crate::Config;
 
 /// Configure Sentry integration by wrapping a function.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `func` - Function to wrap.
 pub fn with_sentry_configuration<T, E>(config: &Config, func: T) -> Result<(), E>
 where
     T: FnOnce() -> Result<(), E>,
@@ -46,10 +41,6 @@ where
 }
 
 /// Capture eyre report.
-///
-/// # Arguments
-///
-/// * `err` - `eyre` report
 pub fn capture_eyre(err: &Report) {
     sentry_eyre::capture_eyre(err);
 }

@@ -1,7 +1,7 @@
 //! Database review models.
 
 use diesel::prelude::*;
-use github_scbot_types::reviews::{GHReview, GHReviewState};
+use github_scbot_types::reviews::{GhReview, GhReviewState};
 use serde::{Deserialize, Serialize};
 
 use super::{PullRequestModel, RepositoryModel};
@@ -56,7 +56,7 @@ pub struct ReviewModelBuilder<'a> {
     repo_model: &'a RepositoryModel,
     pr_model: &'a PullRequestModel,
     username: String,
-    state: Option<GHReviewState>,
+    state: Option<GhReviewState>,
     required: Option<bool>,
     valid: Option<bool>,
 }
@@ -95,7 +95,7 @@ impl<'a> ReviewModelBuilder<'a> {
     pub fn from_github(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
-        review: &GHReview,
+        review: &GhReview,
     ) -> Self {
         Self {
             repo_model,
@@ -112,7 +112,7 @@ impl<'a> ReviewModelBuilder<'a> {
         self
     }
 
-    pub fn state<T: Into<GHReviewState>>(mut self, state: T) -> Self {
+    pub fn state<T: Into<GhReviewState>>(mut self, state: T) -> Self {
         self.state = Some(state.into());
         self
     }
@@ -132,7 +132,7 @@ impl<'a> ReviewModelBuilder<'a> {
             id: -1,
             pull_request_id: self.pr_model.id,
             username: self.username.clone(),
-            state: self.state.unwrap_or(GHReviewState::Pending).to_string(),
+            state: self.state.unwrap_or(GhReviewState::Pending).to_string(),
             required: self.required.unwrap_or(false),
             valid: self.valid.unwrap_or(false),
         }
@@ -174,12 +174,6 @@ impl<'a> ReviewModelBuilder<'a> {
 
 impl ReviewModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `pr_model` - Pull request
-    /// * `username` - Username
     pub fn builder<'a>(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
@@ -189,12 +183,6 @@ impl ReviewModel {
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `pr_model` - Pull request
-    /// * `model` - Model
     pub fn builder_from_model<'a>(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
@@ -204,16 +192,10 @@ impl ReviewModel {
     }
 
     /// Create builder from GitHub review.
-    ///
-    /// # Arguments
-    ///
-    /// * `repo_model` - Repository
-    /// * `pr_model` - Pull request
-    /// * `review` - Review
     pub fn builder_from_github<'a>(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
-        review: &GHReview,
+        review: &GhReview,
     ) -> ReviewModelBuilder<'a> {
         ReviewModelBuilder::from_github(repo_model, pr_model, review)
     }
@@ -226,20 +208,11 @@ impl ReviewModel {
     }
 
     /// List reviews.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         review::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// List reviews from pull request database ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `pull_request_id` - Pull request database ID
     pub fn list_from_pull_request_id(
         conn: &DbConn,
         pull_request_id: i32,
@@ -252,12 +225,6 @@ impl ReviewModel {
     }
 
     /// Get review for pull request database ID and reviewer username.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `pull_request_id` - Pull request database ID
-    /// * `username` - Reviewer username
     pub fn get_from_pull_request_and_username(
         conn: &DbConn,
         repository: &RepositoryModel,
@@ -278,24 +245,16 @@ impl ReviewModel {
     }
 
     /// Get review state.
-    pub fn get_review_state(&self) -> GHReviewState {
+    pub fn get_review_state(&self) -> GhReviewState {
         self.state.as_str().into()
     }
 
     /// Set review state.
-    ///
-    /// # Arguments
-    ///
-    /// * `review_state` - Review state
-    pub fn set_review_state(&mut self, review_state: GHReviewState) {
+    pub fn set_review_state(&mut self, review_state: GhReviewState) {
         self.state = review_state.to_string();
     }
 
     /// Remove review.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(review::table.filter(review::id.eq(self.id))).execute(conn)?;
 
@@ -303,11 +262,6 @@ impl ReviewModel {
     }
 
     /// Remove reviews for pull request.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `pull_request_id` - Pull request ID
     pub fn remove_all_for_pull_request(conn: &DbConn, pull_request_id: i32) -> Result<()> {
         diesel::delete(review::table.filter(review::pull_request_id.eq(pull_request_id)))
             .execute(conn)?;
@@ -316,10 +270,6 @@ impl ReviewModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)?;
 
@@ -355,14 +305,14 @@ mod tests {
                     id: entry.id,
                     pull_request_id: pr.id,
                     username: "him".into(),
-                    state: GHReviewState::Pending.to_string(),
+                    state: GhReviewState::Pending.to_string(),
                     required: false,
                     valid: false
                 }
             );
 
             // Manually update review
-            entry.set_review_state(GHReviewState::Commented);
+            entry.set_review_state(GhReviewState::Commented);
             entry.required = true;
             entry.valid = true;
             entry.save(&conn)?;
@@ -378,7 +328,7 @@ mod tests {
                     id: entry.id,
                     pull_request_id: pr.id,
                     username: "him".into(),
-                    state: GHReviewState::Commented.to_string(),
+                    state: GhReviewState::Commented.to_string(),
                     required: false,
                     valid: true
                 }

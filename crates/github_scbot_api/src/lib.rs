@@ -16,4 +16,4 @@ pub mod reviews;
 pub mod status;
 pub mod utils;
 
-pub use self::errors::{APIError, Result};
+pub use self::errors::{ApiError, Result};

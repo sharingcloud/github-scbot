@@ -11,54 +11,47 @@ use github_scbot_database::{
 };
 use github_scbot_types::{
     events::EventType,
-    reviews::{GHReview, GHReviewEvent, GHReviewState},
+    reviews::{GhReview, GhReviewEvent, GhReviewState},
 };
 
-use crate::{database::process_pull_request, status::update_pull_request_status, Result};
+use crate::{status::update_pull_request_status, Result};
 
 /// Handle GitHub pull request review event.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `pool` - Database pool
-/// * `event` - GitHub pull request review event
-pub async fn handle_review_event(config: Config, pool: DbPool, event: GHReviewEvent) -> Result<()> {
-    let (repo, mut pr) = process_pull_request(
-        config.clone(),
-        pool.clone(),
-        event.repository.clone(),
-        event.pull_request.clone(),
-    )
-    .await?;
-
+pub async fn handle_review_event(config: Config, pool: DbPool, event: GhReviewEvent) -> Result<()> {
     let conn = get_connection(&pool)?;
-    HistoryWebhookModel::builder(&repo, &pr)
-        .username(&event.sender.login)
-        .event_key(EventType::PullRequestReview)
-        .payload(&event)
-        .create(&conn)?;
 
-    handle_review(&config, &conn, &repo, &pr, &event.review).await?;
-    update_pull_request_status(&config, &conn, &repo, &mut pr, &event.pull_request.head.sha)
+    if let Ok((mut pr, repo)) = PullRequestModel::get_from_repository_path_and_number(
+        &conn,
+        &event.repository.full_name,
+        event.pull_request.number,
+    ) {
+        HistoryWebhookModel::builder(&repo, &pr)
+            .username(&event.sender.login)
+            .event_key(EventType::PullRequestReview)
+            .payload(&event)
+            .create(&conn)?;
+
+        handle_review(&config, &conn, &repo, &pr, &event.review).await?;
+        update_pull_request_status(
+            &config,
+            pool.clone(),
+            &repo,
+            &mut pr,
+            &event.pull_request.head.sha,
+        )
         .await?;
+    }
 
     Ok(())
 }
 
 /// Handle GitHub review.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
-/// * `pr_model` - Pull request model
-/// * `review` - GitHub review
 pub async fn handle_review(
     config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
-    review: &GHReview,
+    review: &GhReview,
 ) -> Result<()> {
     let permission = get_user_permission_on_repository(
         config,
@@ -77,16 +70,12 @@ pub async fn handle_review(
 }
 
 /// Handle review request.
-///
-/// # Arguments
-///
-/// * `conn` - Database connection
 pub async fn handle_review_request(
     config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
-    review_state: GHReviewState,
+    review_state: GhReviewState,
     requested_reviewers: &[&str],
 ) -> Result<()> {
     for reviewer in requested_reviewers {
@@ -108,13 +97,6 @@ pub async fn handle_review_request(
 }
 
 /// Re-request existing reviews.
-///
-/// # Arguments
-///
-/// * `config` - Bot configuration
-/// * `conn` - Database connection
-/// * `repo_model` -Repository model
-/// * `pr_model` - Pull request model
 pub async fn rerequest_existing_reviews(
     config: &Config,
     conn: &DbConn,
@@ -135,7 +117,7 @@ pub async fn rerequest_existing_reviews(
         .await?;
 
         for mut review in reviews {
-            review.set_review_state(GHReviewState::Pending);
+            review.set_review_state(GhReviewState::Pending);
             review.save(conn)?;
         }
     }

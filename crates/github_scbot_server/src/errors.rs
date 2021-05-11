@@ -23,7 +23,7 @@ pub enum ServerError {
 
     /// Wraps [`std::io::Error`].
     #[error(transparent)]
-    IOError(#[from] std::io::Error),
+    IoError(#[from] std::io::Error),
 
     /// Wraps [`regex::Error`].
     #[error("Error while compiling regex.")]
@@ -36,6 +36,10 @@ pub enum ServerError {
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error(transparent)]
     LogicError(#[from] github_scbot_logic::LogicError),
+
+    /// Wraps [`serde_json::Error`].
+    #[error(transparent)]
+    SerdeError(#[from] serde_json::Error),
 
     /// Threadpool error.
     #[error("Threadpool error.")]

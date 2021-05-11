@@ -92,7 +92,7 @@ impl From<CheckStatus> for &'static str {
 /// QA status.
 #[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
-pub enum QAStatus {
+pub enum QaStatus {
     /// Waiting.
     Waiting,
     /// Skipped.
@@ -103,20 +103,20 @@ pub enum QAStatus {
     Fail,
 }
 
-impl QAStatus {
+impl QaStatus {
     /// Convert QA status to static str.
     pub fn to_str(self) -> &'static str {
         self.into()
     }
 }
 
-impl ToString for QAStatus {
+impl ToString for QaStatus {
     fn to_string(&self) -> String {
         self.to_str().into()
     }
 }
 
-impl TryFrom<&str> for QAStatus {
+impl TryFrom<&str> for QaStatus {
     type Error = TypeError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -125,18 +125,18 @@ impl TryFrom<&str> for QAStatus {
             "waiting" => Ok(Self::Waiting),
             "fail" => Ok(Self::Fail),
             "skipped" => Ok(Self::Skipped),
-            e => Err(TypeError::UnknownQAStatus(e.to_string())),
+            e => Err(TypeError::UnknownQaStatus(e.to_string())),
         }
     }
 }
 
-impl From<QAStatus> for &'static str {
-    fn from(qa_status: QAStatus) -> Self {
+impl From<QaStatus> for &'static str {
+    fn from(qa_status: QaStatus) -> Self {
         match qa_status {
-            QAStatus::Waiting => "waiting",
-            QAStatus::Pass => "pass",
-            QAStatus::Skipped => "skipped",
-            QAStatus::Fail => "fail",
+            QaStatus::Waiting => "waiting",
+            QaStatus::Pass => "pass",
+            QaStatus::Skipped => "skipped",
+            QaStatus::Fail => "fail",
         }
     }
 }

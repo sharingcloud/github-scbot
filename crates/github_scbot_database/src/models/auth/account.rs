@@ -81,19 +81,11 @@ impl AccountModelBuilder {
 
 impl AccountModel {
     /// Create builder.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - Username
     pub fn builder<T: Into<String>>(username: T) -> AccountModelBuilder {
         AccountModelBuilder::default(username)
     }
 
     /// Create builder from model.
-    ///
-    /// # Arguments
-    ///
-    /// * `model` - Model
     pub fn builder_from_model(model: &Self) -> AccountModelBuilder {
         AccountModelBuilder::from_model(model)
     }
@@ -106,11 +98,6 @@ impl AccountModel {
     }
 
     /// Get account from username.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
-    /// * `username` - Account username
     pub fn get_from_username(conn: &DbConn, username: &str) -> Result<Self> {
         account::table
             .filter(account::username.eq(username))
@@ -119,19 +106,11 @@ impl AccountModel {
     }
 
     /// List all accounts.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list(conn: &DbConn) -> Result<Vec<Self>> {
         account::table.load::<Self>(conn).map_err(Into::into)
     }
 
     /// List admin accounts.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn list_admin_accounts(conn: &DbConn) -> Result<Vec<Self>> {
         account::table
             .filter(account::is_admin.eq(true))
@@ -140,10 +119,6 @@ impl AccountModel {
     }
 
     /// Remove account.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn remove(&self, conn: &DbConn) -> Result<()> {
         diesel::delete(account::table.filter(account::username.eq(&self.username)))
             .execute(conn)?;
@@ -152,10 +127,6 @@ impl AccountModel {
     }
 
     /// Save model instance to database.
-    ///
-    /// # Arguments
-    ///
-    /// * `conn` - Database connection
     pub fn save(&mut self, conn: &DbConn) -> Result<()> {
         self.save_changes::<Self>(conn)?;
 

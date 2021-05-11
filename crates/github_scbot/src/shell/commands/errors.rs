@@ -11,7 +11,7 @@ pub(crate) enum CommandError {
     SentryNotConfigured,
 
     #[error(transparent)]
-    IOError(#[from] std::io::Error),
+    IoError(#[from] std::io::Error),
     #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
     #[error(transparent)]
