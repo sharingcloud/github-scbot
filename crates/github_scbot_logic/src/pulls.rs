@@ -153,7 +153,7 @@ pub async fn handle_pull_request_event(
     let repo_model =
         RepositoryModel::builder_from_github(&config, &event.repository).create_or_update(&conn)?;
 
-    if let Ok(mut pr_model) = PullRequestModel::get_from_repository_and_number(
+    if let Ok(pr_model) = PullRequestModel::get_from_repository_and_number(
         &conn,
         &repo_model,
         event.pull_request.number,
@@ -163,6 +163,15 @@ pub async fn handle_pull_request_event(
             .event_key(EventType::PullRequest)
             .payload(&event)
             .create(&conn)?;
+
+        // Update from GitHub
+        let (repo_model, mut pr_model) = PullRequestModel::create_or_update_from_github(
+            config.clone(),
+            pool.clone(),
+            event.repository.clone(),
+            event.pull_request.clone(),
+        )
+        .await?;
 
         let mut status_changed = false;
 
