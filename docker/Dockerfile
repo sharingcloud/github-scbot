@@ -1,7 +1,13 @@
 # Build stage
-FROM rust:1.51.0-buster as builder
+FROM rust:1.52.1-buster as builder
 WORKDIR /usr/src/app
-COPY . /usr/src/app
+
+COPY ./crates /usr/src/app/crates
+COPY ./migrations /usr/src/app/migrations
+COPY Cargo.lock /usr/src/app
+COPY Cargo.toml /usr/src/app
+COPY diesel.toml /usr/src/app
+
 RUN cargo build --release
 
 # Bundle stage

@@ -10,15 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added 
 
 - Added a `debug test-sentry` command to test Sentry connection
+- Manual interaction mode (using admin-enable command) to use the bot on specific pull requests only
 
 ### Fixed
 
 - Added missing CA certificates in Docker image
 - Removed unneeded fields from GitHub types
+- Fixed status duplications (only PR opening should trigger PR creation in database)
 
 ### Changed
 
 - Use Rust nightly for formatting (more options)
+- Use buster-slim base Docker image
+- Renaming admin commands with `admin-` suffix (admin-help, admin-enable, admin-sync)
 
 ## [0.9.1] - 2021-03-01
 
