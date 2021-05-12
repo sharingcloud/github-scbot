@@ -712,6 +712,7 @@ pub async fn handle_admin_help_command(
         Supported admin commands:\n\
         - `admin-help`: _Show this comment_\n\
         - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
+        - `admin-set-needed-reviewers`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
     );
