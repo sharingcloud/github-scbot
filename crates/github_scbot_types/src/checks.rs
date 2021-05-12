@@ -63,6 +63,8 @@ pub enum GhCheckConclusion {
 /// GitHub Check suite.
 #[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
 pub struct GhCheckSuite {
+    /// ID.
+    pub id: u64,
     /// Head branch.
     pub head_branch: String,
     /// Head commit SHA.

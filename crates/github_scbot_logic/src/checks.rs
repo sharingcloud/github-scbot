@@ -58,6 +58,7 @@ pub async fn handle_check_suite_event(
                             &repo_model.owner,
                             &repo_model.name,
                             &gh_pr.head.sha,
+                            &[event.check_suite.id],
                         )
                         .await?;
 

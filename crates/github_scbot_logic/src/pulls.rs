@@ -309,6 +309,7 @@ pub async fn get_checks_status_from_github(
     repository_owner: &str,
     repository_name: &str,
     sha: &str,
+    exclude_check_suite_ids: &[u64],
 ) -> Result<CheckStatus> {
     // Get upstream checks
     let check_suites =
@@ -336,7 +337,7 @@ pub async fn get_checks_status_from_github(
         let filtered = check_suites
             .iter()
             // Only fetch GitHub Actions statuses
-            .filter(|&s| s.app.slug == "github-actions")
+            .filter(|&s| s.app.slug == "github-actions" && !exclude_check_suite_ids.contains(&s.id))
             .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
                 (CheckStatus::Fail, _) => CheckStatus::Fail,
                 (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
@@ -375,6 +376,7 @@ pub async fn synchronize_pull_request(
         repository_owner,
         repository_name,
         &upstream_pr.head.sha,
+        &[],
     )
     .await?;
 
