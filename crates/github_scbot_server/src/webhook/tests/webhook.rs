@@ -49,6 +49,7 @@ fn test_event_parsing() -> ServerResult<()> {
         GhCheckSuiteEvent {
             action: GhCheckSuiteAction::Completed,
             check_suite: GhCheckSuite {
+                id: 12345678,
                 head_branch: "head-branch".to_string(),
                 head_sha: "12345678123456781234567812345678".to_string(),
                 status: GhCheckStatus::Completed,

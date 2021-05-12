@@ -27,7 +27,7 @@ use github_scbot_types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     commands::{parse_commands, Command},
@@ -55,7 +55,6 @@ pub(crate) fn should_create_pull_request(
     if repo_model.manual_interaction {
         // Check for magic instruction to enable bot
         let commands = parse_commands(&config, &event.pull_request.body)?;
-        println!("{:?}", commands);
         for command in commands {
             if let Command::AdminEnable = command {
                 return Ok(true);
@@ -310,25 +309,50 @@ pub async fn get_checks_status_from_github(
     repository_owner: &str,
     repository_name: &str,
     sha: &str,
+    exclude_check_suite_ids: &[u64],
 ) -> Result<CheckStatus> {
     // Get upstream checks
     let check_suites =
         list_check_suites_from_git_ref(config, repository_owner, repository_name, sha).await?;
 
+    let repository_path = format!("{}/{}", repository_owner, repository_name);
+
+    debug!(
+        repository_path = %repository_path,
+        sha = %sha,
+        check_suites = ?check_suites,
+        message = "Check suites status from GitHub"
+    );
+
     // Extract status
     if check_suites.is_empty() {
+        debug!(
+            repository_path = %repository_path,
+            sha = %sha,
+            message = "No check suite found from GitHub"
+        );
+
         Ok(CheckStatus::Skipped)
     } else {
-        Ok(check_suites
+        let filtered = check_suites
             .iter()
             // Only fetch GitHub Actions statuses
-            .filter(|&s| s.app.slug == "github-actions")
+            .filter(|&s| s.app.slug == "github-actions" && !exclude_check_suite_ids.contains(&s.id))
             .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
                 (CheckStatus::Fail, _) => CheckStatus::Fail,
                 (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
                 (_, None) => CheckStatus::Waiting,
                 (_, _) => acc,
-            }))
+            });
+
+        debug!(
+            repository_path = %repository_path,
+            sha = %sha,
+            filtered = ?filtered,
+            message = "Filtered check suites"
+        );
+
+        Ok(filtered)
     }
 }
 
@@ -352,6 +376,7 @@ pub async fn synchronize_pull_request(
         repository_owner,
         repository_name,
         &upstream_pr.head.sha,
+        &[],
     )
     .await?;
 
