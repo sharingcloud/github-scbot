@@ -20,8 +20,11 @@ pub(crate) async fn issue_comment_event(
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
     info!(
-        "Issue comment event from repository '{}', issue number #{}, action '{:?}' (comment from '{}')",
-        event.repository.full_name, event.issue.number, event.action, event.comment.user.login
+        repository_path = ?event.repository.full_name,
+        pull_request_number = event.issue.number,
+        action = ?event.action,
+        comment_author = ?event.comment.user.login,
+        message = "Issue comment event",
     );
 
     handle_issue_comment_event(config, pool, event).await?;

@@ -54,8 +54,9 @@ pub async fn handle_issue_comment_event(
                         .await?;
 
                         info!(
-                            "Enabling PR #{}, repository {}",
-                            event.issue.number, event.repository.full_name
+                            pull_request_number = event.issue.number,
+                            repository_path = ?event.repository.full_name,
+                            message = "Manual activation on pull request",
                         );
                         let repo = pr.get_repository(&conn)?;
                         update_pull_request_status(&config, pool.clone(), &repo, &mut pr, &sha)
@@ -68,8 +69,10 @@ pub async fn handle_issue_comment_event(
 
                 if !handled {
                     info!(
-                        "Trying to execute commands {:?} from comment on repository {}, unknown PR #{}",
-                        commands, event.repository.full_name, event.issue.number
+                        commands = ?commands,
+                        repository_path = ?event.repository.full_name,
+                        pull_request_number = event.issue.number,
+                        message = "Executing commands on unknown PR",
                     );
                 }
             }
@@ -100,10 +103,10 @@ pub async fn handle_comment_creation(
         .create(&conn)?;
 
     info!(
-        "Will execute commands {:?} on repository {}, PR #{}",
-        commands,
-        repo_model.get_path(),
-        pr_model.get_number()
+        commands = ?commands,
+        repository_path = ?repo_model.get_path(),
+        pull_request_number = pr_model.get_number(),
+        message = "Will execute commands",
     );
 
     let statuses = execute_commands(

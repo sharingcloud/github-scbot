@@ -20,8 +20,11 @@ pub(crate) async fn review_event(
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
     info!(
-        "Pull request review event from repository '{}', PR number #{}, action '{:?}' (review from '{}')",
-        event.repository.full_name, event.pull_request.number, event.action, event.review.user.login
+        repository_path = ?event.repository.full_name,
+        pull_request_number = event.pull_request.number,
+        action = ?event.action,
+        review_author = ?event.review.user.login,
+        message = "Pull request review event",
     );
 
     handle_review_event(config, pool, event).await?;

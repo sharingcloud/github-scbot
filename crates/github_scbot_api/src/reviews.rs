@@ -93,11 +93,10 @@ pub async fn remove_reviewers_for_pull_request(
         let response = client.execute(builder).await?;
         if response.status() != 200 {
             error!(
-                "Could not remove reviewers {:?} for pull request {}/{}: status code: {}",
-                reviewers,
-                repository_owner,
-                repository_name,
-                response.status()
+                reviewers = ?reviewers,
+                repository_path = ?format!("{}/{}", repository_owner, repository_name),
+                status_code = ?response.status(),
+                message = "Could not remove reviewers",
             );
         }
     }
