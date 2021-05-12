@@ -88,7 +88,15 @@ This README supposes the default bot handle: 'bot'.
 - `bot ping`: _Ping me_
 - `bot help`: _Show this comment_
 - `bot gif <search>`: _Post a random GIF with a tag_
-- `bot sync`: _Update status comment if needed (maintenance-type command)_
+
+## Available admin message commands
+
+If you have admin rights (you can set with `auth add-admin-rights <username>`), you have access to the following commands:
+
+- `bot admin-help`: _Show this comment_
+- `bot admin-enable`: _Enable me on a pull request with manual interaction_
+- `bot admin-set-needed-reviewers`: _Set needed reviewers count for this PR_
+- `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 
 ## Building
 
@@ -100,8 +108,7 @@ You can then type `just --list` to print available commands.
 
 ## Docker building
 
-You can type `just build-docker` to automatically generate a Docker image only containing a static-linked binary.  
-It uses the [muslrust](https://github.com/clux/muslrust/) project.
+You can type `just build-docker` to automatically generate a Docker image.
 
 Once your image is ready, you can use the [docker/docker-compose.yml](./docker/docker-compose.yml) file to easily mount a Docker Compose stack.
 
