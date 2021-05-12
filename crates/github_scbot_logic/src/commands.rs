@@ -176,7 +176,7 @@ pub async fn execute_command(
     info!(
         command = ?command,
         comment_author = comment_author,
-        repository_path = ?repo_model.get_path(),
+        repository_path = %repo_model.get_path(),
         pull_request_number = pr_model.get_number(),
         message = "Interpreting command"
     );

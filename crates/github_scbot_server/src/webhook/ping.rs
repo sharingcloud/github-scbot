@@ -15,7 +15,7 @@ pub(crate) async fn ping_event(event: GhPingEvent) -> Result<HttpResponse> {
     if let Some(repo) = event.repository {
         info!(
             message = "Ping event from repository",
-            repository_path = ?repo.full_name
+            repository_path = %repo.full_name
         );
     } else {
         info!("Ping event without repository");
