@@ -174,11 +174,11 @@ pub async fn execute_command(
     let command_handled: CommandHandlingStatus;
 
     info!(
-        "Interpreting command {:?} from author {} on repository {}, PR #{}",
-        command,
-        comment_author,
-        repo_model.get_path(),
-        pr_model.get_number()
+        command = ?command,
+        comment_author = comment_author,
+        repository_path = ?repo_model.get_path(),
+        pull_request_number = pr_model.get_number(),
+        message = "Interpreting command"
     );
 
     if !validate_user_rights_on_command(&conn, comment_author, pr_model, &command)? {
@@ -543,9 +543,9 @@ pub async fn handle_assign_required_reviewers_command(
     reviewers: Vec<String>,
 ) -> Result<bool> {
     info!(
-        "Request required reviewers for PR #{}: {:#?}",
-        pr_model.get_number(),
-        reviewers
+        pull_request_number = pr_model.get_number(),
+        reviewers = ?reviewers,
+        message = "Request required reviewers",
     );
 
     // Communicate to GitHub
@@ -576,9 +576,9 @@ pub async fn handle_unassign_required_reviewers_command(
     reviewers: Vec<String>,
 ) -> Result<bool> {
     info!(
-        "Remove required reviewers for PR #{}: {:#?}",
-        pr_model.get_number(),
-        reviewers
+        pull_request_number = pr_model.get_number(),
+        reviewers = ?reviewers,
+        message = "Remove required reviewers",
     );
 
     remove_reviewers_for_pull_request(
@@ -712,6 +712,7 @@ pub async fn handle_admin_help_command(
         Supported admin commands:\n\
         - `admin-help`: _Show this comment_\n\
         - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
+        - `admin-set-needed-reviewers`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
     );

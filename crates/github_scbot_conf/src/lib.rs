@@ -18,7 +18,7 @@ pub fn configure_startup() -> Result<Config> {
     dotenv::dotenv().ok();
     stable_eyre::install().ok();
     std::env::set_var("RUST_LOG", "info");
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt().json().init();
     let config = Config::from_env();
 
     self::validation::validate_configuration(&config)?;

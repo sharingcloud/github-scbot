@@ -26,7 +26,10 @@ pub struct AppContext {
 
 /// Run bot server.
 pub fn run_bot_server(config: Config) -> Result<()> {
-    info!("Starting bot server v{} ...", env!("CARGO_PKG_VERSION"));
+    info!(
+        version = env!("CARGO_PKG_VERSION"),
+        message = "Starting bot server",
+    );
 
     with_sentry_configuration(&config, || {
         let config = config.clone();

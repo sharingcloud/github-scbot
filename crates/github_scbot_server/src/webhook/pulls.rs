@@ -23,11 +23,11 @@ pub(crate) async fn pull_request_event(
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
     info!(
-        "Pull request event from repository '{}', PR number #{}, action '{:?}' (from '{}')",
-        event.repository.full_name,
-        event.pull_request.number,
-        event.action,
-        event.pull_request.user.login
+        repository_path = ?event.repository.full_name,
+        pull_request_number = event.pull_request.number,
+        action = ?event.action,
+        author = ?event.pull_request.user.login,
+        message = "Pull request event",
     );
 
     if matches!(event.action, GhPullRequestAction::Opened) {
