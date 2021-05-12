@@ -27,7 +27,7 @@ use github_scbot_types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
     commands::{parse_commands, Command},
@@ -55,7 +55,6 @@ pub(crate) fn should_create_pull_request(
     if repo_model.manual_interaction {
         // Check for magic instruction to enable bot
         let commands = parse_commands(&config, &event.pull_request.body)?;
-        println!("{:?}", commands);
         for command in commands {
             if let Command::AdminEnable = command {
                 return Ok(true);
@@ -315,11 +314,26 @@ pub async fn get_checks_status_from_github(
     let check_suites =
         list_check_suites_from_git_ref(config, repository_owner, repository_name, sha).await?;
 
+    let repository_path = format!("{}/{}", repository_owner, repository_name);
+
+    debug!(
+        repository_path = %repository_path,
+        sha = %sha,
+        check_suites = ?check_suites,
+        message = "Check suites status from GitHub"
+    );
+
     // Extract status
     if check_suites.is_empty() {
+        debug!(
+            repository_path = %repository_path,
+            sha = %sha,
+            message = "No check suite found from GitHub"
+        );
+
         Ok(CheckStatus::Skipped)
     } else {
-        Ok(check_suites
+        let filtered = check_suites
             .iter()
             // Only fetch GitHub Actions statuses
             .filter(|&s| s.app.slug == "github-actions")
@@ -328,7 +342,16 @@ pub async fn get_checks_status_from_github(
                 (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
                 (_, None) => CheckStatus::Waiting,
                 (_, _) => acc,
-            }))
+            });
+
+        debug!(
+            repository_path = %repository_path,
+            sha = %sha,
+            filtered = ?filtered,
+            message = "Filtered check suites"
+        );
+
+        Ok(filtered)
     }
 }
 
