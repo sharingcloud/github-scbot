@@ -105,16 +105,6 @@ pub async fn handle_pull_request_opened(
             pr_model.set_checks_status(CheckStatus::Waiting);
             pr_model.save(&conn)?;
 
-            // Get up-to-date data
-            let (mut pr_model, _) = synchronize_pull_request(
-                &config,
-                &conn,
-                &repo_model.owner,
-                &repo_model.name,
-                pr_model.get_number(),
-            )
-            .await?;
-
             update_pull_request_status(
                 &config,
                 pool,
