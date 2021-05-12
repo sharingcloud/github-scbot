@@ -17,6 +17,7 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus, StatusState},
 };
 use regex::Regex;
+use tracing::debug;
 
 use crate::{
     database::apply_pull_request_step,
@@ -27,6 +28,7 @@ use crate::{
 };
 
 /// Pull request status.
+#[derive(Debug)]
 pub struct PullRequestStatus {
     /// Approved reviewer usernames.
     pub approved_reviewers: Vec<String>,
@@ -255,6 +257,11 @@ pub fn generate_pr_status_message(
     let mut status_state = StatusState::Success;
     let mut status_message = "All good.".to_string();
     let pr_status = PullRequestStatus::from_pull_request(repo_model, pr_model, reviews)?;
+
+    debug!(
+        pr_status = ?pr_status,
+        message = "Generated pull request status"
+    );
 
     if pr_status.wip {
         status_message = "PR is still in WIP".to_string();

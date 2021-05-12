@@ -20,7 +20,7 @@ pub(crate) async fn check_suite_event(
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {
     info!(
-        repository_path = ?event.repository.full_name,
+        repository_path = %event.repository.full_name,
         action = ?event.action,
         status = ?event.check_suite.status,
         conclusion = ?event.check_suite.conclusion,

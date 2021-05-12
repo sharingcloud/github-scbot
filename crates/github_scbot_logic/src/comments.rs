@@ -55,7 +55,7 @@ pub async fn handle_issue_comment_event(
 
                         info!(
                             pull_request_number = event.issue.number,
-                            repository_path = ?event.repository.full_name,
+                            repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
                         let repo = pr.get_repository(&conn)?;
@@ -70,7 +70,7 @@ pub async fn handle_issue_comment_event(
                 if !handled {
                     info!(
                         commands = ?commands,
-                        repository_path = ?event.repository.full_name,
+                        repository_path = %event.repository.full_name,
                         pull_request_number = event.issue.number,
                         message = "Executing commands on unknown PR",
                     );
@@ -104,7 +104,7 @@ pub async fn handle_comment_creation(
 
     info!(
         commands = ?commands,
-        repository_path = ?repo_model.get_path(),
+        repository_path = %repo_model.get_path(),
         pull_request_number = pr_model.get_number(),
         message = "Will execute commands",
     );

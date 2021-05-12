@@ -84,7 +84,7 @@ pub async fn add_reaction_to_comment(
 
         if data.status() != 201 {
             error!(
-                status_code = ?data.status(),
+                status_code = %data.status(),
                 message = "Could not add reaction to comment",
             );
         }

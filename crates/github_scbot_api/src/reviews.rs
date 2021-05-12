@@ -94,8 +94,8 @@ pub async fn remove_reviewers_for_pull_request(
         if response.status() != 200 {
             error!(
                 reviewers = ?reviewers,
-                repository_path = ?format!("{}/{}", repository_owner, repository_name),
-                status_code = ?response.status(),
+                repository_path = %format!("{}/{}", repository_owner, repository_name),
+                status_code = %response.status(),
                 message = "Could not remove reviewers",
             );
         }
