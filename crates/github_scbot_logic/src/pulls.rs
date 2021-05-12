@@ -27,6 +27,7 @@ use github_scbot_types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
+use tracing::info;
 
 use crate::{
     commands::{parse_commands, Command},
@@ -104,6 +105,12 @@ pub async fn handle_pull_request_opened(
             pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
             pr_model.set_checks_status(CheckStatus::Waiting);
             pr_model.save(&conn)?;
+
+            info!(
+                repository_path = %repo_model.get_path(),
+                pr_model = ?pr_model,
+                message = "Creating pull request",
+            );
 
             update_pull_request_status(
                 &config,
