@@ -43,6 +43,13 @@ struct RandomResponse {
     results: Vec<GifObject>,
 }
 
+const GIF_KEYS: &[GifFormat] = &[
+    GifFormat::Gif,
+    GifFormat::MediumGif,
+    GifFormat::TinyGif,
+    GifFormat::NanoGif,
+];
+
 /// Get random GIF for query.
 pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<String> {
     let client = reqwest::Client::new();
@@ -51,10 +58,11 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         .query(&[
             ("q", search),
             ("key", &config.tenor_api_key),
-            ("limit", "20"),
+            ("limit", "3"),
+            ("locale", "en_US"),
             ("contentfilter", "low"),
-            ("media_filter", "minimal"),
-            ("ar_range", "wide"),
+            ("media_filter", "basic"),
+            ("ar_range", "all"),
         ])
         .send()
         .await?
@@ -73,9 +81,11 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         // Get first media found
         for result in &response.results {
             for media in &result.media {
-                if media.contains_key(&GifFormat::TinyGif) {
-                    url = media[&GifFormat::TinyGif].url.clone();
-                    break;
+                for key in GIF_KEYS {
+                    if media.contains_key(key) {
+                        url = media[key].url.clone();
+                        break;
+                    }
                 }
             }
         }
