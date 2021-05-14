@@ -388,7 +388,7 @@ pub fn merge_command_results(results: Vec<CommandExecutionResult>) -> CommandExe
 
     // Create only one comment action
     if !comments.is_empty() {
-        merged_actions.push(ResultAction::PostComment(comments.join("\n\n")));
+        merged_actions.push(ResultAction::PostComment(comments.join("\n\n---\n\n")));
     }
 
     CommandExecutionResult {
@@ -470,12 +470,9 @@ pub async fn execute_command(
         };
 
         for action in &mut command_result.result_actions {
-            match action {
-                ResultAction::PostComment(comment) => {
-                    // Include command recap before comment
-                    *comment = format!("> {}\n\n{}", command.to_bot_string(config), comment);
-                }
-                _ => (),
+            if let ResultAction::PostComment(comment) = action {
+                // Include command recap before comment
+                *comment = format!("> {}\n\n{}", command.to_bot_string(config), comment);
             }
         }
     }
@@ -1026,7 +1023,7 @@ mod tests {
                 result_actions: vec![
                     ResultAction::AddReaction(GhReactionType::MinusOne),
                     ResultAction::AddReaction(GhReactionType::Eyes),
-                    ResultAction::PostComment("Comment 1\n\nComment 2".into())
+                    ResultAction::PostComment("Comment 1\n\n---\n\nComment 2".into())
                 ],
                 should_update_status: true
             }
