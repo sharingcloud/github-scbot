@@ -63,7 +63,7 @@ pub async fn add_reaction_to_comment(
     comment_id: u64,
     reaction_type: GhReactionType,
 ) -> Result<()> {
-    if is_client_enabled(config) {
+    if is_client_enabled(config) && comment_id > 0 {
         let client = get_client_builder(config)
             .await?
             .add_preview("squirrel-girl")

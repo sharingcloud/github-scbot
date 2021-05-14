@@ -12,19 +12,21 @@ use github_scbot_database::{
     DbConn, DbPool,
 };
 use github_scbot_types::{issues::GhReactionType, labels::StepLabel, status::QaStatus};
+use smart_default::SmartDefault;
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
 use crate::{
     auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
-    gif::post_random_gif_comment,
+    gif::generate_random_gif_comment,
     pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
 };
 
 /// Command handling status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, SmartDefault)]
 pub enum CommandHandlingStatus {
     /// Command handled.
+    #[default]
     Handled,
     /// Command denied.
     Denied,
@@ -65,6 +67,88 @@ pub enum Command {
     AdminSetNeededReviewers(u32),
 }
 
+/// Command execution result.
+#[derive(Debug, PartialEq)]
+pub struct CommandExecutionResult {
+    /// Should update status.
+    pub should_update_status: bool,
+    /// Handling status.
+    pub handling_status: CommandHandlingStatus,
+    /// Actions.
+    pub result_actions: Vec<ResultAction>,
+}
+
+impl CommandExecutionResult {
+    /// Create builder instance.
+    pub fn builder() -> CommandExecutionResultBuilder {
+        CommandExecutionResultBuilder::default()
+    }
+}
+
+/// Command execution result builder.
+#[derive(Debug, Default)]
+pub struct CommandExecutionResultBuilder {
+    should_update_status: bool,
+    handling_status: CommandHandlingStatus,
+    result_actions: Vec<ResultAction>,
+}
+
+impl CommandExecutionResultBuilder {
+    /// Set status update.
+    pub fn with_status_update(mut self, value: bool) -> Self {
+        self.should_update_status = value;
+        self
+    }
+
+    /// Set ignored result.
+    pub fn ignored(mut self) -> Self {
+        self.handling_status = CommandHandlingStatus::Ignored;
+        self
+    }
+
+    /// Set denied result.
+    pub fn denied(mut self) -> Self {
+        self.handling_status = CommandHandlingStatus::Denied;
+        self
+    }
+
+    /// Set handled result.
+    pub fn handled(mut self) -> Self {
+        self.handling_status = CommandHandlingStatus::Handled;
+        self
+    }
+
+    /// Add result action.
+    pub fn with_action(mut self, action: ResultAction) -> Self {
+        self.result_actions.push(action);
+        self
+    }
+
+    /// Add multiple result actions.
+    pub fn with_actions(mut self, actions: Vec<ResultAction>) -> Self {
+        self.result_actions.extend(actions);
+        self
+    }
+
+    /// Build execution result.
+    pub fn build(self) -> CommandExecutionResult {
+        CommandExecutionResult {
+            handling_status: self.handling_status,
+            result_actions: self.result_actions,
+            should_update_status: self.should_update_status,
+        }
+    }
+}
+
+/// Result action.
+#[derive(Debug, PartialEq)]
+pub enum ResultAction {
+    /// Post comment.
+    PostComment(String),
+    /// Add reaction.
+    AddReaction(GhReactionType),
+}
+
 impl Command {
     /// Create a command from a comment and arguments.
     pub fn from_comment(comment: &str, args: &[&str]) -> Option<Self> {
@@ -93,6 +177,38 @@ impl Command {
         })
     }
 
+    fn to_command_string(&self) -> String {
+        match self {
+            Self::AdminEnable => "admin-enable".into(),
+            Self::AdminHelp => "admin-help".into(),
+            Self::AdminSetNeededReviewers(count) => format!("admin-set-needed-reviewers {}", count),
+            Self::AdminSynchronize => "admin-sync".into(),
+            Self::AssignRequiredReviewers(reviewers) => format!("req+ {}", reviewers.join(" ")),
+            Self::Automerge(status) => format!("automerge{}", if *status { "+" } else { "-" }),
+            Self::Gif(search) => format!("gif {}", search),
+            Self::Help => "help".into(),
+            Self::Lock(status, reason) => {
+                let mut lock = format!("lock{}", if *status { "+" } else { "-" });
+                if let Some(reason) = reason {
+                    lock = format!("{} {}", lock, reason);
+                }
+                lock
+            }
+            Self::Merge => "merge".into(),
+            Self::Ping => "ping".into(),
+            Self::QaStatus(status) => format!(
+                "qa{}",
+                match status {
+                    None => "?",
+                    Some(true) => "+",
+                    Some(false) => "-",
+                }
+            ),
+            Self::SkipQaStatus(status) => format!("noqa{}", if *status { "+" } else { "-" }),
+            Self::UnassignRequiredReviewers(reviewers) => format!("req- {}", reviewers.join(" ")),
+        }
+    }
+
     fn parse_u32(args: &[&str]) -> u32 {
         args.join(" ").parse().unwrap_or(2)
     }
@@ -114,6 +230,15 @@ impl Command {
             .iter()
             .filter_map(|x| x.strip_prefix('@').map(str::to_string))
             .collect()
+    }
+
+    /// Convert to bot string.
+    pub fn to_bot_string(&self, config: &Config) -> String {
+        format!(
+            "{bot} {command}",
+            bot = config.bot_username,
+            command = self.to_command_string()
+        )
     }
 }
 
@@ -139,7 +264,7 @@ pub async fn execute_commands(
     comment_id: u64,
     comment_author: &str,
     commands: Vec<Command>,
-) -> Result<Vec<CommandHandlingStatus>> {
+) -> Result<()> {
     let mut status = vec![];
 
     for command in commands {
@@ -149,7 +274,6 @@ pub async fn execute_commands(
                 pool.clone(),
                 repo_model,
                 pr_model,
-                comment_id,
                 comment_author,
                 command,
             )
@@ -157,7 +281,121 @@ pub async fn execute_commands(
         );
     }
 
-    Ok(status)
+    // Merge and handle command result
+    let command_result = merge_command_results(status);
+    process_command_result(
+        config,
+        pool.clone(),
+        repo_model,
+        pr_model,
+        comment_id,
+        command_result,
+    )
+    .await?;
+
+    Ok(())
+}
+
+/// Process command result.
+pub async fn process_command_result(
+    config: &Config,
+    pool: DbPool,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    comment_id: u64,
+    command_result: CommandExecutionResult,
+) -> Result<()> {
+    if command_result.should_update_status {
+        let sha = get_pull_request_sha(
+            config,
+            &repo_model.owner,
+            &repo_model.name,
+            pr_model.get_number(),
+        )
+        .await?;
+        update_pull_request_status(config, pool.clone(), repo_model, pr_model, &sha).await?;
+    }
+
+    for action in command_result.result_actions {
+        match action {
+            ResultAction::AddReaction(reaction) => {
+                add_reaction_to_comment(
+                    config,
+                    &repo_model.owner,
+                    &repo_model.name,
+                    comment_id,
+                    reaction,
+                )
+                .await?;
+            }
+            ResultAction::PostComment(comment) => {
+                post_comment(
+                    config,
+                    &repo_model.owner,
+                    &repo_model.name,
+                    pr_model.get_number(),
+                    &comment,
+                )
+                .await?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Merge command results.
+pub fn merge_command_results(results: Vec<CommandExecutionResult>) -> CommandExecutionResult {
+    let mut handling_status = CommandHandlingStatus::Ignored;
+    let mut result_actions = vec![];
+    let mut should_update_status = false;
+
+    for result in results {
+        use CommandHandlingStatus::*;
+
+        handling_status = match (handling_status, result.handling_status) {
+            (Ignored, Denied) => Denied,
+            (Denied, Denied) => Denied,
+            (_, Handled) => Handled,
+            (Handled, _) => Handled,
+            (previous, Ignored) => previous,
+        };
+
+        should_update_status = match (should_update_status, result.should_update_status) {
+            (_, true) => true,
+            (true, _) => true,
+            (false, false) => false,
+        };
+
+        result_actions.extend(result.result_actions);
+    }
+
+    // Merge actions
+    let mut merged_actions = vec![];
+    let mut comments = vec![];
+    for action in result_actions {
+        // If action already present, ignores
+        if merged_actions.contains(&action) {
+            continue;
+        }
+
+        if let ResultAction::PostComment(comment) = action {
+            comments.push(comment);
+        } else {
+            merged_actions.push(action);
+        }
+    }
+
+    // Create only one comment action
+    if !comments.is_empty() {
+        merged_actions.push(ResultAction::PostComment(comments.join("\n\n---\n\n")));
+    }
+
+    CommandExecutionResult {
+        handling_status,
+        result_actions: merged_actions,
+        should_update_status,
+    }
 }
 
 /// Execute command.
@@ -166,12 +404,11 @@ pub async fn execute_command(
     pool: DbPool,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
-    comment_id: u64,
     comment_author: &str,
     command: Command,
-) -> Result<CommandHandlingStatus> {
+) -> Result<CommandExecutionResult> {
     let conn = get_connection(&pool)?;
-    let command_handled: CommandHandlingStatus;
+    let mut command_result: CommandExecutionResult;
 
     info!(
         command = ?command,
@@ -182,90 +419,65 @@ pub async fn execute_command(
     );
 
     if !validate_user_rights_on_command(&conn, comment_author, pr_model, &command)? {
-        command_handled = CommandHandlingStatus::Denied;
+        command_result = CommandExecutionResult::builder()
+            .denied()
+            .with_action(ResultAction::AddReaction(GhReactionType::MinusOne))
+            .build();
     } else {
-        command_handled = CommandHandlingStatus::Handled;
-
-        let status_updated = match command {
+        command_result = match &command {
             Command::Automerge(s) => {
-                handle_auto_merge_command(config, &conn, repo_model, pr_model, comment_author, s)
-                    .await?
+                handle_auto_merge_command(&conn, pr_model, comment_author, *s).await?
             }
-            Command::SkipQaStatus(s) => handle_skip_qa_command(&conn, pr_model, s)?,
-            Command::QaStatus(s) => {
-                handle_qa_command(config, &conn, repo_model, pr_model, comment_author, s).await?
-            }
+            Command::SkipQaStatus(s) => handle_skip_qa_command(&conn, pr_model, *s)?,
+            Command::QaStatus(s) => handle_qa_command(&conn, pr_model, comment_author, *s).await?,
             Command::Lock(s, reason) => {
-                handle_lock_command(
-                    config,
-                    &conn,
-                    repo_model,
-                    pr_model,
-                    comment_author,
-                    s,
-                    reason,
-                )
-                .await?
+                handle_lock_command(&conn, pr_model, comment_author, *s, reason.clone()).await?
             }
-            Command::Ping => {
-                handle_ping_command(config, repo_model, pr_model, comment_author).await?
-            }
+            Command::Ping => handle_ping_command(comment_author).await?,
             Command::Merge => {
-                handle_merge_command(
-                    config,
-                    &conn,
-                    repo_model,
-                    pr_model,
-                    comment_id,
-                    comment_author,
-                )
-                .await?
+                handle_merge_command(config, &conn, repo_model, pr_model, comment_author).await?
             }
             Command::AssignRequiredReviewers(reviewers) => {
                 handle_assign_required_reviewers_command(
-                    config, &conn, repo_model, pr_model, reviewers,
+                    config,
+                    &conn,
+                    repo_model,
+                    pr_model,
+                    reviewers.clone(),
                 )
                 .await?
             }
             Command::UnassignRequiredReviewers(reviewers) => {
                 handle_unassign_required_reviewers_command(
-                    config, &conn, repo_model, pr_model, reviewers,
+                    config,
+                    &conn,
+                    repo_model,
+                    pr_model,
+                    reviewers.clone(),
                 )
                 .await?
             }
-            Command::Gif(terms) => handle_gif_command(config, repo_model, pr_model, &terms).await?,
-            Command::Help => {
-                handle_help_command(config, repo_model, pr_model, comment_author).await?
-            }
-            Command::AdminHelp => {
-                handle_admin_help_command(config, repo_model, pr_model, comment_author).await?
-            }
-            Command::AdminEnable => {
-                // TODO: Do not handle enable command for now
-                false
-            }
+            Command::Gif(terms) => handle_gif_command(config, &terms).await?,
+            Command::Help => handle_help_command(config, comment_author).await?,
+            Command::AdminHelp => handle_admin_help_command(config, comment_author).await?,
+            Command::AdminEnable => CommandExecutionResult::builder().ignored().build(),
             Command::AdminSynchronize => {
-                handle_sync_command(config, &conn, repo_model, pr_model).await?
+                handle_admin_sync_command(config, &conn, repo_model, pr_model).await?
             }
             Command::AdminSetNeededReviewers(count) => {
-                handle_set_needed_reviewers_command(config, &conn, repo_model, pr_model, count)
-                    .await?
+                handle_set_needed_reviewers_command(&conn, pr_model, *count).await?
             }
         };
 
-        if status_updated {
-            let sha = get_pull_request_sha(
-                config,
-                &repo_model.owner,
-                &repo_model.name,
-                pr_model.get_number(),
-            )
-            .await?;
-            update_pull_request_status(config, pool.clone(), repo_model, pr_model, &sha).await?;
+        for action in &mut command_result.result_actions {
+            if let ResultAction::PostComment(comment) = action {
+                // Include command recap before comment
+                *comment = format!("> {}\n\n{}", command.to_bot_string(config), comment);
+            }
         }
     }
 
-    Ok(command_handled)
+    Ok(command_result)
 }
 
 /// Parse command from a single comment line.
@@ -317,28 +529,21 @@ pub fn parse_command_string_from_comment_line<'a>(
 
 /// Handle `Automerge` command.
 pub async fn handle_auto_merge_command(
-    config: &Config,
     conn: &DbConn,
-    repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     status: bool,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     pr_model.automerge = status;
     pr_model.save(conn)?;
 
     let status_text = if status { "enabled" } else { "disabled" };
     let comment = format!("Automerge {} by **{}**", status_text, comment_author);
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::PostComment(comment))
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
 }
 
 /// Handle `Merge` command.
@@ -347,9 +552,8 @@ pub async fn handle_merge_command(
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
-    comment_id: u64,
     comment_author: &str,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     // Use step to determine merge possibility
     let reviews = pr_model.get_reviews(conn)?;
     let step = determine_automatic_step(repo_model, pr_model, &reviews)?;
@@ -360,6 +564,8 @@ pub async fn handle_merge_command(
         &pr_model.base_branch,
         &pr_model.head_branch,
     );
+
+    let mut actions = vec![];
 
     if matches!(step, StepLabel::AwaitingMerge) {
         match merge_pull_request(
@@ -374,75 +580,41 @@ pub async fn handle_merge_command(
         .await
         {
             Err(e) => {
-                add_reaction_to_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    comment_id,
-                    GhReactionType::MinusOne,
-                )
-                .await?;
-                post_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    pr_model.get_number(),
-                    &format!("Could not merge this pull request: _{}_", e),
-                )
-                .await?;
+                actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));
+                actions.push(ResultAction::PostComment(format!(
+                    "Could not merge this pull request: _{}_",
+                    e
+                )));
             }
             _ => {
-                add_reaction_to_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    comment_id,
-                    GhReactionType::PlusOne,
-                )
-                .await?;
-                post_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    pr_model.get_number(),
-                    &format!(
-                        "Pull request successfully merged by {}! (strategy: '{}')",
-                        comment_author,
-                        strategy.to_string()
-                    ),
-                )
-                .await?;
+                actions.push(ResultAction::AddReaction(GhReactionType::PlusOne));
+                actions.push(ResultAction::PostComment(format!(
+                    "Pull request successfully merged by {}! (strategy: '{}')",
+                    comment_author,
+                    strategy.to_string()
+                )));
             }
         }
     } else {
-        add_reaction_to_comment(
-            config,
-            &repo_model.owner,
-            &repo_model.name,
-            comment_id,
-            GhReactionType::MinusOne,
-        )
-        .await?;
-        post_comment(
-            config,
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
-            "Pull request is not ready to merge.",
-        )
-        .await?;
+        actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));
+        actions.push(ResultAction::PostComment(
+            "Pull request is not ready to merge.".into(),
+        ));
     }
 
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_actions(actions)
+        .build())
 }
 
-/// Handle `Sync` command.
-pub async fn handle_sync_command(
+/// Handle `AdminSync` command.
+pub async fn handle_admin_sync_command(
     config: &Config,
     conn: &DbConn,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     let (pr, _sha) = synchronize_pull_request(
         config,
         conn,
@@ -452,7 +624,11 @@ pub async fn handle_sync_command(
     )
     .await?;
     *pr_model = pr;
-    Ok(true)
+
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
 }
 
 /// Handle `SkipQA` command.
@@ -460,7 +636,7 @@ pub fn handle_skip_qa_command(
     conn: &DbConn,
     pr_model: &mut PullRequestModel,
     status: bool,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     if status {
         pr_model.set_qa_status(QaStatus::Skipped);
     } else {
@@ -469,18 +645,19 @@ pub fn handle_skip_qa_command(
 
     pr_model.save(conn)?;
 
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
 }
 
 /// Handle `QaStatus` command.
 pub async fn handle_qa_command(
-    config: &Config,
     conn: &DbConn,
-    repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     status: Option<bool>,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     let (status, status_text) = match status {
         Some(true) => (QaStatus::Pass, "marked as pass"),
         Some(false) => (QaStatus::Fail, "marked as fail"),
@@ -491,47 +668,39 @@ pub async fn handle_qa_command(
     pr_model.save(conn)?;
 
     let comment = format!("QA is {} by **{}**", status_text, comment_author);
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 /// Handle `Ping` command.
-pub async fn handle_ping_command(
-    config: &Config,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-    comment_author: &str,
-) -> Result<bool> {
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &format!("**{}** pong!", comment_author),
-    )
-    .await?;
-
-    Ok(true)
+pub async fn handle_ping_command(comment_author: &str) -> Result<CommandExecutionResult> {
+    let comment = format!("**{}** pong!", comment_author);
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 /// Handle `Gif` command.
 pub async fn handle_gif_command(
     config: &Config,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
     search_terms: &str,
-) -> Result<bool> {
-    post_random_gif_comment(config, repo_model, pr_model, search_terms).await?;
+) -> Result<CommandExecutionResult> {
+    let actions = {
+        if let Some(body) = generate_random_gif_comment(config, search_terms).await? {
+            vec![ResultAction::PostComment(body)]
+        } else {
+            vec![]
+        }
+    };
 
-    Ok(false)
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_actions(actions)
+        .build())
 }
 
 /// Handle `AssignRequiredReviewers` command.
@@ -541,7 +710,7 @@ pub async fn handle_assign_required_reviewers_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     reviewers: Vec<String>,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     info!(
         pull_request_number = pr_model.get_number(),
         reviewers = ?reviewers,
@@ -564,7 +733,10 @@ pub async fn handle_assign_required_reviewers_command(
             .create_or_update(conn)?;
     }
 
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
 }
 
 /// Handle `UnassignRequiredReviewers` command.
@@ -574,7 +746,7 @@ pub async fn handle_unassign_required_reviewers_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     reviewers: Vec<String>,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     info!(
         pull_request_number = pr_model.get_number(),
         reviewers = ?reviewers,
@@ -596,19 +768,20 @@ pub async fn handle_unassign_required_reviewers_command(
             .create_or_update(conn)?;
     }
 
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
 }
 
 /// Handle `Lock` command.
 pub async fn handle_lock_command(
-    config: &Config,
     conn: &DbConn,
-    repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     status: bool,
     reason: Option<String>,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     let status_text = if status { "locked" } else { "unlocked" };
 
     pr_model.locked = status;
@@ -619,50 +792,35 @@ pub async fn handle_lock_command(
         comment = format!("{}\n**Reason**: {}", comment, reason);
     }
 
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 /// Handle "Set needed reviewers" command.
 pub async fn handle_set_needed_reviewers_command(
-    config: &Config,
     conn: &DbConn,
-    repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     count: u32,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     pr_model.needed_reviewers_count = count as i32;
     pr_model.save(&conn)?;
 
     let comment = format!("Needed reviewers count set to **{}** for this PR.", count);
-
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(true)
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 /// Handle `Help` command.
 pub async fn handle_help_command(
     config: &Config,
-    repo_model: &RepositoryModel,
-    pr_model: &mut PullRequestModel,
     comment_author: &str,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     let comment = format!(
         "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
         You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
@@ -686,25 +844,17 @@ pub async fn handle_help_command(
         comment_author, config.bot_username
     );
 
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(false)
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 /// Handle `AdminHelp` command.
 pub async fn handle_admin_help_command(
     config: &Config,
-    repo_model: &RepositoryModel,
-    pr_model: &mut PullRequestModel,
     comment_author: &str,
-) -> Result<bool> {
+) -> Result<CommandExecutionResult> {
     let comment = format!(
         "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
         You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
@@ -717,21 +867,16 @@ pub async fn handle_admin_help_command(
         comment_author, config.bot_username
     );
 
-    post_comment(
-        config,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-        &comment,
-    )
-    .await?;
-
-    Ok(false)
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
 }
 
 #[cfg(test)]
 mod tests {
     use github_scbot_database::{models::AccountModel, tests::using_test_db, Result};
+    use pretty_assertions::assert_eq;
 
     use super::*;
     use crate::LogicError;
@@ -848,6 +993,58 @@ mod tests {
         assert_eq!(
             Command::from_comment("this-is-a-command", &Vec::new()),
             None
+        );
+    }
+
+    #[test]
+    fn test_merge_command_results() {
+        let results = vec![
+            CommandExecutionResult::builder()
+                .denied()
+                .with_action(ResultAction::AddReaction(GhReactionType::MinusOne))
+                .build(),
+            CommandExecutionResult::builder()
+                .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+                .with_action(ResultAction::PostComment("Comment 1".into()))
+                .build(),
+            CommandExecutionResult::builder().ignored().build(),
+            CommandExecutionResult::builder()
+                .with_status_update(true)
+                .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+                .with_action(ResultAction::PostComment("Comment 2".into()))
+                .build(),
+        ];
+
+        let merged = merge_command_results(results);
+        assert_eq!(
+            merged,
+            CommandExecutionResult {
+                handling_status: CommandHandlingStatus::Handled,
+                result_actions: vec![
+                    ResultAction::AddReaction(GhReactionType::MinusOne),
+                    ResultAction::AddReaction(GhReactionType::Eyes),
+                    ResultAction::PostComment("Comment 1\n\n---\n\nComment 2".into())
+                ],
+                should_update_status: true
+            }
+        );
+    }
+
+    #[test]
+    fn test_merge_command_results_ignored() {
+        let results = vec![
+            CommandExecutionResult::builder().ignored().build(),
+            CommandExecutionResult::builder().ignored().build(),
+        ];
+
+        let merged = merge_command_results(results);
+        assert_eq!(
+            merged,
+            CommandExecutionResult {
+                handling_status: CommandHandlingStatus::Ignored,
+                result_actions: vec![],
+                should_update_status: false
+            }
         );
     }
 }
