@@ -56,7 +56,7 @@ const GIF_KEYS: &[GifFormat] = &[
 pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Option<String>> {
     let client = reqwest::Client::new();
     let mut response: RandomResponse = client
-        .get(&format!("{}/random", GIF_API_URL))
+        .get(&format!("{}/search", GIF_API_URL))
         .query(&[
             ("q", search),
             ("key", &config.tenor_api_key),
