@@ -9,6 +9,7 @@ use serde::Deserialize;
 use crate::Result;
 
 const GIF_API_URL: &str = "https://g.tenor.com/v1";
+const MAX_GIF_SIZE_BYTES: usize = 2_000_000;
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
@@ -31,6 +32,7 @@ enum GifFormat {
 #[derive(Deserialize)]
 struct MediaObject {
     url: String,
+    size: usize,
 }
 
 #[derive(Deserialize)]
@@ -82,7 +84,7 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         for result in &response.results {
             for media in &result.media {
                 for key in GIF_KEYS {
-                    if media.contains_key(key) {
+                    if media.contains_key(key) && media[key].size < MAX_GIF_SIZE_BYTES {
                         url = media[key].url.clone();
                         break;
                     }
