@@ -13,33 +13,31 @@ pub async fn post_random_gif_comment(
     pr_model: &PullRequestModel,
     search_terms: &str,
 ) -> Result<()> {
-    if let Some(body) = generate_random_gif_comment(config, search_terms).await? {
-        post_comment(
-            config,
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
-            &body,
-        )
-        .await?;
-    }
+    let body = generate_random_gif_comment(config, search_terms).await?;
+    post_comment(
+        config,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &body,
+    )
+    .await?;
 
     Ok(())
 }
 
 /// Generate random GIF comment.
-pub async fn generate_random_gif_comment(
-    config: &Config,
-    search_terms: &str,
-) -> Result<Option<String>> {
+pub async fn generate_random_gif_comment(config: &Config, search_terms: &str) -> Result<String> {
     let random_gif = random_gif_for_query(config, search_terms).await?;
 
-    if random_gif.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(format!(
+    match random_gif {
+        None => Ok(format!(
+            "No compatible GIF found for query `{}` :cry:",
+            search_terms
+        )),
+        Some(url) => Ok(format!(
             "![GIF]({url})\n[_Via Tenor_](https://tenor.com/)",
-            url = random_gif
-        )))
+            url = url
+        )),
     }
 }

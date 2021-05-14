@@ -53,7 +53,7 @@ const GIF_KEYS: &[GifFormat] = &[
 ];
 
 /// Get random GIF for query.
-pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<String> {
+pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Option<String>> {
     let client = reqwest::Client::new();
     let mut response: RandomResponse = client
         .get(&format!("{}/random", GIF_API_URL))
@@ -72,7 +72,7 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         .await?;
 
     if response.results.is_empty() {
-        Ok(String::new())
+        Ok(None)
     } else {
         let mut url = String::new();
 
@@ -96,6 +96,6 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
             }
         }
 
-        Ok(url)
+        Ok(Some(url))
     }
 }
