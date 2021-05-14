@@ -689,17 +689,11 @@ pub async fn handle_gif_command(
     config: &Config,
     search_terms: &str,
 ) -> Result<CommandExecutionResult> {
-    let actions = {
-        if let Some(body) = generate_random_gif_comment(config, search_terms).await? {
-            vec![ResultAction::PostComment(body)]
-        } else {
-            vec![]
-        }
-    };
-
     Ok(CommandExecutionResult::builder()
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
-        .with_actions(actions)
+        .with_action(ResultAction::PostComment(
+            generate_random_gif_comment(config, search_terms).await?,
+        ))
         .build())
 }
 
