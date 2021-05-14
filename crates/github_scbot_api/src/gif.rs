@@ -32,7 +32,7 @@ enum GifFormat {
 #[derive(Deserialize)]
 struct MediaObject {
     url: String,
-    size: usize,
+    size: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -84,9 +84,13 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Strin
         for result in &response.results {
             for media in &result.media {
                 for key in GIF_KEYS {
-                    if media.contains_key(key) && media[key].size < MAX_GIF_SIZE_BYTES {
-                        url = media[key].url.clone();
-                        break;
+                    if media.contains_key(key) {
+                        if let Some(size) = media[key].size {
+                            if size < MAX_GIF_SIZE_BYTES {
+                                url = media[key].url.clone();
+                                break;
+                            }
+                        }
                     }
                 }
             }
