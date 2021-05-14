@@ -1,6 +1,5 @@
 //! Comments logic.
 
-use github_scbot_api::comments::add_reaction_to_comment;
 use github_scbot_conf::Config;
 use github_scbot_database::{
     get_connection,
@@ -9,12 +8,12 @@ use github_scbot_database::{
 };
 use github_scbot_types::{
     events::EventType,
-    issues::{GhIssueCommentAction, GhIssueCommentEvent, GhReactionType},
+    issues::{GhIssueCommentAction, GhIssueCommentEvent},
 };
 use tracing::info;
 
 use crate::{
-    commands::{execute_commands, parse_commands, Command, CommandHandlingStatus},
+    commands::{execute_commands, parse_commands, Command},
     pulls::synchronize_pull_request,
     status::update_pull_request_status,
     Result,
@@ -109,7 +108,7 @@ pub async fn handle_comment_creation(
         message = "Will execute commands",
     );
 
-    let statuses = execute_commands(
+    execute_commands(
         config,
         pool.clone(),
         repo_model,
@@ -119,34 +118,6 @@ pub async fn handle_comment_creation(
         commands,
     )
     .await?;
-
-    for status in statuses {
-        match status {
-            CommandHandlingStatus::Handled => {
-                add_reaction_to_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    comment_id,
-                    GhReactionType::Eyes,
-                )
-                .await?;
-                break;
-            }
-            CommandHandlingStatus::Denied => {
-                add_reaction_to_comment(
-                    config,
-                    &repo_model.owner,
-                    &repo_model.name,
-                    comment_id,
-                    GhReactionType::MinusOne,
-                )
-                .await?;
-                break;
-            }
-            CommandHandlingStatus::Ignored => (),
-        }
-    }
 
     Ok(())
 }

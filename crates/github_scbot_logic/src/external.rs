@@ -7,7 +7,10 @@ use github_scbot_database::{
     DbPool,
 };
 
-use crate::{commands::handle_qa_command, Result};
+use crate::{
+    commands::{handle_qa_command, process_command_result},
+    Result,
+};
 
 /// Set QA status for multiple pull request numbers.
 pub async fn set_qa_status_for_pull_requests(
@@ -27,7 +30,8 @@ pub async fn set_qa_status_for_pull_requests(
     for pr_num in pull_request_numbers {
         let mut pr = PullRequestModel::get_from_repository_and_number(&conn, &repo, *pr_num)?;
 
-        handle_qa_command(config, &conn, &repo, &mut pr, author, status).await?;
+        let result = handle_qa_command(&conn, &mut pr, author, status).await?;
+        process_command_result(config, pool.clone(), &repo, &mut pr, 0, result).await?;
     }
 
     Ok(())

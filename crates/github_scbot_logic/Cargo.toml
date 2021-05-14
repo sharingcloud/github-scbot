@@ -11,9 +11,11 @@ github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
 actix-threadpool = "0.3"
 regex = "1.4"
+smart-default = "0.6.0"
 thiserror = "1.0"
 tracing = "0.1"
 
 [dev-dependencies]
 actix-rt = "1"
 chrono = { version = "0.4.19", features = ["serde"] }
+pretty_assertions = "0.7.2"

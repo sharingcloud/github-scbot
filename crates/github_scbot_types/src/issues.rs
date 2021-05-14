@@ -7,7 +7,7 @@ use smart_default::SmartDefault;
 use super::common::{GhLabel, GhRepository, GhUser};
 
 /// GitHub Reaction type.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GhReactionType {
     /// 👍
     PlusOne,

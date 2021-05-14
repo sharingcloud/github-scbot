@@ -1099,7 +1099,9 @@ dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
  "github-scbot-types",
+ "pretty_assertions 0.7.2",
  "regex",
+ "smart-default",
  "thiserror",
  "tracing",
 ]
