@@ -13,5 +13,6 @@ RUN cargo build --release
 # Bundle stage
 FROM debian:buster-slim
 COPY --from=builder /usr/src/app/target/release/github-scbot .
+RUN apt-get update && apt-get install libpq5 -y
 USER 1000
 CMD ["./github-scbot", "server"]
