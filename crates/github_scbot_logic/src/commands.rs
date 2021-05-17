@@ -1,5 +1,7 @@
 //! Commands module.
 
+use std::{convert::TryFrom, num::ParseIntError};
+
 use github_scbot_api::{
     comments::{add_reaction_to_comment, post_comment},
     pulls::{get_pull_request_sha, merge_pull_request},
@@ -11,7 +13,9 @@ use github_scbot_database::{
     models::{PullRequestModel, RepositoryModel, ReviewModel},
     DbConn, DbPool,
 };
-use github_scbot_types::{issues::GhReactionType, labels::StepLabel, status::QaStatus};
+use github_scbot_types::{
+    issues::GhReactionType, labels::StepLabel, pulls::GhMergeStrategy, status::QaStatus,
+};
 use smart_default::SmartDefault;
 use tracing::info;
 
@@ -20,6 +24,7 @@ use crate::{
     auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
     gif::generate_random_gif_comment,
     pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
+    LogicError,
 };
 
 /// Command handling status.
@@ -57,12 +62,20 @@ pub enum Command {
     Ping,
     /// Show help message.
     Help,
+    /// Is admin?
+    IsAdmin,
     /// Show admin help message.
     AdminHelp,
     /// Synchronize status.
     AdminSynchronize,
     /// Enable bot on pull request (used with manual interaction).
     AdminEnable,
+    /// Set default needed reviewers count.
+    AdminSetDefaultNeededReviewers(u32),
+    /// Set default merge strategy.
+    AdminSetDefaultMergeStrategy(GhMergeStrategy),
+    /// Set default PR title validation regex.
+    AdminSetDefaultPRTitleRegex(String),
     /// Set needed reviewers count.
     AdminSetNeededReviewers(u32),
 }
@@ -151,8 +164,8 @@ pub enum ResultAction {
 
 impl Command {
     /// Create a command from a comment and arguments.
-    pub fn from_comment(comment: &str, args: &[&str]) -> Option<Self> {
-        Some(match comment {
+    pub fn from_comment(comment: &str, args: &[&str]) -> Result<Option<Self>> {
+        Ok(Some(match comment {
             "noqa+" => Self::SkipQaStatus(true),
             "noqa-" => Self::SkipQaStatus(false),
             "qa+" => Self::QaStatus(Some(true)),
@@ -167,26 +180,47 @@ impl Command {
             "gif" => Self::Gif(Self::parse_text(args)),
             "merge" => Self::Merge,
             "ping" => Self::Ping,
+            "is-admin" => Self::IsAdmin,
             "help" => Self::Help,
             // Admin commands
-            "admin-sync" => Self::AdminSynchronize,
             "admin-help" => Self::AdminHelp,
+            "admin-sync" => Self::AdminSynchronize,
             "admin-enable" => Self::AdminEnable,
-            "admin-set-needed-reviewers" => Self::AdminSetNeededReviewers(Self::parse_u32(args)),
-            _ => return None,
-        })
+            "admin-set-default-needed-reviewers" => {
+                Self::AdminSetDefaultNeededReviewers(Self::parse_u32(args)?)
+            }
+            "admin-set-default-merge-strategy" => {
+                Self::AdminSetDefaultMergeStrategy(Self::parse_merge_strategy(args)?)
+            }
+            "admin-set-default-pr-title-regex" => {
+                Self::AdminSetDefaultPRTitleRegex(Self::parse_text(args))
+            }
+            "admin-set-needed-reviewers" => Self::AdminSetNeededReviewers(Self::parse_u32(args)?),
+            // No command
+            _ => return Ok(None),
+        }))
     }
 
     fn to_command_string(&self) -> String {
         match self {
             Self::AdminEnable => "admin-enable".into(),
             Self::AdminHelp => "admin-help".into(),
+            Self::AdminSetDefaultMergeStrategy(strategy) => {
+                format!("admin-set-default-merge-strategy {}", strategy.to_string())
+            }
+            Self::AdminSetDefaultNeededReviewers(count) => {
+                format!("admin-set-default-needed-reviewers {}", count)
+            }
+            Self::AdminSetDefaultPRTitleRegex(rgx) => {
+                format!("admin-set-default-pr-title-regex {}", rgx.to_string())
+            }
             Self::AdminSetNeededReviewers(count) => format!("admin-set-needed-reviewers {}", count),
             Self::AdminSynchronize => "admin-sync".into(),
             Self::AssignRequiredReviewers(reviewers) => format!("req+ {}", reviewers.join(" ")),
             Self::Automerge(status) => format!("automerge{}", if *status { "+" } else { "-" }),
             Self::Gif(search) => format!("gif {}", search),
             Self::Help => "help".into(),
+            Self::IsAdmin => "is-admin".into(),
             Self::Lock(status, reason) => {
                 let mut lock = format!("lock{}", if *status { "+" } else { "-" });
                 if let Some(reason) = reason {
@@ -209,8 +243,15 @@ impl Command {
         }
     }
 
-    fn parse_u32(args: &[&str]) -> u32 {
-        args.join(" ").parse().unwrap_or(2)
+    fn parse_u32(args: &[&str]) -> Result<u32> {
+        args.join(" ")
+            .parse()
+            .map_err(|e: ParseIntError| LogicError::CommandError(e.to_string()))
+    }
+
+    fn parse_merge_strategy(args: &[&str]) -> Result<GhMergeStrategy> {
+        GhMergeStrategy::try_from(&args.join(" ")[..])
+            .map_err(|e| LogicError::CommandError(e.to_string()))
     }
 
     fn parse_message(args: &[&str]) -> Option<String> {
@@ -259,7 +300,7 @@ pub fn parse_commands(config: &Config, comment_body: &str) -> Result<Vec<Command
 pub async fn execute_commands(
     config: &Config,
     pool: DbPool,
-    repo_model: &RepositoryModel,
+    repo_model: &mut RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_id: u64,
     comment_author: &str,
@@ -402,7 +443,7 @@ pub fn merge_command_results(results: Vec<CommandExecutionResult>) -> CommandExe
 pub async fn execute_command(
     config: &Config,
     pool: DbPool,
-    repo_model: &RepositoryModel,
+    repo_model: &mut RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
     command: Command,
@@ -459,10 +500,20 @@ pub async fn execute_command(
             }
             Command::Gif(terms) => handle_gif_command(config, &terms).await?,
             Command::Help => handle_help_command(config, comment_author).await?,
+            Command::IsAdmin => handle_is_admin_command(&conn, comment_author).await?,
             Command::AdminHelp => handle_admin_help_command(config, comment_author).await?,
             Command::AdminEnable => CommandExecutionResult::builder().ignored().build(),
             Command::AdminSynchronize => {
                 handle_admin_sync_command(config, &conn, repo_model, pr_model).await?
+            }
+            Command::AdminSetDefaultNeededReviewers(count) => {
+                handle_set_default_needed_reviewers_command(&conn, repo_model, *count).await?
+            }
+            Command::AdminSetDefaultMergeStrategy(strategy) => {
+                handle_set_default_merge_strategy_command(&conn, repo_model, *strategy).await?
+            }
+            Command::AdminSetDefaultPRTitleRegex(rgx) => {
+                handle_set_default_pr_title_regex_command(&conn, repo_model, rgx.clone()).await?
             }
             Command::AdminSetNeededReviewers(count) => {
                 handle_set_needed_reviewers_command(&conn, pr_model, *count).await?
@@ -483,7 +534,7 @@ pub async fn execute_command(
 /// Parse command from a single comment line.
 pub fn parse_single_command(config: &Config, line: &str) -> Result<Option<Command>> {
     if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
-        let command = Command::from_comment(command_line, &args);
+        let command = Command::from_comment(command_line, &args)?;
         Ok(command)
     } else {
         Ok(None)
@@ -608,6 +659,24 @@ pub async fn handle_merge_command(
         .build())
 }
 
+/// Handle `IsAdmin` command.
+pub async fn handle_is_admin_command(
+    conn: &DbConn,
+    comment_author: &str,
+) -> Result<CommandExecutionResult> {
+    let known_admins = list_known_admin_usernames(conn)?;
+    let status = is_admin(comment_author, &known_admins);
+    let reaction_type = if status {
+        GhReactionType::PlusOne
+    } else {
+        GhReactionType::MinusOne
+    };
+
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(reaction_type))
+        .build())
+}
+
 /// Handle `AdminSync` command.
 pub async fn handle_admin_sync_command(
     config: &Config,
@@ -667,7 +736,7 @@ pub async fn handle_qa_command(
     pr_model.set_qa_status(status);
     pr_model.save(conn)?;
 
-    let comment = format!("QA is {} by **{}**", status_text, comment_author);
+    let comment = format!("QA is {} by **{}**.", status_text, comment_author);
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
@@ -781,11 +850,75 @@ pub async fn handle_lock_command(
     pr_model.locked = status;
     pr_model.save(conn)?;
 
-    let mut comment = format!("Pull request {} by **{}**", status_text, comment_author);
+    let mut comment = format!("Pull request {} by **{}**.", status_text, comment_author);
     if let Some(reason) = reason {
-        comment = format!("{}\n**Reason**: {}", comment, reason);
+        comment = format!("{}\n**Reason**: {}.", comment, reason);
     }
 
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
+/// Handle "Set default needed reviewers" command.
+pub async fn handle_set_default_needed_reviewers_command(
+    conn: &DbConn,
+    repo_model: &mut RepositoryModel,
+    count: u32,
+) -> Result<CommandExecutionResult> {
+    repo_model.default_needed_reviewers_count = count as i32;
+    repo_model.save(&conn)?;
+
+    let comment = format!(
+        "Needed reviewers count set to **{}** for this repository.",
+        count
+    );
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(false)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
+/// Handle "Set default merge strategy" command.
+pub async fn handle_set_default_merge_strategy_command(
+    conn: &DbConn,
+    repo_model: &mut RepositoryModel,
+    strategy: GhMergeStrategy,
+) -> Result<CommandExecutionResult> {
+    repo_model.set_default_merge_strategy(strategy);
+    repo_model.save(&conn)?;
+
+    let comment = format!(
+        "Merge strategy set to **{}** for this repository.",
+        strategy.to_string()
+    );
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(false)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
+/// Handle "Set default PR title regex" command.
+pub async fn handle_set_default_pr_title_regex_command(
+    conn: &DbConn,
+    repo_model: &mut RepositoryModel,
+    pr_title_regex: String,
+) -> Result<CommandExecutionResult> {
+    repo_model.pr_title_validation_regex = pr_title_regex.clone();
+    repo_model.save(&conn)?;
+
+    let comment = if pr_title_regex.is_empty() {
+        "PR title regex unset for this repository.".into()
+    } else {
+        format!(
+            "PR title regex set to **{}** for this repository.",
+            pr_title_regex
+        )
+    };
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
@@ -834,6 +967,7 @@ pub async fn handle_help_command(
         - `merge`: _Try merging the pull request_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
+        - `is-admin`: _Check if you are admin_\n\
         - `help`: _Show this comment_\n",
         comment_author, config.bot_username
     );
@@ -856,7 +990,10 @@ pub async fn handle_admin_help_command(
         Supported admin commands:\n\
         - `admin-help`: _Show this comment_\n\
         - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
-        - `admin-set-needed-reviewers`: _Set needed reviewers count for this PR_\n\
+        - `admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_\n\
+        - `admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_\n\
+        - `admin-set-default-pr-title-regex <regex>`: _Set default PR title validation regex for this repository_\n\
+        - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
     );
@@ -873,7 +1010,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::LogicError;
+    use crate::{LogicError, Result as LogicResult};
 
     fn create_test_config() -> Config {
         let mut config = Config::from_env();
@@ -955,39 +1092,41 @@ mod tests {
     }
 
     #[test]
-    fn test_command_from_comment() {
+    fn test_command_from_comment() -> LogicResult<()> {
         assert_eq!(
-            Command::from_comment("noqa+", &Vec::new()),
+            Command::from_comment("noqa+", &Vec::new())?,
             Some(Command::SkipQaStatus(true))
         );
         assert_eq!(
-            Command::from_comment("noqa-", &Vec::new()),
+            Command::from_comment("noqa-", &Vec::new())?,
             Some(Command::SkipQaStatus(false))
         );
         assert_eq!(
-            Command::from_comment("qa+", &Vec::new()),
+            Command::from_comment("qa+", &Vec::new())?,
             Some(Command::QaStatus(Some(true)))
         );
         assert_eq!(
-            Command::from_comment("qa-", &Vec::new()),
+            Command::from_comment("qa-", &Vec::new())?,
             Some(Command::QaStatus(Some(false)))
         );
         assert_eq!(
-            Command::from_comment("qa?", &Vec::new()),
+            Command::from_comment("qa?", &Vec::new())?,
             Some(Command::QaStatus(None))
         );
         assert_eq!(
-            Command::from_comment("automerge+", &Vec::new()),
+            Command::from_comment("automerge+", &Vec::new())?,
             Some(Command::Automerge(true))
         );
         assert_eq!(
-            Command::from_comment("automerge-", &Vec::new()),
+            Command::from_comment("automerge-", &Vec::new())?,
             Some(Command::Automerge(false))
         );
         assert_eq!(
-            Command::from_comment("this-is-a-command", &Vec::new()),
+            Command::from_comment("this-is-a-command", &Vec::new())?,
             None
         );
+
+        Ok(())
     }
 
     #[test]

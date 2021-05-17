@@ -41,7 +41,7 @@ async fn test_review_creation() -> Result<()> {
     async fn parse_and_execute_command(
         config: &Config,
         pool: DbPool,
-        repo: &RepositoryModel,
+        repo: &mut RepositoryModel,
         pr: &mut PullRequestModel,
         command_str: &str,
     ) -> LogicResult<()> {
@@ -54,7 +54,7 @@ async fn test_review_creation() -> Result<()> {
 
     using_test_db(&config.clone(), "test_logic_reviews", |pool| async move {
         let conn = pool.get().unwrap();
-        let (repo, mut pr) = arrange(&config, &conn);
+        let (mut repo, mut pr) = arrange(&config, &conn);
 
         // Simulate review
         let review = GhReview {
@@ -85,8 +85,14 @@ async fn test_review_creation() -> Result<()> {
         assert_eq!(reviews[1].required, false);
 
         // Parse comment
-        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot req+ @him")
-            .await?;
+        parse_and_execute_command(
+            &config,
+            pool.clone(),
+            &mut repo,
+            &mut pr,
+            "test-bot req+ @him",
+        )
+        .await?;
 
         // Retrieve "him" review
         let review =
@@ -94,11 +100,18 @@ async fn test_review_creation() -> Result<()> {
         assert_eq!(review.required, true);
 
         // Parse comment
-        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot req- @him")
-            .await?;
+        parse_and_execute_command(
+            &config,
+            pool.clone(),
+            &mut repo,
+            &mut pr,
+            "test-bot req- @him",
+        )
+        .await?;
 
         // Lock PR
-        parse_and_execute_command(&config, pool.clone(), &repo, &mut pr, "test-bot lock+").await?;
+        parse_and_execute_command(&config, pool.clone(), &mut repo, &mut pr, "test-bot lock+")
+            .await?;
 
         // Retrieve "him" review
         let review =

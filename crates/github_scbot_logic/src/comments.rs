@@ -34,9 +34,16 @@ pub async fn handle_issue_comment_event(
             &event.repository.full_name,
             event.issue.number,
         ) {
-            Ok((mut pr_model, repo_model)) => {
-                handle_comment_creation(&config, pool, &repo_model, &mut pr_model, &event, commands)
-                    .await?
+            Ok((mut pr_model, mut repo_model)) => {
+                handle_comment_creation(
+                    &config,
+                    pool,
+                    &mut repo_model,
+                    &mut pr_model,
+                    &event,
+                    commands,
+                )
+                .await?
             }
             Err(DatabaseError::UnknownPullRequest(_, _)) => {
                 // Parse admin enable
@@ -86,7 +93,7 @@ pub async fn handle_issue_comment_event(
 pub async fn handle_comment_creation(
     config: &Config,
     pool: DbPool,
-    repo_model: &RepositoryModel,
+    repo_model: &mut RepositoryModel,
     pr_model: &mut PullRequestModel,
     event: &GhIssueCommentEvent,
     commands: Vec<Command>,
