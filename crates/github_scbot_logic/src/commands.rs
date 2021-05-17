@@ -62,6 +62,8 @@ pub enum Command {
     Ping,
     /// Show help message.
     Help,
+    /// Is admin?
+    IsAdmin,
     /// Show admin help message.
     AdminHelp,
     /// Synchronize status.
@@ -178,6 +180,7 @@ impl Command {
             "gif" => Self::Gif(Self::parse_text(args)),
             "merge" => Self::Merge,
             "ping" => Self::Ping,
+            "is-admin" => Self::IsAdmin,
             "help" => Self::Help,
             // Admin commands
             "admin-help" => Self::AdminHelp,
@@ -217,6 +220,7 @@ impl Command {
             Self::Automerge(status) => format!("automerge{}", if *status { "+" } else { "-" }),
             Self::Gif(search) => format!("gif {}", search),
             Self::Help => "help".into(),
+            Self::IsAdmin => "is-admin".into(),
             Self::Lock(status, reason) => {
                 let mut lock = format!("lock{}", if *status { "+" } else { "-" });
                 if let Some(reason) = reason {
@@ -496,6 +500,7 @@ pub async fn execute_command(
             }
             Command::Gif(terms) => handle_gif_command(config, &terms).await?,
             Command::Help => handle_help_command(config, comment_author).await?,
+            Command::IsAdmin => handle_is_admin_command(&conn, comment_author).await?,
             Command::AdminHelp => handle_admin_help_command(config, comment_author).await?,
             Command::AdminEnable => CommandExecutionResult::builder().ignored().build(),
             Command::AdminSynchronize => {
@@ -651,6 +656,24 @@ pub async fn handle_merge_command(
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_actions(actions)
+        .build())
+}
+
+/// Handle `IsAdmin` command.
+pub async fn handle_is_admin_command(
+    conn: &DbConn,
+    comment_author: &str,
+) -> Result<CommandExecutionResult> {
+    let known_admins = list_known_admin_usernames(conn)?;
+    let status = is_admin(comment_author, &known_admins);
+    let reaction_type = if status {
+        GhReactionType::PlusOne
+    } else {
+        GhReactionType::MinusOne
+    };
+
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(reaction_type))
         .build())
 }
 
@@ -940,6 +963,7 @@ pub async fn handle_help_command(
         - `merge`: _Try merging the pull request_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
+        - `is-admin`: _Check if you are admin_\n\
         - `help`: _Show this comment_\n",
         comment_author, config.bot_username
     );

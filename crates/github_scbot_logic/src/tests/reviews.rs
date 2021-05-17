@@ -115,7 +115,7 @@ async fn test_review_creation() -> Result<()> {
 
         // Retrieve "him" review
         let review =
-            ReviewModel::get_from_pull_request_and_username(&conn, &mut repo, &pr, "him").unwrap();
+            ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
         assert_eq!(review.required, false);
 
         // Generate status
