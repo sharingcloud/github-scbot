@@ -736,7 +736,7 @@ pub async fn handle_qa_command(
     pr_model.set_qa_status(status);
     pr_model.save(conn)?;
 
-    let comment = format!("QA is {} by **{}**", status_text, comment_author);
+    let comment = format!("QA is {} by **{}**.", status_text, comment_author);
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
@@ -850,9 +850,9 @@ pub async fn handle_lock_command(
     pr_model.locked = status;
     pr_model.save(conn)?;
 
-    let mut comment = format!("Pull request {} by **{}**", status_text, comment_author);
+    let mut comment = format!("Pull request {} by **{}**.", status_text, comment_author);
     if let Some(reason) = reason {
-        comment = format!("{}\n**Reason**: {}", comment, reason);
+        comment = format!("{}\n**Reason**: {}.", comment, reason);
     }
 
     Ok(CommandExecutionResult::builder()
@@ -876,7 +876,7 @@ pub async fn handle_set_default_needed_reviewers_command(
         count
     );
     Ok(CommandExecutionResult::builder()
-        .with_status_update(true)
+        .with_status_update(false)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())
@@ -896,7 +896,7 @@ pub async fn handle_set_default_merge_strategy_command(
         strategy.to_string()
     );
     Ok(CommandExecutionResult::builder()
-        .with_status_update(true)
+        .with_status_update(false)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())
@@ -911,10 +911,14 @@ pub async fn handle_set_default_pr_title_regex_command(
     repo_model.pr_title_validation_regex = pr_title_regex.clone();
     repo_model.save(&conn)?;
 
-    let comment = format!(
-        "PR title regex set to **{}** for this repository.",
-        pr_title_regex
-    );
+    let comment = if pr_title_regex.is_empty() {
+        "PR title regex unset for this repository.".into()
+    } else {
+        format!(
+            "PR title regex set to **{}** for this repository.",
+            pr_title_regex
+        )
+    };
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
