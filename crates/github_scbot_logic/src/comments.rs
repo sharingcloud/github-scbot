@@ -95,11 +95,13 @@ pub async fn handle_comment_creation(
     let comment_author = &event.comment.user.login;
     let comment_id = event.comment.id;
 
-    HistoryWebhookModel::builder(&repo_model, &pr_model)
-        .username(comment_author)
-        .event_key(EventType::IssueComment)
-        .payload(event)
-        .create(&conn)?;
+    if config.server_enable_history_tracking {
+        HistoryWebhookModel::builder(&repo_model, &pr_model)
+            .username(comment_author)
+            .event_key(EventType::IssueComment)
+            .payload(event)
+            .create(&conn)?;
+    }
 
     info!(
         commands = ?commands,

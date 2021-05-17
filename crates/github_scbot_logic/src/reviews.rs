@@ -25,11 +25,13 @@ pub async fn handle_review_event(config: Config, pool: DbPool, event: GhReviewEv
         &event.repository.full_name,
         event.pull_request.number,
     ) {
-        HistoryWebhookModel::builder(&repo, &pr)
-            .username(&event.sender.login)
-            .event_key(EventType::PullRequestReview)
-            .payload(&event)
-            .create(&conn)?;
+        if config.server_enable_history_tracking {
+            HistoryWebhookModel::builder(&repo, &pr)
+                .username(&event.sender.login)
+                .event_key(EventType::PullRequestReview)
+                .payload(&event)
+                .create(&conn)?;
+        }
 
         handle_review(&config, &conn, &repo, &pr, &event.review).await?;
         update_pull_request_status(
