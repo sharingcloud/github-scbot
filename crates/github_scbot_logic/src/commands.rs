@@ -992,7 +992,7 @@ pub async fn handle_admin_help_command(
         - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
         - `admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_\n\
         - `admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_\n\
-        - `admin-set-default-pr-title-regex <regex>`: _Set default PR title validation regex for this repository_\n\
+        - `admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_\n\
         - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username

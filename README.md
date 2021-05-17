@@ -86,8 +86,9 @@ This README supposes the default bot handle: 'bot'.
 - `bot req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_
 - `bot merge`: _Try merging the pull request_
 - `bot ping`: _Ping me_
-- `bot help`: _Show this comment_
 - `bot gif <search>`: _Post a random GIF with a tag_
+- `bot is-admin`: _Check if you are admin_
+- `bot help`: _Show this comment_
 
 ## Available admin message commands
 
@@ -95,7 +96,10 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 
 - `bot admin-help`: _Show this comment_
 - `bot admin-enable`: _Enable me on a pull request with manual interaction_
-- `bot admin-set-needed-reviewers`: _Set needed reviewers count for this PR_
+- `bot admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_
+- `bot admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default needed reviewers count for this repository_
+- `bot admin-set-default-pr-title-regex <regex?>`: _Set default needed reviewers count for this repository_
+- `bot admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 
 ## Building
