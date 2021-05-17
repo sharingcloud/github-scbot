@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2021-05-17
+
 ### Added 
 
 - Added a `debug test-sentry` command to test Sentry connection
@@ -16,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Added missing CA certificates in Docker image
 - Removed unneeded fields from GitHub types
 - Fixed status duplications (only PR opening should trigger PR creation in database)
 
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/sharingcloud/github-scbot/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/sharingcloud/github-scbot/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/sharingcloud/github-scbot/compare/6d8ff170f7f36cc91a37e3af3766f62a3caefbe2...v0.9.0
