@@ -97,8 +97,8 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-help`: _Show this comment_
 - `bot admin-enable`: _Enable me on a pull request with manual interaction_
 - `bot admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_
-- `bot admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default needed reviewers count for this repository_
-- `bot admin-set-default-pr-title-regex <regex?>`: _Set default needed reviewers count for this repository_
+- `bot admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_
+- `bot admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_
 - `bot admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 
