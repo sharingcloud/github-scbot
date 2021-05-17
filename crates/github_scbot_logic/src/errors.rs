@@ -18,6 +18,10 @@ pub enum LogicError {
     #[error(transparent)]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
+    /// Command error.
+    #[error("Error while interpreting command: {0}")]
+    CommandError(String),
+
     /// Threadpool error.
     #[error("Threadpool error.")]
     ThreadpoolError,

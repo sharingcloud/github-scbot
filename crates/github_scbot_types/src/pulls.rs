@@ -10,7 +10,7 @@ use super::common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser};
 use crate::errors::TypeError;
 
 /// GitHub Merge strategy.
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhMergeStrategy {
     /// Merge
