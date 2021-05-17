@@ -95,11 +95,13 @@ pub async fn handle_pull_request_opened(
             )
             .await?;
 
-            HistoryWebhookModel::builder(&repo_model, &pr_model)
-                .username(&event.sender.login)
-                .event_key(EventType::PullRequest)
-                .payload(&event)
-                .create(&conn)?;
+            if config.server_enable_history_tracking {
+                HistoryWebhookModel::builder(&repo_model, &pr_model)
+                    .username(&event.sender.login)
+                    .event_key(EventType::PullRequest)
+                    .payload(&event)
+                    .create(&conn)?;
+            }
 
             pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
             pr_model.set_checks_status(CheckStatus::Waiting);
@@ -154,11 +156,13 @@ pub async fn handle_pull_request_event(
         &repo_model,
         event.pull_request.number,
     ) {
-        HistoryWebhookModel::builder(&repo_model, &pr_model)
-            .username(&event.sender.login)
-            .event_key(EventType::PullRequest)
-            .payload(&event)
-            .create(&conn)?;
+        if config.server_enable_history_tracking {
+            HistoryWebhookModel::builder(&repo_model, &pr_model)
+                .username(&event.sender.login)
+                .event_key(EventType::PullRequest)
+                .payload(&event)
+                .create(&conn)?;
+        }
 
         // Update from GitHub
         let (repo_model, mut pr_model) = PullRequestModel::create_or_update_from_github(

@@ -43,11 +43,13 @@ pub async fn handle_check_suite_event(
                 return Ok(());
             }
 
-            HistoryWebhookModel::builder(&repo_model, &pr_model)
-                .username(&event.sender.login)
-                .event_key(EventType::CheckSuite)
-                .payload(&event)
-                .create(&conn)?;
+            if config.server_enable_history_tracking {
+                HistoryWebhookModel::builder(&repo_model, &pr_model)
+                    .username(&event.sender.login)
+                    .event_key(EventType::CheckSuite)
+                    .payload(&event)
+                    .create(&conn)?;
+            }
 
             if let GhCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {

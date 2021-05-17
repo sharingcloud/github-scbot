@@ -35,6 +35,8 @@ pub struct Config {
     pub server_bind_port: u16,
     /// Disable webhook signature verification.
     pub server_disable_webhook_signature: bool,
+    /// Enable history tracking.
+    pub server_enable_history_tracking: bool,
     /// Enable welcome coments.
     pub server_enable_welcome_comments: bool,
     /// Tenor API key.
@@ -66,6 +68,10 @@ impl Config {
             server_bind_port: env_to_u16("BOT_SERVER_BIND_IP", 8008),
             server_disable_webhook_signature: env_to_bool(
                 "BOT_SERVER_DISABLE_WEBHOOK_SIGNATURE",
+                false,
+            ),
+            server_enable_history_tracking: env_to_bool(
+                "BOT_SERVER_ENABLE_HISTORY_TRACKING",
                 false,
             ),
             server_enable_welcome_comments: env_to_bool(
