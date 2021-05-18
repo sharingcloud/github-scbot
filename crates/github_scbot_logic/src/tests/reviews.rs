@@ -46,7 +46,7 @@ async fn test_review_creation() -> Result<()> {
         command_str: &str,
     ) -> LogicResult<()> {
         // Parse comment
-        let commands = parse_commands(&config, command_str)?;
+        let commands = parse_commands(&config, command_str);
         execute_commands(&config, pool.clone(), repo, pr, 0, "me", commands).await?;
 
         Ok(())
