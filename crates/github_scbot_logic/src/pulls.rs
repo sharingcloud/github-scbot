@@ -19,7 +19,7 @@ use github_scbot_database::{
     DatabaseError, DbConn, DbPool,
 };
 use github_scbot_types::{
-    checks::GhCheckConclusion,
+    checks::{GhCheckConclusion, GhCheckSuite},
     common::GhUser,
     events::EventType,
     labels::StepLabel,
@@ -338,20 +338,7 @@ pub async fn get_checks_status_from_github(
 
         Ok(CheckStatus::Skipped)
     } else {
-        let filtered = check_suites
-            .iter()
-            // Only fetch GitHub Actions statuses
-            .filter(|&s| {
-                s.app.slug == "github-actions"
-                    && !exclude_check_suite_ids.contains(&s.id)
-                    && !s.pull_requests.is_empty()
-            })
-            .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
-                (CheckStatus::Fail, _) => CheckStatus::Fail,
-                (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
-                (_, None) => CheckStatus::Waiting,
-                (_, _) => acc,
-            });
+        let filtered = merge_check_suite_statuses(&check_suites, exclude_check_suite_ids);
 
         debug!(
             repository_path = %repository_path,
@@ -362,6 +349,25 @@ pub async fn get_checks_status_from_github(
 
         Ok(filtered)
     }
+}
+
+/// Merge check suite statuses.
+pub fn merge_check_suite_statuses(
+    check_suites: &[GhCheckSuite],
+    exclude_ids: &[u64],
+) -> CheckStatus {
+    check_suites
+        .iter()
+        // Only fetch GitHub Actions statuses
+        .filter(|&s| s.app.slug == "github-actions" && !exclude_ids.contains(&s.id))
+        .fold(CheckStatus::Skipped, |acc, s| match (&acc, &s.conclusion) {
+            (CheckStatus::Fail, _) => CheckStatus::Fail,
+            (CheckStatus::Skipped, Some(GhCheckConclusion::Success)) => CheckStatus::Pass,
+            (CheckStatus::Pass, Some(GhCheckConclusion::Success)) => CheckStatus::Pass,
+            (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
+            (_, None) => CheckStatus::Waiting,
+            (_, _) => acc,
+        })
 }
 
 /// Synchronize pull request from upstream.
@@ -493,4 +499,145 @@ pub async fn try_automerge_pull_request(
 
 fn extract_usernames(users: &[GhUser]) -> Vec<&str> {
     users.iter().map(|r| &r.login[..]).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_types::{
+        checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
+        common::GhApplication,
+        status::CheckStatus,
+    };
+
+    use super::merge_check_suite_statuses;
+
+    #[test]
+    pub fn test_merge_check_suite_statuses() {
+        // No check suite, no need to wait
+        assert_eq!(merge_check_suite_statuses(&[], &[]), CheckStatus::Skipped);
+
+        let base_suite = GhCheckSuite {
+            app: GhApplication {
+                slug: "github-actions".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        // Should wait on queued status
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    status: GhCheckStatus::Queued,
+                    conclusion: None,
+                    ..base_suite.clone()
+                }],
+                &[]
+            ),
+            CheckStatus::Waiting
+        );
+
+        // Suite should be skipped
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    id: 1,
+                    status: GhCheckStatus::Queued,
+                    conclusion: None,
+                    ..base_suite.clone()
+                }],
+                &[1]
+            ),
+            CheckStatus::Skipped
+        );
+
+        // Ignore unsupported apps
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    status: GhCheckStatus::Queued,
+                    app: GhApplication {
+                        slug: "toto".into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }],
+                &[]
+            ),
+            CheckStatus::Skipped
+        );
+
+        // Success
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    ..base_suite.clone()
+                }],
+                &[]
+            ),
+            CheckStatus::Pass
+        );
+
+        // Success with skipped
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Skipped),
+                        ..base_suite.clone()
+                    }
+                ],
+                &[]
+            ),
+            CheckStatus::Pass
+        );
+
+        // Success with queued
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        status: GhCheckStatus::Queued,
+                        conclusion: None,
+                        ..base_suite.clone()
+                    }
+                ],
+                &[]
+            ),
+            CheckStatus::Waiting
+        );
+
+        // One failing check make the status fail
+        assert_eq!(
+            merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Failure),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite
+                    }
+                ],
+                &[]
+            ),
+            CheckStatus::Fail
+        );
+    }
 }

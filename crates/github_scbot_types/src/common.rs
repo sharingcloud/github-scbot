@@ -76,7 +76,7 @@ pub struct GhBranch {
 }
 
 /// GitHub Branch (short format).
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Clone)]
 pub struct GhBranchShort {
     /// Reference.
     #[serde(rename = "ref")]
@@ -108,7 +108,7 @@ pub struct GhLabel {
 }
 
 /// GitHub Application.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default, Clone)]
 pub struct GhApplication {
     /// Slug name.
     pub slug: String,

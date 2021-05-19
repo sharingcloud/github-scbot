@@ -130,7 +130,7 @@ pub struct GhPullRequest {
 }
 
 /// GitHub Pull request short format.
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Clone)]
 pub struct GhPullRequestShort {
     /// Number.
     pub number: u64,
