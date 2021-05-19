@@ -38,7 +38,7 @@ pub enum GhCheckStatus {
 }
 
 /// GitHub Check conclusion.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckConclusion {
     /// Action required.
@@ -61,7 +61,7 @@ pub enum GhCheckConclusion {
 }
 
 /// GitHub Check suite.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Clone)]
 pub struct GhCheckSuite {
     /// ID.
     pub id: u64,
