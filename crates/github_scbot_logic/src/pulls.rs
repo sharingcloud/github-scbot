@@ -54,8 +54,8 @@ pub(crate) fn should_create_pull_request(
 ) -> Result<bool> {
     if repo_model.manual_interaction {
         // Check for magic instruction to enable bot
-        let commands = parse_commands(&config, &event.pull_request.body)?;
-        for command in commands {
+        let commands = parse_commands(&config, &event.pull_request.body);
+        for command in commands.into_iter().flatten() {
             if let Command::AdminEnable = command {
                 return Ok(true);
             }
@@ -341,7 +341,11 @@ pub async fn get_checks_status_from_github(
         let filtered = check_suites
             .iter()
             // Only fetch GitHub Actions statuses
-            .filter(|&s| s.app.slug == "github-actions" && !exclude_check_suite_ids.contains(&s.id))
+            .filter(|&s| {
+                s.app.slug == "github-actions"
+                    && !exclude_check_suite_ids.contains(&s.id)
+                    && !s.pull_requests.is_empty()
+            })
             .fold(CheckStatus::Pass, |acc, s| match (&acc, &s.conclusion) {
                 (CheckStatus::Fail, _) => CheckStatus::Fail,
                 (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,

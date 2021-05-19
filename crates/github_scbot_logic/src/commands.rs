@@ -1,6 +1,6 @@
 //! Commands module.
 
-use std::{convert::TryFrom, num::ParseIntError};
+use std::convert::TryFrom;
 
 use github_scbot_api::{
     comments::{add_reaction_to_comment, post_comment},
@@ -17,6 +17,7 @@ use github_scbot_types::{
     issues::GhReactionType, labels::StepLabel, pulls::GhMergeStrategy, status::QaStatus,
 };
 use smart_default::SmartDefault;
+use thiserror::Error;
 use tracing::info;
 
 use super::{errors::Result, status::update_pull_request_status};
@@ -24,8 +25,24 @@ use crate::{
     auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
     gif::generate_random_gif_comment,
     pulls::{determine_automatic_step, get_merge_strategy_for_branches, synchronize_pull_request},
-    LogicError,
 };
+
+/// Command error.
+#[derive(Debug, Error, PartialEq)]
+pub enum CommandError {
+    /// Unknown command.
+    #[error("This command is unknown.")]
+    UnknownCommand(String),
+    /// Argument parsing error.
+    #[error("Error while parsing command arguments.")]
+    ArgumentParsingError,
+    /// Incomplete command.
+    #[error("Incomplete command.")]
+    IncompleteCommand,
+}
+
+/// Command result.
+pub type CommandResult<T> = core::result::Result<T, CommandError>;
 
 /// Command handling status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, SmartDefault)]
@@ -164,7 +181,7 @@ pub enum ResultAction {
 
 impl Command {
     /// Create a command from a comment and arguments.
-    pub fn from_comment(comment: &str, args: &[&str]) -> Result<Option<Self>> {
+    pub fn from_comment(comment: &str, args: &[&str]) -> CommandResult<Option<Self>> {
         Ok(Some(match comment {
             "noqa+" => Self::SkipQaStatus(true),
             "noqa-" => Self::SkipQaStatus(false),
@@ -175,8 +192,8 @@ impl Command {
             "automerge-" => Self::Automerge(false),
             "lock+" => Self::Lock(true, Self::parse_message(args)),
             "lock-" => Self::Lock(false, Self::parse_message(args)),
-            "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)),
-            "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)),
+            "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)?),
+            "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)?),
             "gif" => Self::Gif(Self::parse_text(args)),
             "merge" => Self::Merge,
             "ping" => Self::Ping,
@@ -196,8 +213,8 @@ impl Command {
                 Self::AdminSetDefaultPRTitleRegex(Self::parse_text(args))
             }
             "admin-set-needed-reviewers" => Self::AdminSetNeededReviewers(Self::parse_u32(args)?),
-            // No command
-            _ => return Ok(None),
+            // Unknown command
+            unknown => return Err(CommandError::UnknownCommand(unknown.into())),
         }))
     }
 
@@ -243,15 +260,15 @@ impl Command {
         }
     }
 
-    fn parse_u32(args: &[&str]) -> Result<u32> {
+    fn parse_u32(args: &[&str]) -> CommandResult<u32> {
         args.join(" ")
             .parse()
-            .map_err(|e: ParseIntError| LogicError::CommandError(e.to_string()))
+            .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
-    fn parse_merge_strategy(args: &[&str]) -> Result<GhMergeStrategy> {
+    fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
         GhMergeStrategy::try_from(&args.join(" ")[..])
-            .map_err(|e| LogicError::CommandError(e.to_string()))
+            .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
     fn parse_message(args: &[&str]) -> Option<String> {
@@ -266,11 +283,17 @@ impl Command {
         words.join(" ")
     }
 
-    fn parse_reviewers(reviewers: &[&str]) -> Vec<String> {
-        reviewers
+    fn parse_reviewers(reviewers: &[&str]) -> CommandResult<Vec<String>> {
+        let reviewers: Vec<String> = reviewers
             .iter()
             .filter_map(|x| x.strip_prefix('@').map(str::to_string))
-            .collect()
+            .collect();
+
+        if reviewers.is_empty() {
+            Err(CommandError::IncompleteCommand)
+        } else {
+            Ok(reviewers)
+        }
     }
 
     /// Convert to bot string.
@@ -284,16 +307,22 @@ impl Command {
 }
 
 /// Parse commands from comment body.
-pub fn parse_commands(config: &Config, comment_body: &str) -> Result<Vec<Command>> {
+pub fn parse_commands(config: &Config, comment_body: &str) -> Vec<CommandResult<Command>> {
     let mut commands = vec![];
 
     for line in comment_body.lines() {
-        if let Some(command) = parse_single_command(config, line)? {
-            commands.push(command);
+        match parse_single_command(config, line) {
+            Err(e) => {
+                commands.push(Err(e));
+            }
+            Ok(Some(command)) => {
+                commands.push(Ok(command));
+            }
+            Ok(None) => (),
         }
     }
 
-    Ok(commands)
+    commands
 }
 
 /// Execute multiple commands.
@@ -304,22 +333,36 @@ pub async fn execute_commands(
     pr_model: &mut PullRequestModel,
     comment_id: u64,
     comment_author: &str,
-    commands: Vec<Command>,
+    commands: Vec<CommandResult<Command>>,
 ) -> Result<()> {
     let mut status = vec![];
 
     for command in commands {
-        status.push(
-            execute_command(
-                config,
-                pool.clone(),
-                repo_model,
-                pr_model,
-                comment_author,
-                command,
-            )
-            .await?,
-        );
+        match command {
+            Ok(command) => {
+                status.push(
+                    execute_command(
+                        config,
+                        pool.clone(),
+                        repo_model,
+                        pr_model,
+                        comment_author,
+                        command,
+                    )
+                    .await?,
+                );
+            }
+            Err(e) => {
+                // Handle error
+                status.push(
+                    CommandExecutionResult::builder()
+                        .denied()
+                        .with_action(ResultAction::AddReaction(GhReactionType::MinusOne))
+                        .with_action(ResultAction::PostComment(format!("{}", e)))
+                        .build(),
+                )
+            }
+        }
     }
 
     // Merge and handle command result
@@ -532,7 +575,7 @@ pub async fn execute_command(
 }
 
 /// Parse command from a single comment line.
-pub fn parse_single_command(config: &Config, line: &str) -> Result<Option<Command>> {
+pub fn parse_single_command(config: &Config, line: &str) -> CommandResult<Option<Command>> {
     if let Some((command_line, args)) = parse_command_string_from_comment_line(config, line) {
         let command = Command::from_comment(command_line, &args)?;
         Ok(command)
@@ -1094,36 +1137,48 @@ mod tests {
     #[test]
     fn test_command_from_comment() -> LogicResult<()> {
         assert_eq!(
-            Command::from_comment("noqa+", &Vec::new())?,
-            Some(Command::SkipQaStatus(true))
+            Command::from_comment("noqa+", &[]),
+            Ok(Some(Command::SkipQaStatus(true)))
         );
         assert_eq!(
-            Command::from_comment("noqa-", &Vec::new())?,
-            Some(Command::SkipQaStatus(false))
+            Command::from_comment("noqa-", &[]),
+            Ok(Some(Command::SkipQaStatus(false)))
         );
         assert_eq!(
-            Command::from_comment("qa+", &Vec::new())?,
-            Some(Command::QaStatus(Some(true)))
+            Command::from_comment("qa+", &[]),
+            Ok(Some(Command::QaStatus(Some(true))))
         );
         assert_eq!(
-            Command::from_comment("qa-", &Vec::new())?,
-            Some(Command::QaStatus(Some(false)))
+            Command::from_comment("qa-", &[]),
+            Ok(Some(Command::QaStatus(Some(false))))
         );
         assert_eq!(
-            Command::from_comment("qa?", &Vec::new())?,
-            Some(Command::QaStatus(None))
+            Command::from_comment("qa?", &[]),
+            Ok(Some(Command::QaStatus(None)))
         );
         assert_eq!(
-            Command::from_comment("automerge+", &Vec::new())?,
-            Some(Command::Automerge(true))
+            Command::from_comment("automerge+", &[]),
+            Ok(Some(Command::Automerge(true)))
         );
         assert_eq!(
-            Command::from_comment("automerge-", &Vec::new())?,
-            Some(Command::Automerge(false))
+            Command::from_comment("automerge-", &[]),
+            Ok(Some(Command::Automerge(false)))
         );
         assert_eq!(
-            Command::from_comment("this-is-a-command", &Vec::new())?,
-            None
+            Command::from_comment("this-is-a-command", &[]),
+            Err(CommandError::UnknownCommand("this-is-a-command".into()))
+        );
+        assert_eq!(
+            Command::from_comment("req+", &[]),
+            Err(CommandError::IncompleteCommand)
+        );
+        assert_eq!(
+            Command::from_comment("admin-set-needed-reviewers", &["12"]),
+            Ok(Some(Command::AdminSetNeededReviewers(12)))
+        );
+        assert_eq!(
+            Command::from_comment("admin-set-needed-reviewers", &["toto"]),
+            Err(CommandError::ArgumentParsingError)
         );
 
         Ok(())

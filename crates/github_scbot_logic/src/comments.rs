@@ -13,7 +13,7 @@ use github_scbot_types::{
 use tracing::info;
 
 use crate::{
-    commands::{execute_commands, parse_commands, Command},
+    commands::{execute_commands, parse_commands, Command, CommandResult},
     pulls::synchronize_pull_request,
     status::update_pull_request_status,
     Result,
@@ -27,7 +27,7 @@ pub async fn handle_issue_comment_event(
 ) -> Result<()> {
     if let GhIssueCommentAction::Created = event.action {
         let conn = get_connection(&pool.clone())?;
-        let commands = parse_commands(&config, &event.comment.body)?;
+        let commands = parse_commands(&config, &event.comment.body);
 
         match PullRequestModel::get_from_repository_path_and_number(
             &conn,
@@ -48,7 +48,7 @@ pub async fn handle_issue_comment_event(
             Err(DatabaseError::UnknownPullRequest(_, _)) => {
                 // Parse admin enable
                 let mut handled = false;
-                for command in &commands {
+                for command in commands.iter().flatten() {
                     if let Command::AdminEnable = command {
                         let (mut pr, sha) = synchronize_pull_request(
                             &config,
@@ -96,7 +96,7 @@ pub async fn handle_comment_creation(
     repo_model: &mut RepositoryModel,
     pr_model: &mut PullRequestModel,
     event: &GhIssueCommentEvent,
-    commands: Vec<Command>,
+    commands: Vec<CommandResult<Command>>,
 ) -> Result<()> {
     let conn = get_connection(&pool.clone())?;
     let comment_author = &event.comment.user.login;
