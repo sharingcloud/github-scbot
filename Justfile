@@ -71,6 +71,10 @@ dev-server:
 docker-build:
 	@just docker-build-v {{ version }}
 
+# Build nightly docker image
+docker-build-nightly:
+	@just docker-build-v nightly
+
 # Build docker image with version
 docker-build-v v:
 	docker build --rm -t github-scbot:{{ v }} -f ./docker/Dockerfile .
@@ -90,9 +94,16 @@ docker-tag-v v t:
 docker-tag-latest:
 	docker tag github-scbot:{{ version }} github-scbot:latest
 
-# Push current version and latest image to registry
-docker-push reg:
-	docker tag github-scbot:{{ version }} {{ reg }}/github-scbot:{{ version }}
-	docker tag github-scbot:latest {{ reg }}/github-scbot:latest
-	docker push {{ reg }}/github-scbot:{{ version }}
-	docker push {{ reg }}/github-scbot:latest
+# Push version to registry
+docker-push-v v reg:
+	docker tag github-scbot:{{ v }} {{ reg }}/github-scbot:{{ v }}
+	docker push {{ reg }}/github-scbot:{{ v }}
+
+docker-push-current reg:
+	@just docker-push-v {{ version }} {{ reg }}
+
+docker-push-nightly reg:
+	@just docker-push-v nightly {{ reg }}
+
+docker-push-latest reg:
+	@just docker-push-v latest {{ reg }}
