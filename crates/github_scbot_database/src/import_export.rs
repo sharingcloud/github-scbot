@@ -399,19 +399,19 @@ mod tests {
                     ExternalAccountRightModel::get_right(&conn, "ext", &rep_1).unwrap();
 
                 assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
-                assert_eq!(rep_1.manual_interaction, false);
+                assert!(!rep_1.manual_interaction);
                 assert_eq!(rep_2.pr_title_validation_regex, "");
-                assert_eq!(rep_2.manual_interaction, true);
+                assert!(rep_2.manual_interaction);
                 assert_eq!(pr_1.name, "Tutu");
-                assert_eq!(pr_1.automerge, false);
+                assert!(!pr_1.automerge);
                 assert_eq!(pr_1.get_checks_status(), CheckStatus::Waiting);
                 assert_eq!(pr_1.get_qa_status(), QaStatus::Waiting);
                 assert_eq!(pr_2.name, "Tata");
-                assert_eq!(pr_2.automerge, true);
+                assert!(pr_2.automerge);
                 assert_eq!(pr_2.get_checks_status(), CheckStatus::Pass);
                 assert_eq!(pr_2.get_qa_status(), QaStatus::Pass);
-                assert_eq!(review_1.required, true);
-                assert_eq!(acc_1.is_admin, true);
+                assert!(review_1.required);
+                assert!(acc_1.is_admin);
                 assert_eq!(review_1.get_review_state(), GhReviewState::Commented);
                 assert!(matches!(rule_1.get_strategy(), GhMergeStrategy::Merge));
                 assert_eq!(ext_acc_1.public_key, "pub");

@@ -128,12 +128,11 @@ impl<'a> RepositoryModelBuilder<'a> {
                 as i32,
             default_strategy: self
                 .default_strategy
-                .clone()
                 .unwrap_or_else(|| {
                     GhMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
                 })
                 .to_string(),
-            manual_interaction: self.manual_interaction.clone().unwrap_or(false),
+            manual_interaction: self.manual_interaction.unwrap_or(false),
         }
     }
 

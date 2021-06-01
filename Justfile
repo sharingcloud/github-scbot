@@ -1,10 +1,3 @@
-#########
-# Options
-
-opt_fmt_check := "false"
-opt_lint_err := "false"
-opt_doc_open := "false"
-
 ###########
 # Variables
 
@@ -15,19 +8,19 @@ version := `cat ./crates/github_scbot/Cargo.toml | sed -n "s/^version = \"\(.*\)
 
 # Check code style
 fmt:
-	cargo +nightly fmt --all {{ if opt_fmt_check == "true" { "-- --check" } else { "" } }}
+	cargo fmt --all
 
 # Check code style and error if changes are needed
 fmt-check:
-	@just opt_fmt_check=true fmt
+	cargo fmt --all -- --check
 
 # Lint files
 lint:
-	ls -d crates/*/src/lib.rs | xargs touch && cargo clippy --tests {{ if opt_lint_err == "true" { "-- -D warnings" } else { "" } }}
+	cargo clippy --all-features --all --tests
 
 # Lint files and error on warnings
 lint-err:
-	@just opt_lint_err=true lint
+	cargo clippy --all-features --all --tests -- -D warnings
 
 #######
 # Tests
@@ -54,11 +47,7 @@ set-version v:
 
 # Generate docs
 doc:
-	cargo doc --no-deps {{ if opt_doc_open == "true" { "--open" } else { "" } }}
-
-# Generate docs and open in browser
-doc-open:
-	@just opt_doc_open=true doc
+	cargo doc --no-deps
 
 ###############
 # Build and run
@@ -82,6 +71,10 @@ dev-server:
 docker-build:
 	@just docker-build-v {{ version }}
 
+# Build nightly docker image
+docker-build-nightly:
+	@just docker-build-v nightly
+
 # Build docker image with version
 docker-build-v v:
 	docker build --rm -t github-scbot:{{ v }} -f ./docker/Dockerfile .
@@ -101,9 +94,16 @@ docker-tag-v v t:
 docker-tag-latest:
 	docker tag github-scbot:{{ version }} github-scbot:latest
 
-# Push current version and latest image to registry
-docker-push reg:
-	docker tag github-scbot:{{ version }} {{ reg }}/github-scbot:{{ version }}
-	docker tag github-scbot:latest {{ reg }}/github-scbot:latest
-	docker push {{ reg }}/github-scbot:{{ version }}
-	docker push {{ reg }}/github-scbot:latest
+# Push version to registry
+docker-push-v v reg:
+	docker tag github-scbot:{{ v }} {{ reg }}/github-scbot:{{ v }}
+	docker push {{ reg }}/github-scbot:{{ v }}
+
+docker-push-current reg:
+	@just docker-push-v {{ version }} {{ reg }}
+
+docker-push-nightly reg:
+	@just docker-push-v nightly {{ reg }}
+
+docker-push-latest reg:
+	@just docker-push-v latest {{ reg }}

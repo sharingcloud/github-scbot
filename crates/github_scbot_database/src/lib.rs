@@ -49,12 +49,14 @@ pub fn get_connection(pool: &DbPool) -> Result<PooledConnection<ConnectionManage
 
 struct ConnectionBuilder {
     database_url: String,
+    pool_size: u32,
 }
 
 impl ConnectionBuilder {
     fn configure(config: &Config) -> Self {
         Self {
             database_url: config.database_url.clone(),
+            pool_size: config.database_pool_size,
         }
     }
 
@@ -64,7 +66,7 @@ impl ConnectionBuilder {
 
     fn build_pool(self) -> Result<DbPool> {
         let manager = ConnectionManager::<PgConnection>::new(&self.database_url);
-        Ok(Pool::builder().build(manager)?)
+        Ok(Pool::builder().max_size(self.pool_size).build(manager)?)
     }
 }
 

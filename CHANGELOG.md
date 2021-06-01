@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configurable database pool size (`BOT_DATABASE_POOL_SIZE`)
+
 ## [0.9.3] - 2021-05-19
 
 ### Added
@@ -60,7 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/sharingcloud/github-scbot/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/sharingcloud/github-scbot/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/sharingcloud/github-scbot/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/sharingcloud/github-scbot/compare/6d8ff170f7f36cc91a37e3af3766f62a3caefbe2...v0.9.0
