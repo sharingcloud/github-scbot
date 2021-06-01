@@ -22,4 +22,4 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Lint
-      run: cargo clippy --all --all-features --tests -- --check
+      run: cargo clippy --all --all-features --tests -- -D warnings
