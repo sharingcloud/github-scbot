@@ -11,6 +11,8 @@ pub struct Config {
     pub bot_username: String,
     /// Database URL.
     pub database_url: String,
+    /// Database pool size.
+    pub database_pool_size: u32,
     /// Default merge strategy.
     pub default_merge_strategy: String,
     /// Default needed reviewers count.
@@ -52,6 +54,7 @@ impl Config {
             api_disable_client: env_to_bool("BOT_API_DISABLE_CLIENT", false),
             bot_username: env_to_str("BOT_USERNAME", "bot"),
             database_url: env_to_str("DATABASE_URL", ""),
+            database_pool_size: env_to_u32("BOT_DATABASE_POOL_SIZE", 20),
             default_merge_strategy: env_to_str("BOT_DEFAULT_MERGE_STRATEGY", "merge"),
             default_needed_reviewers_count: env_to_u64("BOT_DEFAULT_NEEDED_REVIEWERS_COUNT", 2),
             default_pr_title_validation_regex: env_to_str(
@@ -91,6 +94,12 @@ fn env_to_u16(name: &str, default: u16) -> u16 {
 }
 
 fn env_to_u64(name: &str, default: u64) -> u64 {
+    env::var(name)
+        .map(|e| e.parse().unwrap_or(default))
+        .unwrap_or(default)
+}
+
+fn env_to_u32(name: &str, default: u32) -> u32 {
     env::var(name)
         .map(|e| e.parse().unwrap_or(default))
         .unwrap_or(default)
