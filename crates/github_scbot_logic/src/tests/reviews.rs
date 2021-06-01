@@ -82,7 +82,7 @@ async fn test_review_creation() -> Result<()> {
         let reviews = pr.get_reviews(&conn).unwrap();
         assert_eq!(reviews[0].username, "me");
         assert_eq!(reviews[1].username, "him");
-        assert_eq!(reviews[1].required, false);
+        assert!(!reviews[1].required);
 
         // Parse comment
         parse_and_execute_command(
@@ -97,7 +97,7 @@ async fn test_review_creation() -> Result<()> {
         // Retrieve "him" review
         let review =
             ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
-        assert_eq!(review.required, true);
+        assert!(review.required);
 
         // Parse comment
         parse_and_execute_command(
@@ -116,7 +116,7 @@ async fn test_review_creation() -> Result<()> {
         // Retrieve "him" review
         let review =
             ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
-        assert_eq!(review.required, false);
+        assert!(!review.required);
 
         // Generate status
         let reviews = pr.get_reviews(&conn).unwrap();
@@ -128,7 +128,7 @@ async fn test_review_creation() -> Result<()> {
             repo.default_needed_reviewers_count as usize
         );
         assert!(status.missing_required_reviewers.is_empty());
-        assert_eq!(status.locked, true);
+        assert!(status.locked);
 
         // Generate status comment
         let comment =
