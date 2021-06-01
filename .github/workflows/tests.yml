@@ -22,18 +22,12 @@ jobs:
           - 5432:5432
 
     steps:
-    - name: Install latest stable
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        components: clippy
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: nightly-2021-06-01
         profile: minimal
-        components: rustfmt
+        components: rustfmt,clippy
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
