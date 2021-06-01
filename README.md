@@ -1,6 +1,6 @@
 # GitHub SC Bot
 
-Experimental GitHub Bot to manage our development workflows.
+Experimental GitHub Bot to manage SharingCloud development workflows.
 
 [CHANGELOG](./CHANGELOG.md)
 
@@ -112,7 +112,7 @@ You can then type `just --list` to print available commands.
 
 ## Docker building
 
-You can type `just build-docker` to automatically generate a Docker image.
+You can type `just docker-build` to automatically generate a Docker image with the current bot version.
 
 Once your image is ready, you can use the [docker/docker-compose.yml](./docker/docker-compose.yml) file to easily mount a Docker Compose stack.
 
