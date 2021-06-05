@@ -3,28 +3,32 @@ class Repository {
     #id: Integer
     name: String
     owner: String
-    pr_title_validation_regex: String
-    default_needed_reviewers_count: Integer
     default_strategy: String
+    default_needed_reviewers_count: Integer
+    pr_title_validation_regex: String
+    manual_interaction: bool
 }
+
 class PullRequest {
     #id: Integer
     *repository_id: Integer
     number: Integer
+    creator: String
     name: String
-    automerge: Boolean
-    step: String
-    check_status: String
-    status_comment_id: Integer
-    qa_status: String
-    wip: Boolean
-    needed_reviewers_count: Integer
-    locked: Boolean
-    merged: Boolean
     base_branch: String
     head_branch: String
-    creator: String
+    step: String
+    check_status: String
+    qa_status: String
+    needed_reviewers_count: Integer
+    status_comment_id: Integer
+    automerge: Boolean
+    wip: Boolean
+    locked: Boolean
+    merged: Boolean
+    closed: Boolean
 }
+
 class Review {
     #id: Integer
     *pull_request_id: Integer
@@ -33,6 +37,7 @@ class Review {
     required: Boolean
     valid: Boolean
 }
+
 class MergeRule {
     #id: Integer
     *repository_id: Integer

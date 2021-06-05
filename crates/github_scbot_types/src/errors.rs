@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 /// Type error.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum TypeError {
     /// Unknown step label.
     #[error("Unknown step label: {0}")]

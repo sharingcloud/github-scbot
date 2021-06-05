@@ -5,8 +5,6 @@ use std::env;
 /// Bot configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
-    /// Disable GitHub client.
-    pub api_disable_client: bool,
     /// Bot username.
     pub bot_username: String,
     /// Database URL.
@@ -29,6 +27,8 @@ pub struct Config {
     pub github_app_private_key: String,
     /// GitHub webhook secret.
     pub github_webhook_secret: String,
+    /// Redis address.
+    pub redis_address: String,
     /// Sentry URL.
     pub sentry_url: String,
     /// Server bind IP.
@@ -51,7 +51,6 @@ impl Config {
     /// Create configuration from environment.
     pub fn from_env() -> Config {
         Config {
-            api_disable_client: env_to_bool("BOT_API_DISABLE_CLIENT", false),
             bot_username: env_to_str("BOT_USERNAME", "bot"),
             database_url: env_to_str("DATABASE_URL", ""),
             database_pool_size: env_to_u32("BOT_DATABASE_POOL_SIZE", 20),
@@ -66,6 +65,7 @@ impl Config {
             github_app_installation_id: env_to_u64("BOT_GITHUB_APP_INSTALLATION_ID", 0),
             github_app_private_key: env_to_str("BOT_GITHUB_APP_PRIVATE_KEY", ""),
             github_webhook_secret: env_to_str("BOT_GITHUB_WEBHOOK_SECRET", ""),
+            redis_address: env_to_str("BOT_REDIS_ADDRESS", ""),
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),
             server_bind_port: env_to_u16("BOT_SERVER_BIND_IP", 8008),

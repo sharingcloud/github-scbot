@@ -1,34 +1,40 @@
 //! Review tests
 
+use github_scbot_api::adapter::{DummyAPIAdapter, IAPIAdapter};
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    models::{PullRequestModel, RepositoryModel, ReviewModel},
+    models::{DatabaseAdapter, IDatabaseAdapter, PullRequestModel, RepositoryModel},
     tests::using_test_db,
-    DbConn, DbPool, Result,
+    Result,
 };
+use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter};
 use github_scbot_types::{
     common::GhUser,
-    pulls::GhMergeStrategy,
     reviews::{GhReview, GhReviewState},
 };
 
-use super::test_config;
 use crate::{
-    commands::{execute_commands, parse_commands},
-    reviews::handle_review,
-    status::{generate_pr_status_comment, PullRequestStatus},
+    commands::{CommandExecutor, CommandParser},
+    reviews::process_review,
+    status::PullRequestStatus,
+    summary::SummaryTextGenerator,
     LogicError, Result as LogicResult,
 };
 
-fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) {
+async fn arrange(
+    conf: &Config,
+    db_adapter: &dyn IDatabaseAdapter,
+) -> (RepositoryModel, PullRequestModel) {
     // Create a repository and a pull request
     let repo = RepositoryModel::builder(&conf, "me", "TestRepo")
-        .create_or_update(&conn)
+        .create_or_update(db_adapter.repository())
+        .await
         .unwrap();
 
     let pr = PullRequestModel::builder(&repo, 1, "me")
         .name("PR 1")
-        .create_or_update(&conn)
+        .create_or_update(db_adapter.pull_request())
+        .await
         .unwrap();
 
     (repo, pr)
@@ -36,25 +42,39 @@ fn arrange(conf: &Config, conn: &DbConn) -> (RepositoryModel, PullRequestModel) 
 
 #[actix_rt::test]
 async fn test_review_creation() -> Result<()> {
-    let config = test_config();
-
     async fn parse_and_execute_command(
         config: &Config,
-        pool: DbPool,
+        api_adapter: &impl IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        redis_adapter: &dyn IRedisAdapter,
         repo: &mut RepositoryModel,
         pr: &mut PullRequestModel,
         command_str: &str,
     ) -> LogicResult<()> {
         // Parse comment
-        let commands = parse_commands(&config, command_str);
-        execute_commands(&config, pool.clone(), repo, pr, 0, "me", commands).await?;
+        let commands = CommandParser::parse_commands(config, command_str);
+        CommandExecutor::execute_commands(
+            config,
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            repo,
+            pr,
+            0,
+            "me",
+            commands,
+        )
+        .await?;
 
         Ok(())
     }
 
-    using_test_db(&config.clone(), "test_logic_reviews", |pool| async move {
-        let conn = pool.get().unwrap();
-        let (mut repo, mut pr) = arrange(&config, &conn);
+    let api_adapter = DummyAPIAdapter::new();
+    let redis_adapter = DummyRedisAdapter::new();
+
+    using_test_db("test_logic_reviews", |config, pool| async move {
+        let db_adapter = DatabaseAdapter::new(&pool);
+        let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 
         // Simulate review
         let review = GhReview {
@@ -65,7 +85,7 @@ async fn test_review_creation() -> Result<()> {
             },
         };
 
-        handle_review(&config, &conn, &repo, &pr, &review).await?;
+        process_review(&api_adapter, &db_adapter, &repo, &pr, &review).await?;
 
         // Simulate another review
         let review2 = GhReview {
@@ -76,10 +96,10 @@ async fn test_review_creation() -> Result<()> {
             },
         };
 
-        handle_review(&config, &conn, &repo, &pr, &review2).await?;
+        process_review(&api_adapter, &db_adapter, &repo, &pr, &review2).await?;
 
         // List reviews
-        let reviews = pr.get_reviews(&conn).unwrap();
+        let reviews = pr.get_reviews(db_adapter.review()).await.unwrap();
         assert_eq!(reviews[0].username, "me");
         assert_eq!(reviews[1].username, "him");
         assert!(!reviews[1].required);
@@ -87,7 +107,9 @@ async fn test_review_creation() -> Result<()> {
         // Parse comment
         parse_and_execute_command(
             &config,
-            pool.clone(),
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
             &mut repo,
             &mut pr,
             "test-bot req+ @him",
@@ -95,14 +117,19 @@ async fn test_review_creation() -> Result<()> {
         .await?;
 
         // Retrieve "him" review
-        let review =
-            ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
+        let review = db_adapter
+            .review()
+            .get_from_pull_request_and_username(&repo, &pr, "him")
+            .await
+            .unwrap();
         assert!(review.required);
 
         // Parse comment
         parse_and_execute_command(
             &config,
-            pool.clone(),
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
             &mut repo,
             &mut pr,
             "test-bot req- @him",
@@ -110,17 +137,29 @@ async fn test_review_creation() -> Result<()> {
         .await?;
 
         // Lock PR
-        parse_and_execute_command(&config, pool.clone(), &mut repo, &mut pr, "test-bot lock+")
-            .await?;
+        parse_and_execute_command(
+            &config,
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
+            &mut repo,
+            &mut pr,
+            "test-bot lock+",
+        )
+        .await?;
 
         // Retrieve "him" review
-        let review =
-            ReviewModel::get_from_pull_request_and_username(&conn, &repo, &pr, "him").unwrap();
+        let review = db_adapter
+            .review()
+            .get_from_pull_request_and_username(&repo, &pr, "him")
+            .await
+            .unwrap();
         assert!(!review.required);
 
         // Generate status
-        let reviews = pr.get_reviews(&conn).unwrap();
-        let status = PullRequestStatus::from_pull_request(&repo, &pr, &reviews).unwrap();
+        let status = PullRequestStatus::from_database(&db_adapter, &repo, &pr)
+            .await
+            .unwrap();
         assert!(status.approved_reviewers.is_empty());
         assert!(!status.automerge);
         assert_eq!(
@@ -131,8 +170,7 @@ async fn test_review_creation() -> Result<()> {
         assert!(status.locked);
 
         // Generate status comment
-        let comment =
-            generate_pr_status_comment(&repo, &pr, &reviews, GhMergeStrategy::Merge).unwrap();
+        let comment = SummaryTextGenerator::generate(&status).unwrap();
         assert!(!comment.is_empty());
 
         Ok::<_, LogicError>(())

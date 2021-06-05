@@ -12,8 +12,10 @@ mod tests;
 use std::convert::TryFrom;
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
+use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::DbPool;
+use github_scbot_database::models::{DatabaseAdapter, IDatabaseAdapter};
+use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::events::EventType;
 use sentry_actix::eyre::WrapEyre;
 use serde::Deserialize;
@@ -30,26 +32,54 @@ use crate::{
 };
 
 async fn parse_event(
-    config: Config,
-    pool: DbPool,
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckSuite => {
-            checks::check_suite_event(config, pool, parse_check_suite_event(body)?).await
+            checks::check_suite_event(
+                config,
+                api_adapter,
+                db_adapter,
+                redis_adapter,
+                parse_check_suite_event(body)?,
+            )
+            .await
         }
         EventType::IssueComment => {
-            issues::issue_comment_event(config, pool, parse_issue_comment_event(body)?).await
-        }
-        EventType::Ping => ping::ping_event(parse_ping_event(body)?)
+            issues::issue_comment_event(
+                config,
+                api_adapter,
+                db_adapter,
+                redis_adapter,
+                parse_issue_comment_event(body)?,
+            )
             .await
-            .map_err(Into::into),
+        }
+        EventType::Ping => Ok(ping::ping_event(parse_ping_event(body)?)),
         EventType::PullRequest => {
-            pulls::pull_request_event(config, pool, parse_pull_request_event(body)?).await
+            pulls::pull_request_event(
+                config,
+                api_adapter,
+                db_adapter,
+                redis_adapter,
+                parse_pull_request_event(body)?,
+            )
+            .await
         }
         EventType::PullRequestReview => {
-            reviews::review_event(config, pool, parse_review_event(body)?).await
+            reviews::review_event(
+                config,
+                api_adapter,
+                db_adapter,
+                redis_adapter,
+                parse_review_event(body)?,
+            )
+            .await
         }
     }
 }
@@ -81,9 +111,16 @@ pub(crate) async fn event_handler(
                 scope.set_extra("Payload", body.clone().into());
             });
 
-            parse_event(ctx.config.clone(), ctx.pool.clone(), event_type, &body)
-                .await
-                .map_err(|e| WrapEyre::internal_server_error(e).into())
+            parse_event(
+                &ctx.config,
+                &ctx.api_adapter,
+                &DatabaseAdapter::new(&ctx.pool),
+                &ctx.redis_adapter,
+                event_type,
+                &body,
+            )
+            .await
+            .map_err(|e| WrapEyre::internal_server_error(e).into())
         } else {
             let event_type: &str = event_type.into();
             Ok(HttpResponse::BadRequest().json(serde_json::json!({

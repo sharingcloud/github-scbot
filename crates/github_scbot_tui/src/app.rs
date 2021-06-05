@@ -1,9 +1,6 @@
 //! Application module.
 
-use github_scbot_database::{
-    models::{PullRequestModel, RepositoryModel},
-    DbConn,
-};
+use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_types::status::{CheckStatus, QaStatus};
 use termion::event::Key;
 use tui::{
@@ -34,10 +31,10 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn load_from_db(&mut self, conn: &DbConn) -> Result<()> {
-        let repositories = RepositoryModel::list(conn)?;
-        let mut pull_requests = PullRequestModel::list(conn)?;
-        pull_requests.sort_by_key(|p| -(p.get_number() as i64));
+    pub async fn load_from_db(&mut self, db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
+        let repositories = db_adapter.repository().list().await?;
+        let mut pull_requests = db_adapter.pull_request().list().await?;
+        pull_requests.sort_by_key(|p| u64::MAX - p.get_number());
 
         let mut pr_kvs = Vec::new();
         for repo in repositories {
@@ -167,6 +164,7 @@ impl<'a> App<'a> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn draw_current_pull_request_data<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
         if let Some(selected_pr) = self.data.get_current_pull_request() {
             let text = vec![
@@ -196,7 +194,7 @@ impl<'a> App<'a> {
                         Some(label) => {
                             Span::styled(label.to_str(), Style::default().fg(Color::Green))
                         }
-                        None => Span::styled("—", Style::default().fg(Color::Yellow)),
+                        None => Span::styled("\u{2014}", Style::default().fg(Color::Yellow)),
                     },
                 ]),
                 Spans::from(vec![
@@ -305,7 +303,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn draw_title<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+    pub fn draw_title<B: Backend>(f: &mut Frame<B>, area: Rect) {
         let title = Spans::from(vec![Span::styled(
             "SC Bot Management - Terminal UI",
             Style::default()
@@ -318,9 +316,9 @@ impl<'a> App<'a> {
 
     pub fn draw_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
         if self.data.get_current_pull_request().is_some() {
-            self.draw_pull_request_help(f, area);
+            Self::draw_pull_request_help(f, area);
         } else if self.data.get_current_repository().is_some() {
-            self.draw_repository_help(f, area);
+            Self::draw_repository_help(f, area);
         } else {
             let help_text = Paragraph::new("Welcome on SC Bot!")
                 .block(Block::default().title("Help").borders(Borders::ALL));
@@ -328,7 +326,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn draw_repository_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+    pub fn draw_repository_help<B: Backend>(f: &mut Frame<B>, area: Rect) {
         let text = vec![
             Spans::from(vec![
                 Span::styled("ENTER", Style::default().add_modifier(Modifier::BOLD)),
@@ -353,7 +351,7 @@ impl<'a> App<'a> {
         f.render_widget(paragraph, area);
     }
 
-    pub fn draw_pull_request_help<B: Backend>(&mut self, f: &mut Frame<B>, area: Rect) {
+    pub fn draw_pull_request_help<B: Backend>(f: &mut Frame<B>, area: Rect) {
         let text = vec![
             Spans::from(vec![
                 Span::styled("ENTER", Style::default().add_modifier(Modifier::BOLD)),
@@ -401,7 +399,7 @@ impl<'a> App<'a> {
         let pr_area = chunks[2];
         let help_area = chunks[3];
 
-        self.draw_title(f, title_area);
+        Self::draw_title(f, title_area);
         self.draw_repositories(f, repo_area);
         self.draw_pull_requests(f, pr_area);
         self.draw_help(f, help_area);

@@ -2,7 +2,8 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/sharingcloud/github-scbot/badge.svg)](https://coveralls.io/github/sharingcloud/github-scbot)
 
-Experimental GitHub Bot to manage SharingCloud development workflows.
+Experimental GitHub Bot to manage SharingCloud development workflows.  
+Uses **PostgreSQL** and **Redis**.
 
 [CHANGELOG](./CHANGELOG.md)
 
@@ -98,6 +99,7 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 
 - `bot admin-help`: _Show this comment_
 - `bot admin-enable`: _Enable me on a pull request with manual interaction_
+- `bot admin-disable`: _Disable me on a pull request with manual interaction_
 - `bot admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_
 - `bot admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_
 - `bot admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_
@@ -112,23 +114,29 @@ To install, type `cargo install just`.
 
 You can then type `just --list` to print available commands.
 
-## Docker building
+### Docker building
 
 You can type `just docker-build` to automatically generate a Docker image with the current bot version.
 
 Once your image is ready, you can use the [docker/docker-compose.yml](./docker/docker-compose.yml) file to easily mount a Docker Compose stack.
 
-## Developing
+## GitHub installation
 
-You can quick mount a PostgreSQL instance via Docker with the following commands:
+### Webhook only (using a standard account)
 
-    docker volume create postgres-data
-    docker run -d \
-        --name postgres \
-        -p 5432:5432 \
-        -v postgres-data:/var/lib/postgresql/data \
-        -e POSTGRES_USER=user \
-        -e POSTGRES_PASSWORD=pass \
-        -e POSTGRES_DB=bot \
-        postgres:alpine \
-        -c max_connections=200
+- Add a Webhook on GitHub,
+- Use `http(s)://[your-domain]/webhook` as **Payload URL**,
+- Set the **Content Type** as `application/json`,
+- Use a secret if needed (configure you bot with the `BOT_GITHUB_WEBHOOK_SECRET` env),
+- Then, enable the following events:
+    - Check suite,
+    - Issue comment,
+    - Pull request,
+    - Pull request review,
+    - Pull request review comment
+
+Once configured, you should receive a `ping` event.
+
+### GitHub application (using a bot account)
+
+TODO

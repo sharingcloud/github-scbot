@@ -1,0 +1,19 @@
+@startuml Pull request creation
+
+boundary GitHub
+boundary Server as Server
+boundary Logic as Logic
+boundary Database as Database
+boundary API as API
+
+GitHub -> Server : PR creation event
+Server -> Logic : handle_pull_request_opened
+Logic <-> Database : PR::get_from_repository_and_number
+
+group unknown PR?
+    alt manual interaction?
+        Logic -> Logic : parse_commands
+    end
+end
+
+@enduml

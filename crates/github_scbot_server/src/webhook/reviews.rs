@@ -1,9 +1,11 @@
 //! Review webhook handlers.
 
 use actix_web::HttpResponse;
+use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::DbPool;
+use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_logic::reviews::handle_review_event;
+use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{events::EventType, reviews::GhReviewEvent};
 use tracing::info;
 
@@ -15,8 +17,10 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 }
 
 pub(crate) async fn review_event(
-    config: Config,
-    pool: DbPool,
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
     info!(
@@ -27,6 +31,6 @@ pub(crate) async fn review_event(
         message = "Pull request review event",
     );
 
-    handle_review_event(config, pool, event).await?;
+    handle_review_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }

@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 /// API error.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum ApiError {
     /// Missing pull request.
     #[error("Could not get pull-request #{1} from repository {0}")]
@@ -21,17 +21,25 @@ pub enum ApiError {
     #[error("GitHub error: {0}")]
     GitHubError(String),
 
-    /// Wraps [`octocrab::Error`].
-    #[error("Error while using GitHub HTTP client.")]
-    OctocrabError(#[from] octocrab::Error),
+    /// HTTP error
+    #[error("HTTP error: {0}")]
+    HTTPError(String),
 
-    /// Wraps [`reqwest::Error`].
-    #[error("Error while using HTTP client.")]
-    ReqwestError(#[from] reqwest::Error),
+    /// JWT Error
+    #[error("JWT error: {0}")]
+    JWTError(String),
+}
 
-    /// Wraps [`github_scbot_crypto::CryptoError`].
-    #[error(transparent)]
-    CryptoError(#[from] github_scbot_crypto::CryptoError),
+impl From<octocrab::Error> for ApiError {
+    fn from(error: octocrab::Error) -> Self {
+        Self::GitHubError(error.to_string())
+    }
+}
+
+impl From<reqwest::Error> for ApiError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::HTTPError(error.to_string())
+    }
 }
 
 /// Result alias for `ApiError`.

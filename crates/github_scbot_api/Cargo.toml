@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-api"
-version = "0.9.4"
+version = "0.10.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
@@ -8,6 +8,7 @@ edition = "2018"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-types = { path = "../github_scbot_types" }
+async-trait = "0.1.50"
 chrono = { version = "0.4.19", features = ["serde"] }
 heck = "0.3.2"
 http = "0.2"

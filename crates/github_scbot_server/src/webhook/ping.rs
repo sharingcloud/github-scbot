@@ -11,7 +11,7 @@ pub(crate) fn parse_ping_event(body: &str) -> Result<GhPingEvent> {
     parse_event_type(EventType::Ping, body)
 }
 
-pub(crate) async fn ping_event(event: GhPingEvent) -> Result<HttpResponse> {
+pub(crate) fn ping_event(event: GhPingEvent) -> HttpResponse {
     if let Some(repo) = event.repository {
         info!(
             message = "Ping event from repository",
@@ -21,5 +21,5 @@ pub(crate) async fn ping_event(event: GhPingEvent) -> Result<HttpResponse> {
         info!("Ping event without repository");
     }
 
-    Ok(HttpResponse::Ok().body("Ping."))
+    HttpResponse::Ok().body("Ping.")
 }

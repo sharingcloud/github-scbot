@@ -1,7 +1,15 @@
 //! Crypto module.
 
 #![warn(missing_docs)]
-#![warn(clippy::all)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::must_use_candidate,
+    clippy::module_name_repetitions,
+    clippy::struct_excessive_bools
+)]
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -28,10 +36,11 @@ pub fn now() -> u64 {
 
 /// Create Jwt from RSA private key.
 pub fn create_jwt<T: Serialize>(rsa_priv_key: &str, claims: &T) -> Result<String> {
-    let key = EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes()).unwrap();
+    let key = EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes())
+        .map_err(|e| CryptoError::InvalidEncodingKey(e.to_string()))?;
 
     match encode(&Header::new(Algorithm::RS256), &claims, &key) {
-        Err(e) => Err(CryptoError::JwtCreationFailed(e)),
+        Err(e) => Err(CryptoError::JwtCreationFailed(e.to_string())),
         Ok(s) => Ok(s),
     }
 }
@@ -41,12 +50,13 @@ pub fn verify_jwt<T>(token: &str, rsa_pub_key: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let key = DecodingKey::from_rsa_pem(rsa_pub_key.as_bytes()).unwrap();
+    let key = DecodingKey::from_rsa_pem(rsa_pub_key.as_bytes())
+        .map_err(|e| CryptoError::InvalidDecodingKey(e.to_string()))?;
     let mut validation = Validation::new(Algorithm::RS256);
     validation.validate_exp = false;
 
     match decode(token, &key, &validation) {
-        Err(e) => Err(CryptoError::JwtVerificationFailed(e)),
+        Err(e) => Err(CryptoError::JwtVerificationFailed(e.to_string())),
         Ok(s) => Ok(s.claims),
     }
 }
@@ -56,17 +66,23 @@ pub fn decode_jwt<T>(token: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    Ok(dangerous_insecure_decode(token).unwrap().claims)
+    Ok(dangerous_insecure_decode(token)
+        .map_err(|e| CryptoError::JwtVerificationFailed(e.to_string()))?
+        .claims)
 }
 
 /// Generate a RSA key-pair.
 pub fn generate_rsa_keys() -> (String, String) {
-    let rsa = Rsa::generate(RSA_SIZE).unwrap();
-    let private_key = rsa.private_key_to_pem().unwrap();
-    let public_key = rsa.public_key_to_pem_pkcs1().unwrap();
+    let rsa = Rsa::generate(RSA_SIZE).expect("RSA generation should work");
+    let private_key = rsa
+        .private_key_to_pem()
+        .expect("RSA private key to PEM conversion should work");
+    let public_key = rsa
+        .public_key_to_pem_pkcs1()
+        .expect("RSA public key to PEM conversion should work");
 
     (
-        String::from_utf8(private_key).unwrap(),
-        String::from_utf8(public_key).unwrap(),
+        String::from_utf8(private_key).expect("RSA private key should be valid utf-8"),
+        String::from_utf8(public_key).expect("RSA public key should be valid utf-8"),
     )
 }

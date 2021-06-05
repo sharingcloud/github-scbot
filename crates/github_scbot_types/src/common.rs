@@ -11,7 +11,7 @@ pub struct GhUser {
 }
 
 /// GitHub User permission.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GhUserPermission {
     /// Admin.
@@ -26,7 +26,7 @@ pub enum GhUserPermission {
 
 impl GhUserPermission {
     /// Can write?
-    pub fn can_write(&self) -> bool {
+    pub fn can_write(self) -> bool {
         matches!(self, Self::Admin | Self::Write)
     }
 }

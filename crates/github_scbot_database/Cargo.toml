@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-database"
-version = "0.9.4"
+version = "0.10.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
@@ -8,14 +8,17 @@ edition = "2018"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-types = { path = "../github_scbot_types" }
-actix-threadpool = "0.3"
+async-trait = "0.1.50"
 chrono = { version = "0.4.19", features = ["serde"] }
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
 diesel_migrations = "1.4"
 r2d2 = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+smart-default = "0.6.0"
 thiserror = "1.0"
+tokio-diesel = "0.3.0"
+tracing = "0.1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"

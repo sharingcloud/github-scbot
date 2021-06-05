@@ -1,0 +1,44 @@
+@startuml Crates dependencies
+
+class CLI
+class Conf
+class DB
+class Logic
+class Server
+class TUI
+class Types
+class Crypto
+
+CLI --> API
+CLI --> Conf
+CLI --> DB
+CLI --> Logic
+CLI --> Server
+CLI --> TUI
+CLI --> Types
+
+API --> Conf
+API --> Crypto
+API --> Types
+
+DB --> Conf
+DB --> Crypto
+DB --> Types
+
+Logic --> API
+Logic --> Conf
+Logic --> DB
+Logic --> Types
+
+Server --> API
+Server --> Conf
+Server --> Crypto
+Server --> Types
+Server --> DB
+Server --> Logic
+
+TUI --> Conf
+TUI -> Types
+TUI --> DB
+
+@enduml

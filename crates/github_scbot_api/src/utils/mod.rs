@@ -33,10 +33,6 @@ pub async fn get_client_builder(config: &Config) -> Result<OctocrabBuilder> {
     Ok(Octocrab::builder().personal_token(token))
 }
 
-pub(crate) fn is_client_enabled(config: &Config) -> bool {
-    !config.api_disable_client
-}
-
 async fn get_authentication_credentials(config: &Config) -> Result<String> {
     if config.github_api_token.is_empty() {
         create_installation_access_token(config).await
@@ -59,7 +55,8 @@ fn create_app_token(config: &Config) -> Result<String> {
         iss: config.github_app_id,
     };
 
-    create_jwt(&config.github_app_private_key, &claims).map_err(Into::into)
+    create_jwt(&config.github_app_private_key, &claims)
+        .map_err(|e| ApiError::JWTError(e.to_string()))
 }
 
 async fn create_installation_access_token(config: &Config) -> Result<String> {

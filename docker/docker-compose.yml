@@ -2,7 +2,7 @@ version: "3"
 
 services:
   server:
-    image: github-scbot:0.9.4
+    image: github-scbot:0.10.0
     env_file: ../.env
     environment:
       DATABASE_URL: postgresql://user:pass@postgres:5432/bot
@@ -20,6 +20,9 @@ services:
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: bot
     command: "-c max_connections=200"
+
+  redis:
+    image: redis:alpine
 
 volumes:
   postgres-data:

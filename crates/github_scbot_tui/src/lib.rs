@@ -1,7 +1,16 @@
 //! UI module.
 
 #![warn(missing_docs)]
-#![warn(clippy::all)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::must_use_candidate,
+    clippy::module_name_repetitions,
+    clippy::struct_excessive_bools,
+    clippy::pub_enum_variant_names
+)]
 
 mod app;
 mod errors;
@@ -10,8 +19,7 @@ mod state;
 
 use std::io;
 
-use github_scbot_conf::Config;
-use github_scbot_database::establish_single_connection;
+use github_scbot_database::models::IDatabaseAdapter;
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
 
@@ -22,7 +30,7 @@ use self::{
 };
 
 /// Run TUI interface.
-pub fn run_tui() -> Result<()> {
+pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
     // Terminal initialization
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
@@ -31,10 +39,8 @@ pub fn run_tui() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
     let events = Events::new();
 
-    let config = Config::from_env();
-    let conn = establish_single_connection(&config)?;
     let mut app = App::new("SC Bot");
-    app.load_from_db(&conn)?;
+    app.load_from_db(db_adapter).await?;
 
     loop {
         terminal.draw(|f| {
