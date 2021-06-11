@@ -4,6 +4,7 @@ class CLI
 class Conf
 class DB
 class Logic
+class Redis
 class Server
 class TUI
 class Types
@@ -16,6 +17,7 @@ CLI --> Logic
 CLI --> Server
 CLI --> TUI
 CLI --> Types
+CLI --> Redis
 
 API --> Conf
 API --> Crypto
@@ -29,6 +31,7 @@ Logic --> API
 Logic --> Conf
 Logic --> DB
 Logic --> Types
+Logic --> Redis
 
 Server --> API
 Server --> Conf
@@ -36,6 +39,7 @@ Server --> Crypto
 Server --> Types
 Server --> DB
 Server --> Logic
+Server --> Redis
 
 TUI --> Conf
 TUI -> Types
