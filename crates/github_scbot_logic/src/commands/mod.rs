@@ -350,9 +350,14 @@ impl CommandExecutor {
 
         match command {
             Command::Ping | Command::Help | Command::Gif(_) => Ok(true),
-            Command::AdminEnable | Command::AdminHelp | Command::AdminSynchronize => {
-                Ok(is_admin(username, &known_admins))
-            }
+            Command::AdminEnable
+            | Command::AdminDisable
+            | Command::AdminSetDefaultMergeStrategy(_)
+            | Command::AdminSetDefaultNeededReviewers(_)
+            | Command::AdminSetDefaultPRTitleRegex(_)
+            | Command::AdminSetNeededReviewers(_)
+            | Command::AdminHelp
+            | Command::AdminSynchronize => Ok(is_admin(username, &known_admins)),
             _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
         }
     }

@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Configurable database pool size (`BOT_DATABASE_POOL_SIZE`)
+- Redis support in crate `github_scbot_redis`, mostly to set locks
+- Using adapters on each external part: API, database, Redis, gifs
+- `admin-disable` command to disable bot on a PR (only in manual interaction mode)
+
+### Changed
+
+- All database calls are now asynchronous, using a separate threadpool (using `tokio_diesel`)
+- Use Rust `nightly-2021-06-04` for bleeding edge `rustfmt`, `clippy` and `grcov` compatibility
+- Renamed the `github_scbot` crate to `github_scbot_cli`
+
+### Fixed
+
+- All admin commands are now checking admin rights
+- Summary message is now only created on PR opening, or after `admin-enable` command
+- Thanks to Redis locks, there should be no more race conditions on automerge
 
 ## [0.9.3] - 2021-05-19
 

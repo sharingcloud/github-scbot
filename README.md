@@ -139,4 +139,4 @@ Once configured, you should receive a `ping` event.
 
 ### GitHub application (using a bot account)
 
-TODO
+*TODO*

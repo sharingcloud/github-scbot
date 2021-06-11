@@ -386,8 +386,8 @@ pub async fn handle_admin_disable_command(
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
     if repo_model.manual_interaction {
-        db_adapter.pull_request().remove(pr_model).await?;
         disable_validation_status(api_adapter, db_adapter, repo_model, pr_model).await?;
+        db_adapter.pull_request().remove(pr_model).await?;
 
         let comment = "Bot disabled on this PR. Bye!";
         Ok(CommandExecutionResult::builder()
