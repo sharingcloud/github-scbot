@@ -8,6 +8,7 @@ services:
       DATABASE_URL: postgresql://user:pass@postgres:5432/bot
       BOT_SERVER_BIND_IP: 0.0.0.0
       RUST_LOG: info,github_scbot=debug
+      USE_JSON: 1
     ports:
       - 8008:8008
 
