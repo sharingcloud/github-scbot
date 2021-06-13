@@ -8,49 +8,51 @@ use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::StatusState,
 };
+use github_scbot_utils::Mock;
 
 use super::{GhReviewApi, GifResponse, IAPIAdapter};
 use crate::Result;
 
 /// Dummy API adapter.
-#[derive(Clone)]
 #[allow(missing_docs)]
 pub struct DummyAPIAdapter {
-    pub issue_labels_list_response: Result<Vec<String>>,
-    pub issue_labels_replace_all_response: Result<()>,
-    pub user_permissions_get_response: Result<GhUserPermission>,
-    pub check_suites_list_response: Result<Vec<GhCheckSuite>>,
-    pub comments_post_response: Result<u64>,
-    pub comments_update_response: Result<u64>,
-    pub comments_delete_response: Result<()>,
-    pub comment_reactions_add_response: Result<()>,
-    pub pulls_get_response: Result<GhPullRequest>,
-    pub pulls_merge_response: Result<()>,
-    pub pull_reviewer_requests_add_response: Result<()>,
-    pub pull_reviewer_requests_remove_response: Result<()>,
-    pub pull_reviews_list_response: Result<Vec<GhReviewApi>>,
-    pub commit_status_update_response: Result<()>,
-    pub gif_search_response: Result<GifResponse>,
+    pub issue_labels_list_response: Mock<Result<Vec<String>>>,
+    pub issue_labels_replace_all_response: Mock<Result<()>>,
+    pub user_permissions_get_response: Mock<Result<GhUserPermission>>,
+    pub check_suites_list_response: Mock<Result<Vec<GhCheckSuite>>>,
+    pub comments_post_response: Mock<Result<u64>>,
+    pub comments_update_response: Mock<Result<u64>>,
+    pub comments_delete_response: Mock<Result<()>>,
+    pub comment_reactions_add_response: Mock<Result<()>>,
+    pub pulls_get_response: Mock<Result<GhPullRequest>>,
+    pub pulls_merge_response: Mock<Result<()>>,
+    pub pull_reviewer_requests_add_response: Mock<Result<()>>,
+    pub pull_reviewer_requests_remove_response: Mock<Result<()>>,
+    pub pull_reviews_list_response: Mock<Result<Vec<GhReviewApi>>>,
+    pub commit_status_update_response: Mock<Result<()>>,
+    pub gif_search_response: Mock<Result<GifResponse>>,
+    pub installations_create_token_response: Mock<Result<String>>,
 }
 
 impl Default for DummyAPIAdapter {
     fn default() -> Self {
         Self {
-            issue_labels_list_response: Ok(Vec::new()),
-            issue_labels_replace_all_response: Ok(()),
-            user_permissions_get_response: Ok(GhUserPermission::None),
-            check_suites_list_response: Ok(Vec::new()),
-            comments_post_response: Ok(0),
-            comments_update_response: Ok(0),
-            comments_delete_response: Ok(()),
-            comment_reactions_add_response: Ok(()),
-            pulls_get_response: Ok(GhPullRequest::default()),
-            pulls_merge_response: Ok(()),
-            pull_reviewer_requests_add_response: Ok(()),
-            pull_reviewer_requests_remove_response: Ok(()),
-            pull_reviews_list_response: Ok(Vec::new()),
-            commit_status_update_response: Ok(()),
-            gif_search_response: Ok(GifResponse::default()),
+            issue_labels_list_response: Mock::new(Ok(Vec::new())),
+            issue_labels_replace_all_response: Mock::new(Ok(())),
+            user_permissions_get_response: Mock::new(Ok(GhUserPermission::None)),
+            check_suites_list_response: Mock::new(Ok(Vec::new())),
+            comments_post_response: Mock::new(Ok(0)),
+            comments_update_response: Mock::new(Ok(0)),
+            comments_delete_response: Mock::new(Ok(())),
+            comment_reactions_add_response: Mock::new(Ok(())),
+            pulls_get_response: Mock::new(Ok(GhPullRequest::default())),
+            pulls_merge_response: Mock::new(Ok(())),
+            pull_reviewer_requests_add_response: Mock::new(Ok(())),
+            pull_reviewer_requests_remove_response: Mock::new(Ok(())),
+            pull_reviews_list_response: Mock::new(Ok(Vec::new())),
+            commit_status_update_response: Mock::new(Ok(())),
+            gif_search_response: Mock::new(Ok(GifResponse::default())),
+            installations_create_token_response: Mock::new(Ok(String::new())),
         }
     }
 }
@@ -71,7 +73,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<String>> {
-        self.issue_labels_list_response.clone()
+        self.issue_labels_list_response.response()
     }
 
     async fn issue_labels_replace_all(
@@ -81,7 +83,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         issue_number: u64,
         labels: &[String],
     ) -> Result<()> {
-        self.issue_labels_replace_all_response.clone()
+        self.issue_labels_replace_all_response.response()
     }
 
     async fn user_permissions_get(
@@ -90,7 +92,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         name: &str,
         username: &str,
     ) -> Result<GhUserPermission> {
-        self.user_permissions_get_response.clone()
+        self.user_permissions_get_response.response()
     }
 
     async fn check_suites_list(
@@ -99,7 +101,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         name: &str,
         git_ref: &str,
     ) -> Result<Vec<GhCheckSuite>> {
-        self.check_suites_list_response.clone()
+        self.check_suites_list_response.response()
     }
 
     async fn comments_post(
@@ -109,7 +111,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         issue_number: u64,
         body: &str,
     ) -> Result<u64> {
-        self.comments_post_response.clone()
+        self.comments_post_response.response()
     }
 
     async fn comments_update(
@@ -119,11 +121,11 @@ impl IAPIAdapter for DummyAPIAdapter {
         comment_id: u64,
         body: &str,
     ) -> Result<u64> {
-        self.comments_update_response.clone()
+        self.comments_update_response.response()
     }
 
     async fn comments_delete(&self, owner: &str, name: &str, comment_id: u64) -> Result<()> {
-        self.comments_delete_response.clone()
+        self.comments_delete_response.response()
     }
 
     async fn comment_reactions_add(
@@ -133,11 +135,11 @@ impl IAPIAdapter for DummyAPIAdapter {
         comment_id: u64,
         reaction_type: GhReactionType,
     ) -> Result<()> {
-        self.comment_reactions_add_response.clone()
+        self.comment_reactions_add_response.response()
     }
 
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
-        self.pulls_get_response.clone()
+        self.pulls_get_response.response()
     }
 
     async fn pulls_merge(
@@ -149,7 +151,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
     ) -> Result<()> {
-        self.pulls_merge_response.clone()
+        self.pulls_merge_response.response()
     }
 
     async fn pull_reviewer_requests_add(
@@ -159,7 +161,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
-        self.pull_reviewer_requests_add_response.clone()
+        self.pull_reviewer_requests_add_response.response()
     }
 
     async fn pull_reviewer_requests_remove(
@@ -169,7 +171,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
-        self.pull_reviewer_requests_remove_response.clone()
+        self.pull_reviewer_requests_remove_response.response()
     }
 
     async fn pull_reviews_list(
@@ -178,7 +180,7 @@ impl IAPIAdapter for DummyAPIAdapter {
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<GhReviewApi>> {
-        self.pull_reviews_list_response.clone()
+        self.pull_reviews_list_response.response()
     }
 
     async fn commit_statuses_update(
@@ -190,10 +192,18 @@ impl IAPIAdapter for DummyAPIAdapter {
         title: &str,
         body: &str,
     ) -> Result<()> {
-        self.commit_status_update_response.clone()
+        self.commit_status_update_response.response()
     }
 
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
-        self.gif_search_response.clone()
+        self.gif_search_response.response()
+    }
+
+    async fn installations_create_token(
+        &self,
+        auth_token: &str,
+        installation_id: u64,
+    ) -> Result<String> {
+        self.installations_create_token_response.response()
     }
 }

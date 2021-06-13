@@ -30,16 +30,8 @@ pub async fn random_gif_from_query(
     ))
 }
 
-fn random_gif_from_response(mut response: GifResponse) -> Option<String> {
-    if response.results.is_empty() {
-        None
-    } else {
-        let mut url = String::new();
-
-        // Shuffle responses
-        let mut rng = thread_rng();
-        response.results.shuffle(&mut rng);
-
+fn get_first_matching_gif(response: &GifResponse) -> Option<String> {
+    if !response.results.is_empty() {
         // Get first media found
         for result in &response.results {
             for media in &result.media {
@@ -47,15 +39,62 @@ fn random_gif_from_response(mut response: GifResponse) -> Option<String> {
                     if media.contains_key(key) {
                         if let Some(size) = media[key].size {
                             if size < MAX_GIF_SIZE_BYTES {
-                                url = media[key].url.clone();
-                                break;
+                                return Some(media[key].url.clone());
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        Some(url)
+    None
+}
+
+fn random_gif_from_response(mut response: GifResponse) -> Option<String> {
+    response.results.shuffle(&mut thread_rng());
+    get_first_matching_gif(&response)
+}
+
+#[cfg(test)]
+mod tests {
+    use maplit::hashmap;
+
+    use super::*;
+    use crate::adapter::{GifObject, MediaObject};
+
+    #[test]
+    fn test_get_first_matching_gif() {
+        let response = GifResponse {
+            results: vec![GifObject {
+                media: vec![hashmap! {
+                    GifFormat::Mp4 => MediaObject {
+                        url: "http://local.test".into(),
+                        size: None
+                    },
+                    GifFormat::NanoGif => MediaObject {
+                        url: "http://aaa".into(),
+                        size: Some(12)
+                    }
+                }],
+            }],
+        };
+        assert_eq!(get_first_matching_gif(&response), Some("http://aaa".into()));
+
+        let response = GifResponse {
+            results: vec![GifObject {
+                media: vec![hashmap! {
+                    GifFormat::Mp4 => MediaObject {
+                        url: "http://local.test".into(),
+                        size: None
+                    },
+                    GifFormat::Gif => MediaObject {
+                        url: "http://aaa".into(),
+                        size: Some(MAX_GIF_SIZE_BYTES)
+                    }
+                }],
+            }],
+        };
+        assert_eq!(get_first_matching_gif(&response), None);
     }
 }

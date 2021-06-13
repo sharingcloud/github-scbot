@@ -107,7 +107,7 @@ pub struct GifResponse {
 
 /// GitHub API Adapter interface
 #[async_trait]
-pub trait IAPIAdapter: Clone {
+pub trait IAPIAdapter {
     /// List labels from a target issue.
     async fn issue_labels_list(
         &self,
@@ -210,4 +210,10 @@ pub trait IAPIAdapter: Clone {
     ) -> Result<()>;
     /// Search a GIF.
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse>;
+    /// Create installation token.
+    async fn installations_create_token(
+        &self,
+        auth_token: &str,
+        installation_id: u64,
+    ) -> Result<String>;
 }

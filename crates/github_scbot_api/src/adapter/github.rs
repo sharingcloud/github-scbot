@@ -15,7 +15,7 @@ use tracing::error;
 
 use crate::{
     adapter::{GhReviewApi, GifResponse, IAPIAdapter},
-    utils::get_client_builder,
+    auth::{get_client_builder, get_uninitialized_client},
     ApiError, Result,
 };
 
@@ -31,8 +31,12 @@ pub struct GithubAPIAdapter {
 impl GithubAPIAdapter {
     /// Creates new GitHub API adapter.
     pub async fn new(config: &Config) -> Result<Self> {
+        let adapter = Self {
+            client: get_uninitialized_client()?,
+        };
+
         Ok(Self {
-            client: get_client_builder(config)
+            client: get_client_builder(config, &adapter)
                 .await?
                 .add_preview("squirrel-girl")
                 .build()?,
@@ -375,5 +379,45 @@ impl IAPIAdapter for GithubAPIAdapter {
             .json()
             .await
             .map_err(ApiError::from)
+    }
+
+    async fn installations_create_token(
+        &self,
+        auth_token: &str,
+        installation_id: u64,
+    ) -> Result<String> {
+        #[derive(Debug, Deserialize)]
+        struct InstallationTokenResponse {
+            token: String,
+            expires_at: String,
+        }
+
+        let client = Octocrab::builder()
+            .personal_token(auth_token.into())
+            .build()?;
+
+        let response = client
+            ._post(
+                client.absolute_url(&format!(
+                    "/app/installations/{}/access_tokens",
+                    installation_id
+                ))?,
+                None::<&()>,
+            )
+            .await?;
+
+        let status = response.status();
+        if status == 201 {
+            let inst_resp: InstallationTokenResponse = response
+                .json()
+                .await
+                .map_err(|e| ApiError::GitHubError(format!("Bad response: {}", e)))?;
+            Ok(inst_resp.token)
+        } else {
+            Err(ApiError::GitHubError(format!(
+                "Bad status code: {}",
+                status
+            )))
+        }
     }
 }

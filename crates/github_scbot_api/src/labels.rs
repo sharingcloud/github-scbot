@@ -47,3 +47,53 @@ pub async fn set_step_label(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_types::labels::StepLabel;
+
+    use super::{add_step_in_existing_labels, set_step_label};
+    use crate::{adapter::DummyAPIAdapter, Result};
+
+    #[test]
+    fn test_add_step_in_existing_labels() {
+        // A step label remove existing step labels.
+        assert_eq!(
+            add_step_in_existing_labels(
+                &[
+                    "label1".into(),
+                    "label2".into(),
+                    StepLabel::AwaitingMerge.to_str().into()
+                ],
+                Some(StepLabel::AwaitingQa)
+            ),
+            vec![
+                "label1".to_string(),
+                "label2".to_string(),
+                StepLabel::AwaitingQa.to_str().into()
+            ]
+        );
+
+        // No step label remove existing step labels.
+        assert_eq!(
+            add_step_in_existing_labels(
+                &[
+                    "label1".into(),
+                    "label2".into(),
+                    StepLabel::AwaitingMerge.to_str().into()
+                ],
+                None
+            ),
+            vec!["label1".to_string(), "label2".to_string()]
+        )
+    }
+
+    #[actix_rt::test]
+    async fn test_set_step_label() -> Result<()> {
+        let adapter = DummyAPIAdapter::new();
+
+        set_step_label(&adapter, "owner", "name", 1, None).await?;
+
+        Ok(())
+    }
+}
