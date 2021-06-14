@@ -15,7 +15,7 @@ use tracing::error;
 
 use crate::{
     adapter::{GhReviewApi, GifResponse, IAPIAdapter},
-    auth::{get_client_builder, get_uninitialized_client},
+    auth::get_client_builder,
     ApiError, Result,
 };
 
@@ -25,22 +25,21 @@ const GIF_API_URL: &str = "https://g.tenor.com/v1";
 /// GitHub API adapter implementation.
 #[derive(Clone)]
 pub struct GithubAPIAdapter {
-    client: Octocrab,
+    config: Config,
 }
 
 impl GithubAPIAdapter {
     /// Creates new GitHub API adapter.
-    pub async fn new(config: &Config) -> Result<Self> {
-        let adapter = Self {
-            client: get_uninitialized_client()?,
-        };
+    pub fn new(config: Config) -> Self {
+        Self { config }
+    }
 
-        Ok(Self {
-            client: get_client_builder(config, &adapter)
-                .await?
-                .add_preview("squirrel-girl")
-                .build()?,
-        })
+    async fn get_client(&self) -> Result<Octocrab> {
+        get_client_builder(&self.config, self)
+            .await?
+            .add_preview("squirrel-girl")
+            .build()
+            .map_err(ApiError::from)
     }
 }
 
@@ -53,7 +52,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
     ) -> Result<Vec<String>> {
         Ok(self
-            .client
+            .get_client()
+            .await?
             .issues(owner, name)
             .list_labels_for_issue(issue_number)
             .send()
@@ -71,7 +71,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         labels: &[String],
     ) -> Result<()> {
-        self.client
+        self.get_client()
+            .await?
             .issues(owner, name)
             .replace_all_labels(issue_number, labels)
             .await
@@ -91,7 +92,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         }
 
         let output: PermissionResponse = self
-            .client
+            .get_client()
+            .await?
             .get(
                 format!(
                     "/repos/{owner}/{repo}/collaborators/{username}/permission",
@@ -117,10 +119,10 @@ impl IAPIAdapter for GithubAPIAdapter {
             check_suites: Vec<GhCheckSuite>,
         }
 
-        let response: Response = self
-            .client
+        let client = self.get_client().await?;
+        let response: Response = client
             ._get(
-                self.client.absolute_url(format!(
+                client.absolute_url(format!(
                     "/repos/{owner}/{name}/commits/{git_ref}/check-suites",
                     owner = owner,
                     name = name,
@@ -143,7 +145,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         body: &str,
     ) -> Result<u64> {
         Ok(self
-            .client
+            .get_client()
+            .await?
             .issues(owner, name)
             .create_comment(issue_number, body)
             .await?
@@ -158,7 +161,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         body: &str,
     ) -> Result<u64> {
         Ok(self
-            .client
+            .get_client()
+            .await?
             .issues(owner, name)
             .update_comment(comment_id, body)
             .await?
@@ -166,7 +170,8 @@ impl IAPIAdapter for GithubAPIAdapter {
     }
 
     async fn comments_delete(&self, owner: &str, name: &str, comment_id: u64) -> Result<()> {
-        self.client
+        self.get_client()
+            .await?
             .issues(owner, name)
             .delete_comment(comment_id)
             .await?;
@@ -185,10 +190,10 @@ impl IAPIAdapter for GithubAPIAdapter {
             "content": reaction_type.to_str()
         });
 
-        let data = self
-            .client
+        let client = self.get_client().await?;
+        let data = client
             ._post(
-                self.client.absolute_url(format!(
+                client.absolute_url(format!(
                     "/repos/{}/{}/issues/comments/{}/reactions",
                     owner, name, comment_id
                 ))?,
@@ -208,7 +213,8 @@ impl IAPIAdapter for GithubAPIAdapter {
 
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
         let pull: GhPullRequest = self
-            .client
+            .get_client()
+            .await?
             .get(
                 format!(
                     "/repos/{owner}/{name}/pulls/{pr_number}",
@@ -238,10 +244,11 @@ impl IAPIAdapter for GithubAPIAdapter {
             "merge_method": merge_strategy.to_string()
         });
 
-        let response = self
-            .client
+        let client = self.get_client().await?;
+
+        let response = client
             ._put(
-                self.client.absolute_url(format!(
+                client.absolute_url(format!(
                     "/repos/{}/{}/pulls/{}/merge",
                     owner, name, issue_number
                 ))?,
@@ -267,10 +274,11 @@ impl IAPIAdapter for GithubAPIAdapter {
         reviewers: &[String],
     ) -> Result<()> {
         let body = serde_json::json!({ "reviewers": reviewers });
+        let client = self.get_client().await?;
 
-        self.client
+        client
             ._post(
-                self.client.absolute_url(format!(
+                client.absolute_url(format!(
                     "/repos/{}/{}/pulls/{}/requested_reviewers",
                     owner, name, issue_number
                 ))?,
@@ -289,18 +297,17 @@ impl IAPIAdapter for GithubAPIAdapter {
         reviewers: &[String],
     ) -> Result<()> {
         let body = serde_json::json!({ "reviewers": reviewers });
-
-        let url = self.client.absolute_url(format!(
+        let client = self.get_client().await?;
+        let url = client.absolute_url(format!(
             "/repos/{}/{}/pulls/{}/requested_reviewers",
             owner, name, issue_number
         ))?;
-        let builder = self
-            .client
+        let builder = client
             .request_builder(&url.into_string(), http::Method::DELETE)
             .json(&body)
             .header(http::header::ACCEPT, octocrab::format_media_type("json"));
 
-        let response = self.client.execute(builder).await?;
+        let response = client.execute(builder).await?;
         if response.status() != 200 {
             error!(
                 reviewers = ?reviewers,
@@ -320,7 +327,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
     ) -> Result<Vec<GhReviewApi>> {
         let data: Vec<GhReviewApi> = self
-            .client
+            .get_client()
+            .await?
             .get(
                 format!(
                     "/repos/{owner}/{name}/pulls/{pr_number}/reviews",
@@ -350,10 +358,11 @@ impl IAPIAdapter for GithubAPIAdapter {
             "context": title
         });
 
-        self.client
+        let client = self.get_client().await?;
+
+        client
             ._post(
-                self.client
-                    .absolute_url(format!("/repos/{}/{}/statuses/{}", owner, name, git_ref))?,
+                client.absolute_url(format!("/repos/{}/{}/statuses/{}", owner, name, git_ref))?,
                 Some(&body),
             )
             .await?;

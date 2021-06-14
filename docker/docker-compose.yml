@@ -2,10 +2,11 @@ version: "3"
 
 services:
   server:
-    image: github-scbot:0.10.0
+    image: github-scbot:0.10.1
     env_file: ../.env
     environment:
       DATABASE_URL: postgresql://user:pass@postgres:5432/bot
+      BOT_REDIS_ADDRESS: redis:6379
       BOT_SERVER_BIND_IP: 0.0.0.0
       RUST_LOG: info,github_scbot=debug
       USE_JSON: 1

@@ -400,7 +400,7 @@ async fn parse_args(
                 repository_path,
                 number,
             } => {
-                let api_adapter = GithubAPIAdapter::new(&config).await?;
+                let api_adapter = GithubAPIAdapter::new(config.clone());
                 let redis_adapter = RedisAdapter::new(&config.redis_address);
 
                 commands::pulls::sync_pull_request(
