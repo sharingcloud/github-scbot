@@ -60,6 +60,20 @@ impl From<HistoryWebhookModel> for HistoryWebhookCreation {
     }
 }
 
+impl From<HistoryWebhookCreation> for HistoryWebhookModel {
+    fn from(creation: HistoryWebhookCreation) -> Self {
+        Self {
+            id: 0,
+            repository_id: creation.repository_id,
+            pull_request_id: creation.pull_request_id,
+            username: creation.username,
+            received_at: creation.received_at,
+            event_key: creation.event_key,
+            payload: creation.payload,
+        }
+    }
+}
+
 impl HistoryWebhookModel {
     /// Create builder.
     pub fn builder<'a>(

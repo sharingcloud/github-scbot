@@ -64,7 +64,7 @@ impl<'a> MergeRuleBuilder<'a> {
             .await
         {
             Ok(entry) => entry,
-            Err(_) => db_adapter.create((&self.build()).into()).await?,
+            Err(_) => db_adapter.create(self.build().into()).await?,
         };
 
         handle.base_branch = self.base_branch.name();

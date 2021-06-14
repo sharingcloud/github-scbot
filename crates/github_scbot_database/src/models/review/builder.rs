@@ -99,7 +99,7 @@ impl<'a> ReviewModelBuilder<'a> {
             .await
         {
             Ok(entry) => entry,
-            Err(_) => db_adapter.create((&self.build()).into()).await?,
+            Err(_) => db_adapter.create(self.build().into()).await?,
         };
 
         handle.state = match self.state {

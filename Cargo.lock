@@ -1310,6 +1310,7 @@ dependencies = [
  "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-types",
+ "github-scbot-utils",
  "pretty_assertions 0.6.1",
  "r2d2",
  "serde",
@@ -1331,6 +1332,7 @@ dependencies = [
  "github-scbot-database",
  "github-scbot-redis",
  "github-scbot-types",
+ "maplit",
  "pretty_assertions 0.7.2",
  "regex",
  "smart-default",
@@ -1346,6 +1348,7 @@ dependencies = [
  "actix-redis",
  "actix-rt",
  "async-trait",
+ "github-scbot-utils",
  "redis-async",
  "thiserror",
 ]

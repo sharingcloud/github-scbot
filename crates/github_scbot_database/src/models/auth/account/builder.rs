@@ -104,7 +104,9 @@ mod tests {
             }
         );
 
-        db_adapter.get_from_username_response = Ok(new_account);
+        db_adapter
+            .get_from_username_response
+            .set_response(Ok(new_account));
         let updated_account = AccountModelBuilder::default("new")
             .create_or_update(&db_adapter)
             .await?;

@@ -287,3 +287,77 @@ impl Command {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_u32() {
+        assert!(matches!(Command::parse_u32(&["123"]), Ok(123)));
+        assert!(matches!(
+            Command::parse_u32(&["123", "456"]),
+            Err(CommandError::ArgumentParsingError)
+        ));
+        assert!(matches!(
+            Command::parse_u32(&["toto"]),
+            Err(CommandError::ArgumentParsingError)
+        ));
+    }
+
+    #[test]
+    fn test_parse_merge_strategy() {
+        assert!(matches!(
+            Command::parse_merge_strategy(&["merge"]),
+            Ok(GhMergeStrategy::Merge)
+        ));
+        assert!(matches!(
+            Command::parse_merge_strategy(&["what"]),
+            Err(CommandError::ArgumentParsingError)
+        ));
+        assert!(matches!(
+            Command::parse_merge_strategy(&[]),
+            Err(CommandError::ArgumentParsingError)
+        ));
+    }
+
+    #[test]
+    fn test_parse_message() {
+        assert_eq!(
+            Command::parse_message(&["hello", "world"]),
+            Some("hello world".into())
+        );
+        assert_eq!(Command::parse_message(&[]), None);
+    }
+
+    #[test]
+    fn test_parse_text() {
+        assert_eq!(
+            Command::parse_text(&["hello", "world"]),
+            "hello world".to_string()
+        );
+        assert_eq!(Command::parse_text(&[]), "".to_string());
+    }
+
+    #[test]
+    fn test_parse_reviewers() {
+        assert_eq!(
+            Command::parse_reviewers(&["@one", "@two", "@three", "@@four", "5"]).unwrap(),
+            vec![
+                "one".to_string(),
+                "two".to_string(),
+                "three".to_string(),
+                "@four".to_string()
+            ]
+        );
+
+        assert!(matches!(
+            Command::parse_reviewers(&["toto"]),
+            Err(CommandError::IncompleteCommand)
+        ));
+        assert!(matches!(
+            Command::parse_reviewers(&[]),
+            Err(CommandError::IncompleteCommand)
+        ));
+    }
+}

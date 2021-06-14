@@ -221,10 +221,12 @@ mod tests {
     #[actix_rt::test]
     async fn test_create_external_token() -> Result<()> {
         let mut adapter = arrange();
-        adapter.external_account_adapter.get_from_username_response =
-            Ok(ExternalAccountModel::builder("test")
+        adapter
+            .external_account_adapter
+            .get_from_username_response
+            .set_response(Ok(ExternalAccountModel::builder("test")
                 .generate_keys()
-                .build());
+                .build()));
 
         create_external_token(&adapter, "test").await
     }

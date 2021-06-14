@@ -96,6 +96,30 @@ pub struct PullRequestCreation {
     pub closed: bool,
 }
 
+impl From<PullRequestCreation> for PullRequestModel {
+    fn from(creation: PullRequestCreation) -> Self {
+        Self {
+            id: 0,
+            repository_id: creation.repository_id,
+            number: creation.number,
+            creator: creation.creator,
+            name: creation.name,
+            base_branch: creation.base_branch,
+            head_branch: creation.head_branch,
+            step: creation.step,
+            check_status: creation.check_status,
+            qa_status: creation.qa_status,
+            needed_reviewers_count: creation.needed_reviewers_count,
+            status_comment_id: creation.status_comment_id,
+            automerge: creation.automerge,
+            wip: creation.wip,
+            locked: creation.locked,
+            merged: creation.merged,
+            closed: creation.closed,
+        }
+    }
+}
+
 impl PullRequestModel {
     /// Create builder.
     pub fn builder<'a>(

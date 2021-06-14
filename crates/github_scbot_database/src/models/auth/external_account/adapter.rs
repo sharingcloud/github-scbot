@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use super::ExternalAccountModel;
@@ -85,28 +86,27 @@ impl<'a> IExternalAccountDbAdapter for ExternalAccountDbAdapter<'a> {
 }
 
 /// Dummy external account DB adapter.
-#[derive(Clone)]
 pub struct DummyExternalAccountDbAdapter {
     /// Create response.
-    pub create_response: Result<ExternalAccountModel>,
+    pub create_response: Mock<Option<Result<ExternalAccountModel>>>,
     /// Get from username response.
-    pub get_from_username_response: Result<ExternalAccountModel>,
+    pub get_from_username_response: Mock<Result<ExternalAccountModel>>,
     /// List response.
-    pub list_response: Result<Vec<ExternalAccountModel>>,
+    pub list_response: Mock<Result<Vec<ExternalAccountModel>>>,
     /// Remove response.
-    pub remove_response: Result<()>,
+    pub remove_response: Mock<Result<()>>,
     /// Save response.
-    pub save_response: Result<()>,
+    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyExternalAccountDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Ok(ExternalAccountModel::default()),
-            get_from_username_response: Ok(ExternalAccountModel::default()),
-            list_response: Ok(Vec::new()),
-            remove_response: Ok(()),
-            save_response: Ok(()),
+            create_response: Mock::new(None),
+            get_from_username_response: Mock::new(Ok(ExternalAccountModel::default())),
+            list_response: Mock::new(Ok(Vec::new())),
+            remove_response: Mock::new(Ok(())),
+            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -122,22 +122,22 @@ impl DummyExternalAccountDbAdapter {
 #[allow(unused_variables)]
 impl IExternalAccountDbAdapter for DummyExternalAccountDbAdapter {
     async fn create(&self, entry: ExternalAccountModel) -> Result<ExternalAccountModel> {
-        self.create_response.clone()
+        self.create_response.response().map_or(Ok(entry), |r| r)
     }
 
     async fn get_from_username(&self, username: &str) -> Result<ExternalAccountModel> {
-        self.get_from_username_response.clone()
+        self.get_from_username_response.response()
     }
 
     async fn list(&self) -> Result<Vec<ExternalAccountModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn remove(&self, entry: ExternalAccountModel) -> Result<()> {
-        self.remove_response.clone()
+        self.remove_response.response()
     }
 
     async fn save(&self, entry: &mut ExternalAccountModel) -> Result<()> {
-        self.save_response.clone()
+        self.save_response.response()
     }
 }

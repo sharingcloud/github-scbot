@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{MergeRuleCreation, MergeRuleModel, RuleBranch};
@@ -113,28 +114,28 @@ impl<'a> IMergeRuleDbAdapter for MergeRuleDbAdapter<'a> {
 /// Dummy merge rule DB adapter.
 pub struct DummyMergeRuleDbAdapter {
     /// Create response.
-    pub create_response: Result<MergeRuleModel>,
+    pub create_response: Mock<Option<Result<MergeRuleModel>>>,
     /// Get from branches response.
-    pub get_from_branches_response: Result<MergeRuleModel>,
+    pub get_from_branches_response: Mock<Result<MergeRuleModel>>,
     /// List from repository ID response.
-    pub list_from_repository_id_response: Result<Vec<MergeRuleModel>>,
+    pub list_from_repository_id_response: Mock<Result<Vec<MergeRuleModel>>>,
     /// List response.
-    pub list_response: Result<Vec<MergeRuleModel>>,
+    pub list_response: Mock<Result<Vec<MergeRuleModel>>>,
     /// Remove response.
-    pub remove_response: Result<()>,
+    pub remove_response: Mock<Result<()>>,
     /// Save response.
-    pub save_response: Result<()>,
+    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyMergeRuleDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Ok(MergeRuleModel::default()),
-            get_from_branches_response: Ok(MergeRuleModel::default()),
-            list_from_repository_id_response: Ok(Vec::new()),
-            list_response: Ok(Vec::new()),
-            remove_response: Ok(()),
-            save_response: Ok(()),
+            create_response: Mock::new(None),
+            get_from_branches_response: Mock::new(Ok(MergeRuleModel::default())),
+            list_from_repository_id_response: Mock::new(Ok(Vec::new())),
+            list_response: Mock::new(Ok(Vec::new())),
+            remove_response: Mock::new(Ok(())),
+            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -150,7 +151,9 @@ impl DummyMergeRuleDbAdapter {
 #[allow(unused_variables)]
 impl IMergeRuleDbAdapter for DummyMergeRuleDbAdapter {
     async fn create(&self, entry: MergeRuleCreation) -> Result<MergeRuleModel> {
-        self.create_response.clone()
+        self.create_response
+            .response()
+            .map_or_else(|| Ok(entry.into()), |r| r)
     }
 
     async fn get_from_branches(
@@ -159,22 +162,22 @@ impl IMergeRuleDbAdapter for DummyMergeRuleDbAdapter {
         base_branch: &RuleBranch,
         head_branch: &RuleBranch,
     ) -> Result<MergeRuleModel> {
-        self.get_from_branches_response.clone()
+        self.get_from_branches_response.response()
     }
 
     async fn list_from_repository_id(&self, repository_id: i32) -> Result<Vec<MergeRuleModel>> {
-        self.list_from_repository_id_response.clone()
+        self.list_from_repository_id_response.response()
     }
 
     async fn list(&self) -> Result<Vec<MergeRuleModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn remove(&self, entry: MergeRuleModel) -> Result<()> {
-        self.remove_response.clone()
+        self.remove_response.response()
     }
 
     async fn save(&self, entry: &mut MergeRuleModel) -> Result<()> {
-        self.save_response.clone()
+        self.save_response.response()
     }
 }

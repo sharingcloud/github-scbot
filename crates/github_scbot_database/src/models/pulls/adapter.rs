@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{PullRequestCreation, PullRequestModel};
@@ -186,43 +187,44 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
 /// Dummy pull request DB adapter.
 pub struct DummyPullRequestDbAdapter {
     /// Create response.
-    pub create_response: Result<PullRequestModel>,
+    pub create_response: Mock<Option<Result<PullRequestModel>>>,
     /// Fetch status comment ID response.
-    pub fetch_status_comment_id_response: Result<i32>,
+    pub fetch_status_comment_id_response: Mock<Result<i32>>,
     /// List response.
-    pub list_response: Result<Vec<PullRequestModel>>,
+    pub list_response: Mock<Result<Vec<PullRequestModel>>>,
     /// List from repository path response.
-    pub list_from_repository_path_response: Result<Vec<PullRequestModel>>,
+    pub list_from_repository_path_response: Mock<Result<Vec<PullRequestModel>>>,
     /// Get from repository and number response.
-    pub get_from_repository_and_number_response: Result<PullRequestModel>,
+    pub get_from_repository_and_number_response: Mock<Result<PullRequestModel>>,
     /// Get from repository path and number response.
-    pub get_from_repository_path_and_number_response: Result<(PullRequestModel, RepositoryModel)>,
+    pub get_from_repository_path_and_number_response:
+        Mock<Result<(PullRequestModel, RepositoryModel)>>,
     /// List closed pulls from repository response.
-    pub list_closed_pulls_from_repository_response: Result<Vec<PullRequestModel>>,
+    pub list_closed_pulls_from_repository_response: Mock<Result<Vec<PullRequestModel>>>,
     /// Remove response.
-    pub remove_response: Result<()>,
+    pub remove_response: Mock<Result<()>>,
     /// Remove closed pulls from repository response.
-    pub remove_closed_pulls_from_repository_response: Result<()>,
+    pub remove_closed_pulls_from_repository_response: Mock<Result<()>>,
     /// Save response.
-    pub save_response: Result<()>,
+    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyPullRequestDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Ok(PullRequestModel::default()),
-            fetch_status_comment_id_response: Ok(0),
-            list_response: Ok(Vec::new()),
-            list_from_repository_path_response: Ok(Vec::new()),
-            get_from_repository_and_number_response: Ok(PullRequestModel::default()),
-            get_from_repository_path_and_number_response: Ok((
+            create_response: Mock::new(None),
+            fetch_status_comment_id_response: Mock::new(Ok(0)),
+            list_response: Mock::new(Ok(Vec::new())),
+            list_from_repository_path_response: Mock::new(Ok(Vec::new())),
+            get_from_repository_and_number_response: Mock::new(Ok(PullRequestModel::default())),
+            get_from_repository_path_and_number_response: Mock::new(Ok((
                 PullRequestModel::default(),
                 RepositoryModel::default(),
-            )),
-            list_closed_pulls_from_repository_response: Ok(Vec::new()),
-            remove_response: Ok(()),
-            remove_closed_pulls_from_repository_response: Ok(()),
-            save_response: Ok(()),
+            ))),
+            list_closed_pulls_from_repository_response: Mock::new(Ok(Vec::new())),
+            remove_response: Mock::new(Ok(())),
+            remove_closed_pulls_from_repository_response: Mock::new(Ok(())),
+            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -238,19 +240,21 @@ impl DummyPullRequestDbAdapter {
 #[allow(unused_variables)]
 impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
     async fn create(&self, entry: PullRequestCreation) -> Result<PullRequestModel> {
-        self.create_response.clone()
+        self.create_response
+            .response()
+            .map_or_else(|| Ok(entry.into()), |r| r)
     }
 
     async fn fetch_status_comment_id(&self, pull_request_id: i32) -> Result<i32> {
-        self.fetch_status_comment_id_response.clone()
+        self.fetch_status_comment_id_response.response()
     }
 
     async fn list(&self) -> Result<Vec<PullRequestModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn list_from_repository_path(&self, path: &str) -> Result<Vec<PullRequestModel>> {
-        self.list_from_repository_path_response.clone()
+        self.list_from_repository_path_response.response()
     }
 
     async fn get_from_repository_and_number(
@@ -258,7 +262,7 @@ impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
         repository: &RepositoryModel,
         number: u64,
     ) -> Result<PullRequestModel> {
-        self.get_from_repository_and_number_response.clone()
+        self.get_from_repository_and_number_response.response()
     }
 
     async fn get_from_repository_path_and_number(
@@ -266,25 +270,25 @@ impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
         path: &str,
         number: u64,
     ) -> Result<(PullRequestModel, RepositoryModel)> {
-        self.get_from_repository_path_and_number_response.clone()
+        self.get_from_repository_path_and_number_response.response()
     }
 
     async fn list_closed_pulls_from_repository(
         &self,
         repository_id: i32,
     ) -> Result<Vec<PullRequestModel>> {
-        self.list_closed_pulls_from_repository_response.clone()
+        self.list_closed_pulls_from_repository_response.response()
     }
 
     async fn remove(&self, entry: &PullRequestModel) -> Result<()> {
-        self.remove_response.clone()
+        self.remove_response.response()
     }
 
     async fn remove_closed_pulls_from_repository(&self, repository_id: i32) -> Result<()> {
-        self.remove_closed_pulls_from_repository_response.clone()
+        self.remove_closed_pulls_from_repository_response.response()
     }
 
     async fn save(&self, entry: &mut PullRequestModel) -> Result<()> {
-        self.save_response.clone()
+        self.save_response.response()
     }
 }

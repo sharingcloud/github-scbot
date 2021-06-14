@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use crate::{
@@ -132,34 +133,33 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
 }
 
 /// Dummy external account right DB adapter.
-#[derive(Clone)]
 pub struct DummyExternalAccountRightDbAdapter {
     /// List response.
-    pub list_response: Result<Vec<ExternalAccountRightModel>>,
+    pub list_response: Mock<Result<Vec<ExternalAccountRightModel>>>,
     /// Get repository response.
-    pub get_repository_response: Result<RepositoryModel>,
+    pub get_repository_response: Mock<Result<RepositoryModel>>,
     /// List rights response.
-    pub list_rights_response: Result<Vec<ExternalAccountRightModel>>,
+    pub list_rights_response: Mock<Result<Vec<ExternalAccountRightModel>>>,
     /// Get right response.
-    pub get_right_response: Result<ExternalAccountRightModel>,
+    pub get_right_response: Mock<Result<ExternalAccountRightModel>>,
     /// Add right response.
-    pub add_right_response: Result<ExternalAccountRightModel>,
+    pub add_right_response: Mock<Result<ExternalAccountRightModel>>,
     /// Remove right response.
-    pub remove_right_response: Result<()>,
+    pub remove_right_response: Mock<Result<()>>,
     /// Remove rights response.
-    pub remove_rights_response: Result<()>,
+    pub remove_rights_response: Mock<Result<()>>,
 }
 
 impl Default for DummyExternalAccountRightDbAdapter {
     fn default() -> Self {
         Self {
-            list_response: Ok(Vec::new()),
-            get_repository_response: Ok(RepositoryModel::default()),
-            list_rights_response: Ok(Vec::new()),
-            get_right_response: Ok(ExternalAccountRightModel::default()),
-            add_right_response: Ok(ExternalAccountRightModel::default()),
-            remove_right_response: Ok(()),
-            remove_rights_response: Ok(()),
+            list_response: Mock::new(Ok(Vec::new())),
+            get_repository_response: Mock::new(Ok(RepositoryModel::default())),
+            list_rights_response: Mock::new(Ok(Vec::new())),
+            get_right_response: Mock::new(Ok(ExternalAccountRightModel::default())),
+            add_right_response: Mock::new(Ok(ExternalAccountRightModel::default())),
+            remove_right_response: Mock::new(Ok(())),
+            remove_rights_response: Mock::new(Ok(())),
         }
     }
 }
@@ -175,11 +175,11 @@ impl DummyExternalAccountRightDbAdapter {
 #[allow(unused_variables)]
 impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
     async fn list(&self) -> Result<Vec<ExternalAccountRightModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn list_rights(&self, username: &str) -> Result<Vec<ExternalAccountRightModel>> {
-        self.list_rights_response.clone()
+        self.list_rights_response.response()
     }
 
     async fn get_right(
@@ -187,7 +187,7 @@ impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
         username: &str,
         repository: &RepositoryModel,
     ) -> Result<ExternalAccountRightModel> {
-        self.get_right_response.clone()
+        self.get_right_response.response()
     }
 
     async fn add_right(
@@ -195,14 +195,14 @@ impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
         username: &str,
         repository: &RepositoryModel,
     ) -> Result<ExternalAccountRightModel> {
-        self.add_right_response.clone()
+        self.add_right_response.response()
     }
 
     async fn remove_right(&self, username: &str, repository: &RepositoryModel) -> Result<()> {
-        self.remove_right_response.clone()
+        self.remove_right_response.response()
     }
 
     async fn remove_rights(&self, username: &str) -> Result<()> {
-        self.remove_rights_response.clone()
+        self.remove_rights_response.response()
     }
 }

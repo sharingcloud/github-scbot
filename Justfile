@@ -37,7 +37,7 @@ test-cov:
 	export RUSTFLAGS='-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
 	export RUSTDOCFLAGS='-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
 	cargo test --all-features --no-fail-fast
-	grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
+	grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing --ignore "/*" --ignore "*/tests/*" -o ./target/debug/coverage/
 
 #######
 # Tools

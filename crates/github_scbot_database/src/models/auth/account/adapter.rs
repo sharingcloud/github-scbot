@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use super::AccountModel;
@@ -91,31 +92,32 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
 }
 
 /// Dummy account DB adapter.
-#[derive(Clone)]
 pub struct DummyAccountDbAdapter {
     /// Create response.
-    pub create_response: Option<Result<AccountModel>>,
+    pub create_response: Mock<Option<Result<AccountModel>>>,
     /// Get from username response.
-    pub get_from_username_response: Result<AccountModel>,
+    pub get_from_username_response: Mock<Result<AccountModel>>,
     /// List response.
-    pub list_response: Result<Vec<AccountModel>>,
+    pub list_response: Mock<Result<Vec<AccountModel>>>,
     /// List admin accounts response.
-    pub list_admin_accounts_response: Result<Vec<AccountModel>>,
+    pub list_admin_accounts_response: Mock<Result<Vec<AccountModel>>>,
     /// Remove response.
-    pub remove_response: Result<()>,
+    pub remove_response: Mock<Result<()>>,
     /// Save response.
-    pub save_response: Result<()>,
+    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyAccountDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: None,
-            get_from_username_response: Err(DatabaseError::UnknownAccount("test".into())),
-            list_response: Ok(Vec::new()),
-            list_admin_accounts_response: Ok(Vec::new()),
-            remove_response: Ok(()),
-            save_response: Ok(()),
+            create_response: Mock::new(None),
+            get_from_username_response: Mock::new(Err(DatabaseError::UnknownAccount(
+                "test".into(),
+            ))),
+            list_response: Mock::new(Ok(Vec::new())),
+            list_admin_accounts_response: Mock::new(Ok(Vec::new())),
+            remove_response: Mock::new(Ok(())),
+            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -131,29 +133,27 @@ impl DummyAccountDbAdapter {
 #[allow(unused_variables)]
 impl IAccountDbAdapter for DummyAccountDbAdapter {
     async fn create(&self, entry: AccountModel) -> Result<AccountModel> {
-        self.create_response
-            .as_ref()
-            .map_or(Ok(entry), Clone::clone)
+        self.create_response.response().map_or(Ok(entry), |r| r)
     }
 
     async fn get_from_username(&self, username: &str) -> Result<AccountModel> {
-        self.get_from_username_response.clone()
+        self.get_from_username_response.response()
     }
 
     async fn list(&self) -> Result<Vec<AccountModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn list_admin_accounts(&self) -> Result<Vec<AccountModel>> {
-        self.list_admin_accounts_response.clone()
+        self.list_admin_accounts_response.response()
     }
 
     async fn remove(&self, entry: AccountModel) -> Result<()> {
-        self.remove_response.clone()
+        self.remove_response.response()
     }
 
     async fn save(&self, entry: &mut AccountModel) -> Result<()> {
-        self.save_response.clone()
+        self.save_response.response()
     }
 }
 

@@ -59,6 +59,20 @@ pub struct RepositoryCreation {
     pub manual_interaction: bool,
 }
 
+impl From<RepositoryCreation> for RepositoryModel {
+    fn from(creation: RepositoryCreation) -> Self {
+        Self {
+            id: 0,
+            name: creation.name,
+            owner: creation.owner,
+            default_strategy: creation.default_strategy,
+            default_needed_reviewers_count: creation.default_needed_reviewers_count,
+            pr_title_validation_regex: creation.pr_title_validation_regex,
+            manual_interaction: creation.manual_interaction,
+        }
+    }
+}
+
 impl RepositoryModel {
     /// Create builder.
     pub fn builder<'a>(config: &'a Config, owner: &str, name: &str) -> RepositoryModelBuilder<'a> {

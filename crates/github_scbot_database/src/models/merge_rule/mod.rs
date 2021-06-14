@@ -78,13 +78,25 @@ pub struct MergeRuleCreation {
     pub strategy: String,
 }
 
-impl From<&MergeRuleModel> for MergeRuleCreation {
-    fn from(model: &MergeRuleModel) -> Self {
+impl From<MergeRuleModel> for MergeRuleCreation {
+    fn from(model: MergeRuleModel) -> Self {
         Self {
             repository_id: model.repository_id,
-            base_branch: model.base_branch.clone(),
-            head_branch: model.head_branch.clone(),
-            strategy: model.strategy.clone(),
+            base_branch: model.base_branch,
+            head_branch: model.head_branch,
+            strategy: model.strategy,
+        }
+    }
+}
+
+impl From<MergeRuleCreation> for MergeRuleModel {
+    fn from(creation: MergeRuleCreation) -> Self {
+        Self {
+            id: 0,
+            repository_id: creation.repository_id,
+            base_branch: creation.base_branch,
+            head_branch: creation.head_branch,
+            strategy: creation.strategy,
         }
     }
 }

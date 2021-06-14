@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{HistoryWebhookCreation, HistoryWebhookModel};
@@ -69,25 +70,24 @@ impl<'a> IHistoryWebhookDbAdapter for HistoryWebhookDbAdapter<'a> {
 }
 
 /// Dummy history webhook DB adapter.
-#[derive(Clone)]
 pub struct DummyHistoryWebhookDbAdapter {
     /// Create response.
-    pub create_response: Result<HistoryWebhookModel>,
+    pub create_response: Mock<Option<Result<HistoryWebhookModel>>>,
     /// List response.
-    pub list_response: Result<Vec<HistoryWebhookModel>>,
+    pub list_response: Mock<Result<Vec<HistoryWebhookModel>>>,
     /// List from repository ID response.
-    pub list_from_repository_id_response: Result<Vec<HistoryWebhookModel>>,
+    pub list_from_repository_id_response: Mock<Result<Vec<HistoryWebhookModel>>>,
     /// Remove all response.
-    pub remove_all_response: Result<()>,
+    pub remove_all_response: Mock<Result<()>>,
 }
 
 impl Default for DummyHistoryWebhookDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Ok(HistoryWebhookModel::default()),
-            list_response: Ok(Vec::new()),
-            list_from_repository_id_response: Ok(Vec::new()),
-            remove_all_response: Ok(()),
+            create_response: Mock::new(None),
+            list_response: Mock::new(Ok(Vec::new())),
+            list_from_repository_id_response: Mock::new(Ok(Vec::new())),
+            remove_all_response: Mock::new(Ok(())),
         }
     }
 }
@@ -103,21 +103,23 @@ impl DummyHistoryWebhookDbAdapter {
 #[allow(unused_variables)]
 impl IHistoryWebhookDbAdapter for DummyHistoryWebhookDbAdapter {
     async fn create(&self, entry: HistoryWebhookCreation) -> Result<HistoryWebhookModel> {
-        self.create_response.clone()
+        self.create_response
+            .response()
+            .map_or_else(|| Ok(entry.into()), |r| r)
     }
 
     async fn list(&self) -> Result<Vec<HistoryWebhookModel>> {
-        self.list_response.clone()
+        self.list_response.response()
     }
 
     async fn list_from_repository_id(
         &self,
         repository_id: i32,
     ) -> Result<Vec<HistoryWebhookModel>> {
-        self.list_from_repository_id_response.clone()
+        self.list_from_repository_id_response.response()
     }
 
     async fn remove_all(&self) -> Result<()> {
-        self.remove_all_response.clone()
+        self.remove_all_response.response()
     }
 }

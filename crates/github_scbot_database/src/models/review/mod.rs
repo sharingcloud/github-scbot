@@ -50,14 +50,27 @@ pub struct ReviewCreation {
     pub valid: bool,
 }
 
-impl From<&ReviewModel> for ReviewCreation {
-    fn from(model: &ReviewModel) -> Self {
+impl From<ReviewModel> for ReviewCreation {
+    fn from(model: ReviewModel) -> Self {
         Self {
             pull_request_id: model.pull_request_id,
-            username: model.username.clone(),
-            state: model.state.clone(),
+            username: model.username,
+            state: model.state,
             required: model.required,
             valid: model.valid,
+        }
+    }
+}
+
+impl From<ReviewCreation> for ReviewModel {
+    fn from(creation: ReviewCreation) -> Self {
+        Self {
+            id: 0,
+            pull_request_id: creation.pull_request_id,
+            username: creation.username,
+            state: creation.state,
+            required: creation.required,
+            valid: creation.valid,
         }
     }
 }

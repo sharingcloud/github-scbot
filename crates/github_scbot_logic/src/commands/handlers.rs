@@ -382,7 +382,7 @@ pub async fn handle_set_needed_reviewers_command(
 pub async fn handle_admin_disable_command(
     api_adapter: &impl IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
-    repo_model: &mut RepositoryModel,
+    repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
     if repo_model.manual_interaction {
@@ -399,7 +399,7 @@ pub async fn handle_admin_disable_command(
         let comment = "You can not disable the bot on this PR, the repository is not in manual interaction mode.";
         Ok(CommandExecutionResult::builder()
             .denied()
-            .with_status_update(true)
+            .with_status_update(false)
             .with_action(ResultAction::AddReaction(GhReactionType::MinusOne))
             .with_action(ResultAction::PostComment(comment.into()))
             .build())
@@ -466,4 +466,659 @@ pub fn handle_admin_help_command(
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_api::{
+        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
+        ApiError,
+    };
+    use github_scbot_database::{
+        models::{AccountModel, DummyDatabaseAdapter},
+        DatabaseError,
+    };
+    use github_scbot_types::pulls::GhPullRequest;
+    use maplit::hashmap;
+
+    use super::*;
+    use crate::commands::command::CommandHandlingStatus;
+
+    #[actix_rt::test]
+    async fn test_handle_auto_merge_command() -> Result<()> {
+        let adapter = DummyDatabaseAdapter::new();
+        let mut pr_model = PullRequestModel::default();
+        pr_model.automerge = false;
+
+        // Automerge should be enabled
+        let result = handle_auto_merge_command(&adapter, &mut pr_model, "me", true).await?;
+        assert!(result.should_update_status);
+        assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
+        assert!(pr_model.automerge);
+        assert_eq!(adapter.pull_request_adapter.save_response.call_count(), 1);
+
+        // Automerge should be disabled
+        handle_auto_merge_command(&adapter, &mut pr_model, "me", false).await?;
+        assert!(result.should_update_status);
+        assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
+        assert!(!pr_model.automerge);
+        assert_eq!(adapter.pull_request_adapter.save_response.call_count(), 2);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_merge_command() -> Result<()> {
+        let mut api_adapter = DummyAPIAdapter::new();
+        let db_adapter = DummyDatabaseAdapter::new();
+        let repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+
+        // Set WIP to lock the pull request
+        pr_model.wip = true;
+
+        // Merge should fail (wip)
+        let result =
+            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
+                .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::MinusOne),
+                ResultAction::PostComment("Pull request is not ready to merge.".into())
+            ]
+        );
+        assert!(!api_adapter.pulls_merge_response.called());
+
+        // Merge should fail (GitHub error)
+        pr_model.wip = false;
+        api_adapter
+            .pulls_merge_response
+            .set_response(Err(ApiError::GitHubError("Nope.".into())));
+        let result =
+            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
+                .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::MinusOne),
+                ResultAction::PostComment(
+                    "Could not merge this pull request: _GitHub error: Nope._".into()
+                )
+            ]
+        );
+        assert_eq!(api_adapter.pulls_merge_response.call_count(), 1);
+
+        // Merge should now work
+        api_adapter.pulls_merge_response.set_response(Ok(()));
+        let result =
+            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
+                .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::PlusOne),
+                ResultAction::PostComment(
+                    "Pull request successfully merged by me! (strategy: 'merge')".into()
+                )
+            ]
+        );
+        assert_eq!(api_adapter.pulls_merge_response.call_count(), 2);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_is_admin_command() -> Result<()> {
+        let mut db_adapter = DummyDatabaseAdapter::new();
+
+        // Should not be admin
+        let result = handle_is_admin_command(&db_adapter, "me").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![ResultAction::AddReaction(GhReactionType::MinusOne)]
+        );
+
+        // Should now be admin
+        db_adapter
+            .account_adapter
+            .list_admin_accounts_response
+            .set_response(Ok(vec![AccountModel::builder("me").admin(true).build()]));
+        let result = handle_is_admin_command(&db_adapter, "me").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![ResultAction::AddReaction(GhReactionType::PlusOne)]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_admin_sync_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut api_adapter = DummyAPIAdapter::new();
+
+        let repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+        let config = Config::from_env();
+
+        api_adapter
+            .pulls_get_response
+            .set_response(Ok(GhPullRequest {
+                title: "Hello.".into(),
+                ..GhPullRequest::default()
+            }));
+
+        let result = handle_admin_sync_command(
+            &config,
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+        )
+        .await?;
+        assert_eq!(pr_model.name, "Hello.");
+        assert!(result.should_update_status);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_skip_qa_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut pr_model = PullRequestModel::default();
+        pr_model.set_qa_status(QaStatus::Fail);
+
+        // Skip.
+        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, true).await?;
+        assert!(result.should_update_status);
+        assert_eq!(pr_model.get_qa_status(), QaStatus::Skipped);
+
+        // Reset.
+        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, false).await?;
+        assert!(result.should_update_status);
+        assert_eq!(pr_model.get_qa_status(), QaStatus::Waiting);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_qa_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut pr_model = PullRequestModel::default();
+        pr_model.set_qa_status(QaStatus::Fail);
+
+        // Approve.
+        let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(true)).await?;
+        assert!(result.should_update_status);
+        assert_eq!(pr_model.get_qa_status(), QaStatus::Pass);
+
+        // Unapprove.
+        let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(false)).await?;
+        assert!(result.should_update_status);
+        assert_eq!(pr_model.get_qa_status(), QaStatus::Fail);
+
+        // Reset.
+        let result = handle_qa_command(&db_adapter, &mut pr_model, "me", None).await?;
+        assert!(result.should_update_status);
+        assert_eq!(pr_model.get_qa_status(), QaStatus::Waiting);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_handle_ping_command() -> Result<()> {
+        let result = handle_ping_command("me")?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("**me** pong!".into())
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_gif_command() -> Result<()> {
+        let config = Config::from_env();
+        let mut api_adapter = DummyAPIAdapter::new();
+
+        api_adapter
+            .gif_search_response
+            .set_response(Ok(GifResponse {
+                results: vec![GifObject {
+                    media: vec![hashmap!(
+                        GifFormat::Gif => MediaObject {
+                            url: "http://url".into(),
+                            size: Some(123)
+                        }
+                    )],
+                }],
+            }));
+
+        // Valid GIF
+        let result = handle_gif_command(&config, &api_adapter, "what").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "![GIF](http://url)\n[_Via Tenor_](https://tenor.com/)".into()
+                )
+            ]
+        );
+
+        api_adapter
+            .gif_search_response
+            .set_response(Ok(GifResponse { results: vec![] }));
+
+        // No GIFs
+        let result = handle_gif_command(&config, &api_adapter, "what").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("No compatible GIF found for query `what` :cry:".into())
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_assign_required_reviewers_command() -> Result<()> {
+        let api_adapter = DummyAPIAdapter::new();
+        let mut db_adapter = DummyDatabaseAdapter::new();
+        db_adapter
+            .review_adapter
+            .get_from_pull_request_and_username_response
+            .set_response(Err(DatabaseError::UnknownReviewState(
+                "me".into(),
+                "repo".into(),
+                1,
+            )));
+
+        let repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+        let reviewers = Vec::new();
+
+        let result = handle_assign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            reviewers,
+        )
+        .await?;
+        assert_eq!(
+            api_adapter.pull_reviewer_requests_add_response.call_count(),
+            1
+        );
+        assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
+        assert!(result.should_update_status);
+
+        let reviewers = vec!["one".into(), "two".into()];
+        let result = handle_assign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            reviewers,
+        )
+        .await?;
+        assert_eq!(
+            api_adapter.pull_reviewer_requests_add_response.call_count(),
+            2
+        );
+        assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
+        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 2);
+        assert!(result.should_update_status);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_unassign_required_reviewers_command() -> Result<()> {
+        let api_adapter = DummyAPIAdapter::new();
+        let mut db_adapter = DummyDatabaseAdapter::new();
+        db_adapter
+            .review_adapter
+            .get_from_pull_request_and_username_response
+            .set_response(Err(DatabaseError::UnknownReviewState(
+                "me".into(),
+                "repo".into(),
+                1,
+            )));
+
+        let repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+        let reviewers = Vec::new();
+
+        let result = handle_unassign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            reviewers,
+        )
+        .await?;
+        assert_eq!(
+            api_adapter
+                .pull_reviewer_requests_remove_response
+                .call_count(),
+            1
+        );
+        assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
+        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 0);
+        assert!(result.should_update_status);
+
+        let reviewers = vec!["one".into(), "two".into()];
+        let result = handle_unassign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            reviewers,
+        )
+        .await?;
+        assert_eq!(
+            api_adapter
+                .pull_reviewer_requests_remove_response
+                .call_count(),
+            2
+        );
+        assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
+        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 2);
+        assert!(result.should_update_status);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_lock_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut pr_model = PullRequestModel::default();
+        pr_model.locked = false;
+
+        // Lock with no motive
+        let result = handle_lock_command(&db_adapter, &mut pr_model, "me", true, None).await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            db_adapter.pull_request_adapter.save_response.call_count(),
+            1
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("Pull request locked by **me**.".into())
+            ]
+        );
+        assert!(pr_model.locked);
+
+        // Unlock with no motive
+        let result = handle_lock_command(&db_adapter, &mut pr_model, "me", false, None).await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            db_adapter.pull_request_adapter.save_response.call_count(),
+            2
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("Pull request unlocked by **me**.".into())
+            ]
+        );
+        assert!(!pr_model.locked);
+
+        // Lock with motive
+        let result = handle_lock_command(
+            &db_adapter,
+            &mut pr_model,
+            "me",
+            true,
+            Some("because !".into()),
+        )
+        .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            db_adapter.pull_request_adapter.save_response.call_count(),
+            3
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "Pull request locked by **me**.\n**Reason**: because !.".into()
+                )
+            ]
+        );
+        assert!(pr_model.locked);
+
+        // Unlock with motive
+        let result = handle_lock_command(
+            &db_adapter,
+            &mut pr_model,
+            "me",
+            false,
+            Some("because !".into()),
+        )
+        .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            db_adapter.pull_request_adapter.save_response.call_count(),
+            4
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "Pull request unlocked by **me**.\n**Reason**: because !.".into()
+                )
+            ]
+        );
+        assert!(!pr_model.locked);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_set_default_needed_reviewers_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut repo_model = RepositoryModel::default();
+        repo_model.default_needed_reviewers_count = 10;
+
+        let result =
+            handle_set_default_needed_reviewers_command(&db_adapter, &mut repo_model, 0).await?;
+        assert_eq!(repo_model.default_needed_reviewers_count, 0);
+        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "Needed reviewers count set to **0** for this repository.".into()
+                )
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_set_default_merge_strategy_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut repo_model = RepositoryModel::default();
+        repo_model.set_default_merge_strategy(GhMergeStrategy::Merge);
+
+        let result = handle_set_default_merge_strategy_command(
+            &db_adapter,
+            &mut repo_model,
+            GhMergeStrategy::Squash,
+        )
+        .await?;
+        assert_eq!(
+            repo_model.get_default_merge_strategy(),
+            GhMergeStrategy::Squash
+        );
+        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "Merge strategy set to **squash** for this repository.".into()
+                )
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_set_default_pr_title_regex_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut repo_model = RepositoryModel::default();
+        repo_model.pr_title_validation_regex = String::new();
+
+        // Non empty
+        let result = handle_set_default_pr_title_regex_command(
+            &db_adapter,
+            &mut repo_model,
+            r"[A-Z]+".into(),
+        )
+        .await?;
+        assert_eq!(repo_model.pr_title_validation_regex, r"[A-Z]+");
+        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "PR title regex set to **[A-Z]+** for this repository.".into()
+                )
+            ]
+        );
+
+        // Empty
+        let result =
+            handle_set_default_pr_title_regex_command(&db_adapter, &mut repo_model, "".into())
+                .await?;
+        assert_eq!(repo_model.pr_title_validation_regex, "");
+        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 2);
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("PR title regex unset for this repository.".into())
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_set_needed_reviewers_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut pr_model = PullRequestModel::default();
+        pr_model.needed_reviewers_count = 5;
+
+        let result = handle_set_needed_reviewers_command(&db_adapter, &mut pr_model, 0).await?;
+        assert_eq!(pr_model.needed_reviewers_count, 0);
+        assert!(result.should_update_status);
+        assert_eq!(
+            db_adapter.pull_request_adapter.save_response.call_count(),
+            1
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment(
+                    "Needed reviewers count set to **0** for this PR.".into()
+                )
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_admin_disable_command() -> Result<()> {
+        let api_adapter = DummyAPIAdapter::new();
+        let db_adapter = DummyDatabaseAdapter::new();
+        let mut repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+        repo_model.manual_interaction = false;
+
+        let result =
+            handle_admin_disable_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model)
+                .await?;
+        assert!(!result.should_update_status);
+        assert_eq!(api_adapter.pulls_get_response.call_count(), 0);
+        assert_eq!(api_adapter.commit_status_update_response.call_count(), 0);
+        assert_eq!(api_adapter.comments_delete_response.call_count(), 0);
+        assert_eq!(
+            db_adapter.pull_request_adapter.remove_response.call_count(),
+            0
+        );
+        assert_eq!(result.result_actions, vec![
+            ResultAction::AddReaction(GhReactionType::MinusOne),
+            ResultAction::PostComment("You can not disable the bot on this PR, the repository is not in manual interaction mode.".into())
+        ]);
+
+        repo_model.manual_interaction = true;
+        pr_model.set_status_comment_id(0);
+        let result =
+            handle_admin_disable_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model)
+                .await?;
+        assert!(!result.should_update_status);
+        assert_eq!(api_adapter.pulls_get_response.call_count(), 1);
+        assert_eq!(api_adapter.commit_status_update_response.call_count(), 1);
+        assert_eq!(api_adapter.comments_delete_response.call_count(), 0);
+        assert_eq!(
+            db_adapter.pull_request_adapter.remove_response.call_count(),
+            1
+        );
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::Eyes),
+                ResultAction::PostComment("Bot disabled on this PR. Bye!".into())
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_handle_help_command() {
+        let config = Config::from_env();
+        let result = handle_help_command(&config, "me").unwrap();
+        assert!(!result.should_update_status);
+    }
+
+    #[test]
+    fn test_handle_admin_help_command() {
+        let config = Config::from_env();
+        let result = handle_admin_help_command(&config, "me").unwrap();
+        assert!(!result.should_update_status);
+    }
 }
