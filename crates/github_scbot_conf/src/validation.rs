@@ -41,6 +41,11 @@ fn validate_env_vars(config: &Config) -> Result<()> {
         _missing(&mut error, "DATABASE_URL");
     }
 
+    // Check redis configuration
+    if config.redis_address.is_empty() {
+        _missing(&mut error, "BOT_REDIS_ADDRESS");
+    }
+
     // Check API credentials: token or private key
     match validate_api_credentials(config) {
         Err(ApiConfigError::MissingToken) => {
@@ -135,30 +140,30 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
             }};
         }
 
-        test!(0u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
-        test!(0u64, 0u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!(0u64, 1u64, "", Err(ApiConfigError::MissingPrivateKey));
-        test!(0u64, 1u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
-        test!(1234u64, 0u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0_u64, 0_u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0_u64, 0_u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(0_u64, 1_u64, "", Err(ApiConfigError::MissingPrivateKey));
+        test!(0_u64, 1_u64, "toto", Err(ApiConfigError::InvalidPrivateKey));
+        test!(1234_u64, 0_u64, "", Err(ApiConfigError::MissingPrivateKey));
         test!(
-            1234u64,
-            0u64,
+            1234_u64,
+            0_u64,
             "toto",
             Err(ApiConfigError::InvalidPrivateKey)
         );
         test!(
-            0u64,
-            0u64,
+            0_u64,
+            0_u64,
             SAMPLE_RSA_KEY,
             Err(ApiConfigError::MissingAppId)
         );
         test!(
-            1234u64,
-            0u64,
+            1234_u64,
+            0_u64,
             SAMPLE_RSA_KEY,
             Err(ApiConfigError::MissingInstallationId)
         );
-        test!(1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
+        test!(1234_u64, 1_u64, SAMPLE_RSA_KEY, Ok(()));
     }
 
     #[test]
@@ -175,41 +180,41 @@ H3iwEyuGr90vKWEht1Wfvt9C4guBhoLQlSwzgTqNgbHDXiasITmMUwzsgxyASxop
             }};
         }
 
-        test!("", 0u64, 0u64, "", Err(ApiConfigError::MissingToken));
+        test!("", 0_u64, 0_u64, "", Err(ApiConfigError::MissingToken));
         test!(
             "",
-            0u64,
-            0u64,
+            0_u64,
+            0_u64,
             "iamapkey",
             Err(ApiConfigError::InvalidPrivateKey)
         );
         test!(
             "",
-            0u64,
-            0u64,
+            0_u64,
+            0_u64,
             SAMPLE_RSA_KEY,
             Err(ApiConfigError::MissingAppId)
         );
-        test!("", 1234u64, 0u64, "", Err(ApiConfigError::MissingToken));
+        test!("", 1234_u64, 0_u64, "", Err(ApiConfigError::MissingToken));
         test!(
             "",
-            1234u64,
-            0u64,
+            1234_u64,
+            0_u64,
             "iamapkey",
             Err(ApiConfigError::InvalidPrivateKey)
         );
         test!(
             "",
-            1234u64,
-            0u64,
+            1234_u64,
+            0_u64,
             SAMPLE_RSA_KEY,
             Err(ApiConfigError::MissingInstallationId)
         );
-        test!("", 1234u64, 1u64, SAMPLE_RSA_KEY, Ok(()));
-        test!("iamatoken", 0u64, 0u64, "", Ok(()));
-        test!("iamatoken", 0u64, 0u64, "iamapkey", Ok(()));
-        test!("iamatoken", 1234u64, 0u64, "", Ok(()));
-        test!("iamatoken", 1234u64, 0u64, "iamapkey", Ok(()));
-        test!("iamatoken", 1234u64, 0u64, SAMPLE_RSA_KEY, Ok(()));
+        test!("", 1234_u64, 1_u64, SAMPLE_RSA_KEY, Ok(()));
+        test!("iamatoken", 0_u64, 0_u64, "", Ok(()));
+        test!("iamatoken", 0_u64, 0_u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234_u64, 0_u64, "", Ok(()));
+        test!("iamatoken", 1234_u64, 0_u64, "iamapkey", Ok(()));
+        test!("iamatoken", 1234_u64, 0_u64, SAMPLE_RSA_KEY, Ok(()));
     }
 }

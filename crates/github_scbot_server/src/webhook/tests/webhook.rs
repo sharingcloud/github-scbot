@@ -25,12 +25,12 @@ use crate::{
 };
 
 #[test]
-fn test_event_parsing() -> ServerResult<()> {
+fn test_ping_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_ping_event(fixtures::PING_EVENT_DATA)?,
         GhPingEvent {
             zen: "Favor focus over features.".to_string(),
-            hook_id: 12345678,
+            hook_id: 12_345_678,
             repository: Some(GhRepository {
                 name: "test-repo".to_string(),
                 full_name: "Example/test-repo".to_string(),
@@ -44,12 +44,17 @@ fn test_event_parsing() -> ServerResult<()> {
         }
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_check_suite_completed_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_check_suite_event(fixtures::CHECK_SUITE_COMPLETED_DATA)?,
         GhCheckSuiteEvent {
             action: GhCheckSuiteAction::Completed,
             check_suite: GhCheckSuite {
-                id: 12345678,
+                id: 12_345_678,
                 head_branch: "head-branch".to_string(),
                 head_sha: "12345678123456781234567812345678".to_string(),
                 status: GhCheckStatus::Completed,
@@ -95,6 +100,11 @@ fn test_event_parsing() -> ServerResult<()> {
         }
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_issue_comment_created_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_issue_comment_event(fixtures::ISSUE_COMMENT_CREATED_DATA)?,
         GhIssueCommentEvent {
@@ -118,7 +128,7 @@ fn test_event_parsing() -> ServerResult<()> {
                 body: "Ajout du module de gestion des webhooks.".to_string()
             },
             comment: GhIssueComment {
-                id: 12345678,
+                id: 12_345_678,
                 user: GhUser {
                     login: "me".to_string()
                 },
@@ -146,6 +156,11 @@ fn test_event_parsing() -> ServerResult<()> {
         }
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_pull_request_opened_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_pull_request_event(fixtures::PULL_REQUEST_OPENED_DATA)?,
         GhPullRequestEvent {
@@ -209,6 +224,11 @@ fn test_event_parsing() -> ServerResult<()> {
         }
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_pull_request_labeled_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_pull_request_event(fixtures::PULL_REQUEST_LABELED_DATA)?,
         GhPullRequestEvent {
@@ -289,6 +309,11 @@ fn test_event_parsing() -> ServerResult<()> {
         }
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_review_submitted_event_parsing() -> ServerResult<()> {
     assert_eq!(
         parse_review_event(fixtures::PULL_REQUEST_REVIEW_SUBMITTED_DATA)?,
         GhReviewEvent {

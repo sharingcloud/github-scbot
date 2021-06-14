@@ -1,9 +1,11 @@
 //! Check webhook handlers.
 
 use actix_web::HttpResponse;
+use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::DbPool;
+use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_logic::checks::handle_check_suite_event;
+use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{checks::GhCheckSuiteEvent, events::EventType};
 use tracing::info;
 
@@ -15,8 +17,10 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 }
 
 pub(crate) async fn check_suite_event(
-    config: Config,
-    pool: DbPool,
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {
     info!(
@@ -27,7 +31,7 @@ pub(crate) async fn check_suite_event(
         message = "Check suite event",
     );
 
-    handle_check_suite_event(config, pool, event).await?;
+    handle_check_suite_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
 
     Ok(HttpResponse::Ok().body("Check suite."))
 }

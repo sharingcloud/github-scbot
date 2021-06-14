@@ -37,6 +37,10 @@ pub enum ServerError {
     #[error(transparent)]
     LogicError(#[from] github_scbot_logic::LogicError),
 
+    /// Wraps [`github_scbot_api::ApiError`].
+    #[error(transparent)]
+    ApiError(#[from] github_scbot_api::ApiError),
+
     /// Wraps [`serde_json::Error`].
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),

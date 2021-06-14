@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-logic"
-version = "0.9.4"
+version = "0.10.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
@@ -9,7 +9,7 @@ github-scbot-api = { path = "../github_scbot_api" }
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
-actix-threadpool = "0.3"
+github-scbot-redis = { path = "../github_scbot_redis" }
 regex = "1.4"
 smart-default = "0.6.0"
 thiserror = "1.0"
@@ -18,4 +18,5 @@ tracing = "0.1"
 [dev-dependencies]
 actix-rt = "1"
 chrono = { version = "0.4.19", features = ["serde"] }
+maplit = "1.0.2"
 pretty_assertions = "0.7.2"

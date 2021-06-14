@@ -1,11 +1,12 @@
 //! Comments logic.
 
+use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::{
-    get_connection,
-    models::{HistoryWebhookModel, PullRequestModel, RepositoryModel},
-    DatabaseError, DbPool,
+    models::{HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel},
+    DatabaseError,
 };
+use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
     events::EventType,
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
@@ -13,31 +14,35 @@ use github_scbot_types::{
 use tracing::info;
 
 use crate::{
-    commands::{execute_commands, parse_commands, Command, CommandResult},
+    commands::{Command, CommandExecutor, CommandParser, CommandResult},
     pulls::synchronize_pull_request,
     status::update_pull_request_status,
+    summary::SummaryCommentSender,
     Result,
 };
 
 /// Handle an issue comment event.
 pub async fn handle_issue_comment_event(
-    config: Config,
-    pool: DbPool,
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     event: GhIssueCommentEvent,
 ) -> Result<()> {
     if let GhIssueCommentAction::Created = event.action {
-        let conn = get_connection(&pool.clone())?;
-        let commands = parse_commands(&config, &event.comment.body);
+        let commands = CommandParser::parse_commands(&config, &event.comment.body);
 
-        match PullRequestModel::get_from_repository_path_and_number(
-            &conn,
-            &event.repository.full_name,
-            event.issue.number,
-        ) {
+        match db_adapter
+            .pull_request()
+            .get_from_repository_path_and_number(&event.repository.full_name, event.issue.number)
+            .await
+        {
             Ok((mut pr_model, mut repo_model)) => {
                 handle_comment_creation(
                     &config,
-                    pool,
+                    api_adapter,
+                    db_adapter,
+                    redis_adapter,
                     &mut repo_model,
                     &mut pr_model,
                     &event,
@@ -52,7 +57,8 @@ pub async fn handle_issue_comment_event(
                     if let Command::AdminEnable = command {
                         let (mut pr, sha) = synchronize_pull_request(
                             &config,
-                            &conn,
+                            api_adapter,
+                            db_adapter,
                             &event.repository.owner.login,
                             &event.repository.name,
                             event.issue.number,
@@ -64,8 +70,20 @@ pub async fn handle_issue_comment_event(
                             repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
-                        let repo = pr.get_repository(&conn)?;
-                        update_pull_request_status(&config, pool.clone(), &repo, &mut pr, &sha)
+                        let repo = pr.get_repository(db_adapter.repository()).await?;
+                        update_pull_request_status(
+                            api_adapter,
+                            db_adapter,
+                            redis_adapter,
+                            &repo,
+                            &mut pr,
+                            &sha,
+                        )
+                        .await?;
+
+                        // Create status comment
+                        SummaryCommentSender::new()
+                            .create(api_adapter, db_adapter, &repo, &mut pr)
                             .await?;
 
                         handled = true;
@@ -90,15 +108,17 @@ pub async fn handle_issue_comment_event(
 }
 
 /// Handle comment creation.
+#[allow(clippy::too_many_arguments)]
 pub async fn handle_comment_creation(
     config: &Config,
-    pool: DbPool,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     repo_model: &mut RepositoryModel,
     pr_model: &mut PullRequestModel,
     event: &GhIssueCommentEvent,
     commands: Vec<CommandResult<Command>>,
 ) -> Result<()> {
-    let conn = get_connection(&pool.clone())?;
     let comment_author = &event.comment.user.login;
     let comment_id = event.comment.id;
 
@@ -107,7 +127,8 @@ pub async fn handle_comment_creation(
             .username(comment_author)
             .event_key(EventType::IssueComment)
             .payload(event)
-            .create(&conn)?;
+            .create(db_adapter.history_webhook())
+            .await?;
     }
 
     info!(
@@ -117,9 +138,11 @@ pub async fn handle_comment_creation(
         message = "Will execute commands",
     );
 
-    execute_commands(
+    CommandExecutor::execute_commands(
         config,
-        pool.clone(),
+        api_adapter,
+        db_adapter,
+        redis_adapter,
         repo_model,
         pr_model,
         comment_id,

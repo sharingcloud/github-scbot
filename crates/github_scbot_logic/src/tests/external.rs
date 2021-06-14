@@ -1,30 +1,42 @@
 //! External tests
 
 use github_scbot_database::{
-    models::{ExternalAccountModel, ExternalAccountRightModel, RepositoryModel},
+    models::{DatabaseAdapter, ExternalAccountModel, IDatabaseAdapter, RepositoryModel},
     tests::using_test_db,
     Result,
 };
 
-use super::test_config;
 use crate::LogicError;
 
 #[actix_rt::test]
 async fn test_repository_right_validation() -> Result<()> {
-    let config = test_config();
-    using_test_db(&config.clone(), "test_logic_external", |pool| async move {
-        let conn = pool.get().unwrap();
+    using_test_db("test_logic_external", |config, pool| async move {
+        let db_adapter = DatabaseAdapter::new(&pool);
         let account = ExternalAccountModel::builder("test-ext")
             .generate_keys()
-            .create_or_update(&conn)?;
-        let repo = RepositoryModel::builder(&config, "test", "Test").create_or_update(&conn)?;
+            .create_or_update(db_adapter.external_account())
+            .await?;
+        let repo = RepositoryModel::builder(&config, "test", "Test")
+            .create_or_update(db_adapter.repository())
+            .await?;
 
         // No right
-        assert!(ExternalAccountRightModel::get_right(&conn, &account.username, &repo).is_err());
+        assert!(db_adapter
+            .external_account_right()
+            .get_right(&account.username, &repo)
+            .await
+            .is_err());
 
         // Give right
-        ExternalAccountRightModel::add_right(&conn, &account.username, &repo)?;
-        assert!(ExternalAccountRightModel::get_right(&conn, &account.username, &repo).is_ok());
+        db_adapter
+            .external_account_right()
+            .add_right(&account.username, &repo)
+            .await?;
+        assert!(db_adapter
+            .external_account_right()
+            .get_right(&account.username, &repo)
+            .await
+            .is_ok());
 
         Ok::<_, LogicError>(())
     })

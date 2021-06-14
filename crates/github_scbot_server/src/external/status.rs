@@ -2,6 +2,7 @@
 
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
+use github_scbot_database::models::DatabaseAdapter;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
 use sentry_actix::eyre::WrapEyre;
 use serde::{Deserialize, Serialize};
@@ -21,19 +22,22 @@ pub(crate) async fn set_qa_status(
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
-    let conn = ctx.pool.get().unwrap();
-    let target_account = extract_account_from_auth(&conn, &auth).map_err(WrapEyre::bad_request)?;
+    let db_adapter = DatabaseAdapter::new(&ctx.pool);
+    let target_account = extract_account_from_auth(&db_adapter, &auth)
+        .await
+        .map_err(WrapEyre::bad_request)?;
 
     sentry::configure_scope(|scope| {
         scope.set_user(Some(sentry::User {
             username: Some(target_account.username.clone()),
-            ..Default::default()
+            ..sentry::User::default()
         }));
     });
 
     set_qa_status_for_pull_requests(
-        &ctx.config,
-        ctx.pool.clone(),
+        &ctx.api_adapter,
+        &db_adapter,
+        &ctx.redis_adapter,
         &target_account,
         &data.repository_path,
         &data.pull_request_numbers,

@@ -1,17 +1,22 @@
 //! Sentry module.
 
+use std::future::Future;
+
 use stable_eyre::eyre::Report;
 use tracing::info;
 
 use crate::Config;
 
 /// Configure Sentry integration by wrapping a function.
-pub fn with_sentry_configuration<T, E>(config: &Config, func: T) -> Result<(), E>
+pub async fn with_sentry_configuration<T, Fut, E>(config: &Config, func: T) -> Result<(), E>
 where
-    T: FnOnce() -> Result<(), E>,
+    T: FnOnce() -> Fut,
+    Fut: Future<Output = Result<(), E>>,
 {
     let _guard = {
-        if !config.sentry_url.is_empty() {
+        if config.sentry_url.is_empty() {
+            None
+        } else {
             info!("Sentry integration enabled.");
 
             // Enable backtraces
@@ -35,12 +40,10 @@ where
             options.send_default_pii = true;
 
             Some(::sentry::init((config.sentry_url.clone(), options)))
-        } else {
-            None
         }
     };
 
-    func()
+    func().await
 }
 
 /// Capture eyre report.

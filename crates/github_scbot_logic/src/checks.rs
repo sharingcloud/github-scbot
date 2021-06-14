@@ -1,11 +1,9 @@
 //! Checks logic.
 
+use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::{
-    get_connection,
-    models::{HistoryWebhookModel, PullRequestModel, RepositoryModel},
-    DbPool,
-};
+use github_scbot_database::models::{HistoryWebhookModel, IDatabaseAdapter, RepositoryModel};
+use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuiteAction, GhCheckSuiteEvent},
     events::EventType,
@@ -16,22 +14,25 @@ use crate::{pulls::get_checks_status_from_github, status::update_pull_request_st
 
 /// Handle GitHub check syite event.
 pub async fn handle_check_suite_event(
-    config: Config,
-    pool: DbPool,
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,
 ) -> Result<()> {
     let repo_model = RepositoryModel::create_or_update_from_github(
         config.clone(),
-        pool.clone(),
-        event.repository.clone(),
+        db_adapter.repository(),
+        &event.repository,
     )
     .await?;
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
-        let conn = get_connection(&pool)?;
-        if let Ok(mut pr_model) =
-            PullRequestModel::get_from_repository_and_number(&conn, &repo_model, gh_pr.number)
+        if let Ok(mut pr_model) = db_adapter
+            .pull_request()
+            .get_from_repository_and_number(&repo_model, gh_pr.number)
+            .await
         {
             // Skip non Github Actions checks
             if event.check_suite.app.slug != "github-actions" {
@@ -48,7 +49,8 @@ pub async fn handle_check_suite_event(
                     .username(&event.sender.login)
                     .event_key(EventType::CheckSuite)
                     .payload(&event)
-                    .create(&conn)?;
+                    .create(db_adapter.history_webhook())
+                    .await?;
             }
 
             if let GhCheckSuiteAction::Completed = event.action {
@@ -56,7 +58,7 @@ pub async fn handle_check_suite_event(
                     Some(GhCheckConclusion::Success) => {
                         // Check if other checks are still running
                         let status = get_checks_status_from_github(
-                            &config,
+                            api_adapter,
                             &repo_model.owner,
                             &repo_model.name,
                             &gh_pr.head.sha,
@@ -66,12 +68,12 @@ pub async fn handle_check_suite_event(
 
                         // Update check status
                         pr_model.set_checks_status(status);
-                        pr_model.save(&conn)?;
+                        db_adapter.pull_request().save(&mut pr_model).await?;
                     }
                     Some(GhCheckConclusion::Failure) => {
                         // Update check status
                         pr_model.set_checks_status(CheckStatus::Fail);
-                        pr_model.save(&conn)?;
+                        db_adapter.pull_request().save(&mut pr_model).await?;
                     }
                     _ => (),
                 }
@@ -79,8 +81,9 @@ pub async fn handle_check_suite_event(
 
             // Update status
             update_pull_request_status(
-                &config,
-                pool,
+                api_adapter,
+                db_adapter,
+                redis_adapter,
                 &repo_model,
                 &mut pr_model,
                 &event.check_suite.head_sha,

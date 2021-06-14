@@ -1,49 +1,14 @@
 //! GIF module.
 
-use std::collections::HashMap;
-
 use github_scbot_conf::Config;
 use rand::prelude::*;
-use serde::Deserialize;
 
-use crate::Result;
+use crate::{
+    adapter::{GifFormat, GifResponse, IAPIAdapter},
+    Result,
+};
 
-const GIF_API_URL: &str = "https://g.tenor.com/v1";
 const MAX_GIF_SIZE_BYTES: usize = 2_000_000;
-
-#[allow(non_camel_case_types)]
-#[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-enum GifFormat {
-    Gif,
-    MediumGif,
-    TinyGif,
-    NanoGif,
-    Mp4,
-    LoopedMp4,
-    TinyMp4,
-    NanoMp4,
-    WebM,
-    TinyWebM,
-    NanoWebM,
-    WebP_Transparent,
-}
-
-#[derive(Deserialize)]
-struct MediaObject {
-    url: String,
-    size: Option<usize>,
-}
-
-#[derive(Deserialize)]
-struct GifObject {
-    media: Vec<HashMap<GifFormat, MediaObject>>,
-}
-
-#[derive(Deserialize)]
-struct RandomResponse {
-    results: Vec<GifObject>,
-}
 
 const GIF_KEYS: &[GifFormat] = &[
     GifFormat::Gif,
@@ -52,34 +17,21 @@ const GIF_KEYS: &[GifFormat] = &[
     GifFormat::NanoGif,
 ];
 
-/// Get random GIF for query.
-pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Option<String>> {
-    let client = reqwest::Client::new();
-    let mut response: RandomResponse = client
-        .get(&format!("{}/search", GIF_API_URL))
-        .query(&[
-            ("q", search),
-            ("key", &config.tenor_api_key),
-            ("limit", "3"),
-            ("locale", "en_US"),
-            ("contentfilter", "low"),
-            ("media_filter", "basic"),
-            ("ar_range", "all"),
-        ])
-        .send()
-        .await?
-        .json()
-        .await?;
+/// Get random GIF from query.
+pub async fn random_gif_from_query(
+    config: &Config,
+    api_adapter: &impl IAPIAdapter,
+    search: &str,
+) -> Result<Option<String>> {
+    Ok(random_gif_from_response(
+        api_adapter
+            .gif_search(&config.tenor_api_key, search)
+            .await?,
+    ))
+}
 
-    if response.results.is_empty() {
-        Ok(None)
-    } else {
-        let mut url = String::new();
-
-        // Shuffle responses
-        let mut rng = thread_rng();
-        response.results.shuffle(&mut rng);
-
+fn get_first_matching_gif(response: &GifResponse) -> Option<String> {
+    if !response.results.is_empty() {
         // Get first media found
         for result in &response.results {
             for media in &result.media {
@@ -87,15 +39,62 @@ pub async fn random_gif_for_query(config: &Config, search: &str) -> Result<Optio
                     if media.contains_key(key) {
                         if let Some(size) = media[key].size {
                             if size < MAX_GIF_SIZE_BYTES {
-                                url = media[key].url.clone();
-                                break;
+                                return Some(media[key].url.clone());
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        Ok(Some(url))
+    None
+}
+
+fn random_gif_from_response(mut response: GifResponse) -> Option<String> {
+    response.results.shuffle(&mut thread_rng());
+    get_first_matching_gif(&response)
+}
+
+#[cfg(test)]
+mod tests {
+    use maplit::hashmap;
+
+    use super::*;
+    use crate::adapter::{GifObject, MediaObject};
+
+    #[test]
+    fn test_get_first_matching_gif() {
+        let response = GifResponse {
+            results: vec![GifObject {
+                media: vec![hashmap! {
+                    GifFormat::Mp4 => MediaObject {
+                        url: "http://local.test".into(),
+                        size: None
+                    },
+                    GifFormat::NanoGif => MediaObject {
+                        url: "http://aaa".into(),
+                        size: Some(12)
+                    }
+                }],
+            }],
+        };
+        assert_eq!(get_first_matching_gif(&response), Some("http://aaa".into()));
+
+        let response = GifResponse {
+            results: vec![GifObject {
+                media: vec![hashmap! {
+                    GifFormat::Mp4 => MediaObject {
+                        url: "http://local.test".into(),
+                        size: None
+                    },
+                    GifFormat::Gif => MediaObject {
+                        url: "http://aaa".into(),
+                        size: Some(MAX_GIF_SIZE_BYTES)
+                    }
+                }],
+            }],
+        };
+        assert_eq!(get_first_matching_gif(&response), None);
     }
 }

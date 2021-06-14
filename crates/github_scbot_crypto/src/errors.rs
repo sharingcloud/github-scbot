@@ -3,14 +3,20 @@
 use thiserror::Error;
 
 /// Crypto error.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum CryptoError {
     /// Jwt creation failed.
     #[error("Jwt creation error.")]
-    JwtCreationFailed(#[source] jsonwebtoken::errors::Error),
+    JwtCreationFailed(String),
     /// Jwt verification failed.
     #[error("Jwt verification error.")]
-    JwtVerificationFailed(#[source] jsonwebtoken::errors::Error),
+    JwtVerificationFailed(String),
+    /// Invalid encoding key.
+    #[error("Invalid encoding key.")]
+    InvalidEncodingKey(String),
+    /// Invalid decoding key.
+    #[error("Invalid decoding key.")]
+    InvalidDecodingKey(String),
 }
 
 /// Result alias for `CryptoError`.
