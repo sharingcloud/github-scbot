@@ -56,17 +56,11 @@ impl IRedisAdapter for RedisAdapter {
 
     async fn has_resource(&self, name: &str) -> Result<bool, RedisError> {
         let response = self.execute_command(resp_array!["GET", name]).await?;
-
-        println!("has_resource {:?}", response);
-
         Ok(response != RespValue::Nil)
     }
 
     async fn del_resource(&self, name: &str) -> Result<(), RedisError> {
-        let response = self.execute_command(resp_array!["DEL", name]).await?;
-
-        println!("clear_resource {:?}", response);
-
+        self.execute_command(resp_array!["DEL", name]).await?;
         Ok(())
     }
 }
