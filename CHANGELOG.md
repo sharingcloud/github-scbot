@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.10.1] - 2021-06-14
+
+### Fixed
+
+- GitHub token regenerated at each request (if not, bad credentials)
+
 ## [0.10.0] - 2021-06-13
 
 ### Added

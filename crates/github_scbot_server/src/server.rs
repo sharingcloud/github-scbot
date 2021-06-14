@@ -57,7 +57,7 @@ async fn run_bot_server_internal(
     let app_context = AppContext {
         config: config.clone(),
         pool: pool.clone(),
-        api_adapter: GithubAPIAdapter::new(&config).await?,
+        api_adapter: GithubAPIAdapter::new(config.clone()),
         redis_adapter: RedisAdapter::new(config.redis_address),
     };
 
