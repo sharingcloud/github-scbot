@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simple terminal UI interface to have an overview on pull requests
 
 [Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.10.1...HEAD
-[0.10.0]: https://github.com/sharingcloud/github-scbot/compare/v0.10.0...v0.10.1
+[0.10.1]: https://github.com/sharingcloud/github-scbot/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/sharingcloud/github-scbot/compare/v0.9.3...v0.10.0
 [0.9.3]: https://github.com/sharingcloud/github-scbot/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/sharingcloud/github-scbot/compare/v0.9.1...v0.9.2
