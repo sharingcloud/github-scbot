@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.2] - 2021-05-17
 
-### Added 
+### Added
 
 - Added a `debug test-sentry` command to test Sentry connection
 - Manual interaction mode (using admin-enable command) to use the bot on specific pull requests only
