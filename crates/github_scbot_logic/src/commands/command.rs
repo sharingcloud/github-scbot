@@ -63,6 +63,8 @@ pub enum Command {
     AdminHelp,
     /// Synchronize status.
     AdminSynchronize,
+    /// Reset reviews.
+    AdminResetReviews,
     /// Enable bot on pull request (used with manual interaction).
     AdminEnable,
     /// Disable bot on pull request (used with manual interaction).
@@ -182,6 +184,7 @@ impl Command {
             // Admin commands
             "admin-help" => Self::AdminHelp,
             "admin-sync" => Self::AdminSynchronize,
+            "admin-reset-reviews" => Self::AdminResetReviews,
             "admin-enable" => Self::AdminEnable,
             "admin-disable" => Self::AdminDisable,
             "admin-set-default-needed-reviewers" => {
@@ -215,6 +218,7 @@ impl Command {
             }
             Self::AdminSetNeededReviewers(count) => format!("admin-set-needed-reviewers {}", count),
             Self::AdminSynchronize => "admin-sync".into(),
+            Self::AdminResetReviews => "admin-reset-reviews".into(),
             Self::AssignRequiredReviewers(reviewers) => format!("req+ {}", reviewers.join(" ")),
             Self::Automerge(status) => format!("automerge{}", if *status { "+" } else { "-" }),
             Self::Gif(search) => format!("gif {}", search),

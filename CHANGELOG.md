@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `admin-reset-reviews` command to reset stored reviews.
+
+### Fixed
+
+- Remove reviews before removing pull request (especially needed on `bot admin-disable`)
+
 ## [0.10.1] - 2021-06-14
 
 ### Fixed

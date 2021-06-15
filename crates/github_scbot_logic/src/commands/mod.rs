@@ -297,6 +297,15 @@ impl CommandExecutor {
                     )
                     .await?
                 }
+                Command::AdminResetReviews => {
+                    handlers::handle_admin_reset_reviews_command(
+                        api_adapter,
+                        db_adapter,
+                        repo_model,
+                        pr_model,
+                    )
+                    .await?
+                }
                 Command::AdminSetDefaultNeededReviewers(count) => {
                     handlers::handle_set_default_needed_reviewers_command(
                         db_adapter, repo_model, *count,
@@ -356,6 +365,7 @@ impl CommandExecutor {
             | Command::AdminSetDefaultNeededReviewers(_)
             | Command::AdminSetDefaultPRTitleRegex(_)
             | Command::AdminSetNeededReviewers(_)
+            | Command::AdminResetReviews
             | Command::AdminHelp
             | Command::AdminSynchronize => Ok(is_admin(username, &known_admins)),
             _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),

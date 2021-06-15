@@ -1,16 +1,10 @@
 //! Pull requests logic.
 
-use std::collections::HashMap;
-
-use github_scbot_api::{
-    adapter::IAPIAdapter, comments::post_comment, labels::set_step_label,
-    reviews::list_reviews_for_pull_request,
-};
+use github_scbot_api::{adapter::IAPIAdapter, comments::post_comment, labels::set_step_label};
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
         HistoryWebhookModel, IDatabaseAdapter, MergeRuleModel, PullRequestModel, RepositoryModel,
-        ReviewModel,
     },
     DatabaseError,
 };
@@ -20,14 +14,14 @@ use github_scbot_types::{
     common::GhUser,
     events::EventType,
     pulls::{GhPullRequestAction, GhPullRequestEvent},
-    reviews::{GhReview, GhReviewState},
+    reviews::GhReviewState,
     status::CheckStatus,
 };
 use tracing::{debug, info};
 
 use crate::{
     commands::{Command, CommandParser},
-    reviews::{process_review_request, rerequest_existing_reviews},
+    reviews::{process_review_request, rerequest_existing_reviews, synchronize_reviews},
     status::{
         create_initial_pull_request_status, determine_automatic_step, update_pull_request_status,
         PullRequestStatus,
@@ -332,10 +326,7 @@ pub async fn synchronize_pull_request(
     let upstream_pr = api_adapter
         .pulls_get(repository_owner, repository_name, pr_number)
         .await?;
-    // Get reviews
-    let reviews =
-        list_reviews_for_pull_request(api_adapter, repository_owner, repository_name, pr_number)
-            .await?;
+
     // Get upstream checks
     let status = get_checks_status_from_github(
         api_adapter,
@@ -355,28 +346,7 @@ pub async fn synchronize_pull_request(
         .create_or_update(db_adapter.pull_request())
         .await?;
 
-    // Update reviews
-    let review_map: HashMap<&str, &GhReview> =
-        reviews.iter().map(|r| (&r.user.login[..], r)).collect();
-    for review in &reviews {
-        let permission = api_adapter
-            .user_permissions_get(repository_owner, repository_name, &review.user.login)
-            .await?;
-
-        ReviewModel::builder(&repo, &pr, &review.user.login)
-            .state(review.state)
-            .valid(permission.can_write())
-            .create_or_update(db_adapter.review())
-            .await?;
-    }
-
-    // Remove missing reviews
-    let existing_reviews = pr.get_reviews(db_adapter.review()).await?;
-    for review in existing_reviews {
-        if !review_map.contains_key(&review.username[..]) {
-            db_adapter.review().remove(review).await?;
-        }
-    }
+    synchronize_reviews(api_adapter, db_adapter, &repo, &pr).await?;
 
     // Determine step label
     let pr_status = PullRequestStatus::from_database(db_adapter, &repo, &pr).await?;
