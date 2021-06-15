@@ -16,7 +16,7 @@ pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
 use tracing::info;
 
-pub use self::command::{Command, CommandResult};
+pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::update_pull_request_status};
 use crate::{
     auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
@@ -218,109 +218,130 @@ impl CommandExecutor {
             .await?
         {
             command_result = match &command {
-                Command::Automerge(s) => {
-                    handlers::handle_auto_merge_command(db_adapter, pr_model, comment_author, *s)
+                Command::User(cmd) => match cmd {
+                    UserCommand::Automerge(s) => {
+                        handlers::handle_auto_merge_command(
+                            db_adapter,
+                            pr_model,
+                            comment_author,
+                            *s,
+                        )
                         .await?
-                }
-                Command::SkipQaStatus(s) => {
-                    handlers::handle_skip_qa_command(db_adapter, pr_model, *s).await?
-                }
-                Command::QaStatus(s) => {
-                    handlers::handle_qa_command(db_adapter, pr_model, comment_author, *s).await?
-                }
-                Command::Lock(s, reason) => {
-                    handlers::handle_lock_command(
-                        db_adapter,
-                        pr_model,
-                        comment_author,
-                        *s,
-                        reason.clone(),
-                    )
-                    .await?
-                }
-                Command::Ping => handlers::handle_ping_command(comment_author)?,
-                Command::Merge => {
-                    handlers::handle_merge_command(
-                        api_adapter,
-                        db_adapter,
-                        repo_model,
-                        pr_model,
-                        comment_author,
-                    )
-                    .await?
-                }
-                Command::AssignRequiredReviewers(reviewers) => {
-                    handlers::handle_assign_required_reviewers_command(
-                        api_adapter,
-                        db_adapter,
-                        repo_model,
-                        pr_model,
-                        reviewers.clone(),
-                    )
-                    .await?
-                }
-                Command::UnassignRequiredReviewers(reviewers) => {
-                    handlers::handle_unassign_required_reviewers_command(
-                        api_adapter,
-                        db_adapter,
-                        repo_model,
-                        pr_model,
-                        reviewers.clone(),
-                    )
-                    .await?
-                }
-                Command::Gif(terms) => {
-                    handlers::handle_gif_command(config, api_adapter, &terms).await?
-                }
-                Command::Help => handlers::handle_help_command(config, comment_author)?,
-                Command::IsAdmin => {
-                    handlers::handle_is_admin_command(db_adapter, comment_author).await?
-                }
-                Command::AdminHelp => handlers::handle_admin_help_command(config, comment_author)?,
-                Command::AdminEnable => CommandExecutionResult::builder().ignored().build(),
-                Command::AdminDisable => {
-                    handlers::handle_admin_disable_command(
-                        api_adapter,
-                        db_adapter,
-                        repo_model,
-                        pr_model,
-                    )
-                    .await?
-                }
-                Command::AdminSynchronize => {
-                    handlers::handle_admin_sync_command(
-                        config,
-                        api_adapter,
-                        db_adapter,
-                        repo_model,
-                        pr_model,
-                    )
-                    .await?
-                }
-                Command::AdminSetDefaultNeededReviewers(count) => {
-                    handlers::handle_set_default_needed_reviewers_command(
-                        db_adapter, repo_model, *count,
-                    )
-                    .await?
-                }
-                Command::AdminSetDefaultMergeStrategy(strategy) => {
-                    handlers::handle_set_default_merge_strategy_command(
-                        db_adapter, repo_model, *strategy,
-                    )
-                    .await?
-                }
-                Command::AdminSetDefaultPRTitleRegex(rgx) => {
-                    handlers::handle_set_default_pr_title_regex_command(
-                        db_adapter,
-                        repo_model,
-                        rgx.clone(),
-                    )
-                    .await?
-                }
-                Command::AdminSetNeededReviewers(count) => {
-                    handlers::handle_set_needed_reviewers_command(db_adapter, pr_model, *count)
+                    }
+                    UserCommand::SkipQaStatus(s) => {
+                        handlers::handle_skip_qa_command(db_adapter, pr_model, *s).await?
+                    }
+                    UserCommand::QaStatus(s) => {
+                        handlers::handle_qa_command(db_adapter, pr_model, comment_author, *s)
+                            .await?
+                    }
+                    UserCommand::Lock(s, reason) => {
+                        handlers::handle_lock_command(
+                            db_adapter,
+                            pr_model,
+                            comment_author,
+                            *s,
+                            reason.clone(),
+                        )
                         .await?
-                }
+                    }
+                    UserCommand::Ping => handlers::handle_ping_command(comment_author)?,
+                    UserCommand::Merge => {
+                        handlers::handle_merge_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                            comment_author,
+                        )
+                        .await?
+                    }
+                    UserCommand::AssignRequiredReviewers(reviewers) => {
+                        handlers::handle_assign_required_reviewers_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                            reviewers.clone(),
+                        )
+                        .await?
+                    }
+                    UserCommand::UnassignRequiredReviewers(reviewers) => {
+                        handlers::handle_unassign_required_reviewers_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                            reviewers.clone(),
+                        )
+                        .await?
+                    }
+                    UserCommand::Gif(terms) => {
+                        handlers::handle_gif_command(config, api_adapter, &terms).await?
+                    }
+                    UserCommand::Help => handlers::handle_help_command(config, comment_author)?,
+                    UserCommand::IsAdmin => {
+                        handlers::handle_is_admin_command(db_adapter, comment_author).await?
+                    }
+                },
+                Command::Admin(cmd) => match cmd {
+                    AdminCommand::Help => {
+                        handlers::handle_admin_help_command(config, comment_author)?
+                    }
+                    AdminCommand::Enable => CommandExecutionResult::builder().ignored().build(),
+                    AdminCommand::Disable => {
+                        handlers::handle_admin_disable_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                        )
+                        .await?
+                    }
+                    AdminCommand::Synchronize => {
+                        handlers::handle_admin_sync_command(
+                            config,
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                        )
+                        .await?
+                    }
+                    AdminCommand::ResetReviews => {
+                        handlers::handle_admin_reset_reviews_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                        )
+                        .await?
+                    }
+                    AdminCommand::SetDefaultNeededReviewers(count) => {
+                        handlers::handle_set_default_needed_reviewers_command(
+                            db_adapter, repo_model, *count,
+                        )
+                        .await?
+                    }
+                    AdminCommand::SetDefaultMergeStrategy(strategy) => {
+                        handlers::handle_set_default_merge_strategy_command(
+                            db_adapter, repo_model, *strategy,
+                        )
+                        .await?
+                    }
+                    AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+                        handlers::handle_set_default_pr_title_regex_command(
+                            db_adapter,
+                            repo_model,
+                            rgx.clone(),
+                        )
+                        .await?
+                    }
+                    AdminCommand::SetNeededReviewers(count) => {
+                        handlers::handle_set_needed_reviewers_command(db_adapter, pr_model, *count)
+                            .await?
+                    }
+                },
             };
 
             for action in &mut command_result.result_actions {
@@ -349,16 +370,11 @@ impl CommandExecutor {
         let known_admins = list_known_admin_usernames(db_adapter).await?;
 
         match command {
-            Command::Ping | Command::Help | Command::Gif(_) => Ok(true),
-            Command::AdminEnable
-            | Command::AdminDisable
-            | Command::AdminSetDefaultMergeStrategy(_)
-            | Command::AdminSetDefaultNeededReviewers(_)
-            | Command::AdminSetDefaultPRTitleRegex(_)
-            | Command::AdminSetNeededReviewers(_)
-            | Command::AdminHelp
-            | Command::AdminSynchronize => Ok(is_admin(username, &known_admins)),
-            _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
+            Command::User(cmd) => match cmd {
+                UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
+                _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
+            },
+            Command::Admin(_) => Ok(is_admin(username, &known_admins)),
         }
     }
 }
@@ -409,7 +425,7 @@ mod tests {
                     &db_adapter,
                     creator,
                     &pr,
-                    &Command::Merge
+                    &Command::User(UserCommand::Merge)
                 )
                 .await
                 .unwrap(),
@@ -421,7 +437,7 @@ mod tests {
                     &db_adapter,
                     "non-admin",
                     &pr,
-                    &Command::Merge
+                    &Command::User(UserCommand::Merge)
                 )
                 .await
                 .unwrap(),
@@ -433,7 +449,7 @@ mod tests {
                     &db_adapter,
                     "admin",
                     &pr,
-                    &Command::Merge
+                    &Command::User(UserCommand::Merge)
                 )
                 .await
                 .unwrap(),

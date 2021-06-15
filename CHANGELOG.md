@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `admin-reset-reviews` command to reset stored reviews
+
+### Fixed
+
+- Remove reviews before removing pull request (especially needed on `bot admin-disable`)
+
+### Changed
+
+- Split Command types in two User / Admin enums
+
 ## [0.10.1] - 2021-06-14
 
 ### Fixed
@@ -46,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.2] - 2021-05-17
 
-### Added 
+### Added
 
 - Added a `debug test-sentry` command to test Sentry connection
 - Manual interaction mode (using admin-enable command) to use the bot on specific pull requests only

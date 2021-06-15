@@ -6,7 +6,7 @@ use tokio_diesel::AsyncRunQueryDsl;
 use super::{PullRequestCreation, PullRequestModel};
 use crate::{
     models::RepositoryModel,
-    schema::{pull_request, repository},
+    schema::{pull_request, repository, review},
     DatabaseError, DbPool, Result,
 };
 
@@ -152,6 +152,11 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
     }
 
     async fn remove(&self, entry: &PullRequestModel) -> Result<()> {
+        // Delete associated reviews
+        diesel::delete(review::table.filter(review::pull_request_id.eq(entry.id)))
+            .execute_async(self.pool)
+            .await?;
+
         diesel::delete(pull_request::table.filter(pull_request::id.eq(entry.id)))
             .execute_async(self.pool)
             .await?;

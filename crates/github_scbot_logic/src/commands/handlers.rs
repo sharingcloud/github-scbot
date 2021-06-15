@@ -15,6 +15,7 @@ use crate::{
     errors::Result,
     gif::GifPoster,
     pulls::synchronize_pull_request,
+    reviews::{reset_reviews, synchronize_reviews},
     status::{determine_automatic_step, disable_validation_status, PullRequestStatus},
 };
 
@@ -126,6 +127,22 @@ pub async fn handle_admin_sync_command(
     )
     .await?;
     *pr_model = pr;
+
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
+}
+
+/// Handle `AdminResetReviews` command.
+pub async fn handle_admin_reset_reviews_command(
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+) -> Result<CommandExecutionResult> {
+    reset_reviews(db_adapter, pr_model).await?;
+    synchronize_reviews(api_adapter, db_adapter, repo_model, pr_model).await?;
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
@@ -623,6 +640,26 @@ mod tests {
         )
         .await?;
         assert_eq!(pr_model.name, "Hello.");
+        assert!(result.should_update_status);
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_handle_admin_reset_reviews_command() -> Result<()> {
+        let db_adapter = DummyDatabaseAdapter::new();
+        let api_adapter = DummyAPIAdapter::new();
+
+        let repo_model = RepositoryModel::default();
+        let mut pr_model = PullRequestModel::default();
+
+        let result = handle_admin_reset_reviews_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+        )
+        .await?;
         assert!(result.should_update_status);
 
         Ok(())

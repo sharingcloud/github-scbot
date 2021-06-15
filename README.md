@@ -105,6 +105,7 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_
 - `bot admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
+- `bot admin-reset-reviews`: _Reset and update reviews on pull request (maintenance-type command)_
 
 ## Building
 

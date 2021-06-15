@@ -1,6 +1,8 @@
 //! Reviews module.
 
-use github_scbot_api::adapter::IAPIAdapter;
+use std::collections::HashMap;
+
+use github_scbot_api::{adapter::IAPIAdapter, reviews::list_reviews_for_pull_request};
 use github_scbot_conf::Config;
 use github_scbot_database::models::{
     HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
@@ -118,6 +120,61 @@ pub async fn rerequest_existing_reviews(
         for mut review in reviews {
             review.set_review_state(GhReviewState::Pending);
             db_adapter.review().save(&mut review).await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Reset reviews.
+pub async fn reset_reviews(
+    db_adapter: &dyn IDatabaseAdapter,
+    pr_model: &PullRequestModel,
+) -> Result<()> {
+    db_adapter
+        .review()
+        .remove_all_for_pull_request(pr_model.id)
+        .await?;
+
+    Ok(())
+}
+
+/// Synchronize reviews.
+pub async fn synchronize_reviews(
+    api_adapter: &impl IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+) -> Result<()> {
+    // Get reviews
+    let reviews = list_reviews_for_pull_request(
+        api_adapter,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+    )
+    .await?;
+
+    // Update reviews
+    let review_map: HashMap<&str, &GhReview> =
+        reviews.iter().map(|r| (&r.user.login[..], r)).collect();
+    for review in &reviews {
+        let permission = api_adapter
+            .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
+            .await?;
+
+        ReviewModel::builder(&repo_model, &pr_model, &review.user.login)
+            .state(review.state)
+            .valid(permission.can_write())
+            .create_or_update(db_adapter.review())
+            .await?;
+    }
+
+    // Remove missing reviews
+    let existing_reviews = pr_model.get_reviews(db_adapter.review()).await?;
+    for review in existing_reviews {
+        if !review_map.contains_key(&review.username[..]) {
+            db_adapter.review().remove(review).await?;
         }
     }
 
