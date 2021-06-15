@@ -34,9 +34,9 @@ pub enum CommandHandlingStatus {
     Ignored,
 }
 
-/// Command.
+/// User command.
 #[derive(Debug, PartialEq)]
-pub enum Command {
+pub enum UserCommand {
     /// Skip QA status.
     SkipQaStatus(bool),
     /// Enable/Disable QA status.
@@ -59,24 +59,38 @@ pub enum Command {
     Help,
     /// Is admin?
     IsAdmin,
+}
+
+/// Admin command.
+#[derive(Debug, PartialEq)]
+pub enum AdminCommand {
     /// Show admin help message.
-    AdminHelp,
+    Help,
     /// Synchronize status.
-    AdminSynchronize,
+    Synchronize,
     /// Reset reviews.
-    AdminResetReviews,
+    ResetReviews,
     /// Enable bot on pull request (used with manual interaction).
-    AdminEnable,
+    Enable,
     /// Disable bot on pull request (used with manual interaction).
-    AdminDisable,
+    Disable,
     /// Set default needed reviewers count.
-    AdminSetDefaultNeededReviewers(u32),
+    SetDefaultNeededReviewers(u32),
     /// Set default merge strategy.
-    AdminSetDefaultMergeStrategy(GhMergeStrategy),
+    SetDefaultMergeStrategy(GhMergeStrategy),
     /// Set default PR title validation regex.
-    AdminSetDefaultPRTitleRegex(String),
+    SetDefaultPRTitleRegex(String),
     /// Set needed reviewers count.
-    AdminSetNeededReviewers(u32),
+    SetNeededReviewers(u32),
+}
+
+/// Command.
+#[derive(Debug, PartialEq)]
+pub enum Command {
+    /// User command.
+    User(UserCommand),
+    /// Admin command.
+    Admin(AdminCommand),
 }
 
 /// Command execution result.
@@ -165,38 +179,44 @@ impl Command {
     /// Create a command from a comment and arguments.
     pub fn from_comment(comment: &str, args: &[&str]) -> CommandResult<Option<Self>> {
         Ok(Some(match comment {
-            "noqa+" => Self::SkipQaStatus(true),
-            "noqa-" => Self::SkipQaStatus(false),
-            "qa+" => Self::QaStatus(Some(true)),
-            "qa-" => Self::QaStatus(Some(false)),
-            "qa?" => Self::QaStatus(None),
-            "automerge+" => Self::Automerge(true),
-            "automerge-" => Self::Automerge(false),
-            "lock+" => Self::Lock(true, Self::parse_message(args)),
-            "lock-" => Self::Lock(false, Self::parse_message(args)),
-            "req+" => Self::AssignRequiredReviewers(Self::parse_reviewers(args)?),
-            "req-" => Self::UnassignRequiredReviewers(Self::parse_reviewers(args)?),
-            "gif" => Self::Gif(Self::parse_text(args)),
-            "merge" => Self::Merge,
-            "ping" => Self::Ping,
-            "is-admin" => Self::IsAdmin,
-            "help" => Self::Help,
+            "noqa+" => Self::User(UserCommand::SkipQaStatus(true)),
+            "noqa-" => Self::User(UserCommand::SkipQaStatus(false)),
+            "qa+" => Self::User(UserCommand::QaStatus(Some(true))),
+            "qa-" => Self::User(UserCommand::QaStatus(Some(false))),
+            "qa?" => Self::User(UserCommand::QaStatus(None)),
+            "automerge+" => Self::User(UserCommand::Automerge(true)),
+            "automerge-" => Self::User(UserCommand::Automerge(false)),
+            "lock+" => Self::User(UserCommand::Lock(true, Self::parse_message(args))),
+            "lock-" => Self::User(UserCommand::Lock(false, Self::parse_message(args))),
+            "req+" => Self::User(UserCommand::AssignRequiredReviewers(Self::parse_reviewers(
+                args,
+            )?)),
+            "req-" => Self::User(UserCommand::UnassignRequiredReviewers(
+                Self::parse_reviewers(args)?,
+            )),
+            "gif" => Self::User(UserCommand::Gif(Self::parse_text(args))),
+            "merge" => Self::User(UserCommand::Merge),
+            "ping" => Self::User(UserCommand::Ping),
+            "is-admin" => Self::User(UserCommand::IsAdmin),
+            "help" => Self::User(UserCommand::Help),
             // Admin commands
-            "admin-help" => Self::AdminHelp,
-            "admin-sync" => Self::AdminSynchronize,
-            "admin-reset-reviews" => Self::AdminResetReviews,
-            "admin-enable" => Self::AdminEnable,
-            "admin-disable" => Self::AdminDisable,
-            "admin-set-default-needed-reviewers" => {
-                Self::AdminSetDefaultNeededReviewers(Self::parse_u32(args)?)
-            }
-            "admin-set-default-merge-strategy" => {
-                Self::AdminSetDefaultMergeStrategy(Self::parse_merge_strategy(args)?)
-            }
+            "admin-help" => Self::Admin(AdminCommand::Help),
+            "admin-sync" => Self::Admin(AdminCommand::Synchronize),
+            "admin-reset-reviews" => Self::Admin(AdminCommand::ResetReviews),
+            "admin-enable" => Self::Admin(AdminCommand::Enable),
+            "admin-disable" => Self::Admin(AdminCommand::Disable),
+            "admin-set-default-needed-reviewers" => Self::Admin(
+                AdminCommand::SetDefaultNeededReviewers(Self::parse_u32(args)?),
+            ),
+            "admin-set-default-merge-strategy" => Self::Admin(
+                AdminCommand::SetDefaultMergeStrategy(Self::parse_merge_strategy(args)?),
+            ),
             "admin-set-default-pr-title-regex" => {
-                Self::AdminSetDefaultPRTitleRegex(Self::parse_text(args))
+                Self::Admin(AdminCommand::SetDefaultPRTitleRegex(Self::parse_text(args)))
             }
-            "admin-set-needed-reviewers" => Self::AdminSetNeededReviewers(Self::parse_u32(args)?),
+            "admin-set-needed-reviewers" => {
+                Self::Admin(AdminCommand::SetNeededReviewers(Self::parse_u32(args)?))
+            }
             // Unknown command
             unknown => return Err(CommandError::UnknownCommand(unknown.into())),
         }))
@@ -204,45 +224,59 @@ impl Command {
 
     fn to_command_string(&self) -> String {
         match self {
-            Self::AdminEnable => "admin-enable".into(),
-            Self::AdminDisable => "admin-disable".into(),
-            Self::AdminHelp => "admin-help".into(),
-            Self::AdminSetDefaultMergeStrategy(strategy) => {
-                format!("admin-set-default-merge-strategy {}", strategy.to_string())
-            }
-            Self::AdminSetDefaultNeededReviewers(count) => {
-                format!("admin-set-default-needed-reviewers {}", count)
-            }
-            Self::AdminSetDefaultPRTitleRegex(rgx) => {
-                format!("admin-set-default-pr-title-regex {}", rgx.to_string())
-            }
-            Self::AdminSetNeededReviewers(count) => format!("admin-set-needed-reviewers {}", count),
-            Self::AdminSynchronize => "admin-sync".into(),
-            Self::AdminResetReviews => "admin-reset-reviews".into(),
-            Self::AssignRequiredReviewers(reviewers) => format!("req+ {}", reviewers.join(" ")),
-            Self::Automerge(status) => format!("automerge{}", if *status { "+" } else { "-" }),
-            Self::Gif(search) => format!("gif {}", search),
-            Self::Help => "help".into(),
-            Self::IsAdmin => "is-admin".into(),
-            Self::Lock(status, reason) => {
-                let mut lock = format!("lock{}", if *status { "+" } else { "-" });
-                if let Some(reason) = reason {
-                    lock = format!("{} {}", lock, reason);
+            Self::Admin(cmd) => match cmd {
+                AdminCommand::Enable => "admin-enable".into(),
+                AdminCommand::Disable => "admin-disable".into(),
+                AdminCommand::Help => "admin-help".into(),
+                AdminCommand::SetDefaultMergeStrategy(strategy) => {
+                    format!("admin-set-default-merge-strategy {}", strategy.to_string())
                 }
-                lock
-            }
-            Self::Merge => "merge".into(),
-            Self::Ping => "ping".into(),
-            Self::QaStatus(status) => format!(
-                "qa{}",
-                match status {
-                    None => "?",
-                    Some(true) => "+",
-                    Some(false) => "-",
+                AdminCommand::SetDefaultNeededReviewers(count) => {
+                    format!("admin-set-default-needed-reviewers {}", count)
                 }
-            ),
-            Self::SkipQaStatus(status) => format!("noqa{}", if *status { "+" } else { "-" }),
-            Self::UnassignRequiredReviewers(reviewers) => format!("req- {}", reviewers.join(" ")),
+                AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+                    format!("admin-set-default-pr-title-regex {}", rgx.to_string())
+                }
+                AdminCommand::SetNeededReviewers(count) => {
+                    format!("admin-set-needed-reviewers {}", count)
+                }
+                AdminCommand::Synchronize => "admin-sync".into(),
+                AdminCommand::ResetReviews => "admin-reset-reviews".into(),
+            },
+            Self::User(cmd) => match cmd {
+                UserCommand::AssignRequiredReviewers(reviewers) => {
+                    format!("req+ {}", reviewers.join(" "))
+                }
+                UserCommand::Automerge(status) => {
+                    format!("automerge{}", if *status { "+" } else { "-" })
+                }
+                UserCommand::Gif(search) => format!("gif {}", search),
+                UserCommand::Help => "help".into(),
+                UserCommand::IsAdmin => "is-admin".into(),
+                UserCommand::Lock(status, reason) => {
+                    let mut lock = format!("lock{}", if *status { "+" } else { "-" });
+                    if let Some(reason) = reason {
+                        lock = format!("{} {}", lock, reason);
+                    }
+                    lock
+                }
+                UserCommand::Merge => "merge".into(),
+                UserCommand::Ping => "ping".into(),
+                UserCommand::QaStatus(status) => format!(
+                    "qa{}",
+                    match status {
+                        None => "?",
+                        Some(true) => "+",
+                        Some(false) => "-",
+                    }
+                ),
+                UserCommand::SkipQaStatus(status) => {
+                    format!("noqa{}", if *status { "+" } else { "-" })
+                }
+                UserCommand::UnassignRequiredReviewers(reviewers) => {
+                    format!("req- {}", reviewers.join(" "))
+                }
+            },
         }
     }
 

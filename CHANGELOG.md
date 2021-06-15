@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `admin-reset-reviews` command to reset stored reviews.
+- `admin-reset-reviews` command to reset stored reviews
 
 ### Fixed
 
 - Remove reviews before removing pull request (especially needed on `bot admin-disable`)
+
+### Changed
+
+- Split Command types in two User / Admin enums
 
 ## [0.10.1] - 2021-06-14
 

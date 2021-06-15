@@ -14,7 +14,7 @@ use github_scbot_types::{
 use tracing::info;
 
 use crate::{
-    commands::{Command, CommandExecutor, CommandParser, CommandResult},
+    commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},
     pulls::synchronize_pull_request,
     status::update_pull_request_status,
     summary::SummaryCommentSender,
@@ -54,7 +54,7 @@ pub async fn handle_issue_comment_event(
                 // Parse admin enable
                 let mut handled = false;
                 for command in commands.iter().flatten() {
-                    if let Command::AdminEnable = command {
+                    if let Command::Admin(AdminCommand::Enable) = command {
                         let (mut pr, sha) = synchronize_pull_request(
                             &config,
                             api_adapter,

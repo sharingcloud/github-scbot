@@ -20,7 +20,7 @@ use github_scbot_types::{
 use tracing::{debug, info};
 
 use crate::{
-    commands::{Command, CommandParser},
+    commands::{AdminCommand, Command, CommandParser},
     reviews::{process_review_request, rerequest_existing_reviews, synchronize_reviews},
     status::{
         create_initial_pull_request_status, determine_automatic_step, update_pull_request_status,
@@ -49,7 +49,7 @@ pub(crate) fn should_create_pull_request(
         // Check for magic instruction to enable bot
         let commands = CommandParser::parse_commands(&config, &event.pull_request.body);
         for command in commands.into_iter().flatten() {
-            if let Command::AdminEnable = command {
+            if let Command::Admin(AdminCommand::Enable) = command {
                 return true;
             }
         }

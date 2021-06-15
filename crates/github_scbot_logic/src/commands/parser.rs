@@ -63,7 +63,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::commands::{
-        command::{Command, CommandError},
+        command::{AdminCommand, Command, CommandError, UserCommand},
         parser::CommandParser,
     };
 
@@ -103,31 +103,31 @@ mod tests {
     fn test_command_from_comment() {
         assert_eq!(
             Command::from_comment("noqa+", &[]),
-            Ok(Some(Command::SkipQaStatus(true)))
+            Ok(Some(Command::User(UserCommand::SkipQaStatus(true))))
         );
         assert_eq!(
             Command::from_comment("noqa-", &[]),
-            Ok(Some(Command::SkipQaStatus(false)))
+            Ok(Some(Command::User(UserCommand::SkipQaStatus(false))))
         );
         assert_eq!(
             Command::from_comment("qa+", &[]),
-            Ok(Some(Command::QaStatus(Some(true))))
+            Ok(Some(Command::User(UserCommand::QaStatus(Some(true)))))
         );
         assert_eq!(
             Command::from_comment("qa-", &[]),
-            Ok(Some(Command::QaStatus(Some(false))))
+            Ok(Some(Command::User(UserCommand::QaStatus(Some(false)))))
         );
         assert_eq!(
             Command::from_comment("qa?", &[]),
-            Ok(Some(Command::QaStatus(None)))
+            Ok(Some(Command::User(UserCommand::QaStatus(None))))
         );
         assert_eq!(
             Command::from_comment("automerge+", &[]),
-            Ok(Some(Command::Automerge(true)))
+            Ok(Some(Command::User(UserCommand::Automerge(true))))
         );
         assert_eq!(
             Command::from_comment("automerge-", &[]),
-            Ok(Some(Command::Automerge(false)))
+            Ok(Some(Command::User(UserCommand::Automerge(false))))
         );
         assert_eq!(
             Command::from_comment("this-is-a-command", &[]),
@@ -139,7 +139,7 @@ mod tests {
         );
         assert_eq!(
             Command::from_comment("admin-set-needed-reviewers", &["12"]),
-            Ok(Some(Command::AdminSetNeededReviewers(12)))
+            Ok(Some(Command::Admin(AdminCommand::SetNeededReviewers(12))))
         );
         assert_eq!(
             Command::from_comment("admin-set-needed-reviewers", &["toto"]),
