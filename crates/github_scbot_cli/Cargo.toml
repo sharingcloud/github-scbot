@@ -13,11 +13,10 @@ github-scbot-server = { path = "../github_scbot_server" }
 github-scbot-tui = { path = "../github_scbot_tui" }
 github-scbot-redis = { path = "../github_scbot_redis" }
 github-scbot-types = { path = "../github_scbot_types" }
-actix-rt = "1"
-dialoguer = "0.7.1"
-owo-colors = "1.2"
-sentry-core = "0.21.0"
+github-scbot-libs = { path = "../github_scbot_libs" }
 sentry-eyre = { path = "../sentry_eyre" }
-stable-eyre = "0.2"
 structopt = "0.3"
 thiserror = "1.0"
+
+[dev-dependencies]
+actix-rt = "1"

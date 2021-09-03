@@ -18,7 +18,7 @@ extern crate diesel_migrations;
 
 use diesel::{prelude::*, r2d2::ConnectionManager};
 use github_scbot_conf::Config;
-use r2d2::Pool;
+use github_scbot_libs::r2d2::Pool;
 
 mod errors;
 pub mod import_export;

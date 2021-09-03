@@ -1,6 +1,6 @@
 //! Validation utilities.
 
-use jsonwebtoken::EncodingKey;
+use github_scbot_libs::jsonwebtoken::EncodingKey;
 
 use crate::{config::Config, ConfError, Result};
 

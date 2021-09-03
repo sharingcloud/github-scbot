@@ -1,5 +1,6 @@
 //! Logic errors.
 
+use github_scbot_libs::regex;
 use thiserror::Error;
 
 /// Logic error.

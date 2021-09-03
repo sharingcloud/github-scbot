@@ -2,8 +2,7 @@
 
 use std::future::Future;
 
-use stable_eyre::eyre::Report;
-use tracing::info;
+use github_scbot_libs::{sentry as sentry_crate, stable_eyre::eyre::Report, tracing::info};
 
 use crate::Config;
 
@@ -23,7 +22,7 @@ where
             std::env::set_var("RUST_BACKTRACE", "1");
 
             // Ignore eyre modules
-            let mut options = ::sentry::ClientOptions::new();
+            let mut options = sentry_crate::ClientOptions::new();
             options.in_app_exclude.push("actix_cors");
             options.in_app_exclude.push("actix_http");
             options.in_app_exclude.push("actix_rt");
@@ -36,10 +35,10 @@ where
             options.in_app_exclude.push("sentry_actix");
             options.in_app_exclude.push("stable_eyre");
             options.in_app_exclude.push("tokio");
-            options.release = ::sentry::release_name!();
+            options.release = sentry_crate::release_name!();
             options.send_default_pii = true;
 
-            Some(::sentry::init((config.sentry_url.clone(), options)))
+            Some(sentry_crate::init((config.sentry_url.clone(), options)))
         }
     };
 

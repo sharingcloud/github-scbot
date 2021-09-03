@@ -1,6 +1,6 @@
 //! Validation module.
 
-use regex::Regex;
+use github_scbot_libs::regex::Regex;
 
 use super::Result;
 

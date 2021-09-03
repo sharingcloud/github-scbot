@@ -1,7 +1,6 @@
-use async_trait::async_trait;
 use diesel::prelude::*;
+use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
-use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{HistoryWebhookCreation, HistoryWebhookModel};
 use crate::{schema::history_webhook, DatabaseError, DbPool, Result};

@@ -1,8 +1,7 @@
 //! History module.
 
-use dialoguer::Confirm;
 use github_scbot_database::models::{IDatabaseAdapter, RepositoryModel};
-use owo_colors::OwoColorize;
+use github_scbot_libs::{dialoguer::Confirm, owo_colors::OwoColorize};
 
 use super::errors::Result;
 

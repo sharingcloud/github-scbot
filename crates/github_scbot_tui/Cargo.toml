@@ -8,6 +8,5 @@ edition = "2018"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
+github-scbot-libs = { path = "../github_scbot_libs" }
 thiserror = "1.0"
-termion = "1.5.5"
-tui = "0.13"

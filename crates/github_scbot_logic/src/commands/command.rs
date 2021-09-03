@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 
 use github_scbot_conf::Config;
+use github_scbot_libs::smart_default::SmartDefault;
 use github_scbot_types::{issues::GhReactionType, pulls::GhMergeStrategy};
-use smart_default::SmartDefault;
 use thiserror::Error;
 
 /// Command error.

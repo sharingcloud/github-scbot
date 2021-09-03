@@ -3,9 +3,9 @@
 use std::convert::TryInto;
 
 use github_scbot_conf::Config;
+use github_scbot_libs::tracing::error;
 use github_scbot_types::{common::GhRepository, pulls::GhMergeStrategy};
 use serde::{Deserialize, Serialize};
-use tracing::error;
 
 use crate::{
     errors::{DatabaseError, Result},

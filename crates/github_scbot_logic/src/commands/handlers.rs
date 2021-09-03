@@ -3,10 +3,10 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::{
     IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
+use github_scbot_libs::tracing::info;
 use github_scbot_types::{
     issues::GhReactionType, labels::StepLabel, pulls::GhMergeStrategy, status::QaStatus,
 };
-use tracing::info;
 
 use super::command::CommandExecutionResult;
 use crate::{

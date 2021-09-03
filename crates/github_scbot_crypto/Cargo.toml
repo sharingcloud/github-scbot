@@ -5,7 +5,6 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
 [dependencies]
-jsonwebtoken = "7"
-openssl = "0.10"
+github-scbot-libs = { path = "../github_scbot_libs" }
 serde = { version = "1", features = ["derive"] }
 thiserror = "1.0"

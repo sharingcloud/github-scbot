@@ -2,11 +2,10 @@
 
 use std::convert::TryFrom;
 
-use dialoguer::Confirm;
 use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, MergeRuleModel, RepositoryModel};
+use github_scbot_libs::{dialoguer::Confirm, owo_colors::OwoColorize};
 use github_scbot_types::pulls::GhMergeStrategy;
-use owo_colors::OwoColorize;
 
 use super::errors::{CommandError, Result};
 

@@ -1,7 +1,7 @@
 //! GIF module.
 
 use github_scbot_conf::Config;
-use rand::prelude::*;
+use github_scbot_libs::rand::prelude::*;
 
 use crate::{
     adapter::{GifFormat, GifResponse, IAPIAdapter},

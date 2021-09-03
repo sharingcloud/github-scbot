@@ -1,8 +1,7 @@
 //! UI state utils.
 
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
-use termion::event::Key;
-use tui::widgets::ListState;
+use github_scbot_libs::{termion::event::Key, tui::widgets::ListState};
 
 pub enum SelectionMode {
     Repository,

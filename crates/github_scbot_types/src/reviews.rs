@@ -1,8 +1,11 @@
 //! Review types.
 
-use chrono::{DateTime, Utc};
+use github_scbot_libs::{
+    chrono::{self, DateTime, Utc},
+    serde_plain,
+    smart_default::SmartDefault,
+};
 use serde::{Deserialize, Serialize};
-use smart_default::SmartDefault;
 
 use super::common::{GhRepository, GhUser};
 use crate::pulls::GhPullRequest;

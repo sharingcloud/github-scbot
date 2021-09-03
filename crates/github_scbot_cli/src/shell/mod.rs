@@ -4,7 +4,6 @@ pub mod commands;
 
 use std::path::PathBuf;
 
-use actix_rt::System;
 use github_scbot_api::adapter::GithubAPIAdapter;
 use github_scbot_conf::{configure_startup, Config};
 use github_scbot_database::{
@@ -12,10 +11,10 @@ use github_scbot_database::{
     models::{DatabaseAdapter, IDatabaseAdapter},
     run_migrations, DbPool,
 };
+use github_scbot_libs::{actix_rt::System, stable_eyre::eyre};
 use github_scbot_redis::RedisAdapter;
 use github_scbot_server::server::run_bot_server;
 use github_scbot_tui::run_tui;
-use stable_eyre::eyre;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
