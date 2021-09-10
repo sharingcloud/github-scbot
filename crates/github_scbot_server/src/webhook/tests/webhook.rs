@@ -125,7 +125,7 @@ fn test_issue_comment_created_event_parsing() -> ServerResult<()> {
                     .expect("bad date")
                     .with_timezone(&chrono::Utc),
                 closed_at: None,
-                body: "Ajout du module de gestion des webhooks.".to_string()
+                body: Some("Ajout du module de gestion des webhooks.".to_string())
             },
             comment: GhIssueComment {
                 id: 12_345_678,
