@@ -246,13 +246,14 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::Ping => handlers::handle_ping_command(comment_author)?,
-                    UserCommand::Merge => {
+                    UserCommand::Merge(strategy) => {
                         handlers::handle_merge_command(
                             api_adapter,
                             db_adapter,
                             repo_model,
                             pr_model,
                             comment_author,
+                            *strategy,
                         )
                         .await?
                     }
@@ -425,7 +426,7 @@ mod tests {
                     &db_adapter,
                     creator,
                     &pr,
-                    &Command::User(UserCommand::Merge)
+                    &Command::User(UserCommand::Merge(None))
                 )
                 .await
                 .unwrap(),
@@ -437,7 +438,7 @@ mod tests {
                     &db_adapter,
                     "non-admin",
                     &pr,
-                    &Command::User(UserCommand::Merge)
+                    &Command::User(UserCommand::Merge(None))
                 )
                 .await
                 .unwrap(),
@@ -449,7 +450,7 @@ mod tests {
                     &db_adapter,
                     "admin",
                     &pr,
-                    &Command::User(UserCommand::Merge)
+                    &Command::User(UserCommand::Merge(None))
                 )
                 .await
                 .unwrap(),

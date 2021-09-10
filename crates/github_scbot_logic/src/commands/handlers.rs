@@ -45,6 +45,7 @@ pub async fn handle_merge_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
     comment_author: &str,
+    merge_strategy: Option<GhMergeStrategy>,
 ) -> Result<CommandExecutionResult> {
     // Use step to determine merge possibility
     let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
@@ -61,7 +62,7 @@ pub async fn handle_merge_command(
                 pr_model.get_number(),
                 &commit_title,
                 "",
-                pr_status.merge_strategy,
+                merge_strategy.unwrap_or(pr_status.merge_strategy),
             )
             .await
         {
@@ -444,7 +445,7 @@ pub fn handle_help_command(
         - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
         - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
         - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
-        - `merge`: _Try merging the pull request_\n\
+        - `merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
         - `is-admin`: _Check if you are admin_\n\
@@ -535,9 +536,15 @@ mod tests {
         pr_model.wip = true;
 
         // Merge should fail (wip)
-        let result =
-            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
-                .await?;
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            "me",
+            None,
+        )
+        .await?;
         assert!(result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -553,9 +560,15 @@ mod tests {
         api_adapter
             .pulls_merge_response
             .set_response(Err(ApiError::GitHubError("Nope.".into())));
-        let result =
-            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
-                .await?;
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            "me",
+            None,
+        )
+        .await?;
         assert!(result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -570,9 +583,15 @@ mod tests {
 
         // Merge should now work
         api_adapter.pulls_merge_response.set_response(Ok(()));
-        let result =
-            handle_merge_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model, "me")
-                .await?;
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            &repo_model,
+            &mut pr_model,
+            "me",
+            None,
+        )
+        .await?;
         assert!(result.should_update_status);
         assert_eq!(
             result.result_actions,
