@@ -107,9 +107,14 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 - `bot admin-reset-reviews`: _Reset and update reviews on pull request (maintenance-type command)_
 
-## Building
+## Building and developing
 
-This project is written in the [Rust programming language](https://www.rust-lang.org/), so to build you have to [install the Rust tools](https://www.rust-lang.org/tools/install).  
+This project is written in the [Rust programming language](https://www.rust-lang.org/), so to build you have to [install the Rust tools](https://www.rust-lang.org/tools/install).
+To use the development server with "watch mode", you will also need the `cargo-watch` tool (installable using `cargo install cargo-watch`).
+
+### Running server locally
+
+You can type `cargo xtask server` or `cargo xtask server --dev` for watch mode.
 
 ### Docker building
 

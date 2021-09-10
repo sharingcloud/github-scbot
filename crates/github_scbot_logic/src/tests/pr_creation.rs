@@ -69,7 +69,7 @@ async fn test_should_create_pull_request_manual_with_activation() -> DatabaseRes
                 },
                 pull_request: GhPullRequest {
                     number: 1,
-                    body: "Hello.\ntest-bot admin-enable".to_string(),
+                    body: Some("Hello.\ntest-bot admin-enable".to_string()),
                     ..GhPullRequest::default()
                 },
                 ..GhPullRequestEvent::default()

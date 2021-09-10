@@ -174,7 +174,7 @@ fn test_pull_request_opened_event_parsing() -> ServerResult<()> {
                 user: GhUser {
                     login: "me".to_string()
                 },
-                body: "Ceci est\nle corps de la \nPR".to_string(),
+                body: Some("Ceci est\nle corps de la \nPR".to_string()),
                 created_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:23Z")
                     .expect("bad date")
                     .with_timezone(&chrono::Utc),
@@ -242,7 +242,7 @@ fn test_pull_request_labeled_event_parsing() -> ServerResult<()> {
                 user: GhUser {
                     login: "me".to_string()
                 },
-                body: "This is a PR body".to_string(),
+                body: Some("This is a PR body".to_string()),
                 created_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:23Z")
                     .expect("bad date")
                     .with_timezone(&chrono::Utc),
@@ -335,7 +335,7 @@ fn test_review_submitted_event_parsing() -> ServerResult<()> {
                 user: GhUser {
                     login: "orig".to_string()
                 },
-                body: "This is a PR body".to_string(),
+                body: Some("This is a PR body".to_string()),
                 created_at: chrono::DateTime::parse_from_rfc3339("2020-11-12T16:09:47Z")
                     .expect("bad date")
                     .with_timezone(&chrono::Utc),
