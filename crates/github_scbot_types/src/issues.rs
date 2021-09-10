@@ -97,7 +97,7 @@ pub struct GhIssue {
     /// Closed at.
     pub closed_at: Option<DateTime<Utc>>,
     /// Body.
-    pub body: String,
+    pub body: Option<String>,
 }
 
 /// GitHub Issue comment changes body.

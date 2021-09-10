@@ -103,7 +103,7 @@ pub struct GhPullRequest {
     /// User.
     pub user: GhUser,
     /// Body.
-    pub body: String,
+    pub body: Option<String>,
     /// Created at.
     #[default(chrono::Utc::now())]
     pub created_at: DateTime<Utc>,

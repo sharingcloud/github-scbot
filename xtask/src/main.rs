@@ -14,10 +14,44 @@ struct Args {
 #[derive(FromArgs, Debug)]
 #[argh(subcommand)]
 enum Tasks {
+    Format(FormatTask),
+    Lint(LintTask),
+    Server(ServerTask),
     SetVersion(SetVersionTask),
     BuildImage(BuildImageTask),
     TagImage(TagImageTask),
     PushImage(PushImageTask),
+}
+
+/// format all
+#[derive(FromArgs, Debug)]
+#[argh(subcommand, name = "fmt")]
+struct FormatTask {
+    /// error on changes
+    #[argh(switch, short = 'e')]
+    error: bool,
+}
+
+/// lint all
+#[derive(FromArgs, Debug)]
+#[argh(subcommand, name = "lint")]
+struct LintTask {
+    /// error on warnings
+    #[argh(switch, short = 'e')]
+    error: bool,
+}
+
+/// start server
+#[derive(FromArgs, Debug)]
+#[argh(subcommand, name = "server")]
+struct ServerTask {
+    /// development mode (watch)
+    #[argh(switch, short = 'd')]
+    dev: bool,
+
+    /// trace messages
+    #[argh(switch, short = 't')]
+    trace: bool,
 }
 
 /// set version
@@ -80,11 +114,48 @@ fn get_version() -> String {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Args = argh::from_env();
-    println!("{:?}", args);
-
     match args.tasks {
+        Tasks::Lint(cmd) => {
+            if cmd.error {
+                duct::cmd!(
+                    "cargo",
+                    "clippy",
+                    "--all-features",
+                    "--all",
+                    "--tests",
+                    "--",
+                    "-D",
+                    "warnings"
+                )
+                .run()?;
+            } else {
+                duct::cmd!("cargo", "clippy", "--all-features", "--all", "--tests").run()?;
+            }
+        }
+        Tasks::Format(cmd) => {
+            if cmd.error {
+                duct::cmd!("cargo", "fmt", "--all", "--", "--check").run()?;
+            } else {
+                duct::cmd!("cargo", "fmt", "--all").run()?;
+            }
+        }
+        Tasks::Server(cmd) => {
+            let current_env_log = std::env::var("RUST_LOG").unwrap_or_default();
+
+            if cmd.trace {
+                std::env::set_var("RUST_LOG", "info,github_scbot=trace");
+            }
+
+            if cmd.dev {
+                duct::cmd!("cargo", "watch", "-x", "run-cli -- server").run()?;
+            } else {
+                duct::cmd!("cargo", "run-cli", "--", "server").run()?;
+            }
+
+            std::env::set_var("RUST_LOG", current_env_log);
+        }
         Tasks::SetVersion(cmd) => {
-            println!("Will set version {}", cmd.version);
+            duct::cmd!("just", "set-version", cmd.version).run()?;
         }
         Tasks::BuildImage(cmd) => {
             let version = cmd.version.unwrap_or_else(get_version);

@@ -46,11 +46,13 @@ pub(crate) fn should_create_pull_request(
     event: &GhPullRequestEvent,
 ) -> bool {
     if repo_model.manual_interaction {
-        // Check for magic instruction to enable bot
-        let commands = CommandParser::parse_commands(&config, &event.pull_request.body);
-        for command in commands.into_iter().flatten() {
-            if let Command::Admin(AdminCommand::Enable) = command {
-                return true;
+        if let Some(body) = &event.pull_request.body {
+            // Check for magic instruction to enable bot
+            let commands = CommandParser::parse_commands(&config, body);
+            for command in commands.into_iter().flatten() {
+                if let Command::Admin(AdminCommand::Enable) = command {
+                    return true;
+                }
             }
         }
 

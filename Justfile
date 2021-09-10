@@ -3,25 +3,6 @@
 
 version := `cat ./crates/github_scbot_cli/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
 
-#################
-# Format and lint
-
-# Check code style
-fmt:
-	cargo fmt --all
-
-# Check code style and error if changes are needed
-fmt-check:
-	cargo fmt --all -- --check
-
-# Lint files
-lint:
-	cargo clippy --all-features --all --tests
-
-# Lint files and error on warnings
-lint-err:
-	cargo clippy --all-features --all --tests -- -D warnings
-
 #######
 # Tests
 
@@ -46,25 +27,3 @@ test-cov:
 set-version v:
 	ls -d crates/github_scbot_*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
 	sed -i "s/github-scbot:\(.*\)/github-scbot:{{ v }}/" docker/docker-compose.yml
-
-###############
-# Documentation
-
-# Generate docs
-doc:
-	cargo doc --no-deps
-
-###############
-# Build and run
-
-# Build app
-build:
-	cargo build
-
-# Run server
-server:
-	cargo run -- server
-
-# Run dev-server
-dev-server:
-	cargo watch -x 'run -- server'
