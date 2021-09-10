@@ -52,7 +52,7 @@ pub enum UserCommand {
     /// Post a random gif.
     Gif(String),
     /// Merge pull request.
-    Merge,
+    Merge(Option<GhMergeStrategy>),
     /// Ping the bot.
     Ping,
     /// Show help message.
@@ -195,7 +195,9 @@ impl Command {
                 Self::parse_reviewers(args)?,
             )),
             "gif" => Self::User(UserCommand::Gif(Self::parse_text(args))),
-            "merge" => Self::User(UserCommand::Merge),
+            "merge" => Self::User(UserCommand::Merge(Self::parse_optional_merge_strategy(
+                args,
+            )?)),
             "ping" => Self::User(UserCommand::Ping),
             "is-admin" => Self::User(UserCommand::IsAdmin),
             "help" => Self::User(UserCommand::Help),
@@ -260,7 +262,13 @@ impl Command {
                     }
                     lock
                 }
-                UserCommand::Merge => "merge".into(),
+                UserCommand::Merge(strategy) => {
+                    if let Some(strategy) = strategy {
+                        format!("merge {}", strategy.to_string())
+                    } else {
+                        "merge".into()
+                    }
+                }
                 UserCommand::Ping => "ping".into(),
                 UserCommand::QaStatus(status) => format!(
                     "qa{}",
@@ -289,6 +297,18 @@ impl Command {
     fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
         GhMergeStrategy::try_from(&args.join(" ")[..])
             .map_err(|_e| CommandError::ArgumentParsingError)
+    }
+
+    fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<GhMergeStrategy>> {
+        let args = &args.join(" ");
+        if args.trim().is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(
+                GhMergeStrategy::try_from(&args[..])
+                    .map_err(|_e| CommandError::ArgumentParsingError)?,
+            ))
+        }
     }
 
     fn parse_message(args: &[&str]) -> Option<String> {
