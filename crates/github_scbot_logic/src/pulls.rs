@@ -8,6 +8,7 @@ use github_scbot_database::{
     },
     DatabaseError,
 };
+use github_scbot_libs::tracing::{debug, info};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
@@ -17,7 +18,6 @@ use github_scbot_types::{
     reviews::GhReviewState,
     status::CheckStatus,
 };
-use tracing::{debug, info};
 
 use crate::{
     commands::{AdminCommand, Command, CommandParser},

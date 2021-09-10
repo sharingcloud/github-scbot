@@ -1,3 +1,4 @@
+use github_scbot_libs::serde_json;
 use github_scbot_types::{
     pulls::GhMergeStrategy,
     reviews::GhReviewState,

@@ -1,8 +1,11 @@
 //! External status handlers.
 
-use actix_web::{web, HttpResponse, Result};
-use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_database::models::DatabaseAdapter;
+use github_scbot_libs::{
+    actix_web::{web, HttpResponse, Result},
+    actix_web_httpauth::extractors::bearer::BearerAuth,
+    sentry,
+};
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
 use sentry_actix::eyre::WrapEyre;
 use serde::{Deserialize, Serialize};

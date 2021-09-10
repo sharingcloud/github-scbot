@@ -2,9 +2,12 @@
 
 use std::error::Error;
 
-use actix_web::web::{Bytes, BytesMut, Payload};
-use crypto::{hmac::Hmac, mac::Mac, sha2::Sha256};
-use futures::stream::StreamExt;
+use github_scbot_libs::{
+    actix_web::web::{Bytes, BytesMut, Payload},
+    crypto::{self, hmac::Hmac, mac::Mac, sha2::Sha256},
+    futures::stream::StreamExt,
+    hex,
+};
 
 /// Check if a signature is valid.
 pub fn is_valid_signature<'a>(signature: &str, body: &'a [u8], secret: &str) -> bool {

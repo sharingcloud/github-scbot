@@ -10,10 +10,8 @@ github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
 github-scbot-redis = { path = "../github_scbot_redis" }
-regex = "1.4"
-smart-default = "0.6.0"
+github-scbot-libs = { path = "../github_scbot_libs" }
 thiserror = "1.0"
-tracing = "0.1"
 
 [dev-dependencies]
 actix-rt = "1"

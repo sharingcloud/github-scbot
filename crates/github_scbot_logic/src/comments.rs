@@ -6,12 +6,12 @@ use github_scbot_database::{
     models::{HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel},
     DatabaseError,
 };
+use github_scbot_libs::tracing::info;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
     events::EventType,
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
 };
-use tracing::info;
 
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},

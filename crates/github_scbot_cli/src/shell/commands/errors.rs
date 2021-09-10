@@ -1,6 +1,6 @@
 //! Command error.
 
-use stable_eyre::eyre;
+use github_scbot_libs::stable_eyre::eyre;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

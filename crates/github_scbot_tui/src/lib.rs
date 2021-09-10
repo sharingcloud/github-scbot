@@ -20,8 +20,10 @@ mod state;
 use std::io;
 
 use github_scbot_database::models::IDatabaseAdapter;
-use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::{backend::TermionBackend, Terminal};
+use github_scbot_libs::{
+    termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen},
+    tui::{backend::TermionBackend, Terminal},
+};
 
 use self::{
     app::App,

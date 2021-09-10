@@ -346,14 +346,12 @@ dependencies = [
 
 [[package]]
 name = "actix-web-httpauth"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "536a75d767c5c2b3e64d3f569621f38ed7609359a0c82d149c88290a6ba41b22"
+checksum = "0c3b11a07a3df3f7970fd8bd38cc66998b5549f507c54cc64c6e843bc82d6358"
 dependencies = [
- "actix-service",
  "actix-web",
- "base64 0.12.3",
- "bytes",
+ "base64 0.13.0",
  "futures-util",
 ]
 
@@ -469,6 +467,35 @@ name = "arc-swap"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d25d88fd6b8041580a654f9d0c581a047baee2b3efee13275f2fc392fc75034"
+
+[[package]]
+name = "argh"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f023c76cd7975f9969f8e29f0e461decbdc7f51048ce43427107a3d192f1c9bf"
+dependencies = [
+ "argh_derive",
+ "argh_shared",
+]
+
+[[package]]
+name = "argh_derive"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48ad219abc0c06ca788aface2e3a1970587e3413ab70acd20e54b6ec524c1f8f"
+dependencies = [
+ "argh_shared",
+ "heck",
+ "proc-macro2 1.0.27",
+ "quote 1.0.7",
+ "syn",
+]
+
+[[package]]
+name = "argh_shared"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38de00daab4eac7d753e97697066238d67ce9d7e2d823ab4f72fe14af29f3f33"
 
 [[package]]
 name = "async-trait"
@@ -636,6 +663,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo_toml"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "067a0b9ae9282dd1f63b6c1e76a065d741fc1733e566dc50b5b5d8a84d7e3c4a"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "toml",
+]
+
+[[package]]
 name = "cassowary"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -699,9 +737,9 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.13.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a50aab2529019abfabfa93f1e6c41ef392f91fbf179b347a7e96abb524884a08"
+checksum = "3993e6445baa160675931ec041a5e03ca84b9c6e32a056150d3aa2bdda0a1f45"
 dependencies = [
  "encode_unicode",
  "lazy_static",
@@ -710,7 +748,6 @@ dependencies = [
  "terminal_size",
  "unicode-width",
  "winapi 0.3.9",
- "winapi-util",
 ]
 
 [[package]]
@@ -770,9 +807,9 @@ checksum = "ea221b5284a47e40033bf9b66f35f984ec0ea2931eb03505246cd27a963f981b"
 
 [[package]]
 name = "cpufeatures"
-version = "0.1.4"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed00c67cb5d0a7d64a44f6ad2668db7e7530311dd53ea79bcd4fb022c64911c8"
+checksum = "95059428f66df56b63431fdb4e1947ed2190586af5c5a8a8b71122bdf5a7f469"
 dependencies = [
  "libc",
 ]
@@ -821,9 +858,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4857fd85a0c34b3c3297875b747c1e02e06b6a0ea32dd892d8192b9ce0813ea6"
+checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
 dependencies = [
  "generic-array",
  "subtle",
@@ -871,9 +908,9 @@ dependencies = [
 
 [[package]]
 name = "dialoguer"
-version = "0.7.1"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70f807b2943dc90f9747497d9d65d7e92472149be0b88bf4ce1201b4ac979c26"
+checksum = "c9dd058f8b65922819fabb4a41e7d1964e56344042c26efbccd465202c23fa0c"
 dependencies = [
  "console",
  "lazy_static",
@@ -883,9 +920,9 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "1.4.5"
+version = "1.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e2de9deab977a153492a1468d1b1c0662c1cf39e5ea87d0c060ecd59ef18d8c"
+checksum = "bba51ca66f57261fd17cadf8b73e4775cc307d0521d855de3f5de91a8f074e0e"
 dependencies = [
  "bitflags",
  "byteorder",
@@ -964,6 +1001,18 @@ name = "dotenv"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
+name = "duct"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fc6a0a59ed0888e0041cf708e66357b7ae1a82f1c67247e1f93b5e0818f7d8d"
+dependencies = [
+ "libc",
+ "once_cell",
+ "os_pipe",
+ "shared_child",
+]
 
 [[package]]
 name = "either"
@@ -1233,23 +1282,14 @@ name = "github-scbot-api"
 version = "0.10.2"
 dependencies = [
  "actix-rt",
- "async-trait",
- "chrono",
  "github-scbot-conf",
  "github-scbot-crypto",
+ "github-scbot-libs",
  "github-scbot-types",
  "github-scbot-utils",
- "heck",
- "http",
  "maplit",
- "octocrab",
- "rand 0.8.3",
- "reqwest",
  "serde",
- "serde_json",
- "serde_plain",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -1257,19 +1297,16 @@ name = "github-scbot-cli"
 version = "0.10.2"
 dependencies = [
  "actix-rt",
- "dialoguer",
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-libs",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-server",
  "github-scbot-tui",
  "github-scbot-types",
- "owo-colors",
- "sentry-core",
  "sentry-eyre",
- "stable-eyre",
  "structopt",
  "thiserror",
 ]
@@ -1278,22 +1315,16 @@ dependencies = [
 name = "github-scbot-conf"
 version = "0.10.2"
 dependencies = [
- "dotenv",
- "jsonwebtoken",
- "sentry",
+ "github-scbot-libs",
  "sentry-eyre",
- "stable-eyre",
  "thiserror",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
 name = "github-scbot-crypto"
 version = "0.10.2"
 dependencies = [
- "jsonwebtoken",
- "openssl",
+ "github-scbot-libs",
  "serde",
  "thiserror",
 ]
@@ -1303,22 +1334,60 @@ name = "github-scbot-database"
 version = "0.10.2"
 dependencies = [
  "actix-rt",
- "async-trait",
- "chrono",
  "diesel",
  "diesel_migrations",
  "github-scbot-conf",
  "github-scbot-crypto",
+ "github-scbot-libs",
  "github-scbot-types",
  "github-scbot-utils",
  "pretty_assertions 0.6.1",
- "r2d2",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "github-scbot-libs"
+version = "0.10.2"
+dependencies = [
+ "actix",
+ "actix-cors",
+ "actix-http",
+ "actix-redis",
+ "actix-rt",
+ "actix-service",
+ "actix-web",
+ "actix-web-httpauth",
+ "async-trait",
+ "chrono",
+ "dialoguer",
+ "dotenv",
+ "futures",
+ "heck",
+ "hex",
+ "http",
+ "jsonwebtoken",
+ "octocrab",
+ "openssl",
+ "owo-colors",
+ "r2d2",
+ "rand 0.8.3",
+ "redis-async",
+ "regex",
+ "reqwest",
+ "rust-crypto",
+ "sentry",
+ "sentry-core",
  "serde_json",
+ "serde_plain",
  "smart-default",
+ "stable-eyre",
+ "termion",
  "thiserror",
  "tokio-diesel",
  "tracing",
+ "tracing-subscriber",
+ "tui",
 ]
 
 [[package]]
@@ -1330,26 +1399,21 @@ dependencies = [
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-libs",
  "github-scbot-redis",
  "github-scbot-types",
  "maplit",
  "pretty_assertions 0.7.2",
- "regex",
- "smart-default",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
 name = "github-scbot-redis"
 version = "0.10.2"
 dependencies = [
- "actix",
- "actix-redis",
  "actix-rt",
- "async-trait",
+ "github-scbot-libs",
  "github-scbot-utils",
- "redis-async",
  "thiserror",
 ]
 
@@ -1357,32 +1421,20 @@ dependencies = [
 name = "github-scbot-server"
 version = "0.10.2"
 dependencies = [
- "actix-cors",
- "actix-http",
  "actix-rt",
- "actix-service",
- "actix-web",
- "actix-web-httpauth",
  "chrono",
- "futures",
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-database",
+ "github-scbot-libs",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-types",
- "hex",
  "pretty_assertions 0.7.2",
- "regex",
- "rust-crypto",
- "sentry",
  "sentry-actix",
  "serde",
- "serde_json",
- "stable-eyre",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -1391,20 +1443,17 @@ version = "0.10.2"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-libs",
  "github-scbot-types",
- "termion",
  "thiserror",
- "tui",
 ]
 
 [[package]]
 name = "github-scbot-types"
 version = "0.10.2"
 dependencies = [
- "chrono",
+ "github-scbot-libs",
  "serde",
- "serde_plain",
- "smart-default",
  "thiserror",
 ]
 
@@ -1458,9 +1507,9 @@ dependencies = [
 
 [[package]]
 name = "hex"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hkdf"
@@ -1711,9 +1760,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.96"
+version = "0.2.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5600b4e6efc5421841a2138a6b082e07fe12f9aaa12783d50e5d13325b26b4fc"
+checksum = "3cb00336871be5ed2c8ed44b60ae9959dc5b9f08539422ed43f09e34ecaeba21"
 
 [[package]]
 name = "linked-hash-map"
@@ -2022,6 +2071,16 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "os_pipe"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb233f06c2307e1f5ce2ecad9f8121cffbbee2c95428f44ea85222e460d0d213"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2771,18 +2830,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.117"
+version = "1.0.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
+checksum = "f12d06de37cf59146fbdecab66aa99f9fe4f78722e3607577a5375d66bd0c913"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.117"
+version = "1.0.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbd1ae72adb44aab48f325a02444a5fc079349a8d804c1fc922aed3f7454c74e"
+checksum = "d7bc1a1ab1961464eae040d96713baa5a724a8152c1222492465b54322ec508b"
 dependencies = [
  "proc-macro2 1.0.27",
  "quote 1.0.7",
@@ -2851,9 +2910,9 @@ checksum = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
 
 [[package]]
 name = "sha2"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b362ae5752fd2137731f9fa25fd4d9058af34666ca1966fb969119cc35719f12"
+checksum = "9204c41a1597a8c5af23c82d1c921cb01ec0a4c59e07a9c7306062829a3903f3"
 dependencies = [
  "block-buffer",
  "cfg-if 1.0.0",
@@ -2869,6 +2928,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79c719719ee05df97490f80a45acfc99e5a30ce98a1e4fb67aee422745ae14e3"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shared_child"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6be9f7d5565b1483af3e72975e2dee33879b3b86bd48c0929fccf6585d79e65a"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -3041,9 +3110,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "structopt"
-version = "0.3.21"
+version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5277acd7ee46e63e5168a80734c9f6ee81b1367a7d8772a2d765df2a3705d28c"
+checksum = "69b041cdcb67226aca307e6e7be44c8806423d83e018bd662360a93dabce4d71"
 dependencies = [
  "clap",
  "lazy_static",
@@ -3052,9 +3121,9 @@ dependencies = [
 
 [[package]]
 name = "structopt-derive"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ba9cdfda491b814720b6b06e0cac513d922fc407582032e8706e9f137976f90"
+checksum = "7813934aecf5f51a54775e00068c237de98489463968231a51746bbbc03f9c10"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -3065,9 +3134,9 @@ dependencies = [
 
 [[package]]
 name = "subtle"
-version = "2.4.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
+checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
@@ -3096,9 +3165,9 @@ dependencies = [
 
 [[package]]
 name = "terminal_size"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86ca8ced750734db02076f44132d802af0b33b09942331f4459dde8636fd2406"
+checksum = "633c1a546cee861a1a6d0dc69ebeca693bf4296661ba7852b9d21d159e0506df"
 dependencies = [
  "libc",
  "winapi 0.3.9",
@@ -3285,6 +3354,15 @@ dependencies = [
  "log",
  "pin-project-lite 0.1.11",
  "tokio",
+]
+
+[[package]]
+name = "toml"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31142970826733df8241ef35dc040ef98c679ab14d7c3e54d827099b3acecaa"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -3506,9 +3584,9 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "universal-hash"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8326b2c654932e3e4f9196e69d08fdf7cfd718e1dc6f66b347e6024a0c961402"
+checksum = "9f214e8f697e925001e66ec2c6e37a4ef93f0f78c2eed7814394e10c62025b05"
 dependencies = [
  "generic-array",
  "subtle",
@@ -3720,15 +3798,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 
 [[package]]
-name = "winapi-util"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70ec6ce85bb158151cae5e5c87f95a8e97d2c0c4b001223f33a334e3ce5de178"
-dependencies = [
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3763,7 +3832,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "xtask"
+version = "0.10.2"
+dependencies = [
+ "argh",
+ "cargo_toml",
+ "duct",
+]
+
+[[package]]
 name = "zeroize"
-version = "0.9.3"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45af6a010d13e4cf5b54c94ba5a2b2eba5596b9e46bf5875612d332a1f2b3f86"
+checksum = "377db0846015f7ae377174787dd452e1c5f5a9050bc6f954911d01f116daa0cd"

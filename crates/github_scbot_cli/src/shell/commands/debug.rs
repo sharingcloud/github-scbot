@@ -1,7 +1,7 @@
 //! Debug commands.
 
 use github_scbot_conf::{sentry::with_sentry_configuration, Config};
-use sentry_core::{protocol::Event, Hub, Level};
+use github_scbot_libs::sentry_core::{protocol::Event, Hub, Level};
 
 use super::errors::{CommandError, Result};
 

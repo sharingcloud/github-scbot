@@ -1,16 +1,18 @@
 //! Application module.
 
 use github_scbot_database::models::IDatabaseAdapter;
-use github_scbot_types::status::{CheckStatus, QaStatus};
-use termion::event::Key;
-use tui::{
-    backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
-    Frame,
+use github_scbot_libs::{
+    termion::event::Key,
+    tui::{
+        backend::Backend,
+        layout::{Alignment, Constraint, Direction, Layout, Rect},
+        style::{Color, Modifier, Style},
+        text::{Span, Spans},
+        widgets::{Block, Borders, List, ListItem, Paragraph},
+        Frame,
+    },
 };
+use github_scbot_types::status::{CheckStatus, QaStatus};
 
 use super::{errors::Result, state::AppState};
 

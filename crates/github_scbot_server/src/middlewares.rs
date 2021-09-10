@@ -9,21 +9,24 @@ use std::{
     task::{Context, Poll},
 };
 
-use actix_service::{Service, Transform};
-use actix_web::{
-    dev::{ServiceRequest, ServiceResponse},
-    http::Method,
-    web::BytesMut,
-    Error, HttpMessage,
-};
-use futures::{
-    future::{ok, Ready},
-    stream::StreamExt,
-    Future,
-};
 use github_scbot_conf::Config;
+use github_scbot_libs::{
+    actix_http,
+    actix_service::{Service, Transform},
+    actix_web::{
+        dev::{ServiceRequest, ServiceResponse},
+        http::Method,
+        web::BytesMut,
+        Error, HttpMessage,
+    },
+    futures::{
+        future::{ok, Ready},
+        stream::StreamExt,
+        Future,
+    },
+    tracing::warn,
+};
 use sentry_actix::eyre::WrapEyre;
-use tracing::warn;
 
 use super::{
     constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH},

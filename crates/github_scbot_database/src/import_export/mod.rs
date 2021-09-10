@@ -7,6 +7,7 @@ use std::{
 };
 
 use github_scbot_conf::Config;
+use github_scbot_libs::serde_json;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

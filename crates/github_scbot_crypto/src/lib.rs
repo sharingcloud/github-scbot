@@ -13,11 +13,13 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{
-    dangerous_insecure_decode, decode, encode, Algorithm, DecodingKey, EncodingKey, Header,
-    Validation,
+use github_scbot_libs::{
+    jsonwebtoken::{
+        dangerous_insecure_decode, decode, encode, Algorithm, DecodingKey, EncodingKey, Header,
+        Validation,
+    },
+    openssl::rsa::Rsa,
 };
-use openssl::rsa::Rsa;
 use serde::{de::DeserializeOwned, Serialize};
 
 mod errors;

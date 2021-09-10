@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "crates/*"
+    "crates/*",
+    "xtask"
 ]
 
 [profile.dev.package.backtrace]
