@@ -15,7 +15,7 @@ pub(crate) struct SetVersionTask {
 }
 
 impl SetVersionTask {
-    pub fn handle(self) -> Result<(), Box<dyn std::error::Error>> {
+    fn replace_crates_version(&self) -> Result<(), Box<dyn std::error::Error>> {
         let version_rgx = Regex::new("version = .*\n")?;
 
         // Loop on all crates starting with github_scbot
@@ -47,5 +47,23 @@ impl SetVersionTask {
         }
 
         Ok(())
+    }
+
+    fn replace_compose_version(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let version_rgx = Regex::new("image: github-scbot:.*")?;
+        let compose_path = project_root().join("docker").join("docker-compose.yml");
+        let contents = fs::read_to_string(&compose_path)?;
+        let replaced = version_rgx.replace(&contents, |_caps: &Captures| {
+            format!("image: github-scbot:{}", self.version)
+        });
+
+        fs::write(compose_path, replaced.as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn handle(self) -> Result<(), Box<dyn std::error::Error>> {
+        self.replace_crates_version()?;
+        self.replace_compose_version()
     }
 }

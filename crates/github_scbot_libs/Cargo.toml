@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-libs"
-version = "0.10.2"
+version = "0.11.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
