@@ -19,12 +19,14 @@ impl ServerTask {
 
         if self.trace {
             std::env::set_var("RUST_LOG", "info,github_scbot=trace");
+        } else {
+            std::env::set_var("RUST_LOG", "info");
         }
 
         if self.dev {
             duct::cmd!("cargo", "watch", "-x", "run-cli -- server").run()?;
         } else {
-            duct::cmd!("cargo", "run-cli", "--", "server").run()?;
+            duct::cmd!("cargo", "run-cli", "--release", "--", "server").run()?;
         }
 
         std::env::set_var("RUST_LOG", current_env_log);
