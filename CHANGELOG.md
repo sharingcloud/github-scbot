@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.11.0] - 2021-09-13
+
 ### Added
 
 - `admin-reset-reviews` command to reset stored reviews
@@ -101,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/sharingcloud/github-scbot/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/sharingcloud/github-scbot/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/sharingcloud/github-scbot/compare/v0.9.3...v0.10.0
 [0.9.3]: https://github.com/sharingcloud/github-scbot/compare/v0.9.2...v0.9.3
