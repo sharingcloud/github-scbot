@@ -1,7 +1,7 @@
 use std::fs;
 
 use argh::FromArgs;
-use cargo_toml::Manifest;
+use regex::{Captures, Regex};
 
 use crate::common::project_root;
 
@@ -16,9 +16,10 @@ pub(crate) struct SetVersionTask {
 
 impl SetVersionTask {
     pub fn handle(self) -> Result<(), Box<dyn std::error::Error>> {
+        let version_rgx = Regex::new("version = .*\n")?;
+
         // Loop on all crates starting with github_scbot
         let crates_dir = project_root().join("crates");
-
         let toml_files: Vec<_> = fs::read_dir(crates_dir)?
             .filter_map(|folder| {
                 let folder = folder.unwrap();
@@ -37,14 +38,12 @@ impl SetVersionTask {
             .collect();
 
         for toml_file in &toml_files {
-            let mut manifest = Manifest::from_path(toml_file)?;
-            if let Some(mut package) = manifest.package {
-                package.version = self.version.clone();
-                manifest.package = Some(package);
-            }
+            let contents = fs::read_to_string(toml_file)?;
+            let replaced = version_rgx.replace(&contents, |_caps: &Captures| {
+                format!("version = \"{}\"\n", self.version)
+            });
 
-            let serialized = toml::to_string(&manifest)?;
-            fs::write(toml_file, serialized)?;
+            fs::write(toml_file, replaced.as_bytes())?;
         }
 
         Ok(())
