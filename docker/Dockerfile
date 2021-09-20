@@ -5,6 +5,7 @@ WORKDIR /usr/src/app
 RUN rustup toolchain install nightly-2021-06-04 --profile default && rustup default nightly-2021-06-04
 
 COPY ./crates /usr/src/app/crates
+COPY ./xtask /usr/src/app/xtask
 COPY ./migrations /usr/src/app/migrations
 COPY Cargo.lock /usr/src/app
 COPY Cargo.toml /usr/src/app
