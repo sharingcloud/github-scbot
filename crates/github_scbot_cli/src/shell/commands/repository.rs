@@ -217,3 +217,20 @@ pub(crate) async fn set_manual_interaction_mode(
 
     Ok(())
 }
+
+pub(crate) async fn set_automerge(
+    db_adapter: &dyn IDatabaseAdapter,
+    repository_path: &str,
+    automerge: bool,
+) -> Result<()> {
+    let mut repo = RepositoryModel::get_from_path(db_adapter.repository(), repository_path).await?;
+    repo.default_automerge = automerge;
+    db_adapter.repository().save(&mut repo).await?;
+
+    println!(
+        "Default automerge set to '{}' for repository {}.",
+        automerge, repository_path
+    );
+
+    Ok(())
+}

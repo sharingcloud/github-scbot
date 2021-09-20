@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Add default automerge status in repository
+- Add `admin-set-default-automerge+` and `admin-set-default-automerge-` bot commands
+- Add `repository set-automerge <status>` CLI command
+
 ## [0.11.0] - 2021-09-13
 
 ### Added

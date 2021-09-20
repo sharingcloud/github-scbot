@@ -87,7 +87,8 @@ async fn test_import_models_from_json() -> Result<()> {
                     "pr_title_validation_regex": "[a-z]*",
                     "default_needed_reviewers_count": 2,
                     "default_strategy": "merge",
-                    "manual_interaction": false
+                    "manual_interaction": false,
+                    "default_automerge": false,
                 },
                 {
                     "id": 2,
@@ -96,7 +97,8 @@ async fn test_import_models_from_json() -> Result<()> {
                     "pr_title_validation_regex": "",
                     "default_needed_reviewers_count": 3,
                     "default_strategy": "merge",
-                    "manual_interaction": true
+                    "manual_interaction": true,
+                    "default_automerge": true,
                 }
             ],
             "pull_requests": [
@@ -230,8 +232,10 @@ async fn test_import_models_from_json() -> Result<()> {
 
         assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
         assert!(!rep_1.manual_interaction);
+        assert!(!rep_1.default_automerge);
         assert_eq!(rep_2.pr_title_validation_regex, "");
         assert!(rep_2.manual_interaction);
+        assert!(rep_2.default_automerge);
         assert_eq!(pr_1.name, "Tutu");
         assert!(!pr_1.automerge);
         assert_eq!(pr_1.get_checks_status(), CheckStatus::Waiting);

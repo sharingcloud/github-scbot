@@ -46,6 +46,8 @@ pub struct RepositoryModel {
     pub pr_title_validation_regex: String,
     /// Manual interaction.
     pub manual_interaction: bool,
+    /// Default automerge.
+    pub default_automerge: bool,
 }
 
 #[derive(Debug, Insertable)]
@@ -57,6 +59,7 @@ pub struct RepositoryCreation {
     pub default_needed_reviewers_count: i32,
     pub pr_title_validation_regex: String,
     pub manual_interaction: bool,
+    pub default_automerge: bool,
 }
 
 impl From<RepositoryCreation> for RepositoryModel {
@@ -69,6 +72,7 @@ impl From<RepositoryCreation> for RepositoryModel {
             default_needed_reviewers_count: creation.default_needed_reviewers_count,
             pr_title_validation_regex: creation.pr_title_validation_regex,
             manual_interaction: creation.manual_interaction,
+            default_automerge: creation.default_automerge,
         }
     }
 }
@@ -185,7 +189,8 @@ mod tests {
                     default_strategy: config.default_merge_strategy.clone(),
                     default_needed_reviewers_count: config.default_needed_reviewers_count as i32,
                     pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
-                    manual_interaction: false
+                    manual_interaction: false,
+                    default_automerge: false,
                 }
             );
 

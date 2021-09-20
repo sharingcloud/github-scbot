@@ -397,6 +397,25 @@ pub async fn handle_set_needed_reviewers_command(
         .build())
 }
 
+pub async fn handle_set_default_automerge_command(
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &mut RepositoryModel,
+    value: bool,
+) -> Result<CommandExecutionResult> {
+    repo_model.default_automerge = value;
+    db_adapter.repository().save(repo_model).await?;
+
+    let comment = format!(
+        "Default automerge status set to **{}** for this repository.",
+        value
+    );
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
 pub async fn handle_admin_disable_command(
     api_adapter: &impl IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
@@ -475,6 +494,8 @@ pub fn handle_admin_help_command(
         - `admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_\n\
         - `admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_\n\
         - `admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_\n\
+        - `admin-set-default-automerge+`: _Set automerge enabled for this repository_\n\
+        - `admin-set-default-automerge-`: _Set automerge disabled for this repository_\n\
         - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username

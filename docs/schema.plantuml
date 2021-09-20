@@ -6,7 +6,8 @@ class Repository {
     default_strategy: String
     default_needed_reviewers_count: Integer
     pr_title_validation_regex: String
-    manual_interaction: bool
+    manual_interaction: Boolean
+    default_automerge: Boolean
 }
 
 class PullRequest {

@@ -146,6 +146,15 @@ enum RepositoryCommand {
         manual_interaction: bool,
     },
 
+    /// Set automerge
+    SetAutomerge {
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+        // Value
+        #[structopt(parse(try_from_str))]
+        automerge: bool,
+    },
+
     /// Remove merge rule
     RemoveMergeRule {
         /// Repository path (e.g. `MyOrganization/my-project`)
@@ -376,6 +385,12 @@ async fn parse_args(
                     manual_interaction,
                 )
                 .await?
+            }
+            RepositoryCommand::SetAutomerge {
+                repository_path,
+                automerge,
+            } => {
+                commands::repository::set_automerge(db_adapter, &repository_path, automerge).await?
             }
             RepositoryCommand::Show { repository_path } => {
                 commands::repository::show_repository(db_adapter, &repository_path).await?

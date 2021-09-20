@@ -80,6 +80,8 @@ pub enum AdminCommand {
     SetDefaultMergeStrategy(GhMergeStrategy),
     /// Set default PR title validation regex.
     SetDefaultPRTitleRegex(String),
+    /// Set default automerge status.
+    SetDefaultAutomerge(bool),
     /// Set needed reviewers count.
     SetNeededReviewers(u32),
 }
@@ -216,6 +218,8 @@ impl Command {
             "admin-set-default-pr-title-regex" => {
                 Self::Admin(AdminCommand::SetDefaultPRTitleRegex(Self::parse_text(args)))
             }
+            "admin-set-default-automerge+" => Self::Admin(AdminCommand::SetDefaultAutomerge(true)),
+            "admin-set-default-automerge-" => Self::Admin(AdminCommand::SetDefaultAutomerge(false)),
             "admin-set-needed-reviewers" => {
                 Self::Admin(AdminCommand::SetNeededReviewers(Self::parse_u32(args)?))
             }
@@ -241,6 +245,12 @@ impl Command {
                 }
                 AdminCommand::SetNeededReviewers(count) => {
                     format!("admin-set-needed-reviewers {}", count)
+                }
+                AdminCommand::SetDefaultAutomerge(status) => {
+                    format!(
+                        "admin-set-default-automerge{}",
+                        if *status { "+" } else { "-" }
+                    )
                 }
                 AdminCommand::Synchronize => "admin-sync".into(),
                 AdminCommand::ResetReviews => "admin-reset-reviews".into(),
