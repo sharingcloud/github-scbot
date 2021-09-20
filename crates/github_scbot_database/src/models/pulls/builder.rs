@@ -165,7 +165,7 @@ impl<'a> PullRequestModelBuilder<'a> {
                 .name
                 .clone()
                 .unwrap_or_else(|| format!("Unnamed PR #{}", self.pr_number)),
-            automerge: self.automerge.unwrap_or(false),
+            automerge: self.automerge.unwrap_or(self.repository.default_automerge),
             base_branch: self.base_branch.clone().unwrap_or_else(|| "unknown".into()),
             head_branch: self.head_branch.clone().unwrap_or_else(|| "unknown".into()),
             check_status: self

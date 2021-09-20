@@ -15,6 +15,7 @@ pub struct RepositoryModelBuilder<'a> {
     default_needed_reviewers_count: Option<u64>,
     pr_title_validation_regex: Option<String>,
     manual_interaction: Option<bool>,
+    default_automerge: Option<bool>,
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
@@ -27,6 +28,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
             manual_interaction: None,
+            default_automerge: None,
         }
     }
 
@@ -39,6 +41,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
             pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
             manual_interaction: Some(model.manual_interaction),
+            default_automerge: Some(model.default_automerge),
         }
     }
 
@@ -51,6 +54,7 @@ impl<'a> RepositoryModelBuilder<'a> {
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
             manual_interaction: None,
+            default_automerge: None,
         }
     }
 
@@ -93,6 +97,7 @@ impl<'a> RepositoryModelBuilder<'a> {
                 })
                 .to_string(),
             manual_interaction: self.manual_interaction.unwrap_or(false),
+            default_automerge: self.default_automerge.unwrap_or(false),
         }
     }
 
@@ -123,6 +128,10 @@ impl<'a> RepositoryModelBuilder<'a> {
         handle.manual_interaction = match self.manual_interaction {
             Some(m) => m,
             None => handle.manual_interaction,
+        };
+        handle.default_automerge = match self.default_automerge {
+            Some(m) => m,
+            None => handle.default_automerge,
         };
 
         db_adapter.save(&mut handle).await?;

@@ -338,6 +338,12 @@ impl CommandExecutor {
                         )
                         .await?
                     }
+                    AdminCommand::SetDefaultAutomerge(value) => {
+                        handlers::handle_set_default_automerge_command(
+                            db_adapter, repo_model, *value,
+                        )
+                        .await?
+                    }
                     AdminCommand::SetNeededReviewers(count) => {
                         handlers::handle_set_needed_reviewers_command(db_adapter, pr_model, *count)
                             .await?
