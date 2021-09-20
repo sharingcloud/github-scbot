@@ -30,7 +30,7 @@ pub async fn handle_issue_comment_event(
     event: GhIssueCommentEvent,
 ) -> Result<()> {
     if let GhIssueCommentAction::Created = event.action {
-        let commands = CommandParser::parse_commands(&config, &event.comment.body);
+        let commands = CommandParser::parse_commands(config, &event.comment.body);
 
         match db_adapter
             .pull_request()
@@ -39,7 +39,7 @@ pub async fn handle_issue_comment_event(
         {
             Ok((mut pr_model, mut repo_model)) => {
                 handle_comment_creation(
-                    &config,
+                    config,
                     api_adapter,
                     db_adapter,
                     redis_adapter,
@@ -56,7 +56,7 @@ pub async fn handle_issue_comment_event(
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
                         let (mut pr, sha) = synchronize_pull_request(
-                            &config,
+                            config,
                             api_adapter,
                             db_adapter,
                             &event.repository.owner.login,
@@ -123,7 +123,7 @@ pub async fn handle_comment_creation(
     let comment_id = event.comment.id;
 
     if config.server_enable_history_tracking {
-        HistoryWebhookModel::builder(&repo_model, &pr_model)
+        HistoryWebhookModel::builder(repo_model, pr_model)
             .username(comment_author)
             .event_key(EventType::IssueComment)
             .payload(event)

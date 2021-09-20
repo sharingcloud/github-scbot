@@ -48,7 +48,7 @@ pub(crate) fn should_create_pull_request(
     if repo_model.manual_interaction {
         if let Some(body) = &event.pull_request.body {
             // Check for magic instruction to enable bot
-            let commands = CommandParser::parse_commands(&config, body);
+            let commands = CommandParser::parse_commands(config, body);
             for command in commands.into_iter().flatten() {
                 if let Command::Admin(AdminCommand::Enable) = command {
                     return true;
@@ -157,7 +157,7 @@ pub async fn handle_pull_request_event(
     event: GhPullRequestEvent,
 ) -> Result<()> {
     // Get or create repository
-    let repo_model = RepositoryModel::builder_from_github(&config, &event.repository)
+    let repo_model = RepositoryModel::builder_from_github(config, &event.repository)
         .create_or_update(db_adapter.repository())
         .await?;
 

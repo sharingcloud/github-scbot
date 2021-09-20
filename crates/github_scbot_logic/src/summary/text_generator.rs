@@ -26,7 +26,7 @@ impl SummaryTextGenerator {
                 &pull_request_status.pull_request_title_regex,
                 pull_request_status.merge_strategy
             ),
-            checks_section = Self::generate_status_comment_checks_section(&pull_request_status),
+            checks_section = Self::generate_status_comment_checks_section(pull_request_status),
             config_section =
                 Self::generate_status_comment_config_section(pull_request_status.automerge),
             footer = Self::generate_status_comment_footer(&pull_request_status.checks_url)

@@ -12,7 +12,7 @@ pub(crate) async fn send_test_event_to_sentry(
     if config.sentry_url.is_empty() {
         Err(CommandError::SentryNotConfigured)
     } else {
-        with_sentry_configuration(&config, || async {
+        with_sentry_configuration(config, || async {
             // Create event
             let event = Event {
                 message: Some(message.unwrap_or_else(|| "This is a test".into())),

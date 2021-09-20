@@ -50,14 +50,14 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
     async fn create(&self, entry: ReviewCreation) -> Result<ReviewModel> {
         diesel::insert_into(review::table)
             .values(entry)
-            .get_result_async(&self.pool)
+            .get_result_async(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn list(&self) -> Result<Vec<ReviewModel>> {
         review::table
-            .load_async::<ReviewModel>(&self.pool)
+            .load_async::<ReviewModel>(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -66,7 +66,7 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
         review::table
             .filter(review::pull_request_id.eq(pull_request_id))
             .order_by(review::id)
-            .get_results_async(&self.pool)
+            .get_results_async(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -84,7 +84,7 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
         review::table
             .filter(review::pull_request_id.eq(pull_request.id))
             .filter(review::username.eq(username.clone()))
-            .first_async(&self.pool)
+            .first_async(self.pool)
             .await
             .map_err(|_e| {
                 DatabaseError::UnknownReviewState(
@@ -97,7 +97,7 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
 
     async fn remove(&self, entry: ReviewModel) -> Result<()> {
         diesel::delete(review::table.filter(review::id.eq(entry.id)))
-            .execute_async(&self.pool)
+            .execute_async(self.pool)
             .await?;
 
         Ok(())
@@ -105,7 +105,7 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
 
     async fn remove_all_for_pull_request(&self, pull_request_id: i32) -> Result<()> {
         diesel::delete(review::table.filter(review::pull_request_id.eq(pull_request_id)))
-            .execute_async(&self.pool)
+            .execute_async(self.pool)
             .await?;
 
         Ok(())
@@ -116,7 +116,7 @@ impl<'a> IReviewDbAdapter for ReviewDbAdapter<'a> {
 
         *entry = diesel::update(review::table.filter(review::id.eq(copy.id)))
             .set(copy)
-            .get_result_async(&self.pool)
+            .get_result_async(self.pool)
             .await
             .map_err(DatabaseError::from)?;
 

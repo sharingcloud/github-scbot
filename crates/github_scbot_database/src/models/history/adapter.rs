@@ -36,14 +36,14 @@ impl<'a> IHistoryWebhookDbAdapter for HistoryWebhookDbAdapter<'a> {
     async fn create(&self, entry: HistoryWebhookCreation) -> Result<HistoryWebhookModel> {
         diesel::insert_into(history_webhook::table)
             .values(entry)
-            .get_result_async(&self.pool)
+            .get_result_async(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn list(&self) -> Result<Vec<HistoryWebhookModel>> {
         history_webhook::table
-            .load_async::<HistoryWebhookModel>(&self.pool)
+            .load_async::<HistoryWebhookModel>(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -54,14 +54,14 @@ impl<'a> IHistoryWebhookDbAdapter for HistoryWebhookDbAdapter<'a> {
     ) -> Result<Vec<HistoryWebhookModel>> {
         history_webhook::table
             .filter(history_webhook::repository_id.eq(repository_id))
-            .load_async::<HistoryWebhookModel>(&self.pool)
+            .load_async::<HistoryWebhookModel>(self.pool)
             .await
             .map_err(Into::into)
     }
 
     async fn remove_all(&self) -> Result<()> {
         diesel::delete(history_webhook::table)
-            .execute_async(&self.pool)
+            .execute_async(self.pool)
             .await?;
 
         Ok(())

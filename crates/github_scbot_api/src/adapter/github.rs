@@ -399,7 +399,6 @@ impl IAPIAdapter for GithubAPIAdapter {
         #[derive(Debug, Deserialize)]
         struct InstallationTokenResponse {
             token: String,
-            expires_at: String,
         }
 
         let client = Octocrab::builder()

@@ -138,7 +138,7 @@ pub async fn update_pull_request_status(
         );
         if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await? {
             let result =
-                try_automerge_pull_request(api_adapter, db_adapter, &repo_model, &pr_model).await?;
+                try_automerge_pull_request(api_adapter, db_adapter, repo_model, pr_model).await?;
             if !result {
                 pr_model.automerge = false;
                 db_adapter.pull_request().save(pr_model).await?;

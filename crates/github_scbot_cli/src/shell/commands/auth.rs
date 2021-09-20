@@ -69,7 +69,7 @@ pub(crate) async fn add_account_right(
     let repo = RepositoryModel::get_from_path(db_adapter.repository(), repository_path).await?;
     let account = db_adapter
         .external_account()
-        .get_from_username(&username)
+        .get_from_username(username)
         .await?;
 
     db_adapter
@@ -92,7 +92,7 @@ pub(crate) async fn remove_account_right(
     let repo = RepositoryModel::get_from_path(db_adapter.repository(), repository_path).await?;
     let account = db_adapter
         .external_account()
-        .get_from_username(&username)
+        .get_from_username(username)
         .await?;
 
     db_adapter
@@ -113,7 +113,7 @@ pub(crate) async fn remove_account_rights(
 ) -> Result<()> {
     let account = db_adapter
         .external_account()
-        .get_from_username(&username)
+        .get_from_username(username)
         .await?;
 
     db_adapter
@@ -131,7 +131,7 @@ pub(crate) async fn list_account_rights(
 ) -> Result<()> {
     let account = db_adapter
         .external_account()
-        .get_from_username(&username)
+        .get_from_username(username)
         .await?;
     let rights = db_adapter
         .external_account_right()

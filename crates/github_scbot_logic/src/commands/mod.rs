@@ -278,7 +278,7 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::Gif(terms) => {
-                        handlers::handle_gif_command(config, api_adapter, &terms).await?
+                        handlers::handle_gif_command(config, api_adapter, terms).await?
                     }
                     UserCommand::Help => handlers::handle_help_command(config, comment_author)?,
                     UserCommand::IsAdmin => {
@@ -427,41 +427,32 @@ mod tests {
                 .unwrap();
 
             // PR creator should be valid
-            assert_eq!(
-                CommandExecutor::validate_user_rights_on_command(
-                    &db_adapter,
-                    creator,
-                    &pr,
-                    &Command::User(UserCommand::Merge(None))
-                )
-                .await
-                .unwrap(),
-                true
-            );
+            assert!(CommandExecutor::validate_user_rights_on_command(
+                &db_adapter,
+                creator,
+                &pr,
+                &Command::User(UserCommand::Merge(None))
+            )
+            .await
+            .unwrap());
             // Non-admin should be invalid
-            assert_eq!(
-                CommandExecutor::validate_user_rights_on_command(
-                    &db_adapter,
-                    "non-admin",
-                    &pr,
-                    &Command::User(UserCommand::Merge(None))
-                )
-                .await
-                .unwrap(),
-                false
-            );
+            assert!(!CommandExecutor::validate_user_rights_on_command(
+                &db_adapter,
+                "non-admin",
+                &pr,
+                &Command::User(UserCommand::Merge(None))
+            )
+            .await
+            .unwrap());
             // Admin should be valid
-            assert_eq!(
-                CommandExecutor::validate_user_rights_on_command(
-                    &db_adapter,
-                    "admin",
-                    &pr,
-                    &Command::User(UserCommand::Merge(None))
-                )
-                .await
-                .unwrap(),
-                true
-            );
+            assert!(CommandExecutor::validate_user_rights_on_command(
+                &db_adapter,
+                "admin",
+                &pr,
+                &Command::User(UserCommand::Merge(None))
+            )
+            .await
+            .unwrap());
 
             Ok::<_, LogicError>(())
         })
