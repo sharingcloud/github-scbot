@@ -23,7 +23,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           # Build docker image
-          docker build --no-cache --rm --pull=true -t $ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_REF##*/} .
+          docker build --no-cache --rm --pull=true -t $ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_REF##*/} -f docker/Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_REF##*/}
       - name: Logout of Amazon ECR
         if: always()
