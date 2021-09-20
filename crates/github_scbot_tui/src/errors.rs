@@ -7,15 +7,15 @@ use thiserror::Error;
 pub enum UiError {
     /// Wraps [`std::io::IoError`].
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
 
     /// Wraps [`std::sync::mpsc::RecvError`].
     #[error("Channel communication error.")]
-    RecvError(#[from] std::sync::mpsc::RecvError),
+    Recv(#[from] std::sync::mpsc::RecvError),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error(transparent)]
-    DatabaseError(#[from] github_scbot_database::DatabaseError),
+    Database(#[from] github_scbot_database::DatabaseError),
 }
 
 /// Result alias for `UiError`.

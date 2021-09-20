@@ -107,7 +107,7 @@ impl SummaryCommentSender {
     }
 
     fn generate_comment(pull_request_status: &PullRequestStatus) -> Result<String> {
-        SummaryTextGenerator::generate(&pull_request_status)
+        SummaryTextGenerator::generate(pull_request_status)
     }
 
     async fn post_github_comment(

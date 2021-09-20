@@ -26,7 +26,7 @@ async fn arrange(
     db_adapter: &dyn IDatabaseAdapter,
 ) -> (RepositoryModel, PullRequestModel) {
     // Create a repository and a pull request
-    let repo = RepositoryModel::builder(&conf, "me", "TestRepo")
+    let repo = RepositoryModel::builder(conf, "me", "TestRepo")
         .create_or_update(db_adapter.repository())
         .await
         .unwrap();

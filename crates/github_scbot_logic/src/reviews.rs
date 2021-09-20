@@ -65,7 +65,7 @@ pub async fn process_review(
         .await?;
 
     // Get or create in database
-    ReviewModel::builder_from_github(&repo_model, &pr_model, review)
+    ReviewModel::builder_from_github(repo_model, pr_model, review)
         .valid(permission.can_write())
         .create_or_update(db_adapter.review())
         .await?;
@@ -163,7 +163,7 @@ pub async fn synchronize_reviews(
             .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
             .await?;
 
-        ReviewModel::builder(&repo_model, &pr_model, &review.user.login)
+        ReviewModel::builder(repo_model, pr_model, &review.user.login)
             .state(review.state)
             .valid(permission.can_write())
             .create_or_update(db_adapter.review())

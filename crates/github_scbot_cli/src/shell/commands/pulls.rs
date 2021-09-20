@@ -15,7 +15,7 @@ pub(crate) async fn show_pull_request(
 ) -> Result<()> {
     let (pr, _repo) = db_adapter
         .pull_request()
-        .get_from_repository_path_and_number(&repository_path, number)
+        .get_from_repository_path_and_number(repository_path, number)
         .await?;
     println!(
         "Accessing pull request #{} on repository {}",
@@ -32,7 +32,7 @@ pub(crate) async fn list_pull_requests(
 ) -> Result<()> {
     let prs = db_adapter
         .pull_request()
-        .list_from_repository_path(&repository_path)
+        .list_from_repository_path(repository_path)
         .await?;
     if prs.is_empty() {
         println!("No PR found from repository '{}'.", repository_path);
@@ -55,7 +55,7 @@ pub(crate) async fn sync_pull_request(
 ) -> Result<()> {
     let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&repository_path)?;
     let (mut pr, sha) =
-        synchronize_pull_request(&config, api_adapter, db_adapter, owner, name, number).await?;
+        synchronize_pull_request(config, api_adapter, db_adapter, owner, name, number).await?;
     let repo = db_adapter
         .repository()
         .get_from_owner_and_name(owner, name)

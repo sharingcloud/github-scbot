@@ -1,8 +1,8 @@
 # Build stage
-FROM rust:1.52.1-buster as builder
+FROM rust:buster as builder
 WORKDIR /usr/src/app
 
-RUN rustup toolchain install nightly-2021-06-04 --profile default && rustup default nightly-2021-06-04
+RUN rustup toolchain install nightly-2021-09-20 --profile default && rustup default nightly-2021-09-20
 
 COPY ./crates /usr/src/app/crates
 COPY ./xtask /usr/src/app/xtask

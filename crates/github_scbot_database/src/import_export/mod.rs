@@ -184,7 +184,7 @@ where
         let pr = pr_map.get(pr_id).unwrap();
         let repo = repo_map.get(&pr.repository_id).unwrap();
 
-        ReviewModel::builder_from_model(&repo, &pr, review)
+        ReviewModel::builder_from_model(repo, pr, review)
             .create_or_update(db_adapter.review())
             .await?;
     }
@@ -222,7 +222,7 @@ where
 
         db_adapter
             .external_account_right()
-            .add_right(&right.username, &repo)
+            .add_right(&right.username, repo)
             .await?;
     }
 

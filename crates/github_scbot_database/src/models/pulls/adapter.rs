@@ -78,7 +78,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
 
     async fn list(&self) -> Result<Vec<PullRequestModel>> {
         pull_request::table
-            .load_async::<PullRequestModel>(&self.pool)
+            .load_async::<PullRequestModel>(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -118,7 +118,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
         path: &str,
         number: u64,
     ) -> Result<(PullRequestModel, RepositoryModel)> {
-        let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(&path)?;
+        let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
         let owner = owner.to_owned();
         let name = name.to_owned();
         let path = path.to_owned();

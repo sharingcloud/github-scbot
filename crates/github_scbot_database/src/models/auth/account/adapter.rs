@@ -39,7 +39,7 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
     async fn create(&self, entry: AccountModel) -> Result<AccountModel> {
         diesel::insert_into(account::table)
             .values(entry)
-            .get_result_async(&self.pool)
+            .get_result_async(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -49,14 +49,14 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
 
         account::table
             .filter(account::username.eq(username.clone()))
-            .first_async(&self.pool)
+            .first_async(self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownAccount(username.to_string()))
     }
 
     async fn list(&self) -> Result<Vec<AccountModel>> {
         account::table
-            .load_async::<AccountModel>(&self.pool)
+            .load_async::<AccountModel>(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -64,14 +64,14 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
     async fn list_admin_accounts(&self) -> Result<Vec<AccountModel>> {
         account::table
             .filter(account::is_admin.eq(true))
-            .load_async::<AccountModel>(&self.pool)
+            .load_async::<AccountModel>(self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn remove(&self, entry: AccountModel) -> Result<()> {
         diesel::delete(account::table.filter(account::username.eq(entry.username.clone())))
-            .execute_async(&self.pool)
+            .execute_async(self.pool)
             .await?;
 
         Ok(())
@@ -82,7 +82,7 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
 
         *entry = diesel::update(account::table.filter(account::username.eq(copy.username.clone())))
             .set(copy)
-            .get_result_async(&self.pool)
+            .get_result_async(self.pool)
             .await
             .map_err(DatabaseError::from)?;
 
