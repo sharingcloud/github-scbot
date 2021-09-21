@@ -71,8 +71,6 @@ impl CommandExecutor {
             }
         }
 
-        println!("{:?}", status);
-
         // Merge and handle command result
         let command_result = Self::merge_command_results(status);
         Self::process_command_result(
