@@ -156,7 +156,7 @@ impl<'a> PullRequestModelBuilder<'a> {
         self
     }
 
-    fn build(&self) -> PullRequestCreation {
+    pub fn build(&self) -> PullRequestCreation {
         PullRequestCreation {
             repository_id: self.repository.id,
             number: self.pr_number as i32,
@@ -170,9 +170,24 @@ impl<'a> PullRequestModelBuilder<'a> {
             head_branch: self.head_branch.clone().unwrap_or_else(|| "unknown".into()),
             check_status: self
                 .check_status
-                .unwrap_or(CheckStatus::Skipped)
+                .unwrap_or_else(|| {
+                    if self.repository.default_enable_checks {
+                        CheckStatus::Waiting
+                    } else {
+                        CheckStatus::Skipped
+                    }
+                })
                 .to_string(),
-            qa_status: self.qa_status.unwrap_or(QaStatus::Waiting).to_string(),
+            qa_status: self
+                .qa_status
+                .unwrap_or_else(|| {
+                    if self.repository.default_enable_qa {
+                        QaStatus::Waiting
+                    } else {
+                        QaStatus::Skipped
+                    }
+                })
+                .to_string(),
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count

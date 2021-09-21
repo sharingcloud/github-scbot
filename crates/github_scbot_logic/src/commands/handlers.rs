@@ -5,7 +5,10 @@ use github_scbot_database::models::{
 };
 use github_scbot_libs::tracing::info;
 use github_scbot_types::{
-    issues::GhReactionType, labels::StepLabel, pulls::GhMergeStrategy, status::QaStatus,
+    issues::GhReactionType,
+    labels::StepLabel,
+    pulls::GhMergeStrategy,
+    status::{CheckStatus, QaStatus},
 };
 
 use super::command::CommandExecutionResult;
@@ -155,6 +158,7 @@ pub async fn handle_admin_reset_reviews_command(
 pub async fn handle_skip_qa_command(
     db_adapter: &dyn IDatabaseAdapter,
     pr_model: &mut PullRequestModel,
+    comment_author: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
     if status {
@@ -164,10 +168,35 @@ pub async fn handle_skip_qa_command(
     }
 
     db_adapter.pull_request().save(pr_model).await?;
+    let comment = format!("QA is marked as skipped by **{}**.", comment_author);
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
+/// Handle `SkipChecks` command.
+pub async fn handle_skip_checks_command(
+    db_adapter: &dyn IDatabaseAdapter,
+    pr_model: &mut PullRequestModel,
+    comment_author: &str,
+    status: bool,
+) -> Result<CommandExecutionResult> {
+    if status {
+        pr_model.set_checks_status(CheckStatus::Skipped);
+    } else {
+        pr_model.set_checks_status(CheckStatus::Waiting);
+    }
+
+    db_adapter.pull_request().save(pr_model).await?;
+    let comment = format!("Checks are marked as skipped by **{}**.", comment_author);
+
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
         .build())
 }
 
@@ -249,9 +278,19 @@ pub async fn handle_assign_required_reviewers_command(
             .await?;
     }
 
+    let comment = if reviewers.len() == 1 {
+        format!("{} is now a required reviewer on this PR.", reviewers[0])
+    } else {
+        format!(
+            "{} are now required reviewers on this PR.",
+            reviewers.join(" ")
+        )
+    };
+
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
         .build())
 }
 
@@ -285,9 +324,22 @@ pub async fn handle_unassign_required_reviewers_command(
             .await?;
     }
 
+    let comment = if reviewers.len() == 1 {
+        format!(
+            "{} is not anymore a required reviewer on this PR.",
+            reviewers[0]
+        )
+    } else {
+        format!(
+            "{} are not anymore required reviewers on this PR.",
+            reviewers.join(" ")
+        )
+    };
+
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
         .build())
 }
 
@@ -380,6 +432,46 @@ pub async fn handle_set_default_pr_title_regex_command(
         .build())
 }
 
+pub async fn handle_set_default_qa_status_command(
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &mut RepositoryModel,
+    status: bool,
+) -> Result<CommandExecutionResult> {
+    repo_model.default_enable_qa = status;
+    db_adapter.repository().save(repo_model).await?;
+
+    let comment = if status {
+        "QA disabled for this repository."
+    } else {
+        "QA enabled for this repository."
+    };
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment.into()))
+        .build())
+}
+
+pub async fn handle_set_default_checks_status_command(
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &mut RepositoryModel,
+    status: bool,
+) -> Result<CommandExecutionResult> {
+    repo_model.default_enable_checks = status;
+    db_adapter.repository().save(repo_model).await?;
+
+    let comment = if status {
+        "Checks disabled for this repository."
+    } else {
+        "Checks enabled for this repository."
+    };
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment.into()))
+        .build())
+}
+
 /// Handle "Set needed reviewers" command.
 pub async fn handle_set_needed_reviewers_command(
     db_adapter: &dyn IDatabaseAdapter,
@@ -458,6 +550,8 @@ pub fn handle_help_command(
         - `qa+`: _Mark QA as passed_\n\
         - `qa-`: _Mark QA as failed_\n\
         - `qa?`: _Mark QA as waiting_\n\
+        - `nochecks+`: _Skip checks validation_\n\
+        - `nochecks-`: _Enable checks validation_\n\
         - `automerge+`: _Enable auto-merge for this PR (once all checks pass)_\n\
         - `automerge-`: _Disable auto-merge for this PR_\n\
         - `lock+ <reason?>`: _Lock a pull-request (block merge)_\n\
@@ -496,6 +590,10 @@ pub fn handle_admin_help_command(
         - `admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_\n\
         - `admin-set-default-automerge+`: _Set automerge enabled for this repository_\n\
         - `admin-set-default-automerge-`: _Set automerge disabled for this repository_\n\
+        - `admin-set-default-qa-status+`: _Enable QA validation by default for this repository_\n\
+        - `admin-set-default-qa-status-`: _Disable QA validation by default for this repository_\n\
+        - `admin-set-default-checks-status+`: _Enable checks validation by default for this repository_\n\
+        - `admin-set-default-checks-status-`: _Disable checks validation by default for this repository_\n\
         - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
@@ -712,12 +810,12 @@ mod tests {
         pr_model.set_qa_status(QaStatus::Fail);
 
         // Skip.
-        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, true).await?;
+        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", true).await?;
         assert!(result.should_update_status);
         assert_eq!(pr_model.get_qa_status(), QaStatus::Skipped);
 
         // Reset.
-        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, false).await?;
+        let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", false).await?;
         assert!(result.should_update_status);
         assert_eq!(pr_model.get_qa_status(), QaStatus::Waiting);
 

@@ -218,6 +218,40 @@ pub(crate) async fn set_manual_interaction_mode(
     Ok(())
 }
 
+pub(crate) async fn set_default_qa_status(
+    db_adapter: &dyn IDatabaseAdapter,
+    repository_path: &str,
+    status: bool,
+) -> Result<()> {
+    let mut repo = RepositoryModel::get_from_path(db_adapter.repository(), repository_path).await?;
+    repo.default_enable_qa = status;
+    db_adapter.repository().save(&mut repo).await?;
+
+    println!(
+        "Default QA status set to '{}' for repository {}.",
+        status, repository_path
+    );
+
+    Ok(())
+}
+
+pub(crate) async fn set_default_checks_status(
+    db_adapter: &dyn IDatabaseAdapter,
+    repository_path: &str,
+    status: bool,
+) -> Result<()> {
+    let mut repo = RepositoryModel::get_from_path(db_adapter.repository(), repository_path).await?;
+    repo.default_enable_checks = status;
+    db_adapter.repository().save(&mut repo).await?;
+
+    println!(
+        "Default checks status set to '{}' for repository {}.",
+        status, repository_path
+    );
+
+    Ok(())
+}
+
 pub(crate) async fn set_automerge(
     db_adapter: &dyn IDatabaseAdapter,
     repository_path: &str,

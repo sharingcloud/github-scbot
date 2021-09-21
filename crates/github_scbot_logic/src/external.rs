@@ -40,7 +40,7 @@ pub async fn set_qa_status_for_pull_requests(
             &repo,
             &mut pr,
             0,
-            result,
+            &result,
         )
         .await?;
     }

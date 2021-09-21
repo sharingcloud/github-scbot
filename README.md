@@ -81,6 +81,8 @@ This README supposes the default bot handle: 'bot'.
 - `bot qa+`: _Mark QA as passed_
 - `bot qa-`: _Mark QA as failed_
 - `bot qa?`: _Mark QA as waiting_
+- `bot nochecks+`: _Skip checks validation_
+- `bot nochecks-`: _Enable checks validation_
 - `bot automerge+`: _Enable auto-merge for this PR (once all checks pass)_
 - `bot automerge-`: _Disable auto-merge for this PR_
 - `bot lock+ <reason?>`: _Lock a pull-request (block merge)_
@@ -105,6 +107,10 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_
 - `bot admin-set-default-automerge+`: _Set automerge enabled for this repository_
 - `bot admin-set-default-automerge-`: _Set automerge disabled for this repository_
+- `bot admin-set-default-qa-status+`: _Enable QA validation by default for this repository_
+- `bot admin-set-default-qa-status-`: _Disable QA validation by default for this repository_
+- `bot admin-set-default-checks-status+`: _Enable checks validation by default for this repository_
+- `bot admin-set-default-checks-status-`: _Disable checks validation by default for this repository_
 - `bot admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 - `bot admin-reset-reviews`: _Reset and update reviews on pull request (maintenance-type command)_

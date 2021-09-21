@@ -16,6 +16,8 @@ pub struct RepositoryModelBuilder<'a> {
     pr_title_validation_regex: Option<String>,
     manual_interaction: Option<bool>,
     default_automerge: Option<bool>,
+    default_enable_qa: Option<bool>,
+    default_enable_checks: Option<bool>,
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
@@ -29,6 +31,8 @@ impl<'a> RepositoryModelBuilder<'a> {
             pr_title_validation_regex: None,
             manual_interaction: None,
             default_automerge: None,
+            default_enable_qa: None,
+            default_enable_checks: None,
         }
     }
 
@@ -42,6 +46,8 @@ impl<'a> RepositoryModelBuilder<'a> {
             pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
             manual_interaction: Some(model.manual_interaction),
             default_automerge: Some(model.default_automerge),
+            default_enable_qa: Some(model.default_enable_qa),
+            default_enable_checks: Some(model.default_enable_checks),
         }
     }
 
@@ -55,6 +61,8 @@ impl<'a> RepositoryModelBuilder<'a> {
             pr_title_validation_regex: None,
             manual_interaction: None,
             default_automerge: None,
+            default_enable_qa: None,
+            default_enable_checks: None,
         }
     }
 
@@ -78,7 +86,22 @@ impl<'a> RepositoryModelBuilder<'a> {
         self
     }
 
-    fn build(&self) -> RepositoryCreation {
+    pub fn default_automerge(mut self, value: bool) -> Self {
+        self.default_automerge = Some(value);
+        self
+    }
+
+    pub fn default_enable_qa(mut self, value: bool) -> Self {
+        self.default_enable_qa = Some(value);
+        self
+    }
+
+    pub fn default_enable_checks(mut self, value: bool) -> Self {
+        self.default_enable_checks = Some(value);
+        self
+    }
+
+    pub fn build(&self) -> RepositoryCreation {
         RepositoryCreation {
             owner: self.owner.clone(),
             name: self.name.clone(),
@@ -98,6 +121,8 @@ impl<'a> RepositoryModelBuilder<'a> {
                 .to_string(),
             manual_interaction: self.manual_interaction.unwrap_or(false),
             default_automerge: self.default_automerge.unwrap_or(false),
+            default_enable_qa: self.default_enable_qa.unwrap_or(true),
+            default_enable_checks: self.default_enable_checks.unwrap_or(true),
         }
     }
 
@@ -132,6 +157,14 @@ impl<'a> RepositoryModelBuilder<'a> {
         handle.default_automerge = match self.default_automerge {
             Some(m) => m,
             None => handle.default_automerge,
+        };
+        handle.default_enable_qa = match self.default_enable_qa {
+            Some(m) => m,
+            None => handle.default_enable_qa,
+        };
+        handle.default_enable_checks = match self.default_enable_checks {
+            Some(m) => m,
+            None => handle.default_enable_checks,
         };
 
         db_adapter.save(&mut handle).await?;
