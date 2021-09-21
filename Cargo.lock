@@ -1279,7 +1279,7 @@ checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
 
 [[package]]
 name = "github-scbot-api"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "github-scbot-conf",
@@ -1294,7 +1294,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "github-scbot-api",
@@ -1313,7 +1313,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-conf"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "github-scbot-libs",
  "sentry-eyre",
@@ -1322,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "github-scbot-libs",
  "serde",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "diesel",
@@ -1348,7 +1348,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-libs"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1392,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "chrono",
@@ -1409,7 +1409,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "github-scbot-libs",
@@ -1419,7 +1419,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "actix-rt",
  "chrono",
@@ -1439,7 +1439,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
@@ -1450,7 +1450,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-types"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "github-scbot-libs",
  "serde",
@@ -1459,7 +1459,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-utils"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "h2"
@@ -3832,7 +3832,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.10.2"
+version = "0.0.0"
 dependencies = [
  "argh",
  "cargo_toml",
