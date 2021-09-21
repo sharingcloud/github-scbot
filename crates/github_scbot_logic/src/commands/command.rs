@@ -41,6 +41,8 @@ pub enum UserCommand {
     SkipQaStatus(bool),
     /// Enable/Disable QA status.
     QaStatus(Option<bool>),
+    /// Skip checks status.
+    SkipChecksStatus(bool),
     /// Enable/Disable automerge.
     Automerge(bool),
     /// Assign required reviewers.
@@ -82,6 +84,10 @@ pub enum AdminCommand {
     SetDefaultPRTitleRegex(String),
     /// Set default automerge status.
     SetDefaultAutomerge(bool),
+    /// Set default QA status.
+    SetDefaultQAStatus(bool),
+    /// Set default checks status.
+    SetDefaultChecksStatus(bool),
     /// Set needed reviewers count.
     SetNeededReviewers(u32),
 }
@@ -185,6 +191,8 @@ impl Command {
             "noqa-" => Self::User(UserCommand::SkipQaStatus(false)),
             "qa+" => Self::User(UserCommand::QaStatus(Some(true))),
             "qa-" => Self::User(UserCommand::QaStatus(Some(false))),
+            "nochecks+" => Self::User(UserCommand::SkipChecksStatus(true)),
+            "nochecks-" => Self::User(UserCommand::SkipChecksStatus(false)),
             "qa?" => Self::User(UserCommand::QaStatus(None)),
             "automerge+" => Self::User(UserCommand::Automerge(true)),
             "automerge-" => Self::User(UserCommand::Automerge(false)),
@@ -218,6 +226,14 @@ impl Command {
             "admin-set-default-pr-title-regex" => {
                 Self::Admin(AdminCommand::SetDefaultPRTitleRegex(Self::parse_text(args)))
             }
+            "admin-set-default-checks-status+" => {
+                Self::Admin(AdminCommand::SetDefaultChecksStatus(true))
+            }
+            "admin-set-default-checks-status-" => {
+                Self::Admin(AdminCommand::SetDefaultChecksStatus(false))
+            }
+            "admin-set-default-qa-status+" => Self::Admin(AdminCommand::SetDefaultQAStatus(true)),
+            "admin-set-default-qa-status-" => Self::Admin(AdminCommand::SetDefaultQAStatus(false)),
             "admin-set-default-automerge+" => Self::Admin(AdminCommand::SetDefaultAutomerge(true)),
             "admin-set-default-automerge-" => Self::Admin(AdminCommand::SetDefaultAutomerge(false)),
             "admin-set-needed-reviewers" => {
@@ -226,6 +242,22 @@ impl Command {
             // Unknown command
             unknown => return Err(CommandError::UnknownCommand(unknown.into())),
         }))
+    }
+
+    fn plus_minus(status: bool) -> &'static str {
+        if status {
+            "+"
+        } else {
+            "-"
+        }
+    }
+
+    fn plus_minus_option(status: Option<bool>) -> &'static str {
+        if let Some(status) = status {
+            Self::plus_minus(status)
+        } else {
+            "?"
+        }
     }
 
     fn to_command_string(&self) -> String {
@@ -243,14 +275,20 @@ impl Command {
                 AdminCommand::SetDefaultPRTitleRegex(rgx) => {
                     format!("admin-set-default-pr-title-regex {}", rgx.to_string())
                 }
+                AdminCommand::SetDefaultChecksStatus(status) => {
+                    format!(
+                        "admin-set-default-checks-status{}",
+                        Self::plus_minus(*status)
+                    )
+                }
+                AdminCommand::SetDefaultQAStatus(status) => {
+                    format!("admin-set-default-qa-status{}", Self::plus_minus(*status))
+                }
                 AdminCommand::SetNeededReviewers(count) => {
                     format!("admin-set-needed-reviewers {}", count)
                 }
                 AdminCommand::SetDefaultAutomerge(status) => {
-                    format!(
-                        "admin-set-default-automerge{}",
-                        if *status { "+" } else { "-" }
-                    )
+                    format!("admin-set-default-automerge{}", Self::plus_minus(*status))
                 }
                 AdminCommand::Synchronize => "admin-sync".into(),
                 AdminCommand::ResetReviews => "admin-reset-reviews".into(),
@@ -260,13 +298,13 @@ impl Command {
                     format!("req+ {}", reviewers.join(" "))
                 }
                 UserCommand::Automerge(status) => {
-                    format!("automerge{}", if *status { "+" } else { "-" })
+                    format!("automerge{}", Self::plus_minus(*status))
                 }
                 UserCommand::Gif(search) => format!("gif {}", search),
                 UserCommand::Help => "help".into(),
                 UserCommand::IsAdmin => "is-admin".into(),
                 UserCommand::Lock(status, reason) => {
-                    let mut lock = format!("lock{}", if *status { "+" } else { "-" });
+                    let mut lock = format!("lock{}", Self::plus_minus(*status));
                     if let Some(reason) = reason {
                         lock = format!("{} {}", lock, reason);
                     }
@@ -280,16 +318,12 @@ impl Command {
                     }
                 }
                 UserCommand::Ping => "ping".into(),
-                UserCommand::QaStatus(status) => format!(
-                    "qa{}",
-                    match status {
-                        None => "?",
-                        Some(true) => "+",
-                        Some(false) => "-",
-                    }
-                ),
+                UserCommand::QaStatus(status) => format!("qa{}", Self::plus_minus_option(*status)),
                 UserCommand::SkipQaStatus(status) => {
-                    format!("noqa{}", if *status { "+" } else { "-" })
+                    format!("noqa{}", Self::plus_minus(*status))
+                }
+                UserCommand::SkipChecksStatus(status) => {
+                    format!("nochecks{}", Self::plus_minus(*status))
                 }
                 UserCommand::UnassignRequiredReviewers(reviewers) => {
                     format!("req- {}", reviewers.join(" "))

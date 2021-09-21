@@ -89,6 +89,8 @@ async fn test_import_models_from_json() -> Result<()> {
                     "default_strategy": "merge",
                     "manual_interaction": false,
                     "default_automerge": false,
+                    "default_enable_qa": true,
+                    "default_enable_checks": true
                 },
                 {
                     "id": 2,
@@ -99,6 +101,8 @@ async fn test_import_models_from_json() -> Result<()> {
                     "default_strategy": "merge",
                     "manual_interaction": true,
                     "default_automerge": true,
+                    "default_enable_qa": true,
+                    "default_enable_checks": false
                 }
             ],
             "pull_requests": [

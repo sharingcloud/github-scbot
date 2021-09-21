@@ -53,6 +53,11 @@ pub async fn handle_check_suite_event(
                     .await?;
             }
 
+            // Skip if checks are skipped
+            if pr_model.get_checks_status() == CheckStatus::Skipped {
+                return Ok(());
+            }
+
             if let GhCheckSuiteAction::Completed = event.action {
                 match event.check_suite.conclusion {
                     Some(GhCheckConclusion::Success) => {

@@ -74,6 +74,8 @@ table! {
         pr_title_validation_regex -> Text,
         manual_interaction -> Bool,
         default_automerge -> Bool,
+        default_enable_qa -> Bool,
+        default_enable_checks -> Bool,
     }
 }
 

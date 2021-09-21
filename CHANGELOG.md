@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add default automerge status in repository
+- Add default automerge, QA, and checks status in repository
+- Add `nochecks+` and `nochecks-` bot commands
 - Add `admin-set-default-automerge+` and `admin-set-default-automerge-` bot commands
+- Add `admin-set-default-qa-status+` and `admin-set-default-qa-status-` bot commands
+- Add `admin-set-default-checks-status+` and `admin-set-default-checks-status-` bot commands
 - Add `repository set-automerge <status>` CLI command
+- Add `repository set-qa-status <status>` CLI command
+- Add `repository set-checks-status <status>` CLI command
 
 ## [0.11.0] - 2021-09-13
 

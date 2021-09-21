@@ -330,7 +330,7 @@ mod tests {
                     automerge: false,
                     base_branch: "unknown".into(),
                     head_branch: "unknown".into(),
-                    check_status: CheckStatus::Skipped.to_string(),
+                    check_status: CheckStatus::Waiting.to_string(),
                     closed: false,
                     locked: false,
                     merged: false,

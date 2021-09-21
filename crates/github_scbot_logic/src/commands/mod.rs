@@ -39,7 +39,7 @@ impl CommandExecutor {
         comment_id: u64,
         comment_author: &str,
         commands: Vec<CommandResult<Command>>,
-    ) -> Result<()> {
+    ) -> Result<CommandExecutionResult> {
         let mut status = vec![];
 
         for command in commands {
@@ -71,6 +71,8 @@ impl CommandExecutor {
             }
         }
 
+        println!("{:?}", status);
+
         // Merge and handle command result
         let command_result = Self::merge_command_results(status);
         Self::process_command_result(
@@ -80,11 +82,11 @@ impl CommandExecutor {
             repo_model,
             pr_model,
             comment_id,
-            command_result,
+            &command_result,
         )
         .await?;
 
-        Ok(())
+        Ok(command_result)
     }
 
     /// Process command result.
@@ -95,7 +97,7 @@ impl CommandExecutor {
         repo_model: &RepositoryModel,
         pr_model: &mut PullRequestModel,
         comment_id: u64,
-        command_result: CommandExecutionResult,
+        command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
             let sha = api_adapter
@@ -114,7 +116,7 @@ impl CommandExecutor {
             .await?;
         }
 
-        for action in command_result.result_actions {
+        for action in &command_result.result_actions {
             match action {
                 ResultAction::AddReaction(reaction) => {
                     add_reaction_to_comment(
@@ -122,7 +124,7 @@ impl CommandExecutor {
                         &repo_model.owner,
                         &repo_model.name,
                         comment_id,
-                        reaction,
+                        *reaction,
                     )
                     .await?;
                 }
@@ -132,7 +134,7 @@ impl CommandExecutor {
                         &repo_model.owner,
                         &repo_model.name,
                         pr_model.get_number(),
-                        &comment,
+                        comment,
                     )
                     .await?;
                 }
@@ -229,7 +231,17 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::SkipQaStatus(s) => {
-                        handlers::handle_skip_qa_command(db_adapter, pr_model, *s).await?
+                        handlers::handle_skip_qa_command(db_adapter, pr_model, comment_author, *s)
+                            .await?
+                    }
+                    UserCommand::SkipChecksStatus(s) => {
+                        handlers::handle_skip_checks_command(
+                            db_adapter,
+                            pr_model,
+                            comment_author,
+                            *s,
+                        )
+                        .await?
                     }
                     UserCommand::QaStatus(s) => {
                         handlers::handle_qa_command(db_adapter, pr_model, comment_author, *s)
@@ -338,6 +350,18 @@ impl CommandExecutor {
                         )
                         .await?
                     }
+                    AdminCommand::SetDefaultQAStatus(status) => {
+                        handlers::handle_set_default_qa_status_command(
+                            db_adapter, repo_model, *status,
+                        )
+                        .await?
+                    }
+                    AdminCommand::SetDefaultChecksStatus(status) => {
+                        handlers::handle_set_default_checks_status_command(
+                            db_adapter, repo_model, *status,
+                        )
+                        .await?
+                    }
                     AdminCommand::SetDefaultAutomerge(value) => {
                         handlers::handle_set_default_automerge_command(
                             db_adapter, repo_model, *value,
@@ -388,11 +412,13 @@ impl CommandExecutor {
 
 #[cfg(test)]
 mod tests {
+    use github_scbot_api::adapter::DummyAPIAdapter;
     use github_scbot_database::{
-        models::{AccountModel, DatabaseAdapter},
+        models::{AccountModel, DatabaseAdapter, DummyDatabaseAdapter},
         tests::using_test_db,
         Result,
     };
+    use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -507,6 +533,77 @@ mod tests {
                 handling_status: CommandHandlingStatus::Ignored,
                 result_actions: vec![],
                 should_update_status: false
+            }
+        );
+    }
+
+    #[actix_rt::test]
+    async fn test_issue_78() {
+        let mut config = Config::from_env();
+        config.bot_username = "test-bot".into();
+        let api_adapter = DummyAPIAdapter::new();
+        let db_adapter = DummyDatabaseAdapter::new();
+        let redis_adapter = DummyRedisAdapter::new();
+        let mut repo = RepositoryModel::builder(&config, "me", "repo")
+            .build()
+            .into();
+        let mut pr = PullRequestModel::builder(&repo, 1, "me").build().into();
+
+        let commands = CommandParser::parse_commands(
+            &config,
+            "test-bot req+ @user\ntest-bot noqa+\ntest-bot automerge+",
+        );
+
+        assert_eq!(
+            commands,
+            vec![
+                Ok(Command::User(UserCommand::AssignRequiredReviewers(vec![
+                    "user".into()
+                ]))),
+                Ok(Command::User(UserCommand::SkipQaStatus(true))),
+                Ok(Command::User(UserCommand::Automerge(true))),
+            ]
+        );
+
+        let result = CommandExecutor::execute_commands(
+            &config,
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
+            &mut repo,
+            &mut pr,
+            0,
+            "me",
+            commands,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            result,
+            CommandExecutionResult {
+                should_update_status: true,
+                handling_status: CommandHandlingStatus::Handled,
+                result_actions: vec![
+                    ResultAction::AddReaction(GhReactionType::Eyes),
+                    ResultAction::PostComment(
+                        "> test-bot req+ user\n\
+                        \n\
+                        user is now a required reviewer on this PR.\n\
+                        \n\
+                        ---\n\
+                        \n\
+                        > test-bot noqa+\n\
+                        \n\
+                        QA is marked as skipped by **me**.\n\
+                        \n\
+                        ---\n\
+                        \n\
+                        > test-bot automerge+\n\
+                        \n\
+                        Automerge enabled by **me**"
+                            .into()
+                    )
+                ]
             }
         );
     }

@@ -141,9 +141,27 @@ enum RepositoryCommand {
     SetManualInteraction {
         /// Repository path (e.g. `MyOrganization/my-project`)
         repository_path: String,
-        // Mode
+        /// Mode
         #[structopt(parse(try_from_str))]
         manual_interaction: bool,
+    },
+
+    /// Set default QA status
+    SetQAStatus {
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+        /// Status
+        #[structopt(parse(try_from_str))]
+        status: bool,
+    },
+
+    /// Set default checks status
+    SetChecksStatus {
+        /// Repository path (e.g. `MyOrganization/my-project`)
+        repository_path: String,
+        /// Status
+        #[structopt(parse(try_from_str))]
+        status: bool,
     },
 
     /// Set automerge
@@ -383,6 +401,24 @@ async fn parse_args(
                     db_adapter,
                     &repository_path,
                     manual_interaction,
+                )
+                .await?
+            }
+            RepositoryCommand::SetQAStatus {
+                repository_path,
+                status,
+            } => {
+                commands::repository::set_default_qa_status(db_adapter, &repository_path, status)
+                    .await?
+            }
+            RepositoryCommand::SetChecksStatus {
+                repository_path,
+                status,
+            } => {
+                commands::repository::set_default_checks_status(
+                    db_adapter,
+                    &repository_path,
+                    status,
                 )
                 .await?
             }

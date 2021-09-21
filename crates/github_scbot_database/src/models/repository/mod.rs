@@ -48,6 +48,10 @@ pub struct RepositoryModel {
     pub manual_interaction: bool,
     /// Default automerge.
     pub default_automerge: bool,
+    /// Enable QA on this repository.
+    pub default_enable_qa: bool,
+    /// Enable checks on this repository.
+    pub default_enable_checks: bool,
 }
 
 #[derive(Debug, Insertable)]
@@ -60,6 +64,8 @@ pub struct RepositoryCreation {
     pub pr_title_validation_regex: String,
     pub manual_interaction: bool,
     pub default_automerge: bool,
+    pub default_enable_qa: bool,
+    pub default_enable_checks: bool,
 }
 
 impl From<RepositoryCreation> for RepositoryModel {
@@ -73,6 +79,8 @@ impl From<RepositoryCreation> for RepositoryModel {
             pr_title_validation_regex: creation.pr_title_validation_regex,
             manual_interaction: creation.manual_interaction,
             default_automerge: creation.default_automerge,
+            default_enable_qa: creation.default_enable_qa,
+            default_enable_checks: creation.default_enable_checks,
         }
     }
 }
@@ -191,6 +199,8 @@ mod tests {
                     pr_title_validation_regex: config.default_pr_title_validation_regex.clone(),
                     manual_interaction: false,
                     default_automerge: false,
+                    default_enable_qa: true,
+                    default_enable_checks: true,
                 }
             );
 
