@@ -55,7 +55,7 @@ pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> Resu
 
 /// Create initial pull request status.
 pub async fn create_initial_pull_request_status(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -93,7 +93,7 @@ pub async fn create_initial_pull_request_status(
 
 /// Update pull request status.
 pub async fn update_pull_request_status(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     repo_model: &RepositoryModel,
@@ -227,7 +227,7 @@ pub fn generate_pr_status_message(
 
 /// Disable validation status.
 pub async fn disable_validation_status(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,

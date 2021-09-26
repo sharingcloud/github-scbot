@@ -17,7 +17,7 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 
 pub(crate) async fn check_suite_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,

@@ -31,7 +31,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_commands(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &mut RepositoryModel,
@@ -89,7 +89,7 @@ impl CommandExecutor {
 
     /// Process command result.
     pub async fn process_command_result(
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &RepositoryModel,
@@ -197,7 +197,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_lines)]
     pub async fn execute_command(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &mut RepositoryModel,
         pr_model: &mut PullRequestModel,

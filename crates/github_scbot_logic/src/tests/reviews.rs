@@ -44,7 +44,7 @@ async fn arrange(
 async fn test_review_creation() -> Result<()> {
     async fn parse_and_execute_command(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo: &mut RepositoryModel,

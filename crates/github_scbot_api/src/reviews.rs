@@ -12,7 +12,7 @@ use crate::{
 /// List reviews for pull request.
 /// Dedupe reviews per reviewer (only last state is kept).
 pub async fn list_reviews_for_pull_request(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,

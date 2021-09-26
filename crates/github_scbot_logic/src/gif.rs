@@ -13,7 +13,7 @@ impl GifPoster {
     /// Post random GIF comment.
     pub async fn post_random_gif_comment(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
         search_terms: &str,
@@ -34,7 +34,7 @@ impl GifPoster {
     /// Generate random GIF comment.
     pub async fn generate_random_gif_comment(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         search_terms: &str,
     ) -> Result<String> {
         let random_gif = random_gif_from_query(config, api_adapter, search_terms).await?;

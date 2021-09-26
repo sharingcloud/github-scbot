@@ -64,7 +64,7 @@ impl DummyAPIAdapter {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 #[allow(unused_variables)]
 impl IAPIAdapter for DummyAPIAdapter {
     async fn issue_labels_list(

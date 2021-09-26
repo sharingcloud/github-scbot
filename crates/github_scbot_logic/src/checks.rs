@@ -15,7 +15,7 @@ use crate::{pulls::get_checks_status_from_github, status::update_pull_request_st
 /// Handle GitHub check syite event.
 pub async fn handle_check_suite_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,

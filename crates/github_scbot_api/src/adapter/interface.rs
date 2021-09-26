@@ -109,7 +109,7 @@ pub struct GifResponse {
 }
 
 /// GitHub API Adapter interface
-#[async_trait]
+#[async_trait(?Send)]
 pub trait IAPIAdapter {
     /// List labels from a target issue.
     async fn issue_labels_list(

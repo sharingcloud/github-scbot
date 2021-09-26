@@ -23,7 +23,7 @@ struct InstallationTokenResponse {
 /// Get an authenticated GitHub client builder.
 pub async fn get_client_builder(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
 ) -> Result<OctocrabBuilder> {
     let token = get_authentication_credentials(config, api_adapter).await?;
     Ok(Octocrab::builder().personal_token(token))
@@ -36,7 +36,7 @@ pub fn get_uninitialized_client() -> Result<Octocrab> {
 
 async fn get_authentication_credentials(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
 ) -> Result<String> {
     if config.github_api_token.is_empty() {
         create_installation_access_token(config, api_adapter).await
@@ -65,7 +65,7 @@ fn create_app_token(config: &Config) -> Result<String> {
 
 async fn create_installation_access_token(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
 ) -> Result<String> {
     let auth_token = create_app_token(config)?;
     api_adapter

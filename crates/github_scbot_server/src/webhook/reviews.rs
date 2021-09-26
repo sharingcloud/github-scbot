@@ -17,7 +17,7 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 
 pub(crate) async fn review_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhReviewEvent,

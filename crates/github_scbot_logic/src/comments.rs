@@ -24,7 +24,7 @@ use crate::{
 /// Handle an issue comment event.
 pub async fn handle_issue_comment_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhIssueCommentEvent,
@@ -111,7 +111,7 @@ pub async fn handle_issue_comment_event(
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_comment_creation(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     repo_model: &mut RepositoryModel,

@@ -20,7 +20,7 @@ pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent>
 
 pub(crate) async fn pull_request_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,

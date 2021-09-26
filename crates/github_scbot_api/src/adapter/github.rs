@@ -44,7 +44,7 @@ impl GithubAPIAdapter {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl IAPIAdapter for GithubAPIAdapter {
     async fn issue_labels_list(
         &self,

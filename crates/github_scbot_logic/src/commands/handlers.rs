@@ -43,7 +43,7 @@ pub async fn handle_auto_merge_command(
 
 /// Handle `Merge` command.
 pub async fn handle_merge_command(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -116,7 +116,7 @@ pub async fn handle_is_admin_command(
 /// Handle `AdminSync` command.
 pub async fn handle_admin_sync_command(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -140,7 +140,7 @@ pub async fn handle_admin_sync_command(
 
 /// Handle `AdminResetReviews` command.
 pub async fn handle_admin_reset_reviews_command(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -236,7 +236,7 @@ pub fn handle_ping_command(comment_author: &str) -> Result<CommandExecutionResul
 /// Handle `Gif` command.
 pub async fn handle_gif_command(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     search_terms: &str,
 ) -> Result<CommandExecutionResult> {
     Ok(CommandExecutionResult::builder()
@@ -249,7 +249,7 @@ pub async fn handle_gif_command(
 
 /// Handle `AssignRequiredReviewers` command.
 pub async fn handle_assign_required_reviewers_command(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -296,7 +296,7 @@ pub async fn handle_assign_required_reviewers_command(
 
 /// Handle `UnassignRequiredReviewers` command.
 pub async fn handle_unassign_required_reviewers_command(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
@@ -509,7 +509,7 @@ pub async fn handle_set_default_automerge_command(
 }
 
 pub async fn handle_admin_disable_command(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,

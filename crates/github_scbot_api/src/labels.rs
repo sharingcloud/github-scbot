@@ -26,7 +26,7 @@ pub fn add_step_in_existing_labels(
 
 /// Apply or remove a step label on a pull request.
 pub async fn set_step_label(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
