@@ -34,22 +34,22 @@ pub trait IExternalAccountRightDbAdapter {
 }
 
 /// Concrete external account right DB adapter.
-pub struct ExternalAccountRightDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct ExternalAccountRightDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> ExternalAccountRightDbAdapter<'a> {
+impl ExternalAccountRightDbAdapter {
     /// Creates a new external account right DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
+impl IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter {
     async fn list(&self) -> Result<Vec<ExternalAccountRightModel>> {
         external_account_right::table
-            .load_async::<ExternalAccountRightModel>(self.pool)
+            .load_async::<ExternalAccountRightModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -59,7 +59,7 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
 
         external_account_right::table
             .filter(external_account_right::username.eq(username))
-            .get_results_async(self.pool)
+            .get_results_async(&self.pool)
             .await
             .map_err(Into::into)
     }
@@ -75,7 +75,7 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
         external_account_right::table
             .filter(external_account_right::username.eq(username.clone()))
             .filter(external_account_right::repository_id.eq(repository.id))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| {
                 DatabaseError::UnknownExternalAccountRight(username, repository.get_path())
@@ -97,7 +97,7 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
 
             Ok(diesel::insert_into(external_account_right::table)
                 .values(entry)
-                .get_result_async(self.pool)
+                .get_result_async(&self.pool)
                 .await
                 .map_err(DatabaseError::from)?)
         }
@@ -112,7 +112,7 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
                 .filter(external_account_right::username.eq(username))
                 .filter(external_account_right::repository_id.eq(repository.id)),
         )
-        .execute_async(self.pool)
+        .execute_async(&self.pool)
         .await?;
 
         Ok(())
@@ -124,7 +124,7 @@ impl<'a> IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter<'a> {
         diesel::delete(
             external_account_right::table.filter(external_account_right::username.eq(username)),
         )
-        .execute_async(self.pool)
+        .execute_async(&self.pool)
         .await?;
 
         Ok(())

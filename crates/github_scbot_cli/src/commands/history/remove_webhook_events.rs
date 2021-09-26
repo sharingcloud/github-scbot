@@ -13,7 +13,7 @@ pub(crate) struct HistoryRemoveWebhookEventsCommand {}
 
 #[async_trait(?Send)]
 impl Command for HistoryRemoveWebhookEventsCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let entries = ctx.db_adapter.history_webhook().list().await?;
         let entries_count = entries.len();
         if entries.is_empty() {

@@ -21,13 +21,13 @@ pub(crate) struct PullRequestSyncCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestSyncCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let (owner, name) =
             RepositoryModel::extract_owner_and_name_from_path(&self.repository_path)?;
         let (mut pr, sha) = synchronize_pull_request(
             &ctx.config,
-            ctx.api_adapter,
-            ctx.db_adapter,
+            ctx.api_adapter.as_ref(),
+            ctx.db_adapter.as_ref(),
             owner,
             name,
             self.number,
@@ -39,9 +39,9 @@ impl Command for PullRequestSyncCommand {
             .get_from_owner_and_name(owner, name)
             .await?;
         update_pull_request_status(
-            ctx.api_adapter,
-            ctx.db_adapter,
-            ctx.redis_adapter,
+            ctx.api_adapter.as_ref(),
+            ctx.db_adapter.as_ref(),
+            ctx.redis_adapter.as_ref(),
             &repo,
             &mut pr,
             &sha,

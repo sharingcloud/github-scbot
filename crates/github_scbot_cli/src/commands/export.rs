@@ -18,17 +18,17 @@ pub(crate) struct ExportCommand {
 
 #[async_trait(?Send)]
 impl Command for ExportCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         if let Some(file_path) = self.output_file {
             let file = File::create(file_path.clone())
                 .map_err(|e| ExportError::IoError(file_path, e.to_string()))?;
             let mut writer = BufWriter::new(file);
-            export_models_to_json(ctx.db_adapter, &mut writer)
+            export_models_to_json(ctx.db_adapter.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         } else {
             let mut writer = std::io::stdout();
-            export_models_to_json(ctx.db_adapter, &mut writer)
+            export_models_to_json(ctx.db_adapter.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         }

@@ -41,7 +41,7 @@ pub(crate) struct AuthCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -64,7 +64,7 @@ enum AuthSubCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthSubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::CreateExternalAccount(sub) => sub.execute(ctx).await,
             Self::CreateExternalToken(sub) => sub.execute(ctx).await,

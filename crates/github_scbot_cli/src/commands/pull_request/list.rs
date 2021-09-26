@@ -15,7 +15,7 @@ pub(crate) struct PullRequestListCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestListCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let prs = ctx
             .db_adapter
             .pull_request()

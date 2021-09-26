@@ -42,7 +42,7 @@ pub(crate) struct RepositoryCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositoryCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -67,7 +67,7 @@ enum RepositorySubCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositorySubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::Add(sub) => sub.execute(ctx).await,
             Self::SetTitleRegex(sub) => sub.execute(ctx).await,

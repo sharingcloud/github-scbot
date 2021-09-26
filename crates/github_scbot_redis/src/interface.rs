@@ -61,7 +61,7 @@ impl<'a> LockInstance<'a> {
 
 /// Redis adapter trait.
 #[async_trait]
-pub trait IRedisAdapter: Sync {
+pub trait IRedisAdapter: Send + Sync {
     /// Tries to lock a resource.
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError>;
     /// Checks if resource exists.

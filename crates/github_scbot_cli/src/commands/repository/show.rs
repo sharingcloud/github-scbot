@@ -16,7 +16,7 @@ pub(crate) struct RepositoryShowCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositoryShowCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;

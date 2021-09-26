@@ -14,7 +14,7 @@ use super::{
 use crate::DbPool;
 
 /// Database adapter.
-pub trait IDatabaseAdapter {
+pub trait IDatabaseAdapter: Send + Sync {
     /// Gets account DB adapter.
     fn account(&self) -> &dyn IAccountDbAdapter;
     /// Gets external account DB adapter.
@@ -34,34 +34,34 @@ pub trait IDatabaseAdapter {
 }
 
 /// Concrete database adapter.
-pub struct DatabaseAdapter<'a> {
-    account_adapter: AccountDbAdapter<'a>,
-    external_account_right_adapter: ExternalAccountRightDbAdapter<'a>,
-    external_account_adapter: ExternalAccountDbAdapter<'a>,
-    history_webhook_adapter: HistoryWebhookDbAdapter<'a>,
-    merge_rule_adapter: MergeRuleDbAdapter<'a>,
-    pull_request_adapter: PullRequestDbAdapter<'a>,
-    repository_adapter: RepositoryDbAdapter<'a>,
-    review_adapter: ReviewDbAdapter<'a>,
+pub struct DatabaseAdapter {
+    account_adapter: AccountDbAdapter,
+    external_account_right_adapter: ExternalAccountRightDbAdapter,
+    external_account_adapter: ExternalAccountDbAdapter,
+    history_webhook_adapter: HistoryWebhookDbAdapter,
+    merge_rule_adapter: MergeRuleDbAdapter,
+    pull_request_adapter: PullRequestDbAdapter,
+    repository_adapter: RepositoryDbAdapter,
+    review_adapter: ReviewDbAdapter,
 }
 
-impl<'a> DatabaseAdapter<'a> {
+impl DatabaseAdapter {
     /// Creates a new database adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self {
-            account_adapter: AccountDbAdapter::new(pool),
-            external_account_adapter: ExternalAccountDbAdapter::new(pool),
-            external_account_right_adapter: ExternalAccountRightDbAdapter::new(pool),
-            history_webhook_adapter: HistoryWebhookDbAdapter::new(pool),
-            merge_rule_adapter: MergeRuleDbAdapter::new(pool),
-            pull_request_adapter: PullRequestDbAdapter::new(pool),
-            repository_adapter: RepositoryDbAdapter::new(pool),
+            account_adapter: AccountDbAdapter::new(pool.clone()),
+            external_account_adapter: ExternalAccountDbAdapter::new(pool.clone()),
+            external_account_right_adapter: ExternalAccountRightDbAdapter::new(pool.clone()),
+            history_webhook_adapter: HistoryWebhookDbAdapter::new(pool.clone()),
+            merge_rule_adapter: MergeRuleDbAdapter::new(pool.clone()),
+            pull_request_adapter: PullRequestDbAdapter::new(pool.clone()),
+            repository_adapter: RepositoryDbAdapter::new(pool.clone()),
             review_adapter: ReviewDbAdapter::new(pool),
         }
     }
 }
 
-impl<'a> IDatabaseAdapter for DatabaseAdapter<'a> {
+impl IDatabaseAdapter for DatabaseAdapter {
     fn account(&self) -> &dyn IAccountDbAdapter {
         &self.account_adapter
     }
@@ -181,7 +181,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_db_adapter() {
         using_test_db("test_adapters", |_config, pool| async move {
-            using_adapter(&DatabaseAdapter::new(&pool)).await;
+            using_adapter(&DatabaseAdapter::new(pool)).await;
             Ok::<_, DatabaseError>(())
         })
         .await

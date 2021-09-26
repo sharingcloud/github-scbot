@@ -79,7 +79,7 @@ mod tests {
     #[actix_rt::test]
     async fn create_and_update() -> Result<()> {
         using_test_db("test_db_external_account", |_config, pool| async move {
-            let db_adapter = ExternalAccountDbAdapter::new(&pool);
+            let db_adapter = ExternalAccountDbAdapter::new(pool.clone());
             let acc = ExternalAccountModel::builder("ext1")
                 .create_or_update(&db_adapter)
                 .await

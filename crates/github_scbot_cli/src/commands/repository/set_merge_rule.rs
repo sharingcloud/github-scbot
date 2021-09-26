@@ -28,7 +28,7 @@ pub(crate) struct RepositorySetMergeRuleCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositorySetMergeRuleCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let strategy_enum = GhMergeStrategy::try_from(&self.strategy[..])?;
         let mut repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)

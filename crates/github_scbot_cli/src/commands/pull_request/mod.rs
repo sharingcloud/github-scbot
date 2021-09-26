@@ -22,7 +22,7 @@ pub(crate) struct PullRequestCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -37,7 +37,7 @@ pub(crate) enum PullRequestSubCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestSubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::List(sub) => sub.execute(ctx).await,
             Self::Show(sub) => sub.execute(ctx).await,

@@ -1,6 +1,6 @@
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_server::server::run_bot_server;
+use github_scbot_server::server::{run_bot_server, AppContext};
 use stable_eyre::eyre::Result;
 
 use super::{Command, CommandContext};
@@ -12,9 +12,14 @@ pub(crate) struct ServerCommand {}
 
 #[async_trait(?Send)]
 impl Command for ServerCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
-        run_bot_server(ctx.config, ctx.pool)
-            .await
-            .map_err(Into::into)
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
+        let context = AppContext::new_with_adapters(
+            ctx.config,
+            ctx.db_adapter,
+            ctx.api_adapter,
+            ctx.redis_adapter,
+        );
+
+        run_bot_server(context).await.map_err(Into::into)
     }
 }

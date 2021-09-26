@@ -73,7 +73,7 @@ async fn test_review_creation() -> Result<()> {
     let redis_adapter = DummyRedisAdapter::new();
 
     using_test_db("test_logic_reviews", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
         let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 
         // Simulate review

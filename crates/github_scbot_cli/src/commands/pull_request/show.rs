@@ -19,7 +19,7 @@ pub(crate) struct PullRequestShowCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestShowCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let (pr, _repo) = ctx
             .db_adapter
             .pull_request()

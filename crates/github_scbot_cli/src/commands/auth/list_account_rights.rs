@@ -15,7 +15,7 @@ pub(crate) struct AuthListAccountRightsCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthListAccountRightsCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let account = ctx
             .db_adapter
             .external_account()

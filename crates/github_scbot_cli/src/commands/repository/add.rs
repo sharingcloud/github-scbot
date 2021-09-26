@@ -16,7 +16,7 @@ pub(crate) struct RepositoryAddCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositoryAddCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let (owner, name) =
             RepositoryModel::extract_owner_and_name_from_path(&self.repository_path)?;
         RepositoryModel::builder(&ctx.config, owner, name)

@@ -16,7 +16,7 @@ pub(crate) struct AuthCreateExternalAccountCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthCreateExternalAccountCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         ExternalAccountModel::builder(&self.username)
             .generate_keys()
             .create_or_update(ctx.db_adapter.external_account())

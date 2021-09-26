@@ -425,7 +425,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_validate_user_rights_on_command() -> Result<()> {
         using_test_db("test_logic_commands", |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(&pool);
+            let db_adapter = DatabaseAdapter::new(pool);
 
             let creator = "me";
             let repo = RepositoryModel::builder(&config, "me", "test")

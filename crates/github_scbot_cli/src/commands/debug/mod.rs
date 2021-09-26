@@ -20,7 +20,7 @@ pub(crate) struct DebugCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -33,7 +33,7 @@ enum DebugSubCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugSubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::TestSentry(sub) => sub.execute(ctx).await,
         }

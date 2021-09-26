@@ -42,15 +42,14 @@ pub fn initialize_command_line() -> eyre::Result<()> {
         let pool = establish_pool_connection(&config)?;
         run_migrations(&pool)?;
 
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
         let api_adapter = GithubAPIAdapter::new(config.clone());
         let redis_adapter = RedisAdapter::new(&config.redis_address);
         let ctx = CommandContext {
             config,
-            pool: &pool,
-            db_adapter: &db_adapter,
-            api_adapter: &api_adapter,
-            redis_adapter: &redis_adapter,
+            db_adapter: Box::new(db_adapter),
+            api_adapter: Box::new(api_adapter),
+            redis_adapter: Box::new(redis_adapter),
             no_input,
         };
 

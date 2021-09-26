@@ -20,7 +20,7 @@ pub(crate) struct HistoryCommand {
 
 #[async_trait(?Send)]
 impl Command for HistoryCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -34,7 +34,7 @@ enum HistorySubCommand {
 
 #[async_trait(?Send)]
 impl Command for HistorySubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::ListWebhookEvents(sub) => sub.execute(ctx).await,
             Self::RemoveWebhookEvents(sub) => sub.execute(ctx).await,

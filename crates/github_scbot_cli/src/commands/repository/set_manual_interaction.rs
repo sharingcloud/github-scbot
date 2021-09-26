@@ -19,7 +19,7 @@ pub(crate) struct RepositorySetManualInteractionCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositorySetManualInteractionCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let mut repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;

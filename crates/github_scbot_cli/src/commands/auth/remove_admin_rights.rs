@@ -16,7 +16,7 @@ pub(crate) struct AuthRemoveAdminRightsCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthRemoveAdminRightsCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         AccountModel::builder(&self.username)
             .admin(false)
             .create_or_update(ctx.db_adapter.account())

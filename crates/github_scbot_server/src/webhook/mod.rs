@@ -13,7 +13,7 @@ use std::convert::TryFrom;
 
 use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::models::{DatabaseAdapter, IDatabaseAdapter};
+use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_libs::{
     actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult},
     sentry, serde_json,
@@ -116,9 +116,9 @@ pub(crate) async fn event_handler(
 
             parse_event(
                 &ctx.config,
-                &ctx.api_adapter,
-                &DatabaseAdapter::new(&ctx.pool),
-                &ctx.redis_adapter,
+                ctx.api_adapter.as_ref(),
+                ctx.db_adapter.as_ref(),
+                ctx.redis_adapter.as_ref(),
                 event_type,
                 &body,
             )

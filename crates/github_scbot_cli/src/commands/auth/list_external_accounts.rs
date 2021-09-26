@@ -11,7 +11,7 @@ pub(crate) struct AuthListExternalAccountsCommand {}
 
 #[async_trait(?Send)]
 impl Command for AuthListExternalAccountsCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let accounts = ctx.db_adapter.external_account().list().await?;
         if accounts.is_empty() {
             println!("No external account found.");

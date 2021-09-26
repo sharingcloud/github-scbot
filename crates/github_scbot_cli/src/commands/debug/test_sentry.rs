@@ -17,7 +17,7 @@ pub(crate) struct DebugTestSentryCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugTestSentryCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         if ctx.config.sentry_url.is_empty() {
             Err(eyre!("Sentry URL is not configured."))
         } else {

@@ -4,7 +4,7 @@ use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
-use github_scbot_database::{models::IDatabaseAdapter, DbPool};
+use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_redis::IRedisAdapter;
 use stable_eyre::eyre::Result;
 
@@ -13,7 +13,6 @@ use self::{
     import::ImportCommand, pull_request::PullRequestCommand, repository::RepositoryCommand,
     server::ServerCommand, ui::UiCommand,
 };
-
 mod auth;
 mod debug;
 mod export;
@@ -24,18 +23,17 @@ mod repository;
 mod server;
 mod ui;
 
-pub(crate) struct CommandContext<'a> {
+pub(crate) struct CommandContext {
     pub config: Config,
-    pub pool: &'a DbPool,
-    pub db_adapter: &'a dyn IDatabaseAdapter,
-    pub api_adapter: &'a dyn IAPIAdapter,
-    pub redis_adapter: &'a dyn IRedisAdapter,
+    pub db_adapter: Box<dyn IDatabaseAdapter>,
+    pub api_adapter: Box<dyn IAPIAdapter>,
+    pub redis_adapter: Box<dyn IRedisAdapter>,
     pub no_input: bool,
 }
 
 #[async_trait(?Send)]
 pub(crate) trait Command {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()>;
+    async fn execute(self, ctx: CommandContext) -> Result<()>;
 }
 
 /// Command
@@ -55,7 +53,7 @@ pub(crate) enum SubCommand {
 
 #[async_trait(?Send)]
 impl Command for SubCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         match self {
             Self::Server(sub) => sub.execute(ctx).await,
             Self::Ui(sub) => sub.execute(ctx).await,

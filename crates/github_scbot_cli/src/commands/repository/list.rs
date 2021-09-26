@@ -11,7 +11,7 @@ pub(crate) struct RepositoryListCommand {}
 
 #[async_trait(?Send)]
 impl Command for RepositoryListCommand {
-    async fn execute<'a>(self, ctx: CommandContext<'a>) -> Result<()> {
+    async fn execute(self, ctx: CommandContext) -> Result<()> {
         let repos = ctx.db_adapter.repository().list().await?;
         if repos.is_empty() {
             println!("No repository known.");

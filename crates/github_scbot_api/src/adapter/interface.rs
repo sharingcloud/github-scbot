@@ -110,7 +110,7 @@ pub struct GifResponse {
 
 /// GitHub API Adapter interface
 #[async_trait(?Send)]
-pub trait IAPIAdapter {
+pub trait IAPIAdapter: Send + Sync {
     /// List labels from a target issue.
     async fn issue_labels_list(
         &self,
