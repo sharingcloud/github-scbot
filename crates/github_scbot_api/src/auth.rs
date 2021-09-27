@@ -2,7 +2,7 @@
 
 use github_scbot_conf::Config;
 use github_scbot_crypto::{create_jwt, now};
-use github_scbot_libs::octocrab::{Octocrab, OctocrabBuilder};
+use octocrab::{Octocrab, OctocrabBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::{adapter::IAPIAdapter, ApiError, Result};

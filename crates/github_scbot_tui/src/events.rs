@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use github_scbot_libs::termion::{event::Key, input::TermRead};
+use termion::{event::Key, input::TermRead};
 
 pub enum Event<I> {
     Input(I),

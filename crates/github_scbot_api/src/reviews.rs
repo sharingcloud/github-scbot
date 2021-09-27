@@ -45,7 +45,6 @@ fn filter_last_review_states(reviews: Vec<GhReviewApi>) -> Vec<GhReview> {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_libs::chrono;
     use github_scbot_types::{common::GhUser, reviews::GhReviewState};
 
     use super::{filter_last_review_states, GhReviewApi};

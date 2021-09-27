@@ -1,4 +1,3 @@
-use github_scbot_libs::{chrono, serde_json};
 use github_scbot_types::events::EventType;
 use serde::Serialize;
 

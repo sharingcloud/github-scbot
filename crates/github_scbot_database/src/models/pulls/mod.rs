@@ -3,7 +3,6 @@
 use std::convert::TryFrom;
 
 use github_scbot_conf::Config;
-use github_scbot_libs::tracing::error;
 use github_scbot_types::{
     common::GhRepository,
     labels::StepLabel,
@@ -11,6 +10,7 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus},
 };
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use super::{
     repository::{IRepositoryDbAdapter, RepositoryModel},

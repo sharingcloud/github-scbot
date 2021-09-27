@@ -10,11 +10,11 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_libs::tracing::info;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::issues::GhReactionType;
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
+use tracing::info;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::update_pull_request_status};

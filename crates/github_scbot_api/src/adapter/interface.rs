@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
-use github_scbot_libs::{
-    async_trait::async_trait,
-    chrono::{DateTime, Utc},
-    heck, serde_plain,
-};
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use github_scbot_types::{
     checks::GhCheckSuite,
     common::{GhUser, GhUserPermission},

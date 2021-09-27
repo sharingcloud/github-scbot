@@ -1,4 +1,4 @@
-use github_scbot_libs::async_trait::async_trait;
+use async_trait::async_trait;
 use github_scbot_utils::Mock;
 
 use crate::interface::{IRedisAdapter, LockStatus, RedisError};

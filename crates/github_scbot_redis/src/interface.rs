@@ -1,6 +1,7 @@
 //! Redis interfaces.
 
-use github_scbot_libs::{actix::MailboxError, actix_redis, async_trait::async_trait};
+use actix::MailboxError;
+use async_trait::async_trait;
 use thiserror::Error;
 
 /// Lock error.

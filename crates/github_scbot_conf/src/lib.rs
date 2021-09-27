@@ -9,8 +9,6 @@ mod logging;
 pub mod sentry;
 pub mod validation;
 
-use github_scbot_libs::{dotenv, stable_eyre};
-
 pub use crate::{
     config::Config,
     errors::{ConfError, Result},

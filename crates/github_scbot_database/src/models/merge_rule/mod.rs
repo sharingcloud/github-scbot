@@ -2,9 +2,9 @@
 
 use std::convert::TryInto;
 
-use github_scbot_libs::tracing::error;
 use github_scbot_types::pulls::GhMergeStrategy;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use super::RepositoryModel;
 use crate::{errors::Result, schema::merge_rule};

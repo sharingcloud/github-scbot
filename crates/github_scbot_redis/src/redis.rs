@@ -1,9 +1,7 @@
-use github_scbot_libs::{
-    actix::prelude::Addr,
-    actix_redis::{Command, RedisActor, RespValue},
-    async_trait::async_trait,
-    redis_async::resp_array,
-};
+use actix::prelude::Addr;
+use actix_redis::{Command, RedisActor, RespValue};
+use async_trait::async_trait;
+use redis_async::resp_array;
 
 use crate::interface::{IRedisAdapter, LockInstance, LockStatus, RedisError};
 

@@ -4,13 +4,13 @@ mod pull_status;
 
 use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_libs::tracing::debug;
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     labels::StepLabel,
     status::{CheckStatus, QaStatus, StatusState},
 };
 pub use pull_status::PullRequestStatus;
+use tracing::debug;
 
 use crate::{
     errors::Result,

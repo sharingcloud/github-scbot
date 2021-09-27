@@ -4,7 +4,7 @@ use std::future::Future;
 
 use diesel::{r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use github_scbot_conf::Config;
-use github_scbot_libs::r2d2::Pool;
+use r2d2::Pool;
 
 use crate::{DbPool, Result};
 
