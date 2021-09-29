@@ -146,7 +146,8 @@ impl SummaryTextGenerator {
         let (_state, _title, msg) = generate_pr_status_message(pull_request_status)?;
 
         Ok(format!(
-            "> :scroll: Current status: {status}\n\
+            ":scroll: &mdash; **Current status**\n\
+            | _{status}_\n\
             \n\
             [_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
             checks_url = pull_request_status.checks_url,
