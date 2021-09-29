@@ -20,7 +20,7 @@ use github_scbot_types::{
 use tracing::{debug, info};
 
 use crate::{
-    commands::{AdminCommand, Command, CommandParser},
+    commands::{AdminCommand, Command, CommandExecutor, CommandParser},
     reviews::{process_review_request, rerequest_existing_reviews, synchronize_reviews},
     status::{
         create_initial_pull_request_status, determine_automatic_step, update_pull_request_status,
@@ -71,7 +71,7 @@ pub async fn handle_pull_request_opened(
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
     // Get or create repository
-    let repo_model = RepositoryModel::builder_from_github(config, &event.repository)
+    let mut repo_model = RepositoryModel::builder_from_github(config, &event.repository)
         .create_or_update(db_adapter.repository())
         .await?;
 
@@ -135,6 +135,24 @@ pub async fn handle_pull_request_opened(
                 }
 
                 l.release().await?;
+
+                // Now, handle commands from body.
+                let commands = CommandParser::parse_commands(
+                    config,
+                    &event.pull_request.body.unwrap_or_default(),
+                );
+                CommandExecutor::execute_commands(
+                    config,
+                    api_adapter,
+                    db_adapter,
+                    redis_adapter,
+                    &mut repo_model,
+                    &mut pr_model,
+                    0,
+                    &event.pull_request.user.login,
+                    commands,
+                )
+                .await?;
 
                 Ok(PullRequestOpenedStatus::Created)
             } else {
