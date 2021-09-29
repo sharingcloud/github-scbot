@@ -1,5 +1,7 @@
 //! External status handlers.
 
+use std::sync::Arc;
+
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
@@ -17,7 +19,7 @@ pub(crate) struct QaStatusJson {
 }
 
 pub(crate) async fn set_qa_status(
-    ctx: web::Data<AppContext>,
+    ctx: web::Data<Arc<AppContext>>,
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
