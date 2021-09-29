@@ -275,7 +275,7 @@ pub async fn handle_unset_merge_strategy(
 
     let comment = "Merge strategy override removed for this pull request.".into();
     Ok(CommandExecutionResult::builder()
-        .with_status_update(false)
+        .with_status_update(true)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())

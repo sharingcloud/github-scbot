@@ -38,6 +38,7 @@ use builder::PullRequestModelBuilder;
     Default,
 )]
 #[table_name = "pull_request"]
+#[changeset_options(treat_none_as_null = "true")]
 pub struct PullRequestModel {
     /// Database ID.
     pub id: i32,
@@ -241,7 +242,7 @@ impl PullRequestModel {
 
     /// Get strategy override.
     pub fn get_strategy_override(&self) -> Option<GhMergeStrategy> {
-        self.step
+        self.strategy_override
             .as_ref()
             .and_then(|x| GhMergeStrategy::try_from(&x[..]).ok())
     }
