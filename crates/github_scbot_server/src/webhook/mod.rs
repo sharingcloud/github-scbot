@@ -9,7 +9,7 @@ mod reviews;
 #[cfg(test)]
 mod tests;
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_api::adapter::IAPIAdapter;
@@ -101,7 +101,7 @@ fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
 pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
-    ctx: web::Data<AppContext>,
+    ctx: web::Data<Arc<AppContext>>,
 ) -> ActixResult<HttpResponse> {
     // Route event depending on header
     if let Some(event_type) = extract_event_from_request(&req) {
