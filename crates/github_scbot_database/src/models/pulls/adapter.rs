@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use diesel::prelude::*;
-use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
+use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{PullRequestCreation, PullRequestModel};
 use crate::{
@@ -46,23 +47,23 @@ pub trait IPullRequestDbAdapter {
 }
 
 /// Concrete pull request DB adapter.
-pub struct PullRequestDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct PullRequestDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> PullRequestDbAdapter<'a> {
+impl PullRequestDbAdapter {
     /// Creates a new pull request DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
+impl IPullRequestDbAdapter for PullRequestDbAdapter {
     async fn create(&self, entry: PullRequestCreation) -> Result<PullRequestModel> {
         diesel::insert_into(pull_request::table)
             .values(entry)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -71,14 +72,14 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
         pull_request::table
             .filter(pull_request::id.eq(pull_request_id))
             .select(pull_request::status_comment_id)
-            .get_result_async::<i32>(self.pool)
+            .get_result_async::<i32>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn list(&self) -> Result<Vec<PullRequestModel>> {
         pull_request::table
-            .load_async::<PullRequestModel>(self.pool)
+            .load_async::<PullRequestModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -92,7 +93,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
-            .get_results_async(self.pool)
+            .get_results_async(&self.pool)
             .await?;
 
         Ok(values.into_iter().map(|(pr, _repo)| pr).collect())
@@ -108,7 +109,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
         pull_request::table
             .filter(pull_request::repository_id.eq(repository.id))
             .filter(pull_request::number.eq(number as i32))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownPullRequest(repository.get_path(), number))
     }
@@ -128,7 +129,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
             .filter(repository::owner.eq(owner))
             .filter(repository::name.eq(name))
             .filter(pull_request::number.eq(number as i32))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownPullRequest(path.to_string(), number))?;
 
@@ -145,7 +146,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
         pull_request::table
             .filter(pull_request::repository_id.eq(repository_id))
             .filter(pull_request::closed.eq(true))
-            .get_results_async(self.pool)
+            .get_results_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -153,11 +154,11 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
     async fn remove(&self, entry: &PullRequestModel) -> Result<()> {
         // Delete associated reviews
         diesel::delete(review::table.filter(review::pull_request_id.eq(entry.id)))
-            .execute_async(self.pool)
+            .execute_async(&self.pool)
             .await?;
 
         diesel::delete(pull_request::table.filter(pull_request::id.eq(entry.id)))
-            .execute_async(self.pool)
+            .execute_async(&self.pool)
             .await?;
 
         Ok(())
@@ -169,7 +170,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
                 .filter(pull_request::repository_id.eq(repository_id))
                 .filter(pull_request::closed.eq(true)),
         )
-        .execute_async(self.pool)
+        .execute_async(&self.pool)
         .await?;
 
         Ok(())
@@ -180,7 +181,7 @@ impl<'a> IPullRequestDbAdapter for PullRequestDbAdapter<'a> {
 
         *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(copy.id)))
             .set(copy)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
 

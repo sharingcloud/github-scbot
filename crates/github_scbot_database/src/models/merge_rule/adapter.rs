@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use diesel::prelude::*;
-use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
+use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{MergeRuleCreation, MergeRuleModel, RuleBranch};
 use crate::{models::RepositoryModel, schema::merge_rule, DatabaseError, DbPool, Result};
@@ -28,23 +29,23 @@ pub trait IMergeRuleDbAdapter {
 }
 
 /// Concrete merge rule DB adapter.
-pub struct MergeRuleDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct MergeRuleDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> MergeRuleDbAdapter<'a> {
+impl MergeRuleDbAdapter {
     /// Creates a new merge rule DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IMergeRuleDbAdapter for MergeRuleDbAdapter<'a> {
+impl IMergeRuleDbAdapter for MergeRuleDbAdapter {
     async fn create(&self, entry: MergeRuleCreation) -> Result<MergeRuleModel> {
         diesel::insert_into(merge_rule::table)
             .values(entry)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -63,7 +64,7 @@ impl<'a> IMergeRuleDbAdapter for MergeRuleDbAdapter<'a> {
             .filter(merge_rule::repository_id.eq(repository.id))
             .filter(merge_rule::base_branch.eq(base_branch.name()))
             .filter(merge_rule::head_branch.eq(head_branch.name()))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| {
                 DatabaseError::UnknownMergeRule(
@@ -77,21 +78,21 @@ impl<'a> IMergeRuleDbAdapter for MergeRuleDbAdapter<'a> {
     async fn list_from_repository_id(&self, repository_id: i32) -> Result<Vec<MergeRuleModel>> {
         merge_rule::table
             .filter(merge_rule::repository_id.eq(repository_id))
-            .get_results_async(self.pool)
+            .get_results_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn list(&self) -> Result<Vec<MergeRuleModel>> {
         merge_rule::table
-            .load_async::<MergeRuleModel>(self.pool)
+            .load_async::<MergeRuleModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn remove(&self, entry: MergeRuleModel) -> Result<()> {
         diesel::delete(merge_rule::table.filter(merge_rule::id.eq(entry.id)))
-            .execute_async(self.pool)
+            .execute_async(&self.pool)
             .await?;
 
         Ok(())
@@ -102,7 +103,7 @@ impl<'a> IMergeRuleDbAdapter for MergeRuleDbAdapter<'a> {
 
         *entry = diesel::update(merge_rule::table.filter(merge_rule::id.eq(copy.id)))
             .set(copy)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
 

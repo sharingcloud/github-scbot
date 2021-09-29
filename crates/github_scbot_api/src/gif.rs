@@ -1,7 +1,7 @@
 //! GIF module.
 
 use github_scbot_conf::Config;
-use github_scbot_libs::rand::prelude::*;
+use rand::prelude::*;
 
 use crate::{
     adapter::{GifFormat, GifResponse, IAPIAdapter},
@@ -20,7 +20,7 @@ const GIF_KEYS: &[GifFormat] = &[
 /// Get random GIF from query.
 pub async fn random_gif_from_query(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     search: &str,
 ) -> Result<Option<String>> {
     Ok(random_gif_from_response(

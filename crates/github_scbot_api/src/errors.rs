@@ -1,6 +1,5 @@
 //! API errors.
 
-use github_scbot_libs::{octocrab, reqwest};
 use thiserror::Error;
 
 /// API error.

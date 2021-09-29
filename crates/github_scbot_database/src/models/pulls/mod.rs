@@ -3,7 +3,6 @@
 use std::convert::TryFrom;
 
 use github_scbot_conf::Config;
-use github_scbot_libs::tracing::error;
 use github_scbot_types::{
     common::GhRepository,
     labels::StepLabel,
@@ -11,6 +10,7 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus},
 };
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use super::{
     repository::{IRepositoryDbAdapter, RepositoryModel},
@@ -307,8 +307,8 @@ mod tests {
     #[actix_rt::test]
     async fn create_pull_request() -> Result<()> {
         using_test_db("test_db_pulls", |config, pool| async move {
-            let repo_db_adapter = RepositoryDbAdapter::new(&pool);
-            let db_adapter = PullRequestDbAdapter::new(&pool);
+            let repo_db_adapter = RepositoryDbAdapter::new(pool.clone());
+            let db_adapter = PullRequestDbAdapter::new(pool.clone());
             let repo = RepositoryModel::builder(&config, "me", "TestRepo")
                 .create_or_update(&repo_db_adapter)
                 .await

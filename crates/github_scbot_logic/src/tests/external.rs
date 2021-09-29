@@ -11,7 +11,7 @@ use crate::LogicError;
 #[actix_rt::test]
 async fn test_repository_right_validation() -> Result<()> {
     using_test_db("test_logic_external", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
         let account = ExternalAccountModel::builder("test-ext")
             .generate_keys()
             .create_or_update(db_adapter.external_account())

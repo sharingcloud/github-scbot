@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
-use github_scbot_libs::{
-    async_trait::async_trait,
-    chrono::{DateTime, Utc},
-    heck, serde_plain,
-};
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use github_scbot_types::{
     checks::GhCheckSuite,
     common::{GhUser, GhUserPermission},
@@ -109,8 +106,8 @@ pub struct GifResponse {
 }
 
 /// GitHub API Adapter interface
-#[async_trait]
-pub trait IAPIAdapter {
+#[async_trait(?Send)]
+pub trait IAPIAdapter: Send + Sync {
     /// List labels from a target issue.
     async fn issue_labels_list(
         &self,

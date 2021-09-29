@@ -1,6 +1,6 @@
 //! Log configuration.
 
-use github_scbot_libs::tracing_subscriber::{self, EnvFilter};
+use tracing_subscriber::EnvFilter;
 
 const DEFAULT_ENV_CONFIG: &str = "warn,github_scbot=debug";
 

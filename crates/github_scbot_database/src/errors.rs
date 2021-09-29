@@ -1,7 +1,7 @@
 //! Database errors.
 
-use github_scbot_libs::{r2d2, tokio_diesel::AsyncError};
 use thiserror::Error;
+use tokio_diesel::AsyncError;
 
 /// Database error.
 #[derive(Debug, Error, Clone)]

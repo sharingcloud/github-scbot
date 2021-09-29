@@ -1,6 +1,6 @@
 //! Common types.
 
-use github_scbot_libs::chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// GitHub User.

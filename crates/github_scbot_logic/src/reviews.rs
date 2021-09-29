@@ -18,7 +18,7 @@ use crate::{status::update_pull_request_status, Result};
 /// Handle GitHub pull request review event.
 pub async fn handle_review_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhReviewEvent,
@@ -54,7 +54,7 @@ pub async fn handle_review_event(
 
 /// Handle GitHub review.
 pub async fn process_review(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -75,7 +75,7 @@ pub async fn process_review(
 
 /// Handle review request.
 pub async fn process_review_request(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -99,7 +99,7 @@ pub async fn process_review_request(
 
 /// Re-request existing reviews.
 pub async fn rerequest_existing_reviews(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -141,7 +141,7 @@ pub async fn reset_reviews(
 
 /// Synchronize reviews.
 pub async fn synchronize_reviews(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,

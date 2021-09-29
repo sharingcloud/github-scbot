@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use diesel::prelude::*;
-use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
+use tokio_diesel::AsyncRunQueryDsl;
 
 use super::{RepositoryCreation, RepositoryModel};
 use crate::{schema::repository, DatabaseError, DbPool, Result};
@@ -21,30 +22,30 @@ pub trait IRepositoryDbAdapter {
 }
 
 /// Concrete repository DB adapter.
-pub struct RepositoryDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct RepositoryDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> RepositoryDbAdapter<'a> {
+impl RepositoryDbAdapter {
     /// Creates a new repository DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IRepositoryDbAdapter for RepositoryDbAdapter<'a> {
+impl IRepositoryDbAdapter for RepositoryDbAdapter {
     async fn create(&self, entry: RepositoryCreation) -> Result<RepositoryModel> {
         diesel::insert_into(repository::table)
             .values(entry)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn list(&self) -> Result<Vec<RepositoryModel>> {
         repository::table
-            .load_async::<RepositoryModel>(self.pool)
+            .load_async::<RepositoryModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -52,7 +53,7 @@ impl<'a> IRepositoryDbAdapter for RepositoryDbAdapter<'a> {
     async fn get_from_id(&self, id: i32) -> Result<RepositoryModel> {
         repository::table
             .filter(repository::id.eq(id))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownRepository(format!("<ID {}>", id)))
     }
@@ -64,7 +65,7 @@ impl<'a> IRepositoryDbAdapter for RepositoryDbAdapter<'a> {
         repository::table
             .filter(repository::name.eq(name.clone()))
             .filter(repository::owner.eq(owner.clone()))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownRepository(format!("{0}/{1}", owner, name)))
     }
@@ -74,7 +75,7 @@ impl<'a> IRepositoryDbAdapter for RepositoryDbAdapter<'a> {
 
         *entry = diesel::update(repository::table.filter(repository::id.eq(copy.id)))
             .set(copy)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
 

@@ -1,11 +1,7 @@
 //! External status handlers.
 
-use github_scbot_database::models::DatabaseAdapter;
-use github_scbot_libs::{
-    actix_web::{web, HttpResponse, Result},
-    actix_web_httpauth::extractors::bearer::BearerAuth,
-    sentry,
-};
+use actix_web::{web, HttpResponse, Result};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
 use sentry_actix::eyre::WrapEyre;
 use serde::{Deserialize, Serialize};
@@ -25,8 +21,7 @@ pub(crate) async fn set_qa_status(
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
-    let db_adapter = DatabaseAdapter::new(&ctx.pool);
-    let target_account = extract_account_from_auth(&db_adapter, &auth)
+    let target_account = extract_account_from_auth(ctx.db_adapter.as_ref(), &auth)
         .await
         .map_err(WrapEyre::bad_request)?;
 
@@ -38,9 +33,9 @@ pub(crate) async fn set_qa_status(
     });
 
     set_qa_status_for_pull_requests(
-        &ctx.api_adapter,
-        &db_adapter,
-        &ctx.redis_adapter,
+        ctx.api_adapter.as_ref(),
+        ctx.db_adapter.as_ref(),
+        ctx.redis_adapter.as_ref(),
         &target_account,
         &data.repository_path,
         &data.pull_request_numbers,

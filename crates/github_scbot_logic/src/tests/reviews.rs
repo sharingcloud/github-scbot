@@ -44,7 +44,7 @@ async fn arrange(
 async fn test_review_creation() -> Result<()> {
     async fn parse_and_execute_command(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo: &mut RepositoryModel,
@@ -73,7 +73,7 @@ async fn test_review_creation() -> Result<()> {
     let redis_adapter = DummyRedisAdapter::new();
 
     using_test_db("test_logic_reviews", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
         let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 
         // Simulate review

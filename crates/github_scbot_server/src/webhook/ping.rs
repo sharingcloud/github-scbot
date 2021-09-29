@@ -1,7 +1,8 @@
 //! Ping webhook handlers.
 
-use github_scbot_libs::{actix_web::HttpResponse, tracing::info};
+use actix_web::HttpResponse;
 use github_scbot_types::{events::EventType, ping::GhPingEvent};
+use tracing::info;
 
 use super::parse_event_type;
 use crate::errors::Result;

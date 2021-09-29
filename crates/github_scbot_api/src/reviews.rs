@@ -12,7 +12,7 @@ use crate::{
 /// List reviews for pull request.
 /// Dedupe reviews per reviewer (only last state is kept).
 pub async fn list_reviews_for_pull_request(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
@@ -45,7 +45,6 @@ fn filter_last_review_states(reviews: Vec<GhReviewApi>) -> Vec<GhReview> {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_libs::chrono;
     use github_scbot_types::{common::GhUser, reviews::GhReviewState};
 
     use super::{filter_last_review_states, GhReviewApi};

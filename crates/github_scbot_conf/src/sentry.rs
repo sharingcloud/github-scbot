@@ -2,7 +2,9 @@
 
 use std::future::Future;
 
-use github_scbot_libs::{sentry as sentry_crate, stable_eyre::eyre::Report, tracing::info};
+use sentry as sentry_crate;
+use stable_eyre::eyre::Report;
+use tracing::info;
 
 use crate::Config;
 

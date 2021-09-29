@@ -1,7 +1,7 @@
 //! History models.
 
-use github_scbot_libs::{chrono, smart_default::SmartDefault};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 
 use super::{PullRequestModel, RepositoryModel};
 use crate::schema::history_webhook;

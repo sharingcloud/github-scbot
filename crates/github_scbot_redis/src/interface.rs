@@ -1,6 +1,7 @@
 //! Redis interfaces.
 
-use github_scbot_libs::{actix::MailboxError, actix_redis, async_trait::async_trait};
+use actix::MailboxError;
+use async_trait::async_trait;
 use thiserror::Error;
 
 /// Lock error.
@@ -61,7 +62,7 @@ impl<'a> LockInstance<'a> {
 
 /// Redis adapter trait.
 #[async_trait]
-pub trait IRedisAdapter: Sync {
+pub trait IRedisAdapter: Send + Sync {
     /// Tries to lock a resource.
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError>;
     /// Checks if resource exists.

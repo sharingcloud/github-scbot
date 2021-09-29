@@ -1,4 +1,3 @@
-use github_scbot_libs::serde_json;
 use github_scbot_types::{
     pulls::GhMergeStrategy,
     reviews::GhReviewState,
@@ -11,7 +10,7 @@ use crate::{models::DatabaseAdapter, tests::using_test_db, DatabaseError};
 #[actix_rt::test]
 async fn test_export_models_to_json() -> Result<()> {
     using_test_db("test_db_export_models", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
 
         let repo = RepositoryModel::builder(&config, "me", "TestRepo")
             .create_or_update(db_adapter.repository())
@@ -65,7 +64,7 @@ async fn test_export_models_to_json() -> Result<()> {
 #[allow(clippy::too_many_lines)]
 async fn test_import_models_from_json() -> Result<()> {
     using_test_db("test_db_import_models", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
 
         let repo = RepositoryModel::builder(&config, "me", "TestRepo")
             .create_or_update(db_adapter.repository())

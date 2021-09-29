@@ -8,7 +8,7 @@ const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 
 /// Post a comment to a pull request.
 pub async fn post_comment(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     pr_number: u64,
@@ -22,7 +22,7 @@ pub async fn post_comment(
 
 /// Update a pull request comment.
 pub async fn update_comment(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     comment_id: u64,
@@ -36,7 +36,7 @@ pub async fn update_comment(
 
 /// Add reaction emoji to comment.
 pub async fn add_reaction_to_comment(
-    adapter: &impl IAPIAdapter,
+    adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     comment_id: u64,

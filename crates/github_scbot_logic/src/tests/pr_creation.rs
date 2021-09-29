@@ -15,7 +15,7 @@ async fn test_should_create_pull_request_manual_no_activation() -> DatabaseResul
     using_test_db(
         "test_db_pr_creation_no_activation",
         |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(&pool);
+            let db_adapter = DatabaseAdapter::new(pool);
 
             let creation_event = GhPullRequestEvent {
                 action: GhPullRequestAction::Opened,
@@ -57,7 +57,7 @@ async fn test_should_create_pull_request_manual_with_activation() -> DatabaseRes
     using_test_db(
         "test_db_pr_creation_activation",
         |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(&pool);
+            let db_adapter = DatabaseAdapter::new(pool);
             let creation_event = GhPullRequestEvent {
                 action: GhPullRequestAction::Opened,
                 repository: GhRepository {
@@ -96,7 +96,7 @@ async fn test_should_create_pull_request_manual_with_activation() -> DatabaseRes
 #[actix_rt::test]
 async fn test_should_create_pull_request_automatic() -> DatabaseResult<()> {
     using_test_db("test_db_pr_creation_automatic", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(&pool);
+        let db_adapter = DatabaseAdapter::new(pool);
         let creation_event = GhPullRequestEvent {
             action: GhPullRequestAction::Opened,
             repository: GhRepository {

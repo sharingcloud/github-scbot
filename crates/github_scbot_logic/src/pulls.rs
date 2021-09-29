@@ -8,7 +8,6 @@ use github_scbot_database::{
     },
     DatabaseError,
 };
-use github_scbot_libs::tracing::{debug, info};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
@@ -18,6 +17,7 @@ use github_scbot_types::{
     reviews::GhReviewState,
     status::CheckStatus,
 };
+use tracing::{debug, info};
 
 use crate::{
     commands::{AdminCommand, Command, CommandParser},
@@ -65,7 +65,7 @@ pub(crate) fn should_create_pull_request(
 /// Handle pull request Opened event.
 pub async fn handle_pull_request_opened(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,
@@ -151,7 +151,7 @@ pub async fn handle_pull_request_opened(
 /// Handle GitHub pull request event.
 pub async fn handle_pull_request_event(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,
@@ -253,7 +253,7 @@ pub async fn handle_pull_request_event(
 
 /// Get checks status from GitHub.
 pub async fn get_checks_status_from_github(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     repository_owner: &str,
     repository_name: &str,
     sha: &str,
@@ -318,7 +318,7 @@ pub fn merge_check_suite_statuses(
 /// Synchronize pull request from upstream.
 pub async fn synchronize_pull_request(
     config: &Config,
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repository_owner: &str,
     repository_name: &str,
@@ -365,7 +365,7 @@ pub async fn synchronize_pull_request(
 
 /// Try automerge pull request.
 pub async fn try_automerge_pull_request(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
@@ -420,7 +420,7 @@ pub async fn try_automerge_pull_request(
 
 /// Apply pull request step.
 pub async fn apply_pull_request_step(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     repository_model: &RepositoryModel,
     pr_model: &PullRequestModel,
 ) -> Result<()> {

@@ -129,7 +129,7 @@ mod tests {
     #[actix_rt::test]
     async fn create_and_update() -> Result<()> {
         using_test_db("test_db_review", |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(&pool);
+            let db_adapter = DatabaseAdapter::new(pool.clone());
 
             let repo = RepositoryModel::builder(&config, "me", "TestRepo")
                 .create_or_update(db_adapter.repository())

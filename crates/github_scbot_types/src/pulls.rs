@@ -2,12 +2,10 @@
 
 use std::convert::TryFrom;
 
-use github_scbot_libs::{
-    chrono::{self, DateTime, Utc},
-    serde_plain,
-    smart_default::SmartDefault,
-};
+use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_plain;
+use smart_default::SmartDefault;
 
 use super::common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser};
 use crate::errors::TypeError;

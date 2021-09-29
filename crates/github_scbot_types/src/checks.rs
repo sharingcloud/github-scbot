@@ -1,10 +1,8 @@
 //! Check types.
 
-use github_scbot_libs::{
-    chrono::{self, DateTime, Utc},
-    smart_default::SmartDefault,
-};
+use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 
 use super::{
     common::{GhApplication, GhRepository, GhUser},

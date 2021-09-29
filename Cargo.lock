@@ -509,17 +509,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "atty"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
-dependencies = [
- "hermit-abi",
- "libc",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,21 +707,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "clap"
-version = "2.33.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
-dependencies = [
- "ansi_term 0.11.0",
- "atty",
- "bitflags",
- "strsim",
- "textwrap",
- "unicode-width",
- "vec_map",
 ]
 
 [[package]]
@@ -1282,14 +1256,23 @@ name = "github-scbot-api"
 version = "0.12.0"
 dependencies = [
  "actix-rt",
+ "async-trait",
+ "chrono",
  "github-scbot-conf",
  "github-scbot-crypto",
- "github-scbot-libs",
  "github-scbot-types",
  "github-scbot-utils",
+ "heck",
+ "http",
  "maplit",
+ "octocrab",
+ "rand 0.8.3",
+ "reqwest",
  "serde",
+ "serde_json",
+ "serde_plain",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
@@ -1297,17 +1280,21 @@ name = "github-scbot-cli"
 version = "0.12.0"
 dependencies = [
  "actix-rt",
+ "argh",
+ "async-trait",
+ "dialoguer",
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
- "github-scbot-libs",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-server",
  "github-scbot-tui",
  "github-scbot-types",
+ "owo-colors",
+ "sentry-core",
  "sentry-eyre",
- "structopt",
+ "stable-eyre",
  "thiserror",
 ]
 
@@ -1315,16 +1302,22 @@ dependencies = [
 name = "github-scbot-conf"
 version = "0.12.0"
 dependencies = [
- "github-scbot-libs",
+ "dotenv",
+ "jsonwebtoken",
+ "sentry",
  "sentry-eyre",
+ "stable-eyre",
  "thiserror",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
 name = "github-scbot-crypto"
 version = "0.12.0"
 dependencies = [
- "github-scbot-libs",
+ "jsonwebtoken",
+ "openssl",
  "serde",
  "thiserror",
 ]
@@ -1334,60 +1327,22 @@ name = "github-scbot-database"
 version = "0.12.0"
 dependencies = [
  "actix-rt",
+ "async-trait",
+ "chrono",
  "diesel",
  "diesel_migrations",
  "github-scbot-conf",
  "github-scbot-crypto",
- "github-scbot-libs",
  "github-scbot-types",
  "github-scbot-utils",
  "pretty_assertions 0.6.1",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "github-scbot-libs"
-version = "0.12.0"
-dependencies = [
- "actix",
- "actix-cors",
- "actix-http",
- "actix-redis",
- "actix-rt",
- "actix-service",
- "actix-web",
- "actix-web-httpauth",
- "async-trait",
- "chrono",
- "dialoguer",
- "dotenv",
- "futures",
- "heck",
- "hex",
- "http",
- "jsonwebtoken",
- "octocrab",
- "openssl",
- "owo-colors",
  "r2d2",
- "rand 0.8.3",
- "redis-async",
- "regex",
- "reqwest",
- "rust-crypto",
- "sentry",
- "sentry-core",
+ "serde",
  "serde_json",
- "serde_plain",
  "smart-default",
- "stable-eyre",
- "termion",
  "thiserror",
  "tokio-diesel",
  "tracing",
- "tracing-subscriber",
- "tui",
 ]
 
 [[package]]
@@ -1399,21 +1354,26 @@ dependencies = [
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
- "github-scbot-libs",
  "github-scbot-redis",
  "github-scbot-types",
  "maplit",
  "pretty_assertions 0.7.2",
+ "regex",
+ "smart-default",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
 name = "github-scbot-redis"
 version = "0.12.0"
 dependencies = [
+ "actix",
+ "actix-redis",
  "actix-rt",
- "github-scbot-libs",
+ "async-trait",
  "github-scbot-utils",
+ "redis-async",
  "thiserror",
 ]
 
@@ -1421,20 +1381,31 @@ dependencies = [
 name = "github-scbot-server"
 version = "0.12.0"
 dependencies = [
+ "actix-cors",
+ "actix-http",
  "actix-rt",
+ "actix-service",
+ "actix-web",
+ "actix-web-httpauth",
  "chrono",
+ "futures",
  "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-database",
- "github-scbot-libs",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-types",
+ "hex",
  "pretty_assertions 0.7.2",
+ "regex",
+ "rust-crypto",
+ "sentry",
  "sentry-actix",
  "serde",
+ "serde_json",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
@@ -1443,17 +1414,20 @@ version = "0.12.0"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
- "github-scbot-libs",
  "github-scbot-types",
+ "termion",
  "thiserror",
+ "tui",
 ]
 
 [[package]]
 name = "github-scbot-types"
 version = "0.12.0"
 dependencies = [
- "github-scbot-libs",
+ "chrono",
  "serde",
+ "serde_plain",
+ "smart-default",
  "thiserror",
 ]
 
@@ -2252,30 +2226,6 @@ dependencies = [
  "ctor",
  "diff",
  "output_vt100",
-]
-
-[[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2 1.0.27",
- "quote 1.0.7",
- "syn",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2 1.0.27",
- "quote 1.0.7",
- "version_check",
 ]
 
 [[package]]
@@ -3102,36 +3052,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 
 [[package]]
-name = "strsim"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
-
-[[package]]
-name = "structopt"
-version = "0.3.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b041cdcb67226aca307e6e7be44c8806423d83e018bd662360a93dabce4d71"
-dependencies = [
- "clap",
- "lazy_static",
- "structopt-derive",
-]
-
-[[package]]
-name = "structopt-derive"
-version = "0.4.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7813934aecf5f51a54775e00068c237de98489463968231a51746bbbc03f9c10"
-dependencies = [
- "heck",
- "proc-macro-error",
- "proc-macro2 1.0.27",
- "quote 1.0.7",
- "syn",
-]
-
-[[package]]
 name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3182,15 +3102,6 @@ dependencies = [
  "numtoa",
  "redox_syscall 0.2.4",
  "redox_termios",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
-dependencies = [
- "unicode-width",
 ]
 
 [[package]]
@@ -3625,12 +3536,6 @@ name = "vcpkg"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6454029bf181f092ad1b853286f23e2c507d8e8194d01d92da4a55c274a5508c"
-
-[[package]]
-name = "vec_map"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 
 [[package]]
 name = "version_check"

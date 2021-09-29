@@ -10,11 +10,11 @@ use github_scbot_api::{
 };
 use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_libs::tracing::info;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::issues::GhReactionType;
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
+use tracing::info;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::update_pull_request_status};
@@ -31,7 +31,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_commands(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &mut RepositoryModel,
@@ -89,7 +89,7 @@ impl CommandExecutor {
 
     /// Process command result.
     pub async fn process_command_result(
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &RepositoryModel,
@@ -197,7 +197,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_lines)]
     pub async fn execute_command(
         config: &Config,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &mut RepositoryModel,
         pr_model: &mut PullRequestModel,
@@ -425,7 +425,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_validate_user_rights_on_command() -> Result<()> {
         using_test_db("test_logic_commands", |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(&pool);
+            let db_adapter = DatabaseAdapter::new(pool);
 
             let creator = "me";
             let repo = RepositoryModel::builder(&config, "me", "test")

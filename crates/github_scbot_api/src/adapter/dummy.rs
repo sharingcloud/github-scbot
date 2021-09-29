@@ -1,6 +1,6 @@
 //! Dummy adapter
 
-use github_scbot_libs::async_trait::async_trait;
+use async_trait::async_trait;
 use github_scbot_types::{
     checks::GhCheckSuite,
     common::GhUserPermission,
@@ -64,7 +64,7 @@ impl DummyAPIAdapter {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 #[allow(unused_variables)]
 impl IAPIAdapter for DummyAPIAdapter {
     async fn issue_labels_list(

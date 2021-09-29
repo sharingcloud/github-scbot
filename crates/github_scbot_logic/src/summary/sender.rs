@@ -20,7 +20,7 @@ impl SummaryCommentSender {
     /// Creates comment.
     pub async fn create(
         &self,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &RepositoryModel,
         pr_model: &mut PullRequestModel,
@@ -41,7 +41,7 @@ impl SummaryCommentSender {
     /// Update comment.
     pub async fn update(
         &self,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &RepositoryModel,
         pr_model: &mut PullRequestModel,
@@ -86,7 +86,7 @@ impl SummaryCommentSender {
     /// Delete comment.
     pub async fn delete(
         &self,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &RepositoryModel,
         pr_model: &mut PullRequestModel,
@@ -112,7 +112,7 @@ impl SummaryCommentSender {
 
     async fn post_github_comment(
         &self,
-        api_adapter: &impl IAPIAdapter,
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &RepositoryModel,
         pr_model: &mut PullRequestModel,

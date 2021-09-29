@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use diesel::prelude::*;
-use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
+use tokio_diesel::AsyncRunQueryDsl;
 
 use super::ExternalAccountModel;
 use crate::{schema::external_account, DatabaseError, DbPool, Result};
@@ -21,23 +22,23 @@ pub trait IExternalAccountDbAdapter {
 }
 
 /// Concrete external account DB adapter.
-pub struct ExternalAccountDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct ExternalAccountDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> ExternalAccountDbAdapter<'a> {
+impl ExternalAccountDbAdapter {
     /// Creates a new external account DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IExternalAccountDbAdapter for ExternalAccountDbAdapter<'a> {
+impl IExternalAccountDbAdapter for ExternalAccountDbAdapter {
     async fn create(&self, entry: ExternalAccountModel) -> Result<ExternalAccountModel> {
         diesel::insert_into(external_account::table)
             .values(entry)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -47,14 +48,14 @@ impl<'a> IExternalAccountDbAdapter for ExternalAccountDbAdapter<'a> {
 
         external_account::table
             .filter(external_account::username.eq(username.clone()))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownExternalAccount(username))
     }
 
     async fn list(&self) -> Result<Vec<ExternalAccountModel>> {
         external_account::table
-            .load_async::<ExternalAccountModel>(self.pool)
+            .load_async::<ExternalAccountModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -63,7 +64,7 @@ impl<'a> IExternalAccountDbAdapter for ExternalAccountDbAdapter<'a> {
         diesel::delete(
             external_account::table.filter(external_account::username.eq(entry.username)),
         )
-        .execute_async(self.pool)
+        .execute_async(&self.pool)
         .await
         .map_err(DatabaseError::from)
         .map(|_| ())
@@ -76,7 +77,7 @@ impl<'a> IExternalAccountDbAdapter for ExternalAccountDbAdapter<'a> {
             external_account::table.filter(external_account::username.eq(copy.username.clone())),
         )
         .set(copy)
-        .get_result_async(self.pool)
+        .get_result_async(&self.pool)
         .await
         .map_err(DatabaseError::from)?;
 

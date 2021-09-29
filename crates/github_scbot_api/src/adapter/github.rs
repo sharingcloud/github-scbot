@@ -1,10 +1,7 @@
 //! GitHub adapter
 
+use async_trait::async_trait;
 use github_scbot_conf::Config;
-use github_scbot_libs::{
-    async_trait::async_trait, http, octocrab, octocrab::Octocrab, reqwest, serde_json,
-    tracing::error,
-};
 use github_scbot_types::{
     checks::GhCheckSuite,
     common::GhUserPermission,
@@ -12,7 +9,9 @@ use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::StatusState,
 };
+use octocrab::Octocrab;
 use serde::Deserialize;
+use tracing::error;
 
 use crate::{
     adapter::{GhReviewApi, GifResponse, IAPIAdapter},
@@ -44,7 +43,7 @@ impl GithubAPIAdapter {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl IAPIAdapter for GithubAPIAdapter {
     async fn issue_labels_list(
         &self,

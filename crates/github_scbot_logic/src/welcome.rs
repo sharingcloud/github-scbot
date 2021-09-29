@@ -7,7 +7,7 @@ use crate::errors::Result;
 
 /// Post welcome comment on a pull request.
 pub async fn post_welcome_comment(
-    api_adapter: &impl IAPIAdapter,
+    api_adapter: &dyn IAPIAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     pr_author: &str,

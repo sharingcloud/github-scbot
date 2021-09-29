@@ -1,6 +1,7 @@
+use async_trait::async_trait;
 use diesel::prelude::*;
-use github_scbot_libs::{async_trait::async_trait, tokio_diesel::AsyncRunQueryDsl};
 use github_scbot_utils::Mock;
+use tokio_diesel::AsyncRunQueryDsl;
 
 use super::AccountModel;
 use crate::{schema::account, DatabaseError, DbPool, Result};
@@ -23,23 +24,23 @@ pub trait IAccountDbAdapter {
 }
 
 /// Concrete account DB adapter.
-pub struct AccountDbAdapter<'a> {
-    pool: &'a DbPool,
+pub struct AccountDbAdapter {
+    pool: DbPool,
 }
 
-impl<'a> AccountDbAdapter<'a> {
+impl AccountDbAdapter {
     /// Creates a new account DB adapter.
-    pub fn new(pool: &'a DbPool) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
+impl IAccountDbAdapter for AccountDbAdapter {
     async fn create(&self, entry: AccountModel) -> Result<AccountModel> {
         diesel::insert_into(account::table)
             .values(entry)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -49,14 +50,14 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
 
         account::table
             .filter(account::username.eq(username.clone()))
-            .first_async(self.pool)
+            .first_async(&self.pool)
             .await
             .map_err(|_e| DatabaseError::UnknownAccount(username.to_string()))
     }
 
     async fn list(&self) -> Result<Vec<AccountModel>> {
         account::table
-            .load_async::<AccountModel>(self.pool)
+            .load_async::<AccountModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
@@ -64,14 +65,14 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
     async fn list_admin_accounts(&self) -> Result<Vec<AccountModel>> {
         account::table
             .filter(account::is_admin.eq(true))
-            .load_async::<AccountModel>(self.pool)
+            .load_async::<AccountModel>(&self.pool)
             .await
             .map_err(DatabaseError::from)
     }
 
     async fn remove(&self, entry: AccountModel) -> Result<()> {
         diesel::delete(account::table.filter(account::username.eq(entry.username.clone())))
-            .execute_async(self.pool)
+            .execute_async(&self.pool)
             .await?;
 
         Ok(())
@@ -82,7 +83,7 @@ impl<'a> IAccountDbAdapter for AccountDbAdapter<'a> {
 
         *entry = diesel::update(account::table.filter(account::username.eq(copy.username.clone())))
             .set(copy)
-            .get_result_async(self.pool)
+            .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
 
@@ -164,7 +165,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_create() -> Result<()> {
         using_test_db("auth_adapter_test_create", |_config, pool| async move {
-            let db_adapter = AccountDbAdapter::new(&pool);
+            let db_adapter = AccountDbAdapter::new(pool.clone());
             let account_model = AccountModel::builder("test").build();
             let account_model = db_adapter.create(account_model).await?;
             assert_eq!(
@@ -185,7 +186,7 @@ mod tests {
         using_test_db(
             "auth_adapter_test_get_from_username",
             |_config, pool| async move {
-                let db_adapter = AccountDbAdapter::new(&pool);
+                let db_adapter = AccountDbAdapter::new(pool.clone());
                 let account_model = AccountModel::builder("test")
                     .create_or_update(&db_adapter)
                     .await?;
@@ -200,7 +201,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_list() -> Result<()> {
         using_test_db("auth_adapter_list", |_config, pool| async move {
-            let db_adapter = AccountDbAdapter::new(&pool);
+            let db_adapter = AccountDbAdapter::new(pool.clone());
             assert_eq!(db_adapter.list().await?, Vec::new());
 
             let test = AccountModel::builder("test")
@@ -221,7 +222,7 @@ mod tests {
         using_test_db(
             "auth_adapter_list_admin_accounts",
             |_config, pool| async move {
-                let db_adapter = AccountDbAdapter::new(&pool);
+                let db_adapter = AccountDbAdapter::new(pool.clone());
 
                 AccountModel::builder("not_admin")
                     .create_or_update(&db_adapter)
@@ -241,7 +242,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_remove() -> Result<()> {
         using_test_db("auth_adapter_remove", |_config, pool| async move {
-            let db_adapter = AccountDbAdapter::new(&pool);
+            let db_adapter = AccountDbAdapter::new(pool.clone());
 
             let account = AccountModel::builder("test")
                 .create_or_update(&db_adapter)
@@ -262,7 +263,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_save() -> Result<()> {
         using_test_db("auth_adapter_save", |_config, pool| async move {
-            let db_adapter = AccountDbAdapter::new(&pool);
+            let db_adapter = AccountDbAdapter::new(pool.clone());
 
             let mut account = AccountModel::builder("test")
                 .create_or_update(&db_adapter)

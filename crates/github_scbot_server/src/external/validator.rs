@@ -1,14 +1,9 @@
 //! External API validator.
 
+use actix_web::{dev::ServiceRequest, web, Error};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_crypto::{decode_jwt, verify_jwt, CryptoError};
-use github_scbot_database::models::{
-    DatabaseAdapter, ExternalAccountModel, ExternalJwtClaims, IDatabaseAdapter,
-};
-use github_scbot_libs::{
-    actix_web::{dev::ServiceRequest, web, Error},
-    actix_web_httpauth::extractors::bearer::BearerAuth,
-    sentry,
-};
+use github_scbot_database::models::{ExternalAccountModel, ExternalJwtClaims, IDatabaseAdapter};
 use sentry_actix::eyre::WrapEyre;
 use thiserror::Error;
 
@@ -48,8 +43,7 @@ async fn jwt_auth_validator_inner(
     credentials: BearerAuth,
 ) -> Result<ServiceRequest, ValidationError> {
     let ctx = req.app_data::<web::Data<AppContext>>().unwrap();
-    let db_adapter = DatabaseAdapter::new(&ctx.pool);
-    let target_account = extract_account_from_auth(&db_adapter, &credentials).await?;
+    let target_account = extract_account_from_auth(ctx.db_adapter.as_ref(), &credentials).await?;
 
     // Validate token with ISS
     let tok = credentials.token();
