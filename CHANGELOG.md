@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced `structopt` with `argh`
 - Split the `github_scbot_libs` crate
 - Better testability with `AppContext`
+- Current status text is now in summary comment
 
 ## [0.12.0] - 2021-09-21
 
