@@ -6,7 +6,7 @@ use github_scbot_conf::Config;
 use github_scbot_types::{
     common::GhRepository,
     labels::StepLabel,
-    pulls::GhPullRequest,
+    pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
 use serde::{Deserialize, Serialize};
@@ -38,6 +38,7 @@ use builder::PullRequestModelBuilder;
     Default,
 )]
 #[table_name = "pull_request"]
+#[changeset_options(treat_none_as_null = "true")]
 pub struct PullRequestModel {
     /// Database ID.
     pub id: i32,
@@ -73,6 +74,8 @@ pub struct PullRequestModel {
     pub merged: bool,
     /// Is the PR closed?
     pub closed: bool,
+    /// Merge strategy override.
+    pub strategy_override: Option<String>,
 }
 
 #[derive(Debug, Insertable)]
@@ -94,6 +97,7 @@ pub struct PullRequestCreation {
     pub locked: bool,
     pub merged: bool,
     pub closed: bool,
+    pub strategy_override: Option<String>,
 }
 
 impl From<PullRequestCreation> for PullRequestModel {
@@ -116,6 +120,7 @@ impl From<PullRequestCreation> for PullRequestModel {
             locked: creation.locked,
             merged: creation.merged,
             closed: creation.closed,
+            strategy_override: creation.strategy_override,
         }
     }
 }
@@ -235,6 +240,18 @@ impl PullRequestModel {
             .and_then(|x| StepLabel::try_from(&x[..]).ok())
     }
 
+    /// Get strategy override.
+    pub fn get_strategy_override(&self) -> Option<GhMergeStrategy> {
+        self.strategy_override
+            .as_ref()
+            .and_then(|x| GhMergeStrategy::try_from(&x[..]).ok())
+    }
+
+    /// Set strategy override.
+    pub fn set_strategy_override(&mut self, strategy: Option<GhMergeStrategy>) {
+        self.strategy_override = strategy.map(|x| x.to_string());
+    }
+
     /// Get checks URL for a repository.
     pub fn get_checks_url(&self, repository: &RepositoryModel) -> String {
         return format!(
@@ -339,7 +356,8 @@ mod tests {
                     qa_status: QaStatus::Waiting.to_string(),
                     status_comment_id: 0,
                     step: None,
-                    wip: false
+                    wip: false,
+                    strategy_override: None
                 }
             );
             Ok::<_, DatabaseError>(())

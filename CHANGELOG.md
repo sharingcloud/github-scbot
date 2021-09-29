@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `strategy_override` field on the `PullRequest` table
+- New `set-merge-strategy` command on `pull-requests` to set an overriden merge strategy for a specific pull request
+- New `strategy+ <strategy>` and `strategy-` bot commands
+
 ### Changed
 
 - Replaced `structopt` with `argh`

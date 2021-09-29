@@ -61,6 +61,7 @@ table! {
         locked -> Bool,
         merged -> Bool,
         closed -> Bool,
+        strategy_override -> Nullable<Varchar>,
     }
 }
 

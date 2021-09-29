@@ -247,6 +247,40 @@ pub async fn handle_gif_command(
         .build())
 }
 
+pub async fn handle_set_merge_strategy(
+    db_adapter: &dyn IDatabaseAdapter,
+    pr_model: &mut PullRequestModel,
+    strategy: GhMergeStrategy,
+) -> Result<CommandExecutionResult> {
+    pr_model.set_strategy_override(Some(strategy));
+    db_adapter.pull_request().save(pr_model).await?;
+
+    let comment = format!(
+        "Merge strategy override set to '{:?}' for this pull request.",
+        strategy
+    );
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
+pub async fn handle_unset_merge_strategy(
+    db_adapter: &dyn IDatabaseAdapter,
+    pr_model: &mut PullRequestModel,
+) -> Result<CommandExecutionResult> {
+    pr_model.set_strategy_override(None);
+    db_adapter.pull_request().save(pr_model).await?;
+
+    let comment = "Merge strategy override removed for this pull request.".into();
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .with_action(ResultAction::PostComment(comment))
+        .build())
+}
+
 /// Handle `AssignRequiredReviewers` command.
 pub async fn handle_assign_required_reviewers_command(
     api_adapter: &dyn IAPIAdapter,
@@ -558,6 +592,8 @@ pub fn handle_help_command(
         - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
         - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
         - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
+        - `strategy+ <strategy>`: _Override merge strategy for this pull request_\n\
+        - `strategy-`: _Remove the overriden merge strategy for this pull request_\n\
         - `merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
