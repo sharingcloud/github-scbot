@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-redis"
-version = "0.12.0"
+version = "0.13.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
