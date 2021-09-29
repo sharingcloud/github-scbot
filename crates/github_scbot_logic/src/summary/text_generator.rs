@@ -148,11 +148,11 @@ impl SummaryTextGenerator {
         Ok(format!(
             ":scroll: &mdash; **Current status**\n\
             \n\
-            > _{status_state}: {status_msg}_\n\
+            > _{status_state:?}: {status_msg}_\n\
             \n\
             [_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
             checks_url = pull_request_status.checks_url,
-            status_state = state.to_str(),
+            status_state = state,
             status_msg = msg
         ))
     }
