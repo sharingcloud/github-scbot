@@ -28,6 +28,7 @@ class PullRequest {
     locked: Boolean
     merged: Boolean
     closed: Boolean
+    strategy_override: String
 }
 
 class Review {

@@ -5,11 +5,13 @@ use stable_eyre::eyre::Result;
 use super::{Command, CommandContext};
 
 mod list;
+mod set_merge_strategy;
 mod show;
 mod sync;
 
 use self::{
-    list::PullRequestListCommand, show::PullRequestShowCommand, sync::PullRequestSyncCommand,
+    list::PullRequestListCommand, set_merge_strategy::PullRequestSetMergeStrategyCommand,
+    show::PullRequestShowCommand, sync::PullRequestSyncCommand,
 };
 
 /// manage pull requests.
@@ -32,6 +34,7 @@ impl Command for PullRequestCommand {
 pub(crate) enum PullRequestSubCommand {
     Show(PullRequestShowCommand),
     Sync(PullRequestSyncCommand),
+    SetMergeStrategy(PullRequestSetMergeStrategyCommand),
     List(PullRequestListCommand),
 }
 
@@ -42,6 +45,7 @@ impl Command for PullRequestSubCommand {
             Self::List(sub) => sub.execute(ctx).await,
             Self::Show(sub) => sub.execute(ctx).await,
             Self::Sync(sub) => sub.execute(ctx).await,
+            Self::SetMergeStrategy(sub) => sub.execute(ctx).await,
         }
     }
 }

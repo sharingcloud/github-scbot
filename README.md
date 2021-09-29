@@ -89,6 +89,8 @@ This README supposes the default bot handle: 'bot'.
 - `bot lock- <reason?>`: _Unlock a pull-request (unblock merge)_
 - `bot req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_
 - `bot req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_
+- `bot strategy+ <strategy>`: _Override merge strategy for this pull request_
+- `bot strategy-`: _Remove the overriden merge strategy for this pull request_
 - `bot merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_
 - `bot ping`: _Ping me_
 - `bot gif <search>`: _Post a random GIF with a tag_

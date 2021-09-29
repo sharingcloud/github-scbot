@@ -371,13 +371,17 @@ pub async fn try_automerge_pull_request(
     pr_model: &PullRequestModel,
 ) -> Result<bool> {
     let commit_title = pr_model.get_merge_commit_title();
-    let strategy = MergeRuleModel::get_strategy_from_branches(
-        db_adapter.merge_rule(),
-        repo_model,
-        &pr_model.base_branch[..],
-        &pr_model.head_branch[..],
-    )
-    .await;
+    let strategy = if let Some(s) = pr_model.get_strategy_override() {
+        s
+    } else {
+        MergeRuleModel::get_strategy_from_branches(
+            db_adapter.merge_rule(),
+            repo_model,
+            &pr_model.base_branch[..],
+            &pr_model.head_branch[..],
+        )
+        .await
+    };
 
     if let Err(e) = api_adapter
         .pulls_merge(

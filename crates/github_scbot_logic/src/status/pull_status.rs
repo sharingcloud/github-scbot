@@ -46,13 +46,17 @@ impl PullRequestStatus {
         pr_model: &PullRequestModel,
     ) -> Result<Self> {
         let reviews = pr_model.get_reviews(db_adapter.review()).await?;
-        let strategy = MergeRuleModel::get_strategy_from_branches(
-            db_adapter.merge_rule(),
-            repo_model,
-            &pr_model.base_branch[..],
-            &pr_model.head_branch[..],
-        )
-        .await;
+        let strategy = if let Some(s) = pr_model.get_strategy_override() {
+            s
+        } else {
+            MergeRuleModel::get_strategy_from_branches(
+                db_adapter.merge_rule(),
+                repo_model,
+                &pr_model.base_branch[..],
+                &pr_model.head_branch[..],
+            )
+            .await
+        };
 
         Self::from_pull_request(repo_model, pr_model, &reviews, strategy)
     }

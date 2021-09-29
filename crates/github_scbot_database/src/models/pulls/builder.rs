@@ -1,6 +1,6 @@
 use github_scbot_types::{
     labels::StepLabel,
-    pulls::GhPullRequest,
+    pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
 
@@ -25,6 +25,7 @@ pub struct PullRequestModelBuilder<'a> {
     base_branch: Option<String>,
     head_branch: Option<String>,
     closed: Option<bool>,
+    strategy_override: Option<Option<GhMergeStrategy>>,
 }
 
 impl<'a> PullRequestModelBuilder<'a> {
@@ -46,6 +47,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             base_branch: None,
             head_branch: None,
             closed: None,
+            strategy_override: None,
         }
     }
 
@@ -67,6 +69,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             base_branch: Some(model.base_branch.clone()),
             head_branch: Some(model.head_branch.clone()),
             closed: Some(model.closed),
+            strategy_override: Some(model.get_strategy_override()),
         }
     }
 
@@ -88,6 +91,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             base_branch: Some(pr.base.reference.clone()),
             head_branch: Some(pr.head.reference.clone()),
             closed: Some(pr.closed_at.is_some()),
+            strategy_override: None,
         }
     }
 
@@ -156,6 +160,11 @@ impl<'a> PullRequestModelBuilder<'a> {
         self
     }
 
+    pub fn strategy_override(mut self, value: Option<GhMergeStrategy>) -> Self {
+        self.strategy_override = Some(value);
+        self
+    }
+
     pub fn build(&self) -> PullRequestCreation {
         PullRequestCreation {
             repository_id: self.repository.id,
@@ -198,6 +207,10 @@ impl<'a> PullRequestModelBuilder<'a> {
             closed: self.closed.unwrap_or(false),
             locked: self.locked.unwrap_or(false),
             merged: self.merged.unwrap_or(false),
+            strategy_override: self
+                .strategy_override
+                .unwrap_or(None)
+                .map(|x| x.to_string()),
         }
     }
 
@@ -264,6 +277,10 @@ impl<'a> PullRequestModelBuilder<'a> {
         handle.merged = match self.merged {
             Some(m) => m,
             None => handle.merged,
+        };
+        handle.strategy_override = match self.strategy_override {
+            Some(s) => s.map(|x| x.to_string()),
+            None => handle.strategy_override,
         };
 
         db_adapter.save(&mut handle).await?;

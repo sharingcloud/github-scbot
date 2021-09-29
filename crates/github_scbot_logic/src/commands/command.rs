@@ -49,6 +49,10 @@ pub enum UserCommand {
     AssignRequiredReviewers(Vec<String>),
     /// Unassign required reviewers.
     UnassignRequiredReviewers(Vec<String>),
+    /// Set merge strategy.
+    SetMergeStrategy(GhMergeStrategy),
+    /// Unset merge strategy.
+    UnsetMergeStrategy,
     /// Add/Remove lock with optional reason.
     Lock(bool, Option<String>),
     /// Post a random gif.
@@ -204,6 +208,10 @@ impl Command {
             "req-" => Self::User(UserCommand::UnassignRequiredReviewers(
                 Self::parse_reviewers(args)?,
             )),
+            "strategy+" => Self::User(UserCommand::SetMergeStrategy(Self::parse_merge_strategy(
+                args,
+            )?)),
+            "strategy-" => Self::User(UserCommand::UnsetMergeStrategy),
             "gif" => Self::User(UserCommand::Gif(Self::parse_text(args))),
             "merge" => Self::User(UserCommand::Merge(Self::parse_optional_merge_strategy(
                 args,
@@ -317,6 +325,10 @@ impl Command {
                         "merge".into()
                     }
                 }
+                UserCommand::SetMergeStrategy(strategy) => {
+                    format!("strategy+ {}", strategy.to_string())
+                }
+                UserCommand::UnsetMergeStrategy => "strategy-".into(),
                 UserCommand::Ping => "ping".into(),
                 UserCommand::QaStatus(status) => format!("qa{}", Self::plus_minus_option(*status)),
                 UserCommand::SkipQaStatus(status) => {

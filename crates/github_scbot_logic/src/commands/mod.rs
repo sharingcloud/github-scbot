@@ -277,6 +277,12 @@ impl CommandExecutor {
                         )
                         .await?
                     }
+                    UserCommand::SetMergeStrategy(strategy) => {
+                        handlers::handle_set_merge_strategy(db_adapter, pr_model, *strategy).await?
+                    }
+                    UserCommand::UnsetMergeStrategy => {
+                        handlers::handle_unset_merge_strategy(db_adapter, pr_model).await?
+                    }
                     UserCommand::UnassignRequiredReviewers(reviewers) => {
                         handlers::handle_unassign_required_reviewers_command(
                             api_adapter,
