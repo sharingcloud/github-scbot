@@ -3,7 +3,10 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus},
 };
 
-use crate::{status::PullRequestStatus, Result};
+use crate::{
+    status::{generate_pr_status_message, PullRequestStatus},
+    Result,
+};
 
 /// Summary text generator.
 pub struct SummaryTextGenerator;
@@ -29,7 +32,7 @@ impl SummaryTextGenerator {
             checks_section = Self::generate_status_comment_checks_section(pull_request_status),
             config_section =
                 Self::generate_status_comment_config_section(pull_request_status.automerge),
-            footer = Self::generate_status_comment_footer(&pull_request_status.checks_url)
+            footer = Self::generate_status_comment_footer(pull_request_status)?
         ))
     }
 
@@ -139,10 +142,18 @@ impl SummaryTextGenerator {
         )
     }
 
-    fn generate_status_comment_footer(checks_url: &str) -> String {
-        format!(
-            "[_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
-            checks_url = checks_url
-        )
+    fn generate_status_comment_footer(pull_request_status: &PullRequestStatus) -> Result<String> {
+        let (state, _title, msg) = generate_pr_status_message(pull_request_status)?;
+
+        Ok(format!(
+            ":scroll: &mdash; **Current status**\n\
+            \n\
+            > _{status_state:?}: {status_msg}_\n\
+            \n\
+            [_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
+            checks_url = pull_request_status.checks_url,
+            status_state = state,
+            status_msg = msg
+        ))
     }
 }
