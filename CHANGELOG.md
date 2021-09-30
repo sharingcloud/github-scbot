@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove data races on reviews using a Redis lock
+
 ## [0.13.0] - 2021-09-29
 
 ### Added
