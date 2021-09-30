@@ -7,7 +7,7 @@ use github_scbot_database::{
     tests::using_test_db,
     Result,
 };
-use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter};
+use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::GhUser,
     reviews::{GhReview, GhReviewState},
@@ -69,11 +69,11 @@ async fn test_review_creation() -> Result<()> {
         Ok(())
     }
 
-    let api_adapter = DummyAPIAdapter::new();
-    let redis_adapter = DummyRedisAdapter::new();
-
     using_test_db("test_logic_reviews", |config, pool| async move {
         let db_adapter = DatabaseAdapter::new(pool);
+        let api_adapter = DummyAPIAdapter::new();
+        let mut redis_adapter = DummyRedisAdapter::new();
+
         let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 
         // Simulate review
@@ -85,7 +85,20 @@ async fn test_review_creation() -> Result<()> {
             },
         };
 
-        process_review(&api_adapter, &db_adapter, &repo, &pr, &review).await?;
+        let instance = LockInstance::new_dummy("pouet");
+        redis_adapter
+            .try_lock_resource_response
+            .set_response(Ok(LockStatus::SuccessfullyLocked(instance)));
+
+        process_review(
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
+            &repo,
+            &pr,
+            &review,
+        )
+        .await?;
 
         // Simulate another review
         let review2 = GhReview {
@@ -96,7 +109,15 @@ async fn test_review_creation() -> Result<()> {
             },
         };
 
-        process_review(&api_adapter, &db_adapter, &repo, &pr, &review2).await?;
+        process_review(
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
+            &repo,
+            &pr,
+            &review2,
+        )
+        .await?;
 
         // List reviews
         let reviews = pr.get_reviews(db_adapter.review()).await.unwrap();

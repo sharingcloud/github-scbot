@@ -2,6 +2,7 @@ name: Image
 
 on:
   push:
+    tags:
 
 jobs:
   build:
