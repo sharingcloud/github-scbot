@@ -13,7 +13,7 @@ use tracing::info;
 
 use super::command::CommandExecutionResult;
 use crate::{
-    auth::{is_admin, list_known_admin_usernames},
+    auth::AuthLogic,
     commands::command::ResultAction,
     errors::Result,
     gif::GifPoster,
@@ -100,8 +100,8 @@ pub async fn handle_is_admin_command(
     db_adapter: &dyn IDatabaseAdapter,
     comment_author: &str,
 ) -> Result<CommandExecutionResult> {
-    let known_admins = list_known_admin_usernames(db_adapter).await?;
-    let status = is_admin(comment_author, &known_admins);
+    let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
+    let status = AuthLogic::is_admin(comment_author, &known_admins);
     let reaction_type = if status {
         GhReactionType::PlusOne
     } else {

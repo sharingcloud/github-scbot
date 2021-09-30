@@ -26,7 +26,6 @@ use crate::{
         create_initial_pull_request_status, determine_automatic_step, update_pull_request_status,
         PullRequestStatus,
     },
-    welcome::post_welcome_comment,
     Result,
 };
 
@@ -457,6 +456,29 @@ pub async fn apply_pull_request_step(
     )
     .await
     .map_err(Into::into)
+}
+
+/// Post welcome comment on a pull request.
+pub async fn post_welcome_comment(
+    api_adapter: &dyn IAPIAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+    pr_author: &str,
+) -> Result<()> {
+    CommentApi::post_comment(
+        api_adapter,
+        &repo_model.owner,
+        &repo_model.name,
+        pr_model.get_number(),
+        &format!(
+            ":tada: Welcome, _{}_ ! :tada:\n\
+        Thanks for your pull request, it will be reviewed soon. :clock2:",
+            pr_author
+        ),
+    )
+    .await?;
+
+    Ok(())
 }
 
 fn extract_usernames(users: &[GhUser]) -> Vec<&str> {

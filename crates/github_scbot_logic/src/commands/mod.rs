@@ -16,7 +16,7 @@ use tracing::info;
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::update_pull_request_status};
 use crate::{
-    auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
+    auth::AuthLogic,
     commands::command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
 };
 
@@ -399,14 +399,18 @@ impl CommandExecutor {
         pr_model: &PullRequestModel,
         command: &Command,
     ) -> Result<bool> {
-        let known_admins = list_known_admin_usernames(db_adapter).await?;
+        let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
 
         match command {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
-                _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
+                _ => Ok(AuthLogic::has_right_on_pull_request(
+                    username,
+                    pr_model,
+                    &known_admins,
+                )),
             },
-            Command::Admin(_) => Ok(is_admin(username, &known_admins)),
+            Command::Admin(_) => Ok(AuthLogic::is_admin(username, &known_admins)),
         }
     }
 }

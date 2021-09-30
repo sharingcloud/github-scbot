@@ -14,8 +14,6 @@ pub mod pulls;
 pub mod reviews;
 pub mod status;
 pub mod summary;
-pub mod validation;
-pub mod welcome;
 
 #[cfg(test)]
 mod tests;
