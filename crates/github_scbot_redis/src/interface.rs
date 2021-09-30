@@ -1,5 +1,7 @@
 //! Redis interfaces.
 
+use std::time::Duration;
+
 use actix::MailboxError;
 use async_trait::async_trait;
 use thiserror::Error;
@@ -45,15 +47,25 @@ pub enum LockStatus<'a> {
 #[derive(Clone)]
 #[must_use]
 pub struct LockInstance<'a> {
-    pub(crate) lock: &'a dyn IRedisAdapter,
+    pub(crate) lock: Option<&'a dyn IRedisAdapter>,
     pub(crate) name: String,
 }
 
 impl<'a> LockInstance<'a> {
+    /// Create a new dummy lock.
+    pub fn new_dummy<T: Into<String>>(name: T) -> Self {
+        Self {
+            lock: None,
+            name: name.into(),
+        }
+    }
+
     /// Release lock instance.
     pub async fn release(self) -> Result<(), RedisError> {
-        if self.lock.has_resource(&self.name).await? {
-            self.lock.del_resource(&self.name).await?;
+        if let Some(lock) = self.lock {
+            if lock.has_resource(&self.name).await? {
+                lock.del_resource(&self.name).await?;
+            }
         }
 
         Ok(())
@@ -69,4 +81,29 @@ pub trait IRedisAdapter: Send + Sync {
     async fn has_resource(&self, name: &str) -> Result<bool, RedisError>;
     /// Deletes a resource if it exists.
     async fn del_resource(&self, name: &str) -> Result<(), RedisError>;
+    /// Wait for a resource lock, until timeout.
+    async fn wait_lock_resource<'a>(
+        &'a self,
+        name: &str,
+        timeout_ms: u64,
+    ) -> Result<LockStatus<'a>, RedisError> {
+        // Try each 100ms
+        let mut elapsed_time = 0;
+        let millis = 100;
+        let duration = Duration::from_millis(millis);
+
+        loop {
+            match self.try_lock_resource(name).await? {
+                l @ LockStatus::SuccessfullyLocked(_) => return Ok(l),
+                LockStatus::AlreadyLocked => (),
+            }
+
+            if elapsed_time > timeout_ms {
+                return Ok(LockStatus::AlreadyLocked);
+            } else {
+                actix::clock::delay_for(duration).await;
+                elapsed_time += millis;
+            }
+        }
+    }
 }

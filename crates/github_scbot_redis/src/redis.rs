@@ -36,7 +36,7 @@ impl IRedisAdapter for RedisAdapter {
             RespValue::SimpleString(s) => {
                 if &s == "OK" {
                     Ok(LockStatus::SuccessfullyLocked(LockInstance {
-                        lock: self,
+                        lock: Some(self),
                         name: name.to_owned(),
                     }))
                 } else {

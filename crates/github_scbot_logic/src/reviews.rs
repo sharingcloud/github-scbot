@@ -7,7 +7,7 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::{
     HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     events::EventType,
     reviews::{GhReview, GhReviewEvent, GhReviewState},
@@ -37,7 +37,15 @@ pub async fn handle_review_event(
                 .await?;
         }
 
-        process_review(api_adapter, db_adapter, &repo, &pr, &event.review).await?;
+        process_review(
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            &repo,
+            &pr,
+            &event.review,
+        )
+        .await?;
         update_pull_request_status(
             api_adapter,
             db_adapter,
@@ -56,6 +64,7 @@ pub async fn handle_review_event(
 pub async fn process_review(
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     review: &GhReview,
@@ -64,11 +73,26 @@ pub async fn process_review(
         .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
         .await?;
 
-    // Get or create in database
-    ReviewModel::builder_from_github(repo_model, pr_model, review)
-        .valid(permission.can_write())
-        .create_or_update(db_adapter.review())
-        .await?;
+    let key_name = format!(
+        "review_{}-{}_{}_{}",
+        repo_model.owner,
+        repo_model.name,
+        pr_model.get_number(),
+        review.user.login
+    );
+    let timeout = 500;
+
+    if let LockStatus::SuccessfullyLocked(l) =
+        redis_adapter.wait_lock_resource(&key_name, timeout).await?
+    {
+        // Get or create in database
+        ReviewModel::builder_from_github(repo_model, pr_model, review)
+            .valid(permission.can_write())
+            .create_or_update(db_adapter.review())
+            .await?;
+
+        l.release().await?;
+    };
 
     Ok(())
 }
@@ -77,6 +101,7 @@ pub async fn process_review(
 pub async fn process_review_request(
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn IDatabaseAdapter,
+    redis_adapter: &dyn IRedisAdapter,
     repo_model: &RepositoryModel,
     pr_model: &PullRequestModel,
     review_state: GhReviewState,
@@ -87,11 +112,26 @@ pub async fn process_review_request(
             .user_permissions_get(&repo_model.owner, &repo_model.name, reviewer)
             .await?;
 
-        ReviewModel::builder(repo_model, pr_model, reviewer)
-            .state(review_state)
-            .valid(permission.can_write())
-            .create_or_update(db_adapter.review())
-            .await?;
+        let key_name = format!(
+            "review_{}-{}_{}_{}",
+            repo_model.owner,
+            repo_model.name,
+            pr_model.get_number(),
+            reviewer
+        );
+        let timeout = 500;
+
+        if let LockStatus::SuccessfullyLocked(l) =
+            redis_adapter.wait_lock_resource(&key_name, timeout).await?
+        {
+            ReviewModel::builder(repo_model, pr_model, reviewer)
+                .state(review_state)
+                .valid(permission.can_write())
+                .create_or_update(db_adapter.review())
+                .await?;
+
+            l.release().await?;
+        }
     }
 
     Ok(())

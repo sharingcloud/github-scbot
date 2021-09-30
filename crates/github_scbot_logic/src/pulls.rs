@@ -225,6 +225,7 @@ pub async fn handle_pull_request_event(
                 process_review_request(
                     api_adapter,
                     db_adapter,
+                    redis_adapter,
                     &repo_model,
                     &pr_model,
                     GhReviewState::Pending,
@@ -237,6 +238,7 @@ pub async fn handle_pull_request_event(
                 process_review_request(
                     api_adapter,
                     db_adapter,
+                    redis_adapter,
                     &repo_model,
                     &pr_model,
                     GhReviewState::Dismissed,
