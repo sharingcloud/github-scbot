@@ -6,7 +6,7 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::{
     HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
-use github_scbot_ghapi::{adapter::IAPIAdapter, reviews::list_reviews_for_pull_request};
+use github_scbot_ghapi::{adapter::IAPIAdapter, reviews::ReviewApi};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     events::EventType,
@@ -187,7 +187,7 @@ pub async fn synchronize_reviews(
     pr_model: &PullRequestModel,
 ) -> Result<()> {
     // Get reviews
-    let reviews = list_reviews_for_pull_request(
+    let reviews = ReviewApi::list_reviews_for_pull_request(
         api_adapter,
         &repo_model.owner,
         &repo_model.name,

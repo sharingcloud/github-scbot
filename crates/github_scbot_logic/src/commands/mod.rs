@@ -6,10 +6,7 @@ mod parser;
 
 use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_ghapi::{
-    adapter::IAPIAdapter,
-    comments::{add_reaction_to_comment, post_comment},
-};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::issues::GhReactionType;
 pub use handlers::handle_qa_command;
@@ -117,7 +114,7 @@ impl CommandExecutor {
         for action in &command_result.result_actions {
             match action {
                 ResultAction::AddReaction(reaction) => {
-                    add_reaction_to_comment(
+                    CommentApi::add_reaction_to_comment(
                         api_adapter,
                         &repo_model.owner,
                         &repo_model.name,
@@ -127,7 +124,7 @@ impl CommandExecutor {
                     .await?;
                 }
                 ResultAction::PostComment(comment) => {
-                    post_comment(
+                    CommentApi::post_comment(
                         api_adapter,
                         &repo_model.owner,
                         &repo_model.name,

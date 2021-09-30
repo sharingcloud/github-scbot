@@ -7,7 +7,7 @@ use github_scbot_database::{
     },
     DatabaseError,
 };
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::post_comment, labels::set_step_label};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
@@ -414,7 +414,7 @@ pub async fn try_automerge_pull_request(
         )
         .await
     {
-        post_comment(
+        CommentApi::post_comment(
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
@@ -427,7 +427,7 @@ pub async fn try_automerge_pull_request(
         .await?;
         Ok(false)
     } else {
-        post_comment(
+        CommentApi::post_comment(
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
@@ -448,7 +448,7 @@ pub async fn apply_pull_request_step(
     repository_model: &RepositoryModel,
     pr_model: &PullRequestModel,
 ) -> Result<()> {
-    set_step_label(
+    LabelApi::set_step_label(
         api_adapter,
         &repository_model.owner,
         &repository_model.name,

@@ -2,9 +2,7 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
-use github_scbot_ghapi::{
-    adapter::IAPIAdapter, comments::post_comment, gif::random_gif_from_query,
-};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, gif::GifApi};
 
 use crate::Result;
 
@@ -21,7 +19,7 @@ impl GifPoster {
         search_terms: &str,
     ) -> Result<()> {
         let body = Self::generate_random_gif_comment(config, api_adapter, search_terms).await?;
-        post_comment(
+        CommentApi::post_comment(
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
@@ -39,7 +37,7 @@ impl GifPoster {
         api_adapter: &dyn IAPIAdapter,
         search_terms: &str,
     ) -> Result<String> {
-        let random_gif = random_gif_from_query(config, api_adapter, search_terms).await?;
+        let random_gif = GifApi::random_gif_from_query(config, api_adapter, search_terms).await?;
 
         match random_gif {
             None => Ok(format!(

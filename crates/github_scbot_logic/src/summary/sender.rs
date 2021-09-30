@@ -1,8 +1,5 @@
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_ghapi::{
-    adapter::IAPIAdapter,
-    comments::{post_comment, update_comment},
-};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 
 use super::SummaryTextGenerator;
 use crate::{status::PullRequestStatus, Result};
@@ -56,7 +53,7 @@ impl SummaryCommentSender {
             .fetch_status_comment_id(pr_model.id)
             .await? as u64;
         if comment_id > 0 {
-            if let Ok(comment_id) = update_comment(
+            if let Ok(comment_id) = CommentApi::update_comment(
                 api_adapter,
                 &repo_model.owner,
                 &repo_model.name,
@@ -118,7 +115,7 @@ impl SummaryCommentSender {
         pr_model: &mut PullRequestModel,
         comment: &str,
     ) -> Result<u64> {
-        let comment_id = post_comment(
+        let comment_id = CommentApi::post_comment(
             api_adapter,
             &repo_model.owner,
             &repo_model.name,

@@ -1,7 +1,7 @@
 //! Welcome module.
 
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::post_comment};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 
 use crate::errors::Result;
 
@@ -12,7 +12,7 @@ pub async fn post_welcome_comment(
     pr_model: &PullRequestModel,
     pr_author: &str,
 ) -> Result<()> {
-    post_comment(
+    CommentApi::post_comment(
         api_adapter,
         &repo_model.owner,
         &repo_model.name,
