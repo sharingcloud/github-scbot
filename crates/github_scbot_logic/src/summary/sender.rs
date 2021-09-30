@@ -1,8 +1,8 @@
-use github_scbot_api::{
+use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_ghapi::{
     adapter::IAPIAdapter,
     comments::{post_comment, update_comment},
 };
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
 
 use super::SummaryTextGenerator;
 use crate::{status::PullRequestStatus, Result};

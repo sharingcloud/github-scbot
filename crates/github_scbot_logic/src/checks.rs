@@ -1,8 +1,8 @@
 //! Checks logic.
 
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::{HistoryWebhookModel, IDatabaseAdapter, RepositoryModel};
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuiteAction, GhCheckSuiteEvent},

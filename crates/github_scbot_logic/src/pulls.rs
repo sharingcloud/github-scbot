@@ -1,6 +1,5 @@
 //! Pull requests logic.
 
-use github_scbot_api::{adapter::IAPIAdapter, comments::post_comment, labels::set_step_label};
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
@@ -8,6 +7,7 @@ use github_scbot_database::{
     },
     DatabaseError,
 };
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::post_comment, labels::set_step_label};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},

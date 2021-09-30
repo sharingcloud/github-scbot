@@ -1252,30 +1252,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
 
 [[package]]
-name = "github-scbot-api"
-version = "0.13.1"
-dependencies = [
- "actix-rt",
- "async-trait",
- "chrono",
- "github-scbot-conf",
- "github-scbot-crypto",
- "github-scbot-types",
- "github-scbot-utils",
- "heck",
- "http",
- "maplit",
- "octocrab",
- "rand 0.8.3",
- "reqwest",
- "serde",
- "serde_json",
- "serde_plain",
- "thiserror",
- "tracing",
-]
-
-[[package]]
 name = "github-scbot-cli"
 version = "0.13.1"
 dependencies = [
@@ -1283,9 +1259,9 @@ dependencies = [
  "argh",
  "async-trait",
  "dialoguer",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-server",
@@ -1346,14 +1322,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-ghapi"
+version = "0.13.1"
+dependencies = [
+ "actix-rt",
+ "async-trait",
+ "chrono",
+ "github-scbot-conf",
+ "github-scbot-crypto",
+ "github-scbot-types",
+ "github-scbot-utils",
+ "heck",
+ "http",
+ "maplit",
+ "octocrab",
+ "rand 0.8.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "github-scbot-logic"
 version = "0.13.1"
 dependencies = [
  "actix-rt",
  "chrono",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-redis",
  "github-scbot-types",
  "maplit",
@@ -1389,10 +1389,10 @@ dependencies = [
  "actix-web-httpauth",
  "chrono",
  "futures",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-types",

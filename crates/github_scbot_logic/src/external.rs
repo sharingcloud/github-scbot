@@ -1,7 +1,7 @@
 //! External module.
 
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_database::models::{ExternalAccountModel, IDatabaseAdapter, RepositoryModel};
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 
 use crate::{

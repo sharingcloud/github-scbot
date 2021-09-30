@@ -1,8 +1,8 @@
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::{
     IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_types::{
     issues::GhReactionType,
     labels::StepLabel,
@@ -643,13 +643,13 @@ pub fn handle_admin_help_command(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_api::{
-        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
-        ApiError,
-    };
     use github_scbot_database::{
         models::{AccountModel, DummyDatabaseAdapter},
         DatabaseError,
+    };
+    use github_scbot_ghapi::{
+        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
+        ApiError,
     };
     use github_scbot_types::pulls::GhPullRequest;
     use maplit::hashmap;

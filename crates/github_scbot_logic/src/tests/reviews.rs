@@ -1,12 +1,12 @@
 //! Review tests
 
-use github_scbot_api::adapter::{DummyAPIAdapter, IAPIAdapter};
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{DatabaseAdapter, IDatabaseAdapter, PullRequestModel, RepositoryModel},
     tests::using_test_db,
     Result,
 };
+use github_scbot_ghapi::adapter::{DummyAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::GhUser,

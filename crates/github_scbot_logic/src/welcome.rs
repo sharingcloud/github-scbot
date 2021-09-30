@@ -1,7 +1,7 @@
 //! Welcome module.
 
-use github_scbot_api::{adapter::IAPIAdapter, comments::post_comment};
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::post_comment};
 
 use crate::errors::Result;
 

@@ -1,9 +1,9 @@
 //! Issue webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_logic::comments::handle_issue_comment_event;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{events::EventType, issues::GhIssueCommentEvent};

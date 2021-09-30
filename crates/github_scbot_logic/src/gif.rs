@@ -1,8 +1,10 @@
 //! Gif logic module.
 
-use github_scbot_api::{adapter::IAPIAdapter, comments::post_comment, gif::random_gif_from_query};
 use github_scbot_conf::Config;
 use github_scbot_database::models::{PullRequestModel, RepositoryModel};
+use github_scbot_ghapi::{
+    adapter::IAPIAdapter, comments::post_comment, gif::random_gif_from_query,
+};
 
 use crate::Result;
 

@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
-use github_scbot_api::{adapter::IAPIAdapter, reviews::list_reviews_for_pull_request};
 use github_scbot_conf::Config;
 use github_scbot_database::models::{
     HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
+use github_scbot_ghapi::{adapter::IAPIAdapter, reviews::list_reviews_for_pull_request};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     events::EventType,

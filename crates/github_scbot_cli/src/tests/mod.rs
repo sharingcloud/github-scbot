@@ -1,6 +1,6 @@
-use github_scbot_api::adapter::DummyAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::DummyDatabaseAdapter;
+use github_scbot_ghapi::adapter::DummyAPIAdapter;
 use github_scbot_redis::DummyRedisAdapter;
 
 use crate::commands::CommandContext;

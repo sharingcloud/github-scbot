@@ -4,12 +4,12 @@ mod command;
 mod handlers;
 mod parser;
 
-use github_scbot_api::{
+use github_scbot_conf::Config;
+use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_ghapi::{
     adapter::IAPIAdapter,
     comments::{add_reaction_to_comment, post_comment},
 };
-use github_scbot_conf::Config;
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::issues::GhReactionType;
 pub use handlers::handle_qa_command;
@@ -416,12 +416,12 @@ impl CommandExecutor {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_api::adapter::DummyAPIAdapter;
     use github_scbot_database::{
         models::{AccountModel, DatabaseAdapter, DummyDatabaseAdapter},
         tests::using_test_db,
         Result,
     };
+    use github_scbot_ghapi::adapter::DummyAPIAdapter;
     use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
 

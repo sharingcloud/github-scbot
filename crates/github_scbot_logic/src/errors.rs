@@ -9,9 +9,9 @@ pub enum LogicError {
     #[error("Error while compiling regex.")]
     RegexError(#[from] regex::Error),
 
-    /// Wraps [`github_scbot_api::ApiError`].
+    /// Wraps [`github_scbot_ghapi::ApiError`].
     #[error(transparent)]
-    ApiError(#[from] github_scbot_api::ApiError),
+    ApiError(#[from] github_scbot_ghapi::ApiError),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error(transparent)]

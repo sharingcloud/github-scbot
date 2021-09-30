@@ -1,5 +1,5 @@
 [package]
-name = "github-scbot-api"
+name = "github-scbot-ghapi"
 version = "0.13.1"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"

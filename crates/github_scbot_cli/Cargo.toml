@@ -5,7 +5,7 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
 [dependencies]
-github-scbot-api = { path = "../github_scbot_api" }
+github-scbot-ghapi = { path = "../github_scbot_ghapi" }
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-logic = { path = "../github_scbot_logic" }
