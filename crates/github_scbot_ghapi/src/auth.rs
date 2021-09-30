@@ -1,7 +1,8 @@
 //! Auth.
 
 use github_scbot_conf::Config;
-use github_scbot_crypto::{create_jwt, now};
+use github_scbot_crypto::JwtUtils;
+use github_scbot_utils::TimeUtils;
 use octocrab::{Octocrab, OctocrabBuilder};
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +50,7 @@ fn create_app_token(config: &Config) -> Result<String> {
     // GitHub App authentication documentation
     // https://docs.github.com/en/developers/apps/authenticating-with-github-apps#authenticating-as-a-github-app
 
-    let now_ts = now();
+    let now_ts = TimeUtils::now_timestamp();
     let claims = JwtClaims {
         // Issued at time
         iat: now_ts,
@@ -59,7 +60,7 @@ fn create_app_token(config: &Config) -> Result<String> {
         iss: config.github_app_id,
     };
 
-    create_jwt(&config.github_app_private_key, &claims)
+    JwtUtils::create_jwt(&config.github_app_private_key, &claims)
         .map_err(|e| ApiError::JWTError(e.to_string()))
 }
 
@@ -75,7 +76,7 @@ async fn create_installation_access_token(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_crypto::{decode_jwt, generate_rsa_keys};
+    use github_scbot_crypto::{JwtUtils, RsaUtils};
 
     use super::*;
     use crate::adapter::DummyAPIAdapter;
@@ -85,7 +86,7 @@ mod tests {
         config.github_app_id = 1234;
         config.github_api_token = "123456".into();
 
-        let (pri_key, _) = generate_rsa_keys();
+        let (pri_key, _) = RsaUtils::generate_rsa_keys();
         config.github_app_private_key = pri_key;
         config
     }
@@ -99,7 +100,7 @@ mod tests {
     fn test_create_app_token() {
         let config = arrange_config();
         let token = create_app_token(&config).unwrap();
-        let decoded_token: JwtClaims = decode_jwt(&token).unwrap();
+        let decoded_token: JwtClaims = JwtUtils::decode_jwt(&token).unwrap();
 
         assert_eq!(decoded_token.exp - decoded_token.iat, 60);
         assert_eq!(decoded_token.iss, 1234);
