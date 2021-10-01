@@ -174,12 +174,13 @@ where
     for review in &mut model.reviews {
         println!(
             "> Importing review for PR {} by @{}",
-            review.id, review.username
+            review.id(),
+            review.username()
         );
 
         let pr_id = pr_id_map
-            .get(&review.pull_request_id)
-            .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
+            .get(&review.pull_request_id())
+            .ok_or_else(|| ImportError::UnknownPullRequestId(review.pull_request_id()))?;
         let pr = pr_map.get(pr_id).unwrap();
         let repo = repo_map.get(&pr.repository_id()).unwrap();
 

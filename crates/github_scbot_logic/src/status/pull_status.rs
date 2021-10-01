@@ -77,10 +77,10 @@ impl PullRequestStatus {
 
         for review in valid_reviews {
             let state = review.get_review_state();
-            if review.required && state != GhReviewState::Approved {
-                required_reviews.push(review.username.clone());
+            if review.required() && state != GhReviewState::Approved {
+                required_reviews.push(review.username().into());
             } else if state == GhReviewState::Approved {
-                approved_reviews.push(review.username.clone());
+                approved_reviews.push(review.username().into());
             }
         }
 
@@ -104,7 +104,7 @@ impl PullRequestStatus {
     }
 
     fn filter_valid_reviews(reviews: &[ReviewModel]) -> Vec<&ReviewModel> {
-        reviews.iter().filter(|r| r.valid).collect()
+        reviews.iter().filter(|r| r.valid()).collect()
     }
 
     /// Check if there are missing required reviews.

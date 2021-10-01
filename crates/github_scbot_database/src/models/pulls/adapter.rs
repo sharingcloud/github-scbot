@@ -44,8 +44,6 @@ pub trait IPullRequestDbAdapter {
     async fn remove(&self, entry: &PullRequestModel) -> Result<()>;
     /// Removes closed pull requests from a repository.
     async fn remove_closed_pulls_from_repository(&self, repository_id: i32) -> Result<()>;
-    /// Saves and updates a pull request.
-    // async fn save(&self, entry: &mut PullRequestModel) -> Result<()>;
     /// Update.
     async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()>;
 }
@@ -179,18 +177,6 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
 
         Ok(())
     }
-
-    // async fn save(&self, entry: &mut PullRequestModel) -> Result<()> {
-    //     let copy = entry.clone();
-
-    //     *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(copy.id)))
-    //         .set(copy)
-    //         .get_result_async(&self.pool)
-    //         .await
-    //         .map_err(DatabaseError::from)?;
-
-    //     Ok(())
-    // }
 
     async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()> {
         *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(entry.id)))

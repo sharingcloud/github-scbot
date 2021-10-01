@@ -151,7 +151,7 @@ impl ReviewLogic {
         let reviews = pr_model.reviews(db_adapter.review()).await?;
 
         if !reviews.is_empty() {
-            let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
+            let reviewers: Vec<_> = reviews.iter().map(|x| x.username().into()).collect();
             api_adapter
                 .pull_reviewer_requests_add(
                     &repo_model.owner,
@@ -162,8 +162,11 @@ impl ReviewLogic {
                 .await?;
 
             for mut review in reviews {
-                review.set_review_state(GhReviewState::Pending);
-                db_adapter.review().save(&mut review).await?;
+                let update = review
+                    .create_update()
+                    .state(GhReviewState::Pending)
+                    .build_update();
+                db_adapter.review().update(&mut review, update).await?;
             }
         }
 
@@ -217,7 +220,7 @@ impl ReviewLogic {
         // Remove missing reviews
         let existing_reviews = pr_model.reviews(db_adapter.review()).await?;
         for review in existing_reviews {
-            if !review_map.contains_key(&review.username[..]) {
+            if !review_map.contains_key(review.username()) {
                 db_adapter.review().remove(review).await?;
             }
         }

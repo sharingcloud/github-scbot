@@ -121,9 +121,9 @@ async fn test_review_creation() -> Result<()> {
 
         // List reviews
         let reviews = pr.reviews(db_adapter.review()).await.unwrap();
-        assert_eq!(reviews[0].username, "me");
-        assert_eq!(reviews[1].username, "him");
-        assert!(!reviews[1].required);
+        assert_eq!(reviews[0].username(), "me");
+        assert_eq!(reviews[1].username(), "him");
+        assert!(!reviews[1].required());
 
         // Parse comment
         parse_and_execute_command(
@@ -143,7 +143,7 @@ async fn test_review_creation() -> Result<()> {
             .get_from_pull_request_and_username(&repo, &pr, "him")
             .await
             .unwrap();
-        assert!(review.required);
+        assert!(review.required());
 
         // Parse comment
         parse_and_execute_command(
@@ -175,7 +175,7 @@ async fn test_review_creation() -> Result<()> {
             .get_from_pull_request_and_username(&repo, &pr, "him")
             .await
             .unwrap();
-        assert!(!review.required);
+        assert!(!review.required());
 
         // Generate status
         let status = PullRequestStatus::from_database(&db_adapter, &repo, &pr)

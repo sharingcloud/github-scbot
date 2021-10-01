@@ -1050,7 +1050,6 @@ mod tests {
             2
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
-        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 2);
         assert!(result.should_update_status);
 
         Ok(())
@@ -1088,7 +1087,6 @@ mod tests {
             1
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
-        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 0);
         assert!(result.should_update_status);
 
         let reviewers = vec!["one".into(), "two".into()];
@@ -1107,7 +1105,6 @@ mod tests {
             2
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
-        assert_eq!(db_adapter.review_adapter.save_response.call_count(), 2);
         assert!(result.should_update_status);
 
         Ok(())

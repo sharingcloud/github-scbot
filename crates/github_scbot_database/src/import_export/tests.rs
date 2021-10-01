@@ -247,7 +247,7 @@ async fn test_import_models_from_json() -> Result<()> {
         assert!(pr_2.automerge());
         assert_eq!(pr_2.check_status(), CheckStatus::Pass);
         assert_eq!(pr_2.qa_status(), QaStatus::Pass);
-        assert!(review_1.required);
+        assert!(review_1.required());
         assert!(acc_1.is_admin);
         assert_eq!(review_1.get_review_state(), GhReviewState::Commented);
         assert!(matches!(rule_1.get_strategy(), GhMergeStrategy::Merge));
