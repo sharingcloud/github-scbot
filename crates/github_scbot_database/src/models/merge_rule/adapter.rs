@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -30,12 +32,12 @@ pub trait IMergeRuleDbAdapter {
 
 /// Concrete merge rule DB adapter.
 pub struct MergeRuleDbAdapter {
-    pool: DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl MergeRuleDbAdapter {
     /// Creates a new merge rule DB adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 }

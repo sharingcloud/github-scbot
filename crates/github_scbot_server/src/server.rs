@@ -37,7 +37,7 @@ pub struct AppContext {
 
 impl AppContext {
     /// Create new app context.
-    pub fn new(config: Config, pool: DbPool) -> Self {
+    pub fn new(config: Config, pool: Arc<DbPool>) -> Self {
         Self {
             config: config.clone(),
             db_adapter: Box::new(DatabaseAdapter::new(pool)),

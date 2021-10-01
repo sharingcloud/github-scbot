@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -23,12 +25,12 @@ pub trait IExternalAccountDbAdapter {
 
 /// Concrete external account DB adapter.
 pub struct ExternalAccountDbAdapter {
-    pool: DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl ExternalAccountDbAdapter {
     /// Creates a new external account DB adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 }

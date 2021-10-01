@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -36,12 +38,12 @@ pub trait IReviewDbAdapter {
 
 /// Concrete review DB adapter.
 pub struct ReviewDbAdapter {
-    pool: DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl ReviewDbAdapter {
     /// Creates a new review DB adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 }
