@@ -23,7 +23,7 @@ impl GifPoster {
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
             &body,
         )
         .await?;

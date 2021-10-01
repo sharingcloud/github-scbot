@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
-use super::{PullRequestCreation, PullRequestModel};
+use super::{PullRequestCreation, PullRequestModel, PullRequestUpdate};
 use crate::{
     models::RepositoryModel,
     schema::{pull_request, repository, review},
@@ -45,7 +45,9 @@ pub trait IPullRequestDbAdapter {
     /// Removes closed pull requests from a repository.
     async fn remove_closed_pulls_from_repository(&self, repository_id: i32) -> Result<()>;
     /// Saves and updates a pull request.
-    async fn save(&self, entry: &mut PullRequestModel) -> Result<()>;
+    // async fn save(&self, entry: &mut PullRequestModel) -> Result<()>;
+    /// Update.
+    async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()>;
 }
 
 /// Concrete pull request DB adapter.
@@ -178,11 +180,21 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
         Ok(())
     }
 
-    async fn save(&self, entry: &mut PullRequestModel) -> Result<()> {
-        let copy = entry.clone();
+    // async fn save(&self, entry: &mut PullRequestModel) -> Result<()> {
+    //     let copy = entry.clone();
 
-        *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(copy.id)))
-            .set(copy)
+    //     *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(copy.id)))
+    //         .set(copy)
+    //         .get_result_async(&self.pool)
+    //         .await
+    //         .map_err(DatabaseError::from)?;
+
+    //     Ok(())
+    // }
+
+    async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()> {
+        *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(entry.id)))
+            .set(update)
             .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
@@ -212,8 +224,6 @@ pub struct DummyPullRequestDbAdapter {
     pub remove_response: Mock<Result<()>>,
     /// Remove closed pulls from repository response.
     pub remove_closed_pulls_from_repository_response: Mock<Result<()>>,
-    /// Save response.
-    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyPullRequestDbAdapter {
@@ -231,7 +241,6 @@ impl Default for DummyPullRequestDbAdapter {
             list_closed_pulls_from_repository_response: Mock::new(Ok(Vec::new())),
             remove_response: Mock::new(Ok(())),
             remove_closed_pulls_from_repository_response: Mock::new(Ok(())),
-            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -295,7 +304,8 @@ impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
         self.remove_closed_pulls_from_repository_response.response()
     }
 
-    async fn save(&self, entry: &mut PullRequestModel) -> Result<()> {
-        self.save_response.response()
+    async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()> {
+        entry.apply_local_update(update);
+        Ok(())
     }
 }

@@ -85,7 +85,7 @@ impl<'a> ReviewModelBuilder<'a> {
     fn build(&self) -> ReviewModel {
         ReviewModel {
             id: -1,
-            pull_request_id: self.pr_model.id,
+            pull_request_id: self.pr_model.id(),
             username: self.username.clone(),
             state: self.state.unwrap_or(GhReviewState::Pending).to_string(),
             required: self.required.unwrap_or(false),

@@ -38,7 +38,7 @@ impl Command for RepositoryPurgeCommand {
                 "You will remove:\n{}",
                 prs_to_purge
                     .iter()
-                    .map(|p| format!("- #{} - {}", p.get_number(), p.name))
+                    .map(|p| format!("- #{} - {}", p.number(), p.name()))
                     .collect::<Vec<_>>()
                     .join("\n")
             );

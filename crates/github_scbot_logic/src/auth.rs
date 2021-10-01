@@ -27,7 +27,7 @@ impl AuthLogic {
         pr_model: &PullRequestModel,
         known_admins: &[String],
     ) -> bool {
-        Self::is_admin(username, known_admins) || pr_model.creator == username
+        Self::is_admin(username, known_admins) || pr_model.creator() == username
     }
 
     /// Check if user is admin.

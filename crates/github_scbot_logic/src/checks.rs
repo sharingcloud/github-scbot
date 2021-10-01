@@ -54,7 +54,7 @@ pub async fn handle_check_suite_event(
             }
 
             // Skip if checks are skipped
-            if pr_model.get_checks_status() == CheckStatus::Skipped {
+            if pr_model.check_status() == CheckStatus::Skipped {
                 return Ok(());
             }
 
@@ -72,13 +72,24 @@ pub async fn handle_check_suite_event(
                         .await?;
 
                         // Update check status
-                        pr_model.set_checks_status(status);
-                        db_adapter.pull_request().save(&mut pr_model).await?;
+                        let update = pr_model.create_update().check_status(status).build_update();
+
+                        db_adapter
+                            .pull_request()
+                            .update(&mut pr_model, update)
+                            .await?;
                     }
                     Some(GhCheckConclusion::Failure) => {
                         // Update check status
-                        pr_model.set_checks_status(CheckStatus::Fail);
-                        db_adapter.pull_request().save(&mut pr_model).await?;
+                        let update = pr_model
+                            .create_update()
+                            .check_status(CheckStatus::Fail)
+                            .build_update();
+
+                        db_adapter
+                            .pull_request()
+                            .update(&mut pr_model, update)
+                            .await?;
                     }
                     _ => (),
                 }

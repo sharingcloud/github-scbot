@@ -4,14 +4,16 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus},
 };
 
-use super::{IPullRequestDbAdapter, PullRequestCreation, PullRequestModel};
+use super::{IPullRequestDbAdapter, PullRequestCreation, PullRequestModel, PullRequestUpdate};
 use crate::{models::RepositoryModel, Result};
 
 #[allow(clippy::option_option)]
+#[derive(Default)]
 pub struct PullRequestModelBuilder<'a> {
-    repository: &'a RepositoryModel,
-    pr_number: u64,
-    creator: String,
+    id: Option<i32>,
+    repository: Option<&'a RepositoryModel>,
+    pr_number: Option<u64>,
+    creator: Option<String>,
     name: Option<String>,
     automerge: Option<bool>,
     step: Option<Option<StepLabel>>,
@@ -29,11 +31,19 @@ pub struct PullRequestModelBuilder<'a> {
 }
 
 impl<'a> PullRequestModelBuilder<'a> {
-    pub fn default(repository: &'a RepositoryModel, pr_number: u64, creator: &str) -> Self {
+    pub fn with_id(id: i32) -> Self {
         Self {
-            repository,
-            pr_number,
-            creator: creator.into(),
+            id: Some(id),
+            ..Default::default()
+        }
+    }
+
+    pub fn new(repository: &'a RepositoryModel, pr_number: u64, creator: &str) -> Self {
+        Self {
+            id: None,
+            repository: Some(repository),
+            pr_number: Some(pr_number),
+            creator: Some(creator.into()),
             name: None,
             automerge: None,
             step: None,
@@ -53,15 +63,16 @@ impl<'a> PullRequestModelBuilder<'a> {
 
     pub fn from_model(repository: &'a RepositoryModel, model: &PullRequestModel) -> Self {
         Self {
-            repository,
-            pr_number: model.number as u64,
-            creator: model.creator.clone(),
+            id: None,
+            repository: Some(repository),
+            pr_number: Some(model.number as u64),
+            creator: Some(model.creator.clone()),
             name: Some(model.name.clone()),
             automerge: Some(model.automerge),
-            step: Some(model.get_step_label()),
-            check_status: Some(model.get_checks_status()),
+            step: Some(model.step()),
+            check_status: Some(model.check_status()),
             status_comment_id: Some(model.status_comment_id as u64),
-            qa_status: Some(model.get_qa_status()),
+            qa_status: Some(model.qa_status()),
             wip: Some(model.wip),
             needed_reviewers_count: Some(model.needed_reviewers_count as u64),
             locked: Some(model.locked),
@@ -69,15 +80,16 @@ impl<'a> PullRequestModelBuilder<'a> {
             base_branch: Some(model.base_branch.clone()),
             head_branch: Some(model.head_branch.clone()),
             closed: Some(model.closed),
-            strategy_override: Some(model.get_strategy_override()),
+            strategy_override: Some(model.strategy_override()),
         }
     }
 
     pub fn from_github(repository: &'a RepositoryModel, pr: &GhPullRequest) -> Self {
         Self {
-            repository,
-            pr_number: pr.number,
-            creator: pr.user.login.clone(),
+            id: None,
+            repository: Some(repository),
+            pr_number: Some(pr.number),
+            creator: Some(pr.user.login.clone()),
             name: Some(pr.title.clone()),
             automerge: None,
             step: None,
@@ -165,22 +177,49 @@ impl<'a> PullRequestModelBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> PullRequestCreation {
-        PullRequestCreation {
-            repository_id: self.repository.id,
-            number: self.pr_number as i32,
+    pub fn build_update(&self) -> PullRequestUpdate {
+        let id = self.id.unwrap();
+
+        PullRequestUpdate {
+            id,
             creator: self.creator.clone(),
+            name: self.name.clone(),
+            base_branch: self.base_branch.clone(),
+            head_branch: self.head_branch.clone(),
+            step: self.step.map(|x| x.map(|x| x.to_str().to_string())),
+            check_status: self.check_status.map(|x| x.to_str().to_string()),
+            qa_status: self.qa_status.map(|x| x.to_str().to_string()),
+            needed_reviewers_count: self.needed_reviewers_count.map(|x| x as i32),
+            status_comment_id: self.status_comment_id.map(|x| x as i32),
+            automerge: self.automerge,
+            wip: self.wip,
+            locked: self.locked,
+            merged: self.merged,
+            closed: self.closed,
+            strategy_override: self.strategy_override.map(|x| x.map(|x| x.to_string())),
+        }
+    }
+
+    pub fn build(&self) -> PullRequestCreation {
+        let repo = self.repository.unwrap();
+        let pr_number = self.pr_number.unwrap();
+        let creator = self.creator.as_ref().unwrap();
+
+        PullRequestCreation {
+            repository_id: repo.id,
+            number: pr_number as i32,
+            creator: creator.clone(),
             name: self
                 .name
                 .clone()
-                .unwrap_or_else(|| format!("Unnamed PR #{}", self.pr_number)),
-            automerge: self.automerge.unwrap_or(self.repository.default_automerge),
+                .unwrap_or_else(|| format!("Unnamed PR #{}", pr_number)),
+            automerge: self.automerge.unwrap_or(repo.default_automerge),
             base_branch: self.base_branch.clone().unwrap_or_else(|| "unknown".into()),
             head_branch: self.head_branch.clone().unwrap_or_else(|| "unknown".into()),
             check_status: self
                 .check_status
                 .unwrap_or_else(|| {
-                    if self.repository.default_enable_checks {
+                    if repo.default_enable_checks {
                         CheckStatus::Waiting
                     } else {
                         CheckStatus::Skipped
@@ -190,7 +229,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             qa_status: self
                 .qa_status
                 .unwrap_or_else(|| {
-                    if self.repository.default_enable_qa {
+                    if repo.default_enable_qa {
                         QaStatus::Waiting
                     } else {
                         QaStatus::Skipped
@@ -200,7 +239,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count
-                .unwrap_or_else(|| self.repository.default_needed_reviewers_count as u64)
+                .unwrap_or_else(|| repo.default_needed_reviewers_count as u64)
                 as i32,
             step: self.step.unwrap_or(None).map(|x| x.to_string()),
             wip: self.wip.unwrap_or(false),
@@ -215,75 +254,24 @@ impl<'a> PullRequestModelBuilder<'a> {
     }
 
     pub async fn create_or_update(
-        self,
+        mut self,
         db_adapter: &dyn IPullRequestDbAdapter,
     ) -> Result<PullRequestModel> {
-        let mut handle = match db_adapter
-            .get_from_repository_and_number(self.repository, self.pr_number)
+        let repo = self.repository.unwrap();
+        let pr_number = self.pr_number.unwrap();
+
+        let handle = match db_adapter
+            .get_from_repository_and_number(repo, pr_number)
             .await
         {
-            Ok(entry) => entry,
+            Ok(mut entry) => {
+                self.id = Some(entry.id);
+                let update = self.build_update();
+                db_adapter.update(&mut entry, update).await?;
+                entry
+            }
             Err(_) => db_adapter.create(self.build()).await?,
         };
-
-        handle.name = match self.name {
-            Some(n) => n,
-            None => handle.name,
-        };
-        handle.automerge = match self.automerge {
-            Some(a) => a,
-            None => handle.automerge,
-        };
-        handle.base_branch = match self.base_branch {
-            Some(b) => b,
-            None => handle.base_branch,
-        };
-        handle.head_branch = match self.head_branch {
-            Some(b) => b,
-            None => handle.head_branch,
-        };
-        handle.check_status = match self.check_status {
-            Some(c) => c.to_string(),
-            None => handle.check_status,
-        };
-        handle.qa_status = match self.qa_status {
-            Some(q) => q.to_string(),
-            None => handle.qa_status,
-        };
-        handle.status_comment_id = match self.status_comment_id {
-            Some(s) => s as i32,
-            None => handle.status_comment_id,
-        };
-        handle.needed_reviewers_count = match self.needed_reviewers_count {
-            Some(n) => n as i32,
-            None => handle.needed_reviewers_count,
-        };
-        handle.step = match self.step {
-            Some(s) => s.map(|x| x.to_string()),
-            None => handle.step,
-        };
-        handle.wip = match self.wip {
-            Some(w) => w,
-            None => handle.wip,
-        };
-        handle.closed = match self.closed {
-            Some(c) => c,
-            None => handle.closed,
-        };
-        handle.locked = match self.locked {
-            Some(l) => l,
-            None => handle.locked,
-        };
-        handle.merged = match self.merged {
-            Some(m) => m,
-            None => handle.merged,
-        };
-        handle.strategy_override = match self.strategy_override {
-            Some(s) => s.map(|x| x.to_string()),
-            None => handle.strategy_override,
-        };
-
-        db_adapter.save(&mut handle).await?;
         Ok(handle)
     }
 }

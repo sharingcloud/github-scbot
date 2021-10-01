@@ -70,7 +70,7 @@ pub async fn handle_issue_comment_event(
                             repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
-                        let repo = pr.get_repository(db_adapter.repository()).await?;
+                        let repo = pr.repository(db_adapter.repository()).await?;
                         StatusLogic::update_pull_request_status(
                             api_adapter,
                             db_adapter,
@@ -134,7 +134,7 @@ pub async fn handle_comment_creation(
     info!(
         commands = ?commands,
         repository_path = %repo_model.get_path(),
-        pull_request_number = pr_model.get_number(),
+        pull_request_number = pr_model.number(),
         message = "Will execute commands",
     );
 

@@ -30,8 +30,8 @@ pub async fn handle_auto_merge_command(
     comment_author: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    pr_model.automerge = status;
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model.create_update().automerge(status).build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let status_text = if status { "enabled" } else { "disabled" };
     let comment = format!("Automerge {} by **{}**", status_text, comment_author);
@@ -54,7 +54,7 @@ pub async fn handle_merge_command(
     // Use step to determine merge possibility
     let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
     let step = StatusLogic::determine_automatic_step(&pr_status)?;
-    let commit_title = pr_model.get_merge_commit_title();
+    let commit_title = pr_model.merge_commit_title();
 
     let mut actions = vec![];
 
@@ -63,7 +63,7 @@ pub async fn handle_merge_command(
             .pulls_merge(
                 &repo_model.owner,
                 &repo_model.name,
-                pr_model.get_number(),
+                pr_model.number(),
                 &commit_title,
                 "",
                 merge_strategy.unwrap_or(pr_status.merge_strategy),
@@ -128,7 +128,7 @@ pub async fn handle_admin_sync_command(
         db_adapter,
         &repo_model.owner,
         &repo_model.name,
-        pr_model.get_number(),
+        pr_model.number(),
     )
     .await?;
     *pr_model = pr;
@@ -179,13 +179,15 @@ pub async fn handle_skip_qa_command(
     comment_author: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    if status {
-        pr_model.set_qa_status(QaStatus::Skipped);
+    let qa_status = if status {
+        QaStatus::Skipped
     } else {
-        pr_model.set_qa_status(QaStatus::Waiting);
-    }
+        QaStatus::Waiting
+    };
 
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model.create_update().qa_status(qa_status).build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
+
     let comment = format!("QA is marked as skipped by **{}**.", comment_author);
 
     Ok(CommandExecutionResult::builder()
@@ -202,13 +204,18 @@ pub async fn handle_skip_checks_command(
     comment_author: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    if status {
-        pr_model.set_checks_status(CheckStatus::Skipped);
+    let check_status = if status {
+        CheckStatus::Skipped
     } else {
-        pr_model.set_checks_status(CheckStatus::Waiting);
-    }
+        CheckStatus::Waiting
+    };
 
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model
+        .create_update()
+        .check_status(check_status)
+        .build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
+
     let comment = format!("Checks are marked as skipped by **{}**.", comment_author);
 
     Ok(CommandExecutionResult::builder()
@@ -231,8 +238,8 @@ pub async fn handle_qa_command(
         None => (QaStatus::Waiting, "marked as waiting"),
     };
 
-    pr_model.set_qa_status(status);
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model.create_update().qa_status(status).build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let comment = format!("QA is {} by **{}**.", status_text, comment_author);
     Ok(CommandExecutionResult::builder()
@@ -270,8 +277,11 @@ pub async fn handle_set_merge_strategy(
     pr_model: &mut PullRequestModel,
     strategy: GhMergeStrategy,
 ) -> Result<CommandExecutionResult> {
-    pr_model.set_strategy_override(Some(strategy));
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model
+        .create_update()
+        .strategy_override(Some(strategy))
+        .build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let comment = format!(
         "Merge strategy override set to '{:?}' for this pull request.",
@@ -288,8 +298,11 @@ pub async fn handle_unset_merge_strategy(
     db_adapter: &dyn IDatabaseAdapter,
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
-    pr_model.set_strategy_override(None);
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model
+        .create_update()
+        .strategy_override(None)
+        .build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let comment = "Merge strategy override removed for this pull request.".into();
     Ok(CommandExecutionResult::builder()
@@ -308,7 +321,7 @@ pub async fn handle_assign_required_reviewers_command(
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
     info!(
-        pull_request_number = pr_model.get_number(),
+        pull_request_number = pr_model.number(),
         reviewers = ?reviewers,
         message = "Request required reviewers",
     );
@@ -318,7 +331,7 @@ pub async fn handle_assign_required_reviewers_command(
         .pull_reviewer_requests_add(
             &repo_model.owner,
             &repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
             &reviewers,
         )
         .await?;
@@ -355,7 +368,7 @@ pub async fn handle_unassign_required_reviewers_command(
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
     info!(
-        pull_request_number = pr_model.get_number(),
+        pull_request_number = pr_model.number(),
         reviewers = ?reviewers,
         message = "Remove required reviewers",
     );
@@ -364,7 +377,7 @@ pub async fn handle_unassign_required_reviewers_command(
         .pull_reviewer_requests_remove(
             &repo_model.owner,
             &repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
             &reviewers,
         )
         .await?;
@@ -404,9 +417,8 @@ pub async fn handle_lock_command(
     reason: Option<String>,
 ) -> Result<CommandExecutionResult> {
     let status_text = if status { "locked" } else { "unlocked" };
-
-    pr_model.locked = status;
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model.create_update().locked(status).build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let mut comment = format!("Pull request {} by **{}**.", status_text, comment_author);
     if let Some(reason) = reason {
@@ -530,8 +542,11 @@ pub async fn handle_set_needed_reviewers_command(
     pr_model: &mut PullRequestModel,
     count: u32,
 ) -> Result<CommandExecutionResult> {
-    pr_model.needed_reviewers_count = count as i32;
-    db_adapter.pull_request().save(pr_model).await?;
+    let update = pr_model
+        .create_update()
+        .needed_reviewers_count(count as u64)
+        .build_update();
+    db_adapter.pull_request().update(pr_model, update).await?;
 
     let comment = format!("Needed reviewers count set to **{}** for this PR.", count);
     Ok(CommandExecutionResult::builder()
@@ -682,21 +697,20 @@ mod tests {
     async fn test_handle_auto_merge_command() -> Result<()> {
         let adapter = DummyDatabaseAdapter::new();
         let mut pr_model = PullRequestModel::default();
-        pr_model.automerge = false;
+        let update = pr_model.create_update().automerge(false).build_update();
+        adapter.pull_request().update(&mut pr_model, update).await?;
 
         // Automerge should be enabled
         let result = handle_auto_merge_command(&adapter, &mut pr_model, "me", true).await?;
         assert!(result.should_update_status);
         assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
-        assert!(pr_model.automerge);
-        assert_eq!(adapter.pull_request_adapter.save_response.call_count(), 1);
+        assert!(pr_model.automerge());
 
         // Automerge should be disabled
         handle_auto_merge_command(&adapter, &mut pr_model, "me", false).await?;
         assert!(result.should_update_status);
         assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
-        assert!(!pr_model.automerge);
-        assert_eq!(adapter.pull_request_adapter.save_response.call_count(), 2);
+        assert!(!pr_model.automerge());
 
         Ok(())
     }
@@ -709,7 +723,11 @@ mod tests {
         let mut pr_model = PullRequestModel::default();
 
         // Set WIP to lock the pull request
-        pr_model.wip = true;
+        let update = pr_model.create_update().wip(true).build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
 
         // Merge should fail (wip)
         let result = handle_merge_command(
@@ -732,7 +750,12 @@ mod tests {
         assert!(!api_adapter.pulls_merge_response.called());
 
         // Merge should fail (GitHub error)
-        pr_model.wip = false;
+        let update = pr_model.create_update().wip(false).build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
+
         api_adapter
             .pulls_merge_response
             .set_response(Err(ApiError::GitHubError("Nope.".into())));
@@ -834,7 +857,7 @@ mod tests {
             &mut pr_model,
         )
         .await?;
-        assert_eq!(pr_model.name, "Hello.");
+        assert_eq!(pr_model.name(), "Hello.");
         assert!(result.should_update_status);
 
         Ok(())
@@ -864,17 +887,24 @@ mod tests {
     async fn test_handle_skip_qa_command() -> Result<()> {
         let db_adapter = DummyDatabaseAdapter::new();
         let mut pr_model = PullRequestModel::default();
-        pr_model.set_qa_status(QaStatus::Fail);
+        let update = pr_model
+            .create_update()
+            .qa_status(QaStatus::Fail)
+            .build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
 
         // Skip.
         let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", true).await?;
         assert!(result.should_update_status);
-        assert_eq!(pr_model.get_qa_status(), QaStatus::Skipped);
+        assert_eq!(pr_model.qa_status(), QaStatus::Skipped);
 
         // Reset.
         let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", false).await?;
         assert!(result.should_update_status);
-        assert_eq!(pr_model.get_qa_status(), QaStatus::Waiting);
+        assert_eq!(pr_model.qa_status(), QaStatus::Waiting);
 
         Ok(())
     }
@@ -883,22 +913,29 @@ mod tests {
     async fn test_handle_qa_command() -> Result<()> {
         let db_adapter = DummyDatabaseAdapter::new();
         let mut pr_model = PullRequestModel::default();
-        pr_model.set_qa_status(QaStatus::Fail);
+        let update = pr_model
+            .create_update()
+            .qa_status(QaStatus::Fail)
+            .build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
 
         // Approve.
         let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(true)).await?;
         assert!(result.should_update_status);
-        assert_eq!(pr_model.get_qa_status(), QaStatus::Pass);
+        assert_eq!(pr_model.qa_status(), QaStatus::Pass);
 
         // Unapprove.
         let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(false)).await?;
         assert!(result.should_update_status);
-        assert_eq!(pr_model.get_qa_status(), QaStatus::Fail);
+        assert_eq!(pr_model.qa_status(), QaStatus::Fail);
 
         // Reset.
         let result = handle_qa_command(&db_adapter, &mut pr_model, "me", None).await?;
         assert!(result.should_update_status);
-        assert_eq!(pr_model.get_qa_status(), QaStatus::Waiting);
+        assert_eq!(pr_model.qa_status(), QaStatus::Waiting);
 
         Ok(())
     }
@@ -1080,15 +1117,15 @@ mod tests {
     async fn test_handle_lock_command() -> Result<()> {
         let db_adapter = DummyDatabaseAdapter::new();
         let mut pr_model = PullRequestModel::default();
-        pr_model.locked = false;
+        let update = pr_model.create_update().locked(false).build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
 
         // Lock with no motive
         let result = handle_lock_command(&db_adapter, &mut pr_model, "me", true, None).await?;
         assert!(result.should_update_status);
-        assert_eq!(
-            db_adapter.pull_request_adapter.save_response.call_count(),
-            1
-        );
         assert_eq!(
             result.result_actions,
             vec![
@@ -1096,15 +1133,11 @@ mod tests {
                 ResultAction::PostComment("Pull request locked by **me**.".into())
             ]
         );
-        assert!(pr_model.locked);
+        assert!(pr_model.locked());
 
         // Unlock with no motive
         let result = handle_lock_command(&db_adapter, &mut pr_model, "me", false, None).await?;
         assert!(result.should_update_status);
-        assert_eq!(
-            db_adapter.pull_request_adapter.save_response.call_count(),
-            2
-        );
         assert_eq!(
             result.result_actions,
             vec![
@@ -1112,7 +1145,7 @@ mod tests {
                 ResultAction::PostComment("Pull request unlocked by **me**.".into())
             ]
         );
-        assert!(!pr_model.locked);
+        assert!(!pr_model.locked());
 
         // Lock with motive
         let result = handle_lock_command(
@@ -1125,10 +1158,6 @@ mod tests {
         .await?;
         assert!(result.should_update_status);
         assert_eq!(
-            db_adapter.pull_request_adapter.save_response.call_count(),
-            3
-        );
-        assert_eq!(
             result.result_actions,
             vec![
                 ResultAction::AddReaction(GhReactionType::Eyes),
@@ -1137,7 +1166,7 @@ mod tests {
                 )
             ]
         );
-        assert!(pr_model.locked);
+        assert!(pr_model.locked());
 
         // Unlock with motive
         let result = handle_lock_command(
@@ -1150,10 +1179,6 @@ mod tests {
         .await?;
         assert!(result.should_update_status);
         assert_eq!(
-            db_adapter.pull_request_adapter.save_response.call_count(),
-            4
-        );
-        assert_eq!(
             result.result_actions,
             vec![
                 ResultAction::AddReaction(GhReactionType::Eyes),
@@ -1162,7 +1187,7 @@ mod tests {
                 )
             ]
         );
-        assert!(!pr_model.locked);
+        assert!(!pr_model.locked());
 
         Ok(())
     }
@@ -1270,15 +1295,18 @@ mod tests {
     async fn test_handle_set_needed_reviewers_command() -> Result<()> {
         let db_adapter = DummyDatabaseAdapter::new();
         let mut pr_model = PullRequestModel::default();
-        pr_model.needed_reviewers_count = 5;
+        let update = pr_model
+            .create_update()
+            .needed_reviewers_count(5)
+            .build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
 
         let result = handle_set_needed_reviewers_command(&db_adapter, &mut pr_model, 0).await?;
-        assert_eq!(pr_model.needed_reviewers_count, 0);
+        assert_eq!(pr_model.needed_reviewers_count(), 0);
         assert!(result.should_update_status);
-        assert_eq!(
-            db_adapter.pull_request_adapter.save_response.call_count(),
-            1
-        );
         assert_eq!(
             result.result_actions,
             vec![
@@ -1317,7 +1345,12 @@ mod tests {
         ]);
 
         repo_model.manual_interaction = true;
-        pr_model.set_status_comment_id(0);
+        let update = pr_model.create_update().status_comment_id(0).build_update();
+        db_adapter
+            .pull_request()
+            .update(&mut pr_model, update)
+            .await?;
+
         let result =
             handle_admin_disable_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model)
                 .await?;

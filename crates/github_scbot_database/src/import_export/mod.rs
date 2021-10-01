@@ -155,19 +155,19 @@ where
 
     // Create or update pull requests
     for pull_request in &mut model.pull_requests {
-        println!("> Importing pull request #{}", pull_request.get_number());
+        println!("> Importing pull request #{}", pull_request.number());
 
         let repo_id = repo_id_map
-            .get(&pull_request.repository_id)
-            .ok_or(ImportError::UnknownRepositoryId(pull_request.repository_id))?;
+            .get(&pull_request.repository_id())
+            .ok_or_else(|| ImportError::UnknownRepositoryId(pull_request.repository_id()))?;
         let repo = repo_map.get(repo_id).unwrap();
 
         let pr = PullRequestModel::builder_from_model(repo, pull_request)
             .create_or_update(db_adapter.pull_request())
             .await?;
 
-        pr_id_map.insert(pull_request.id, pr.id);
-        pr_map.insert(pr.id, pr);
+        pr_id_map.insert(pull_request.id(), pr.id());
+        pr_map.insert(pr.id(), pr);
     }
 
     // Create or update reviews
@@ -181,7 +181,7 @@ where
             .get(&review.pull_request_id)
             .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
         let pr = pr_map.get(pr_id).unwrap();
-        let repo = repo_map.get(&pr.repository_id).unwrap();
+        let repo = repo_map.get(&pr.repository_id()).unwrap();
 
         ReviewModel::builder_from_model(repo, pr, review)
             .create_or_update(db_adapter.review())

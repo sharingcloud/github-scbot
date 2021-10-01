@@ -65,8 +65,11 @@ impl StatusLogic {
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        pr_model.set_step_label(step_label);
-        db_adapter.pull_request().save(pr_model).await?;
+        let update = pr_model
+            .create_update()
+            .step(Some(step_label))
+            .build_update();
+        db_adapter.pull_request().update(pr_model, update).await?;
 
         PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
 
@@ -105,8 +108,11 @@ impl StatusLogic {
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        pr_model.set_step_label(step_label);
-        db_adapter.pull_request().save(pr_model).await?;
+        let update = pr_model
+            .create_update()
+            .step(Some(step_label))
+            .build_update();
+        db_adapter.pull_request().update(pr_model, update).await?;
 
         PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
 
@@ -130,14 +136,16 @@ impl StatusLogic {
             .await?;
 
         // Merge if auto-merge is enabled
-        if matches!(step_label, StepLabel::AwaitingMerge) && !pr_model.merged && pr_model.automerge
+        if matches!(step_label, StepLabel::AwaitingMerge)
+            && !pr_model.merged()
+            && pr_model.automerge()
         {
             // Use lock
             let key = format!(
                 "pr-merge_{}-{}_{}",
                 repo_model.owner,
                 repo_model.name,
-                pr_model.get_number()
+                pr_model.number()
             );
             if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await?
             {
@@ -149,8 +157,8 @@ impl StatusLogic {
                 )
                 .await?;
                 if !result {
-                    pr_model.automerge = false;
-                    db_adapter.pull_request().save(pr_model).await?;
+                    let update = pr_model.create_update().automerge(false).build_update();
+                    db_adapter.pull_request().update(pr_model, update).await?;
 
                     // Update status
                     SummaryCommentSender::new()
@@ -242,7 +250,7 @@ impl StatusLogic {
         pr_model: &mut PullRequestModel,
     ) -> Result<()> {
         let sha = api_adapter
-            .pulls_get(&repo_model.owner, &repo_model.name, pr_model.get_number())
+            .pulls_get(&repo_model.owner, &repo_model.name, pr_model.number())
             .await?
             .head
             .sha;

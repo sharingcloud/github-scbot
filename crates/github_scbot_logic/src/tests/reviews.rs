@@ -120,7 +120,7 @@ async fn test_review_creation() -> Result<()> {
         .await?;
 
         // List reviews
-        let reviews = pr.get_reviews(db_adapter.review()).await.unwrap();
+        let reviews = pr.reviews(db_adapter.review()).await.unwrap();
         assert_eq!(reviews[0].username, "me");
         assert_eq!(reviews[1].username, "him");
         assert!(!reviews[1].required);

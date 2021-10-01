@@ -85,7 +85,7 @@ impl IReviewDbAdapter for ReviewDbAdapter {
         let pull_request = pull_request.clone();
 
         review::table
-            .filter(review::pull_request_id.eq(pull_request.id))
+            .filter(review::pull_request_id.eq(pull_request.id()))
             .filter(review::username.eq(username.clone()))
             .first_async(&self.pool)
             .await
@@ -93,7 +93,7 @@ impl IReviewDbAdapter for ReviewDbAdapter {
                 DatabaseError::UnknownReviewState(
                     username.to_string(),
                     repository.get_path(),
-                    pull_request.get_number(),
+                    pull_request.number(),
                 )
             })
     }

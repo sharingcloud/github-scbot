@@ -79,9 +79,15 @@ pub async fn handle_pull_request_opened(
                         .await?;
                 }
 
-                pr_model.needed_reviewers_count = repo_model.default_needed_reviewers_count;
-                pr_model.set_checks_status(CheckStatus::Waiting);
-                db_adapter.pull_request().save(&mut pr_model).await?;
+                let update = pr_model
+                    .create_update()
+                    .check_status(CheckStatus::Waiting)
+                    .needed_reviewers_count(repo_model.default_needed_reviewers_count as u64)
+                    .build_update();
+                db_adapter
+                    .pull_request()
+                    .update(&mut pr_model, update)
+                    .await?;
 
                 info!(
                     repository_path = %repo_model.get_path(),
@@ -183,8 +189,14 @@ pub async fn handle_pull_request_event(
         match event.action {
             GhPullRequestAction::Synchronize => {
                 // Force status to waiting
-                pr_model.set_checks_status(CheckStatus::Waiting);
-                db_adapter.pull_request().save(&mut pr_model).await?;
+                let update = pr_model
+                    .create_update()
+                    .check_status(CheckStatus::Waiting)
+                    .build_update();
+                db_adapter
+                    .pull_request()
+                    .update(&mut pr_model, update)
+                    .await?;
                 status_changed = true;
 
                 ReviewLogic::rerequest_existing_reviews(
@@ -379,13 +391,15 @@ impl PullRequestLogic {
         // Determine step label
         let pr_status = PullRequestStatus::from_database(db_adapter, &repo, &pr).await?;
         let label = StatusLogic::determine_automatic_step(&pr_status)?;
-        pr.set_step_label(label);
+        let label = if upstream_pr.merged_at.is_some() {
+            None
+        } else {
+            Some(label)
+        };
 
-        if upstream_pr.merged_at.is_some() {
-            pr.remove_step_label();
-        }
+        let update = pr.create_update().step(label).build_update();
 
-        db_adapter.pull_request().save(&mut pr).await?;
+        db_adapter.pull_request().update(&mut pr, update).await?;
         Ok((pr, upstream_pr.head.sha))
     }
 
@@ -396,15 +410,15 @@ impl PullRequestLogic {
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
     ) -> Result<bool> {
-        let commit_title = pr_model.get_merge_commit_title();
-        let strategy = if let Some(s) = pr_model.get_strategy_override() {
+        let commit_title = pr_model.merge_commit_title();
+        let strategy = if let Some(s) = pr_model.strategy_override() {
             s
         } else {
             MergeRuleModel::get_strategy_from_branches(
                 db_adapter.merge_rule(),
                 repo_model,
-                &pr_model.base_branch[..],
-                &pr_model.head_branch[..],
+                pr_model.base_branch(),
+                pr_model.head_branch(),
             )
             .await
         };
@@ -413,7 +427,7 @@ impl PullRequestLogic {
             .pulls_merge(
                 &repo_model.owner,
                 &repo_model.name,
-                pr_model.get_number(),
+                pr_model.number(),
                 &commit_title,
                 "",
                 strategy,
@@ -424,7 +438,7 @@ impl PullRequestLogic {
                 api_adapter,
                 &repo_model.owner,
                 &repo_model.name,
-                pr_model.get_number(),
+                pr_model.number(),
                 &format!(
                     "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
                     e
@@ -437,7 +451,7 @@ impl PullRequestLogic {
                 api_adapter,
                 &repo_model.owner,
                 &repo_model.name,
-                pr_model.get_number(),
+                pr_model.number(),
                 &format!(
                     "Pull request successfully auto-merged! (strategy: '{}')",
                     strategy.to_string()
@@ -458,8 +472,8 @@ impl PullRequestLogic {
             api_adapter,
             &repository_model.owner,
             &repository_model.name,
-            pr_model.get_number(),
-            pr_model.get_step_label(),
+            pr_model.number(),
+            pr_model.step(),
         )
         .await
         .map_err(Into::into)
@@ -476,7 +490,7 @@ impl PullRequestLogic {
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
             &format!(
                 ":tada: Welcome, _{}_ ! :tada:\n\
             Thanks for your pull request, it will be reviewed soon. :clock2:",

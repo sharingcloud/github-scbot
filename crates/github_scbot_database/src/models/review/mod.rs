@@ -148,7 +148,7 @@ mod tests {
                 entry,
                 ReviewModel {
                     id: entry.id,
-                    pull_request_id: pr.id,
+                    pull_request_id: pr.id(),
                     username: "him".into(),
                     state: GhReviewState::Pending.to_string(),
                     required: false,
@@ -172,7 +172,7 @@ mod tests {
                 entry,
                 ReviewModel {
                     id: entry.id,
-                    pull_request_id: pr.id,
+                    pull_request_id: pr.id(),
                     username: "him".into(),
                     state: GhReviewState::Commented.to_string(),
                     required: false,

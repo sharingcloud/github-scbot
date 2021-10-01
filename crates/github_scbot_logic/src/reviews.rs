@@ -81,7 +81,7 @@ impl ReviewLogic {
             "review_{}-{}_{}_{}",
             repo_model.owner,
             repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
             review.user.login
         );
         let timeout = 500;
@@ -120,7 +120,7 @@ impl ReviewLogic {
                 "review_{}-{}_{}_{}",
                 repo_model.owner,
                 repo_model.name,
-                pr_model.get_number(),
+                pr_model.number(),
                 reviewer
             );
             let timeout = 500;
@@ -148,7 +148,7 @@ impl ReviewLogic {
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
     ) -> Result<()> {
-        let reviews = pr_model.get_reviews(db_adapter.review()).await?;
+        let reviews = pr_model.reviews(db_adapter.review()).await?;
 
         if !reviews.is_empty() {
             let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
@@ -156,7 +156,7 @@ impl ReviewLogic {
                 .pull_reviewer_requests_add(
                     &repo_model.owner,
                     &repo_model.name,
-                    pr_model.get_number(),
+                    pr_model.number(),
                     &reviewers,
                 )
                 .await?;
@@ -177,7 +177,7 @@ impl ReviewLogic {
     ) -> Result<()> {
         db_adapter
             .review()
-            .remove_all_for_pull_request(pr_model.id)
+            .remove_all_for_pull_request(pr_model.id())
             .await?;
 
         Ok(())
@@ -195,7 +195,7 @@ impl ReviewLogic {
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
-            pr_model.get_number(),
+            pr_model.number(),
         )
         .await?;
 
@@ -215,7 +215,7 @@ impl ReviewLogic {
         }
 
         // Remove missing reviews
-        let existing_reviews = pr_model.get_reviews(db_adapter.review()).await?;
+        let existing_reviews = pr_model.reviews(db_adapter.review()).await?;
         for review in existing_reviews {
             if !review_map.contains_key(&review.username[..]) {
                 db_adapter.review().remove(review).await?;

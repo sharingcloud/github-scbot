@@ -34,13 +34,13 @@ impl<'a> App<'a> {
     pub async fn load_from_db(&mut self, db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
         let repositories = db_adapter.repository().list().await?;
         let mut pull_requests = db_adapter.pull_request().list().await?;
-        pull_requests.sort_by_key(|p| u64::MAX - p.get_number());
+        pull_requests.sort_by_key(|p| u64::MAX - p.number());
 
         let mut pr_kvs = Vec::new();
         for repo in repositories {
             let mut prs = Vec::new();
             for pr in &pull_requests {
-                if repo.id == pr.repository_id {
+                if repo.id == pr.repository_id() {
                     prs.push(pr.clone());
                 }
             }
@@ -95,8 +95,8 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let desc = format!("#{} - {}", i.get_number(), i.name);
-                    let lines = vec![if i.closed {
+                    let desc = format!("#{} - {}", i.number(), i.name());
+                    let lines = vec![if i.closed() {
                         Spans::from(vec![Span::styled(
                             desc,
                             Style::default().add_modifier(Modifier::CROSSED_OUT),
@@ -171,8 +171,8 @@ impl<'a> App<'a> {
                 Spans::from(vec![Span::styled(
                     format!(
                         "{title} - #{number}",
-                        title = selected_pr.name,
-                        number = selected_pr.get_number()
+                        title = selected_pr.name(),
+                        number = selected_pr.number()
                     ),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
@@ -180,17 +180,17 @@ impl<'a> App<'a> {
                 Spans::from(vec![
                     Span::styled("base", Style::default().fg(Color::Green)),
                     Span::raw(": "),
-                    Span::raw(&selected_pr.base_branch),
+                    Span::raw(selected_pr.base_branch()),
                     Span::raw(" <-- "),
                     Span::styled("head", Style::default().fg(Color::Green)),
                     Span::raw(": "),
-                    Span::raw(&selected_pr.head_branch),
+                    Span::raw(selected_pr.head_branch()),
                 ]),
                 Spans::from(""),
                 Spans::from(vec![
                     Span::styled("Step", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
-                    match selected_pr.get_step_label() {
+                    match selected_pr.step() {
                         Some(label) => {
                             Span::styled(label.to_str(), Style::default().fg(Color::Green))
                         }
@@ -204,7 +204,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.get_checks_status();
+                        let status = selected_pr.check_status();
                         let color = match status {
                             CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
                             CheckStatus::Fail => Color::Red,
@@ -217,7 +217,7 @@ impl<'a> App<'a> {
                     Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.get_qa_status();
+                        let status = selected_pr.qa_status();
                         let color = match status {
                             QaStatus::Pass | QaStatus::Skipped => Color::Green,
                             QaStatus::Fail => Color::Red,
@@ -233,7 +233,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     Span::styled(
-                        format!("{}", selected_pr.needed_reviewers_count),
+                        format!("{}", selected_pr.needed_reviewers_count()),
                         Style::default().fg(Color::Blue),
                     ),
                 ]),
@@ -241,7 +241,7 @@ impl<'a> App<'a> {
                     Span::styled("WIP?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.wip {
+                        let (msg, color) = if selected_pr.wip() {
                             ("Yes", Color::Yellow)
                         } else {
                             ("No", Color::Green)
@@ -253,7 +253,7 @@ impl<'a> App<'a> {
                     Span::styled("Locked?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.locked {
+                        let (msg, color) = if selected_pr.locked() {
                             ("Yes", Color::Red)
                         } else {
                             ("No", Color::Green)
@@ -265,7 +265,7 @@ impl<'a> App<'a> {
                     Span::styled("Merged?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.merged {
+                        let (msg, color) = if selected_pr.merged() {
                             ("Yes", Color::Green)
                         } else {
                             ("No", Color::Yellow)
@@ -277,7 +277,7 @@ impl<'a> App<'a> {
                     Span::styled("Closed?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.closed {
+                        let (msg, color) = if selected_pr.closed() {
                             ("Yes", Color::Green)
                         } else {
                             ("No", Color::Yellow)

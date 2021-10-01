@@ -53,7 +53,7 @@ impl<'a> HistoryWebhookModelBuilder<'a> {
         HistoryWebhookModel {
             id: -1,
             repository_id: self.repo_model.id,
-            pull_request_id: self.pr_model.id,
+            pull_request_id: self.pr_model.id(),
             username: self.username,
             event_key: self.event_key.to_str().into(),
             received_at: self.received_at,

@@ -21,6 +21,8 @@ smart-default = "0.6.0"
 thiserror = "1.0"
 tokio-diesel = "0.3.0"
 tracing = "0.1"
+derive_builder = "0.10.2"
+getset = "0.1.1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
