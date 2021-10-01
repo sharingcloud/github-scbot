@@ -1,6 +1,5 @@
 //! Pull requests logic.
 
-use github_scbot_api::{adapter::IAPIAdapter, comments::post_comment, labels::set_step_label};
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
@@ -8,6 +7,7 @@ use github_scbot_database::{
     },
     DatabaseError,
 };
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
@@ -21,12 +21,8 @@ use tracing::{debug, info};
 
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
-    reviews::{process_review_request, rerequest_existing_reviews, synchronize_reviews},
-    status::{
-        create_initial_pull_request_status, determine_automatic_step, update_pull_request_status,
-        PullRequestStatus,
-    },
-    welcome::post_welcome_comment,
+    reviews::ReviewLogic,
+    status::{PullRequestStatus, StatusLogic},
     Result,
 };
 
@@ -38,28 +34,6 @@ pub enum PullRequestOpenedStatus {
     Created,
     /// Pull request is ignored.
     Ignored,
-}
-
-pub(crate) fn should_create_pull_request(
-    config: &Config,
-    repo_model: &RepositoryModel,
-    event: &GhPullRequestEvent,
-) -> bool {
-    if repo_model.manual_interaction {
-        if let Some(body) = &event.pull_request.body {
-            // Check for magic instruction to enable bot
-            let commands = CommandParser::parse_commands(config, body);
-            for command in commands.into_iter().flatten() {
-                if let Command::Admin(AdminCommand::Enable) = command {
-                    return true;
-                }
-            }
-        }
-
-        false
-    } else {
-        true
-    }
 }
 
 /// Handle pull request Opened event.
@@ -80,7 +54,7 @@ pub async fn handle_pull_request_opened(
         .get_from_repository_and_number(&repo_model, event.pull_request.number)
         .await
     {
-        if should_create_pull_request(config, &repo_model, &event) {
+        if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
             let key = format!(
                 "pr-creation_{}-{}_{}",
                 repo_model.owner, repo_model.name, event.pull_request.number
@@ -115,7 +89,7 @@ pub async fn handle_pull_request_opened(
                     message = "Creating pull request",
                 );
 
-                create_initial_pull_request_status(
+                StatusLogic::create_initial_pull_request_status(
                     api_adapter,
                     db_adapter,
                     &repo_model,
@@ -125,7 +99,7 @@ pub async fn handle_pull_request_opened(
                 .await?;
 
                 if config.server_enable_welcome_comments {
-                    post_welcome_comment(
+                    PullRequestLogic::post_welcome_comment(
                         api_adapter,
                         &repo_model,
                         &pr_model,
@@ -213,7 +187,13 @@ pub async fn handle_pull_request_event(
                 db_adapter.pull_request().save(&mut pr_model).await?;
                 status_changed = true;
 
-                rerequest_existing_reviews(api_adapter, db_adapter, &repo_model, &pr_model).await?;
+                ReviewLogic::rerequest_existing_reviews(
+                    api_adapter,
+                    db_adapter,
+                    &repo_model,
+                    &pr_model,
+                )
+                .await?;
             }
             GhPullRequestAction::Reopened
             | GhPullRequestAction::ReadyForReview
@@ -222,27 +202,27 @@ pub async fn handle_pull_request_event(
                 status_changed = true;
             }
             GhPullRequestAction::ReviewRequested => {
-                process_review_request(
+                ReviewLogic::process_review_request(
                     api_adapter,
                     db_adapter,
                     redis_adapter,
                     &repo_model,
                     &pr_model,
                     GhReviewState::Pending,
-                    &extract_usernames(&event.pull_request.requested_reviewers),
+                    &PullRequestLogic::extract_usernames(&event.pull_request.requested_reviewers),
                 )
                 .await?;
                 status_changed = true;
             }
             GhPullRequestAction::ReviewRequestRemoved => {
-                process_review_request(
+                ReviewLogic::process_review_request(
                     api_adapter,
                     db_adapter,
                     redis_adapter,
                     &repo_model,
                     &pr_model,
                     GhReviewState::Dismissed,
-                    &extract_usernames(&event.pull_request.requested_reviewers),
+                    &PullRequestLogic::extract_usernames(&event.pull_request.requested_reviewers),
                 )
                 .await?;
                 status_changed = true;
@@ -256,7 +236,7 @@ pub async fn handle_pull_request_event(
         }
 
         if status_changed {
-            update_pull_request_status(
+            StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
                 redis_adapter,
@@ -271,196 +251,246 @@ pub async fn handle_pull_request_event(
     Ok(())
 }
 
-/// Get checks status from GitHub.
-pub async fn get_checks_status_from_github(
-    api_adapter: &dyn IAPIAdapter,
-    repository_owner: &str,
-    repository_name: &str,
-    sha: &str,
-    exclude_check_suite_ids: &[u64],
-) -> Result<CheckStatus> {
-    // Get upstream checks
-    let check_suites = api_adapter
-        .check_suites_list(repository_owner, repository_name, sha)
-        .await?;
+/// Pull request logic.
+pub struct PullRequestLogic;
 
-    let repository_path = format!("{}/{}", repository_owner, repository_name);
-
-    debug!(
-        repository_path = %repository_path,
-        sha = %sha,
-        check_suites = ?check_suites,
-        message = "Check suites status from GitHub"
-    );
-
-    // Extract status
-    if check_suites.is_empty() {
-        debug!(
-            repository_path = %repository_path,
-            sha = %sha,
-            message = "No check suite found from GitHub"
-        );
-
-        Ok(CheckStatus::Skipped)
-    } else {
-        let filtered = merge_check_suite_statuses(&check_suites, exclude_check_suite_ids);
-
-        debug!(
-            repository_path = %repository_path,
-            sha = %sha,
-            filtered = ?filtered,
-            message = "Filtered check suites"
-        );
-
-        Ok(filtered)
-    }
-}
-
-/// Merge check suite statuses.
-pub fn merge_check_suite_statuses(
-    check_suites: &[GhCheckSuite],
-    exclude_ids: &[u64],
-) -> CheckStatus {
-    check_suites
-        .iter()
-        // Only fetch GitHub Actions statuses
-        .filter(|&s| s.app.slug == "github-actions" && !exclude_ids.contains(&s.id))
-        .fold(CheckStatus::Skipped, |acc, s| match (&acc, &s.conclusion) {
-            (CheckStatus::Fail, _) | (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
-            (CheckStatus::Skipped | CheckStatus::Pass, Some(GhCheckConclusion::Success)) => {
-                CheckStatus::Pass
+impl PullRequestLogic {
+    pub(crate) fn should_create_pull_request(
+        config: &Config,
+        repo_model: &RepositoryModel,
+        event: &GhPullRequestEvent,
+    ) -> bool {
+        if repo_model.manual_interaction {
+            if let Some(body) = &event.pull_request.body {
+                // Check for magic instruction to enable bot
+                let commands = CommandParser::parse_commands(config, body);
+                for command in commands.into_iter().flatten() {
+                    if let Command::Admin(AdminCommand::Enable) = command {
+                        return true;
+                    }
+                }
             }
-            (_, None) => CheckStatus::Waiting,
-            (_, _) => acc,
-        })
-}
 
-/// Synchronize pull request from upstream.
-pub async fn synchronize_pull_request(
-    config: &Config,
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    repository_owner: &str,
-    repository_name: &str,
-    pr_number: u64,
-) -> Result<(PullRequestModel, String)> {
-    // Get upstream pull request
-    let upstream_pr = api_adapter
-        .pulls_get(repository_owner, repository_name, pr_number)
-        .await?;
-
-    // Get upstream checks
-    let status = get_checks_status_from_github(
-        api_adapter,
-        repository_owner,
-        repository_name,
-        &upstream_pr.head.sha,
-        &[],
-    )
-    .await?;
-
-    let repo = RepositoryModel::builder(config, repository_owner, repository_name)
-        .create_or_update(db_adapter.repository())
-        .await?;
-
-    let mut pr = PullRequestModel::builder_from_github(&repo, &upstream_pr)
-        .check_status(status)
-        .create_or_update(db_adapter.pull_request())
-        .await?;
-
-    synchronize_reviews(api_adapter, db_adapter, &repo, &pr).await?;
-
-    // Determine step label
-    let pr_status = PullRequestStatus::from_database(db_adapter, &repo, &pr).await?;
-    let label = determine_automatic_step(&pr_status)?;
-    pr.set_step_label(label);
-
-    if upstream_pr.merged_at.is_some() {
-        pr.remove_step_label();
+            false
+        } else {
+            true
+        }
     }
 
-    db_adapter.pull_request().save(&mut pr).await?;
-    Ok((pr, upstream_pr.head.sha))
-}
+    /// Get checks status from GitHub.
+    pub async fn get_checks_status_from_github(
+        api_adapter: &dyn IAPIAdapter,
+        repository_owner: &str,
+        repository_name: &str,
+        sha: &str,
+        exclude_check_suite_ids: &[u64],
+    ) -> Result<CheckStatus> {
+        // Get upstream checks
+        let check_suites = api_adapter
+            .check_suites_list(repository_owner, repository_name, sha)
+            .await?;
 
-/// Try automerge pull request.
-pub async fn try_automerge_pull_request(
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-) -> Result<bool> {
-    let commit_title = pr_model.get_merge_commit_title();
-    let strategy = if let Some(s) = pr_model.get_strategy_override() {
-        s
-    } else {
-        MergeRuleModel::get_strategy_from_branches(
-            db_adapter.merge_rule(),
-            repo_model,
-            &pr_model.base_branch[..],
-            &pr_model.head_branch[..],
+        let repository_path = format!("{}/{}", repository_owner, repository_name);
+
+        debug!(
+            repository_path = %repository_path,
+            sha = %sha,
+            check_suites = ?check_suites,
+            message = "Check suites status from GitHub"
+        );
+
+        // Extract status
+        if check_suites.is_empty() {
+            debug!(
+                repository_path = %repository_path,
+                sha = %sha,
+                message = "No check suite found from GitHub"
+            );
+
+            Ok(CheckStatus::Skipped)
+        } else {
+            let filtered = Self::merge_check_suite_statuses(&check_suites, exclude_check_suite_ids);
+
+            debug!(
+                repository_path = %repository_path,
+                sha = %sha,
+                filtered = ?filtered,
+                message = "Filtered check suites"
+            );
+
+            Ok(filtered)
+        }
+    }
+
+    /// Merge check suite statuses.
+    pub fn merge_check_suite_statuses(
+        check_suites: &[GhCheckSuite],
+        exclude_ids: &[u64],
+    ) -> CheckStatus {
+        check_suites
+            .iter()
+            // Only fetch GitHub Actions statuses
+            .filter(|&s| s.app.slug == "github-actions" && !exclude_ids.contains(&s.id))
+            .fold(CheckStatus::Skipped, |acc, s| match (&acc, &s.conclusion) {
+                (CheckStatus::Fail, _) | (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
+                (CheckStatus::Skipped | CheckStatus::Pass, Some(GhCheckConclusion::Success)) => {
+                    CheckStatus::Pass
+                }
+                (_, None) => CheckStatus::Waiting,
+                (_, _) => acc,
+            })
+    }
+
+    /// Synchronize pull request from upstream.
+    pub async fn synchronize_pull_request(
+        config: &Config,
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        repository_owner: &str,
+        repository_name: &str,
+        pr_number: u64,
+    ) -> Result<(PullRequestModel, String)> {
+        // Get upstream pull request
+        let upstream_pr = api_adapter
+            .pulls_get(repository_owner, repository_name, pr_number)
+            .await?;
+
+        // Get upstream checks
+        let status = Self::get_checks_status_from_github(
+            api_adapter,
+            repository_owner,
+            repository_name,
+            &upstream_pr.head.sha,
+            &[],
         )
-        .await
-    };
+        .await?;
 
-    if let Err(e) = api_adapter
-        .pulls_merge(
-            &repo_model.owner,
-            &repo_model.name,
+        let repo = RepositoryModel::builder(config, repository_owner, repository_name)
+            .create_or_update(db_adapter.repository())
+            .await?;
+
+        let mut pr = PullRequestModel::builder_from_github(&repo, &upstream_pr)
+            .check_status(status)
+            .create_or_update(db_adapter.pull_request())
+            .await?;
+
+        ReviewLogic::synchronize_reviews(api_adapter, db_adapter, &repo, &pr).await?;
+
+        // Determine step label
+        let pr_status = PullRequestStatus::from_database(db_adapter, &repo, &pr).await?;
+        let label = StatusLogic::determine_automatic_step(&pr_status)?;
+        pr.set_step_label(label);
+
+        if upstream_pr.merged_at.is_some() {
+            pr.remove_step_label();
+        }
+
+        db_adapter.pull_request().save(&mut pr).await?;
+        Ok((pr, upstream_pr.head.sha))
+    }
+
+    /// Try automerge pull request.
+    pub async fn try_automerge_pull_request(
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+    ) -> Result<bool> {
+        let commit_title = pr_model.get_merge_commit_title();
+        let strategy = if let Some(s) = pr_model.get_strategy_override() {
+            s
+        } else {
+            MergeRuleModel::get_strategy_from_branches(
+                db_adapter.merge_rule(),
+                repo_model,
+                &pr_model.base_branch[..],
+                &pr_model.head_branch[..],
+            )
+            .await
+        };
+
+        if let Err(e) = api_adapter
+            .pulls_merge(
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &commit_title,
+                "",
+                strategy,
+            )
+            .await
+        {
+            CommentApi::post_comment(
+                api_adapter,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
+                    e
+                ),
+            )
+            .await?;
+            Ok(false)
+        } else {
+            CommentApi::post_comment(
+                api_adapter,
+                &repo_model.owner,
+                &repo_model.name,
+                pr_model.get_number(),
+                &format!(
+                    "Pull request successfully auto-merged! (strategy: '{}')",
+                    strategy.to_string()
+                ),
+            )
+            .await?;
+            Ok(true)
+        }
+    }
+
+    /// Apply pull request step.
+    pub async fn apply_pull_request_step(
+        api_adapter: &dyn IAPIAdapter,
+        repository_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+    ) -> Result<()> {
+        LabelApi::set_step_label(
+            api_adapter,
+            &repository_model.owner,
+            &repository_model.name,
             pr_model.get_number(),
-            &commit_title,
-            "",
-            strategy,
+            pr_model.get_step_label(),
         )
         .await
-    {
-        post_comment(
+        .map_err(Into::into)
+    }
+
+    /// Post welcome comment on a pull request.
+    pub async fn post_welcome_comment(
+        api_adapter: &dyn IAPIAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+        pr_author: &str,
+    ) -> Result<()> {
+        CommentApi::post_comment(
             api_adapter,
             &repo_model.owner,
             &repo_model.name,
             pr_model.get_number(),
             &format!(
-                "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
-                e
+                ":tada: Welcome, _{}_ ! :tada:\n\
+            Thanks for your pull request, it will be reviewed soon. :clock2:",
+                pr_author
             ),
         )
         .await?;
-        Ok(false)
-    } else {
-        post_comment(
-            api_adapter,
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
-            &format!(
-                "Pull request successfully auto-merged! (strategy: '{}')",
-                strategy.to_string()
-            ),
-        )
-        .await?;
-        Ok(true)
+
+        Ok(())
     }
-}
 
-/// Apply pull request step.
-pub async fn apply_pull_request_step(
-    api_adapter: &dyn IAPIAdapter,
-    repository_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-) -> Result<()> {
-    set_step_label(
-        api_adapter,
-        &repository_model.owner,
-        &repository_model.name,
-        pr_model.get_number(),
-        pr_model.get_step_label(),
-    )
-    .await
-    .map_err(Into::into)
-}
-
-fn extract_usernames(users: &[GhUser]) -> Vec<&str> {
-    users.iter().map(|r| &r.login[..]).collect()
+    fn extract_usernames(users: &[GhUser]) -> Vec<&str> {
+        users.iter().map(|r| &r.login[..]).collect()
+    }
 }
 
 #[cfg(test)]
@@ -471,13 +501,16 @@ mod tests {
         status::CheckStatus,
     };
 
-    use super::merge_check_suite_statuses;
+    use super::*;
 
     #[test]
     #[allow(clippy::too_many_lines)]
     pub fn test_merge_check_suite_statuses() {
         // No check suite, no need to wait
-        assert_eq!(merge_check_suite_statuses(&[], &[]), CheckStatus::Skipped);
+        assert_eq!(
+            PullRequestLogic::merge_check_suite_statuses(&[], &[]),
+            CheckStatus::Skipped
+        );
 
         let base_suite = GhCheckSuite {
             app: GhApplication {
@@ -489,7 +522,7 @@ mod tests {
 
         // Should wait on queued status
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[GhCheckSuite {
                     status: GhCheckStatus::Queued,
                     conclusion: None,
@@ -502,7 +535,7 @@ mod tests {
 
         // Suite should be skipped
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[GhCheckSuite {
                     id: 1,
                     status: GhCheckStatus::Queued,
@@ -516,7 +549,7 @@ mod tests {
 
         // Ignore unsupported apps
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[GhCheckSuite {
                     status: GhCheckStatus::Queued,
                     app: GhApplication {
@@ -532,7 +565,7 @@ mod tests {
 
         // Success
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[GhCheckSuite {
                     status: GhCheckStatus::Completed,
                     conclusion: Some(GhCheckConclusion::Success),
@@ -545,7 +578,7 @@ mod tests {
 
         // Success with skipped
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[
                     GhCheckSuite {
                         status: GhCheckStatus::Completed,
@@ -565,7 +598,7 @@ mod tests {
 
         // Success with queued
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[
                     GhCheckSuite {
                         status: GhCheckStatus::Completed,
@@ -585,7 +618,7 @@ mod tests {
 
         // One failing check make the status fail
         assert_eq!(
-            merge_check_suite_statuses(
+            PullRequestLogic::merge_check_suite_statuses(
                 &[
                     GhCheckSuite {
                         status: GhCheckStatus::Completed,

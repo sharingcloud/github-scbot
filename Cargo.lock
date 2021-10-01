@@ -356,6 +356,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-prom"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec994b7dd52e686b9ae8f63bc485e6027fb44b936ed09bdf648495b9966c36ce"
+dependencies = [
+ "actix-http",
+ "actix-service",
+ "actix-web",
+ "futures",
+ "pin-project 1.0.2",
+ "prometheus",
+]
+
+[[package]]
 name = "actix_derive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1252,30 +1266,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
 
 [[package]]
-name = "github-scbot-api"
-version = "0.13.1"
-dependencies = [
- "actix-rt",
- "async-trait",
- "chrono",
- "github-scbot-conf",
- "github-scbot-crypto",
- "github-scbot-types",
- "github-scbot-utils",
- "heck",
- "http",
- "maplit",
- "octocrab",
- "rand 0.8.3",
- "reqwest",
- "serde",
- "serde_json",
- "serde_plain",
- "thiserror",
- "tracing",
-]
-
-[[package]]
 name = "github-scbot-cli"
 version = "0.13.1"
 dependencies = [
@@ -1283,9 +1273,9 @@ dependencies = [
  "argh",
  "async-trait",
  "dialoguer",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-server",
@@ -1346,14 +1336,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-ghapi"
+version = "0.13.1"
+dependencies = [
+ "actix-rt",
+ "async-trait",
+ "chrono",
+ "github-scbot-conf",
+ "github-scbot-crypto",
+ "github-scbot-types",
+ "github-scbot-utils",
+ "heck",
+ "http",
+ "maplit",
+ "octocrab",
+ "rand 0.8.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "github-scbot-logic"
 version = "0.13.1"
 dependencies = [
  "actix-rt",
  "chrono",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-redis",
  "github-scbot-types",
  "maplit",
@@ -1387,12 +1401,13 @@ dependencies = [
  "actix-service",
  "actix-web",
  "actix-web-httpauth",
+ "actix-web-prom",
  "chrono",
  "futures",
- "github-scbot-api",
  "github-scbot-conf",
  "github-scbot-crypto",
  "github-scbot-database",
+ "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-types",
@@ -2256,6 +2271,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
 dependencies = [
  "unicode-xid 0.2.1",
+]
+
+[[package]]
+name = "prometheus"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8425533e7122f0c3cc7a37e6244b16ad3a2cc32ae7ac6276e2a75da0d9c200d"
+dependencies = [
+ "cfg-if 1.0.0",
+ "fnv",
+ "lazy_static",
+ "parking_lot",
+ "regex",
+ "thiserror",
 ]
 
 [[package]]

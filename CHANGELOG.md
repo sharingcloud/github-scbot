@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add Prometheus support
+
+### Changed
+
+- Add some free functions in structs
+
 ## [0.13.1] - 2021-09-30
 
 ### Fixed

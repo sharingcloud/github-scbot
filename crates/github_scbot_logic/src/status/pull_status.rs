@@ -6,8 +6,9 @@ use github_scbot_types::{
     reviews::GhReviewState,
     status::{CheckStatus, QaStatus},
 };
+use regex::Regex;
 
-use crate::{errors::Result, validation::check_pr_title};
+use crate::errors::Result;
 
 /// Pull request status.
 #[derive(Debug)]
@@ -92,7 +93,10 @@ impl PullRequestStatus {
             needed_reviewers_count: needed_reviews,
             qa_status: pr_model.get_qa_status(),
             missing_required_reviewers: required_reviews,
-            valid_pr_title: check_pr_title(&pr_model.name, &repo_model.pr_title_validation_regex)?,
+            valid_pr_title: Self::check_pr_title(
+                &pr_model.name,
+                &repo_model.pr_title_validation_regex,
+            )?,
             locked: pr_model.locked,
             wip: pr_model.wip,
             merge_strategy: strategy,
@@ -112,5 +116,16 @@ impl PullRequestStatus {
     pub fn missing_reviews(&self) -> bool {
         self.missing_required_reviews()
             || self.needed_reviewers_count > self.approved_reviewers.len()
+    }
+
+    /// Check PR title
+    fn check_pr_title(name: &str, pattern: &str) -> Result<bool> {
+        if pattern.is_empty() {
+            Ok(true)
+        } else {
+            Regex::new(pattern)
+                .map(|rgx| rgx.is_match(name))
+                .map_err(Into::into)
+        }
     }
 }

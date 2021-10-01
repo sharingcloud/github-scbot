@@ -1,4 +1,4 @@
-use github_scbot_crypto::generate_rsa_keys;
+use github_scbot_crypto::RsaUtils;
 
 use super::{ExternalAccountModel, IExternalAccountDbAdapter};
 use crate::Result;
@@ -38,7 +38,7 @@ impl ExternalAccountModelBuilder {
     }
 
     pub fn generate_keys(mut self) -> Self {
-        let (private_key, public_key) = generate_rsa_keys();
+        let (private_key, public_key) = RsaUtils::generate_rsa_keys();
         self.private_key = Some(private_key);
         self.public_key = Some(public_key);
         self

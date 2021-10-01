@@ -2,9 +2,9 @@
 
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 use stable_eyre::eyre::Result;
 

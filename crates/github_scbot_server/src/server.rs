@@ -5,12 +5,13 @@ use std::sync::Arc;
 use actix_cors::Cors;
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use github_scbot_api::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
+use actix_web_prom::PrometheusMetrics;
 use github_scbot_conf::{sentry::with_sentry_configuration, Config};
 use github_scbot_database::{
     models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
     DbPool,
 };
+use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
 use sentry_actix::Sentry;
 use tracing::info;
@@ -92,10 +93,12 @@ fn get_bind_address(config: &Config) -> String {
 
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
     let context = Arc::new(context);
+    let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
 
     HttpServer::new(move || {
         App::new()
             .data(context.clone())
+            .wrap(prometheus.clone())
             .wrap(Sentry::builder().capture_client_errors(true).finish())
             .wrap(Logger::default())
             .service(

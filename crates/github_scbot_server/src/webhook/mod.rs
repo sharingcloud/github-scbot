@@ -12,9 +12,9 @@ mod tests;
 use std::{convert::TryFrom, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::events::EventType;
 use sentry_actix::eyre::WrapEyre;

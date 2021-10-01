@@ -1,8 +1,8 @@
-use github_scbot_api::adapter::IAPIAdapter;
 use github_scbot_conf::Config;
 use github_scbot_database::models::{
     IDatabaseAdapter, PullRequestModel, RepositoryModel, ReviewModel,
 };
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_types::{
     issues::GhReactionType,
     labels::StepLabel,
@@ -13,13 +13,13 @@ use tracing::info;
 
 use super::command::CommandExecutionResult;
 use crate::{
-    auth::{is_admin, list_known_admin_usernames},
+    auth::AuthLogic,
     commands::command::ResultAction,
     errors::Result,
     gif::GifPoster,
-    pulls::synchronize_pull_request,
-    reviews::{reset_reviews, synchronize_reviews},
-    status::{determine_automatic_step, disable_validation_status, PullRequestStatus},
+    pulls::PullRequestLogic,
+    reviews::ReviewLogic,
+    status::{PullRequestStatus, StatusLogic},
 };
 
 /// Handle `Automerge` command.
@@ -52,7 +52,7 @@ pub async fn handle_merge_command(
 ) -> Result<CommandExecutionResult> {
     // Use step to determine merge possibility
     let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
-    let step = determine_automatic_step(&pr_status)?;
+    let step = StatusLogic::determine_automatic_step(&pr_status)?;
     let commit_title = pr_model.get_merge_commit_title();
 
     let mut actions = vec![];
@@ -100,8 +100,8 @@ pub async fn handle_is_admin_command(
     db_adapter: &dyn IDatabaseAdapter,
     comment_author: &str,
 ) -> Result<CommandExecutionResult> {
-    let known_admins = list_known_admin_usernames(db_adapter).await?;
-    let status = is_admin(comment_author, &known_admins);
+    let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
+    let status = AuthLogic::is_admin(comment_author, &known_admins);
     let reaction_type = if status {
         GhReactionType::PlusOne
     } else {
@@ -121,7 +121,7 @@ pub async fn handle_admin_sync_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
-    let (pr, _sha) = synchronize_pull_request(
+    let (pr, _sha) = PullRequestLogic::synchronize_pull_request(
         config,
         api_adapter,
         db_adapter,
@@ -145,8 +145,8 @@ pub async fn handle_admin_reset_reviews_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
-    reset_reviews(db_adapter, pr_model).await?;
-    synchronize_reviews(api_adapter, db_adapter, repo_model, pr_model).await?;
+    ReviewLogic::reset_reviews(db_adapter, pr_model).await?;
+    ReviewLogic::synchronize_reviews(api_adapter, db_adapter, repo_model, pr_model).await?;
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
@@ -549,7 +549,8 @@ pub async fn handle_admin_disable_command(
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
     if repo_model.manual_interaction {
-        disable_validation_status(api_adapter, db_adapter, repo_model, pr_model).await?;
+        StatusLogic::disable_validation_status(api_adapter, db_adapter, repo_model, pr_model)
+            .await?;
         db_adapter.pull_request().remove(pr_model).await?;
 
         let comment = "Bot disabled on this PR. Bye!";
@@ -643,13 +644,13 @@ pub fn handle_admin_help_command(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_api::{
-        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
-        ApiError,
-    };
     use github_scbot_database::{
         models::{AccountModel, DummyDatabaseAdapter},
         DatabaseError,
+    };
+    use github_scbot_ghapi::{
+        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
+        ApiError,
     };
     use github_scbot_types::pulls::GhPullRequest;
     use maplit::hashmap;

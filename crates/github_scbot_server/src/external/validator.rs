@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_crypto::{decode_jwt, verify_jwt, CryptoError};
+use github_scbot_crypto::{CryptoError, JwtUtils};
 use github_scbot_database::models::{ExternalAccountModel, ExternalJwtClaims, IDatabaseAdapter};
 use sentry_actix::eyre::WrapEyre;
 use thiserror::Error;
@@ -49,7 +49,7 @@ async fn jwt_auth_validator_inner(
 
     // Validate token with ISS
     let tok = credentials.token();
-    let _claims: ExternalJwtClaims = verify_jwt(tok, &target_account.public_key)
+    let _claims: ExternalJwtClaims = JwtUtils::verify_jwt(tok, &target_account.public_key)
         .map_err(|e| ValidationError::token_error(tok, e))?;
 
     Ok(req)
@@ -62,7 +62,7 @@ pub async fn extract_account_from_auth(
 ) -> Result<ExternalAccountModel, ValidationError> {
     let tok = credentials.token();
     let claims: ExternalJwtClaims =
-        decode_jwt(tok).map_err(|e| ValidationError::token_error(tok, e))?;
+        JwtUtils::decode_jwt(tok).map_err(|e| ValidationError::token_error(tok, e))?;
     db_adapter
         .external_account()
         .get_from_username(&claims.iss)

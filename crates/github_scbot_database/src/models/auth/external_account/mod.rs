@@ -1,4 +1,5 @@
-use github_scbot_crypto::{create_jwt, now};
+use github_scbot_crypto::JwtUtils;
+use github_scbot_utils::TimeUtils;
 use serde::{Deserialize, Serialize};
 
 use crate::{schema::external_account, Result};
@@ -57,7 +58,7 @@ impl ExternalAccountModel {
 
     /// Generate access token.
     pub fn generate_access_token(&self) -> Result<String> {
-        let now_ts = now();
+        let now_ts = TimeUtils::now_timestamp();
         let claims = ExternalJwtClaims {
             // Issued at time
             iat: now_ts,
@@ -65,7 +66,7 @@ impl ExternalAccountModel {
             iss: self.username.clone(),
         };
 
-        create_jwt(&self.private_key, &claims).map_err(Into::into)
+        JwtUtils::create_jwt(&self.private_key, &claims).map_err(Into::into)
     }
 }
 

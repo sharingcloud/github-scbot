@@ -4,12 +4,9 @@ mod command;
 mod handlers;
 mod parser;
 
-use github_scbot_api::{
-    adapter::IAPIAdapter,
-    comments::{add_reaction_to_comment, post_comment},
-};
 use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::issues::GhReactionType;
 pub use handlers::handle_qa_command;
@@ -17,9 +14,9 @@ pub use parser::CommandParser;
 use tracing::info;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
-use super::{errors::Result, status::update_pull_request_status};
+use super::{errors::Result, status::StatusLogic};
 use crate::{
-    auth::{has_right_on_pull_request, is_admin, list_known_admin_usernames},
+    auth::AuthLogic,
     commands::command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
 };
 
@@ -103,7 +100,7 @@ impl CommandExecutor {
                 .await?
                 .head
                 .sha;
-            update_pull_request_status(
+            StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
                 redis_adapter,
@@ -117,7 +114,7 @@ impl CommandExecutor {
         for action in &command_result.result_actions {
             match action {
                 ResultAction::AddReaction(reaction) => {
-                    add_reaction_to_comment(
+                    CommentApi::add_reaction_to_comment(
                         api_adapter,
                         &repo_model.owner,
                         &repo_model.name,
@@ -127,7 +124,7 @@ impl CommandExecutor {
                     .await?;
                 }
                 ResultAction::PostComment(comment) => {
-                    post_comment(
+                    CommentApi::post_comment(
                         api_adapter,
                         &repo_model.owner,
                         &repo_model.name,
@@ -402,26 +399,30 @@ impl CommandExecutor {
         pr_model: &PullRequestModel,
         command: &Command,
     ) -> Result<bool> {
-        let known_admins = list_known_admin_usernames(db_adapter).await?;
+        let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
 
         match command {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
-                _ => Ok(has_right_on_pull_request(username, pr_model, &known_admins)),
+                _ => Ok(AuthLogic::has_right_on_pull_request(
+                    username,
+                    pr_model,
+                    &known_admins,
+                )),
             },
-            Command::Admin(_) => Ok(is_admin(username, &known_admins)),
+            Command::Admin(_) => Ok(AuthLogic::is_admin(username, &known_admins)),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_api::adapter::DummyAPIAdapter;
     use github_scbot_database::{
         models::{AccountModel, DatabaseAdapter, DummyDatabaseAdapter},
         tests::using_test_db,
         Result,
     };
+    use github_scbot_ghapi::adapter::DummyAPIAdapter;
     use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
 
