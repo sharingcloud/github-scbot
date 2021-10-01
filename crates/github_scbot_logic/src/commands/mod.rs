@@ -14,7 +14,7 @@ pub use parser::CommandParser;
 use tracing::info;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
-use super::{errors::Result, status::update_pull_request_status};
+use super::{errors::Result, status::StatusLogic};
 use crate::{
     auth::AuthLogic,
     commands::command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
@@ -100,7 +100,7 @@ impl CommandExecutor {
                 .await?
                 .head
                 .sha;
-            update_pull_request_status(
+            StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
                 redis_adapter,

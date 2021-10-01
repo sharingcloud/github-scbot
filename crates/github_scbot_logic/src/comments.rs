@@ -15,8 +15,8 @@ use tracing::info;
 
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},
-    pulls::synchronize_pull_request,
-    status::update_pull_request_status,
+    pulls::PullRequestLogic,
+    status::StatusLogic,
     summary::SummaryCommentSender,
     Result,
 };
@@ -55,7 +55,7 @@ pub async fn handle_issue_comment_event(
                 let mut handled = false;
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
-                        let (mut pr, sha) = synchronize_pull_request(
+                        let (mut pr, sha) = PullRequestLogic::synchronize_pull_request(
                             config,
                             api_adapter,
                             db_adapter,
@@ -71,7 +71,7 @@ pub async fn handle_issue_comment_event(
                             message = "Manual activation on pull request",
                         );
                         let repo = pr.get_repository(db_adapter.repository()).await?;
-                        update_pull_request_status(
+                        StatusLogic::update_pull_request_status(
                             api_adapter,
                             db_adapter,
                             redis_adapter,

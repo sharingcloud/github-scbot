@@ -13,7 +13,7 @@ use github_scbot_types::{
     reviews::{GhReview, GhReviewEvent, GhReviewState},
 };
 
-use crate::{status::update_pull_request_status, Result};
+use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub pull request review event.
 pub async fn handle_review_event(
@@ -37,7 +37,7 @@ pub async fn handle_review_event(
                 .await?;
         }
 
-        process_review(
+        ReviewLogic::process_review(
             api_adapter,
             db_adapter,
             redis_adapter,
@@ -46,7 +46,7 @@ pub async fn handle_review_event(
             &event.review,
         )
         .await?;
-        update_pull_request_status(
+        StatusLogic::update_pull_request_status(
             api_adapter,
             db_adapter,
             redis_adapter,
@@ -60,56 +60,21 @@ pub async fn handle_review_event(
     Ok(())
 }
 
-/// Handle GitHub review.
-pub async fn process_review(
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-    review: &GhReview,
-) -> Result<()> {
-    let permission = api_adapter
-        .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
-        .await?;
+/// Review logic.
+pub struct ReviewLogic;
 
-    let key_name = format!(
-        "review_{}-{}_{}_{}",
-        repo_model.owner,
-        repo_model.name,
-        pr_model.get_number(),
-        review.user.login
-    );
-    let timeout = 500;
-
-    if let LockStatus::SuccessfullyLocked(l) =
-        redis_adapter.wait_lock_resource(&key_name, timeout).await?
-    {
-        // Get or create in database
-        ReviewModel::builder_from_github(repo_model, pr_model, review)
-            .valid(permission.can_write())
-            .create_or_update(db_adapter.review())
-            .await?;
-
-        l.release().await?;
-    };
-
-    Ok(())
-}
-
-/// Handle review request.
-pub async fn process_review_request(
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-    review_state: GhReviewState,
-    requested_reviewers: &[&str],
-) -> Result<()> {
-    for reviewer in requested_reviewers {
+impl ReviewLogic {
+    /// Handle GitHub review.
+    pub async fn process_review(
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        redis_adapter: &dyn IRedisAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+        review: &GhReview,
+    ) -> Result<()> {
         let permission = api_adapter
-            .user_permissions_get(&repo_model.owner, &repo_model.name, reviewer)
+            .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
             .await?;
 
         let key_name = format!(
@@ -117,106 +82,146 @@ pub async fn process_review_request(
             repo_model.owner,
             repo_model.name,
             pr_model.get_number(),
-            reviewer
+            review.user.login
         );
         let timeout = 500;
 
         if let LockStatus::SuccessfullyLocked(l) =
             redis_adapter.wait_lock_resource(&key_name, timeout).await?
         {
-            ReviewModel::builder(repo_model, pr_model, reviewer)
-                .state(review_state)
+            // Get or create in database
+            ReviewModel::builder_from_github(repo_model, pr_model, review)
                 .valid(permission.can_write())
                 .create_or_update(db_adapter.review())
                 .await?;
 
             l.release().await?;
-        }
+        };
+
+        Ok(())
     }
 
-    Ok(())
-}
+    /// Handle review request.
+    pub async fn process_review_request(
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        redis_adapter: &dyn IRedisAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+        review_state: GhReviewState,
+        requested_reviewers: &[&str],
+    ) -> Result<()> {
+        for reviewer in requested_reviewers {
+            let permission = api_adapter
+                .user_permissions_get(&repo_model.owner, &repo_model.name, reviewer)
+                .await?;
 
-/// Re-request existing reviews.
-pub async fn rerequest_existing_reviews(
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-) -> Result<()> {
-    let reviews = pr_model.get_reviews(db_adapter.review()).await?;
-
-    if !reviews.is_empty() {
-        let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
-        api_adapter
-            .pull_reviewer_requests_add(
-                &repo_model.owner,
-                &repo_model.name,
+            let key_name = format!(
+                "review_{}-{}_{}_{}",
+                repo_model.owner,
+                repo_model.name,
                 pr_model.get_number(),
-                &reviewers,
-            )
+                reviewer
+            );
+            let timeout = 500;
+
+            if let LockStatus::SuccessfullyLocked(l) =
+                redis_adapter.wait_lock_resource(&key_name, timeout).await?
+            {
+                ReviewModel::builder(repo_model, pr_model, reviewer)
+                    .state(review_state)
+                    .valid(permission.can_write())
+                    .create_or_update(db_adapter.review())
+                    .await?;
+
+                l.release().await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Re-request existing reviews.
+    pub async fn rerequest_existing_reviews(
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+    ) -> Result<()> {
+        let reviews = pr_model.get_reviews(db_adapter.review()).await?;
+
+        if !reviews.is_empty() {
+            let reviewers: Vec<_> = reviews.iter().map(|x| x.username.clone()).collect();
+            api_adapter
+                .pull_reviewer_requests_add(
+                    &repo_model.owner,
+                    &repo_model.name,
+                    pr_model.get_number(),
+                    &reviewers,
+                )
+                .await?;
+
+            for mut review in reviews {
+                review.set_review_state(GhReviewState::Pending);
+                db_adapter.review().save(&mut review).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Reset reviews.
+    pub async fn reset_reviews(
+        db_adapter: &dyn IDatabaseAdapter,
+        pr_model: &PullRequestModel,
+    ) -> Result<()> {
+        db_adapter
+            .review()
+            .remove_all_for_pull_request(pr_model.id)
             .await?;
 
-        for mut review in reviews {
-            review.set_review_state(GhReviewState::Pending);
-            db_adapter.review().save(&mut review).await?;
-        }
+        Ok(())
     }
 
-    Ok(())
-}
-
-/// Reset reviews.
-pub async fn reset_reviews(
-    db_adapter: &dyn IDatabaseAdapter,
-    pr_model: &PullRequestModel,
-) -> Result<()> {
-    db_adapter
-        .review()
-        .remove_all_for_pull_request(pr_model.id)
+    /// Synchronize reviews.
+    pub async fn synchronize_reviews(
+        api_adapter: &dyn IAPIAdapter,
+        db_adapter: &dyn IDatabaseAdapter,
+        repo_model: &RepositoryModel,
+        pr_model: &PullRequestModel,
+    ) -> Result<()> {
+        // Get reviews
+        let reviews = ReviewApi::list_reviews_for_pull_request(
+            api_adapter,
+            &repo_model.owner,
+            &repo_model.name,
+            pr_model.get_number(),
+        )
         .await?;
 
-    Ok(())
-}
+        // Update reviews
+        let review_map: HashMap<&str, &GhReview> =
+            reviews.iter().map(|r| (&r.user.login[..], r)).collect();
+        for review in &reviews {
+            let permission = api_adapter
+                .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
+                .await?;
 
-/// Synchronize reviews.
-pub async fn synchronize_reviews(
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    repo_model: &RepositoryModel,
-    pr_model: &PullRequestModel,
-) -> Result<()> {
-    // Get reviews
-    let reviews = ReviewApi::list_reviews_for_pull_request(
-        api_adapter,
-        &repo_model.owner,
-        &repo_model.name,
-        pr_model.get_number(),
-    )
-    .await?;
-
-    // Update reviews
-    let review_map: HashMap<&str, &GhReview> =
-        reviews.iter().map(|r| (&r.user.login[..], r)).collect();
-    for review in &reviews {
-        let permission = api_adapter
-            .user_permissions_get(&repo_model.owner, &repo_model.name, &review.user.login)
-            .await?;
-
-        ReviewModel::builder(repo_model, pr_model, &review.user.login)
-            .state(review.state)
-            .valid(permission.can_write())
-            .create_or_update(db_adapter.review())
-            .await?;
-    }
-
-    // Remove missing reviews
-    let existing_reviews = pr_model.get_reviews(db_adapter.review()).await?;
-    for review in existing_reviews {
-        if !review_map.contains_key(&review.username[..]) {
-            db_adapter.review().remove(review).await?;
+            ReviewModel::builder(repo_model, pr_model, &review.user.login)
+                .state(review.state)
+                .valid(permission.can_write())
+                .create_or_update(db_adapter.review())
+                .await?;
         }
-    }
 
-    Ok(())
+        // Remove missing reviews
+        let existing_reviews = pr_model.get_reviews(db_adapter.review()).await?;
+        for review in existing_reviews {
+            if !review_map.contains_key(&review.username[..]) {
+                db_adapter.review().remove(review).await?;
+            }
+        }
+
+        Ok(())
+    }
 }

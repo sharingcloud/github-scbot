@@ -8,7 +8,7 @@ use github_scbot_types::{
     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
 };
 
-use crate::{pulls::should_create_pull_request, LogicError};
+use crate::{pulls::PullRequestLogic, LogicError};
 
 #[actix_rt::test]
 async fn test_should_create_pull_request_manual_no_activation() -> DatabaseResult<()> {
@@ -40,7 +40,7 @@ async fn test_should_create_pull_request_manual_no_activation() -> DatabaseResul
                     .await?;
 
             // Manual interaction without activation
-            assert!(!should_create_pull_request(
+            assert!(!PullRequestLogic::should_create_pull_request(
                 &config,
                 &repository,
                 &creation_event
@@ -82,7 +82,7 @@ async fn test_should_create_pull_request_manual_with_activation() -> DatabaseRes
                     .await?;
 
             // Manual interaction with activation
-            assert!(should_create_pull_request(
+            assert!(PullRequestLogic::should_create_pull_request(
                 &config,
                 &repository,
                 &creation_event
@@ -119,7 +119,7 @@ async fn test_should_create_pull_request_automatic() -> DatabaseResult<()> {
             .await?;
 
         // Automatic
-        assert!(should_create_pull_request(
+        assert!(PullRequestLogic::should_create_pull_request(
             &config,
             &repository,
             &creation_event

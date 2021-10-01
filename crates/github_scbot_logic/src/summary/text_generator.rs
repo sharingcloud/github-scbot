@@ -4,7 +4,7 @@ use github_scbot_types::{
 };
 
 use crate::{
-    status::{generate_pr_status_message, PullRequestStatus},
+    status::{PullRequestStatus, StatusLogic},
     Result,
 };
 
@@ -143,7 +143,7 @@ impl SummaryTextGenerator {
     }
 
     fn generate_status_comment_footer(pull_request_status: &PullRequestStatus) -> Result<String> {
-        let (state, _title, msg) = generate_pr_status_message(pull_request_status)?;
+        let (state, _title, msg) = StatusLogic::generate_pr_status_message(pull_request_status)?;
 
         Ok(format!(
             ":scroll: &mdash; **Current status**\n\

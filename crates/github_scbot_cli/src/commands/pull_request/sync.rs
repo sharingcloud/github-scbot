@@ -1,7 +1,7 @@
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database::models::RepositoryModel;
-use github_scbot_logic::{pulls::synchronize_pull_request, status::update_pull_request_status};
+use github_scbot_logic::{pulls::PullRequestLogic, status::StatusLogic};
 use stable_eyre::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
@@ -24,7 +24,7 @@ impl Command for PullRequestSyncCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
         let (owner, name) =
             RepositoryModel::extract_owner_and_name_from_path(&self.repository_path)?;
-        let (mut pr, sha) = synchronize_pull_request(
+        let (mut pr, sha) = PullRequestLogic::synchronize_pull_request(
             &ctx.config,
             ctx.api_adapter.as_ref(),
             ctx.db_adapter.as_ref(),
@@ -38,7 +38,7 @@ impl Command for PullRequestSyncCommand {
             .repository()
             .get_from_owner_and_name(owner, name)
             .await?;
-        update_pull_request_status(
+        StatusLogic::update_pull_request_status(
             ctx.api_adapter.as_ref(),
             ctx.db_adapter.as_ref(),
             ctx.redis_adapter.as_ref(),

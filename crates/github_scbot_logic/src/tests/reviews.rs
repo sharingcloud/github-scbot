@@ -15,7 +15,7 @@ use github_scbot_types::{
 
 use crate::{
     commands::{CommandExecutor, CommandParser},
-    reviews::process_review,
+    reviews::ReviewLogic,
     status::PullRequestStatus,
     summary::SummaryTextGenerator,
     LogicError, Result as LogicResult,
@@ -90,7 +90,7 @@ async fn test_review_creation() -> Result<()> {
             .try_lock_resource_response
             .set_response(Ok(LockStatus::SuccessfullyLocked(instance)));
 
-        process_review(
+        ReviewLogic::process_review(
             &api_adapter,
             &db_adapter,
             &redis_adapter,
@@ -109,7 +109,7 @@ async fn test_review_creation() -> Result<()> {
             },
         };
 
-        process_review(
+        ReviewLogic::process_review(
             &api_adapter,
             &db_adapter,
             &redis_adapter,
