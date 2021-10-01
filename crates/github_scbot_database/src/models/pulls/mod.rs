@@ -2,8 +2,8 @@
 
 use std::convert::TryFrom;
 
-use getset::CopyGetters;
 use github_scbot_conf::Config;
+use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{
     common::GhRepository,
     labels::StepLabel,
@@ -37,43 +37,55 @@ use builder::PullRequestModelBuilder;
     Eq,
     AsChangeset,
     Default,
-    CopyGetters,
+    SCGetter,
 )]
 #[table_name = "pull_request"]
 #[changeset_options(treat_none_as_null = "true")]
 pub struct PullRequestModel {
     /// ID.
-    #[getset(get_copy = "pub")]
+    #[get]
     id: i32,
     /// Repository ID.
-    #[getset(get_copy = "pub")]
+    #[get]
     repository_id: i32,
+    /// PR number.
+    #[get_as(u64)]
     number: i32,
+    /// Creator.
+    #[get_ref]
     creator: String,
+    /// Name.
+    #[get_ref]
     name: String,
+    /// Base branch.
+    #[get_ref]
     base_branch: String,
+    /// Head branch.
+    #[get_ref]
     head_branch: String,
     step: Option<String>,
     check_status: String,
     qa_status: String,
     /// Needed reviewers count.
-    #[getset(get_copy = "pub")]
+    #[get]
     needed_reviewers_count: i32,
+    /// Status comment ID.
+    #[get_as(u64)]
     status_comment_id: i32,
     /// Automerge.
-    #[getset(get_copy = "pub")]
+    #[get]
     automerge: bool,
     /// WIP.
-    #[getset(get_copy = "pub")]
+    #[get]
     wip: bool,
     /// Locked.
-    #[getset(get_copy = "pub")]
+    #[get]
     locked: bool,
     /// Merged.
-    #[getset(get_copy = "pub")]
+    #[get]
     merged: bool,
     /// Closed.
-    #[getset(get_copy = "pub")]
+    #[get]
     closed: bool,
     strategy_override: Option<String>,
 }
@@ -274,26 +286,6 @@ impl PullRequestModel {
         Ok((repo, pr))
     }
 
-    /// Get name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Get creator.
-    pub fn creator(&self) -> &str {
-        &self.creator
-    }
-
-    /// Get base branch.
-    pub fn base_branch(&self) -> &str {
-        &self.base_branch
-    }
-
-    /// Get head branch.
-    pub fn head_branch(&self) -> &str {
-        &self.head_branch
-    }
-
     /// Get reviews from a pull request.
     pub async fn reviews(
         &self,
@@ -310,24 +302,14 @@ impl PullRequestModel {
         repository_db_adapter.get_from_id(self.repository_id).await
     }
 
-    /// Get pull request number as u64, to use with GitHub API.
-    pub fn number(&self) -> u64 {
-        self.number as u64
-    }
-
     /// Get merge commit title.
     pub fn merge_commit_title(&self) -> String {
         format!("{} (#{})", self.name, self.number())
     }
 
-    /// Get status comment ID.
-    pub fn status_comment_id(&self) -> u64 {
-        self.status_comment_id as u64
-    }
-
     /// Get checks status enum from database value.
     pub fn check_status(&self) -> CheckStatus {
-        if let Ok(status) = CheckStatus::try_from(&self.check_status[..]) {
+        if let Ok(status) = CheckStatus::try_from(&self.check_status) {
             status
         } else {
             error!(
@@ -342,7 +324,7 @@ impl PullRequestModel {
 
     /// Get QA status enum from database value.
     pub fn qa_status(&self) -> QaStatus {
-        if let Ok(status) = QaStatus::try_from(&self.qa_status[..]) {
+        if let Ok(status) = QaStatus::try_from(&self.qa_status) {
             status
         } else {
             error!(
@@ -357,16 +339,14 @@ impl PullRequestModel {
 
     /// Get step label enum from database value.
     pub fn step(&self) -> Option<StepLabel> {
-        self.step
-            .as_ref()
-            .and_then(|x| StepLabel::try_from(&x[..]).ok())
+        self.step.as_ref().and_then(|x| StepLabel::try_from(x).ok())
     }
 
     /// Get strategy override.
     pub fn strategy_override(&self) -> Option<GhMergeStrategy> {
         self.strategy_override
             .as_ref()
-            .and_then(|x| GhMergeStrategy::try_from(&x[..]).ok())
+            .and_then(|x| GhMergeStrategy::try_from(x).ok())
     }
 
     /// Get checks URL for a repository.
