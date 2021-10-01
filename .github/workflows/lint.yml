@@ -2,9 +2,6 @@ name: Lint, format, build and test
 
 on:
   push:
-    paths:
-      - "**.rs"
-      - "**.toml"
 
 jobs:
   format_check:

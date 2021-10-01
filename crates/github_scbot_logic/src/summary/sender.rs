@@ -1,5 +1,6 @@
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
+use tracing::warn;
 
 use super::SummaryTextGenerator;
 use crate::{status::PullRequestStatus, Result};
@@ -76,6 +77,11 @@ impl SummaryCommentSender {
             }
         } else {
             // Too early, do not update the status comment
+            warn!(
+                status = ?pull_request_status,
+                message = "Could not update summary, comment ID is 0"
+            );
+
             Ok(0)
         }
     }
