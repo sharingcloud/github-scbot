@@ -20,6 +20,7 @@ use crate::{
     pulls::PullRequestLogic,
     reviews::ReviewLogic,
     status::{PullRequestStatus, StatusLogic},
+    summary::SummaryCommentSender,
 };
 
 /// Handle `Automerge` command.
@@ -147,6 +148,23 @@ pub async fn handle_admin_reset_reviews_command(
 ) -> Result<CommandExecutionResult> {
     ReviewLogic::reset_reviews(db_adapter, pr_model).await?;
     ReviewLogic::synchronize_reviews(api_adapter, db_adapter, repo_model, pr_model).await?;
+
+    Ok(CommandExecutionResult::builder()
+        .with_status_update(true)
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
+}
+
+pub async fn handle_admin_reset_summary_command(
+    api_adapter: &dyn IAPIAdapter,
+    db_adapter: &dyn IDatabaseAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+) -> Result<CommandExecutionResult> {
+    let sender = SummaryCommentSender::new();
+    sender
+        .create(api_adapter, db_adapter, repo_model, pr_model)
+        .await?;
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
@@ -632,6 +650,8 @@ pub fn handle_admin_help_command(
         - `admin-set-default-checks-status+`: _Enable checks validation by default for this repository_\n\
         - `admin-set-default-checks-status-`: _Disable checks validation by default for this repository_\n\
         - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
+        - `admin-reset-reviewers`: _Reset and update reviews on pull request (maintenance-type command)_\n\
+        - `admin-reset-summary`: _Create a new summary message (maintenance-type command)_\n\
         - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
         comment_author, config.bot_username
     );

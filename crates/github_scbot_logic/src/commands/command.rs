@@ -80,6 +80,8 @@ pub enum AdminCommand {
     Enable,
     /// Disable bot on pull request (used with manual interaction).
     Disable,
+    /// Reset summary comment.
+    ResetSummary,
     /// Set default needed reviewers count.
     SetDefaultNeededReviewers(u32),
     /// Set default merge strategy.
@@ -223,6 +225,7 @@ impl Command {
             "admin-help" => Self::Admin(AdminCommand::Help),
             "admin-sync" => Self::Admin(AdminCommand::Synchronize),
             "admin-reset-reviews" => Self::Admin(AdminCommand::ResetReviews),
+            "admin-reset-summary" => Self::Admin(AdminCommand::ResetSummary),
             "admin-enable" => Self::Admin(AdminCommand::Enable),
             "admin-disable" => Self::Admin(AdminCommand::Disable),
             "admin-set-default-needed-reviewers" => Self::Admin(
@@ -300,6 +303,7 @@ impl Command {
                 }
                 AdminCommand::Synchronize => "admin-sync".into(),
                 AdminCommand::ResetReviews => "admin-reset-reviews".into(),
+                AdminCommand::ResetSummary => "admin-reset-summary".into(),
             },
             Self::User(cmd) => match cmd {
                 UserCommand::AssignRequiredReviewers(reviewers) => {

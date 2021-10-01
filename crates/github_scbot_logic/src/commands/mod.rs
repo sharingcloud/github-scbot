@@ -331,6 +331,15 @@ impl CommandExecutor {
                         )
                         .await?
                     }
+                    AdminCommand::ResetSummary => {
+                        handlers::handle_admin_reset_summary_command(
+                            api_adapter,
+                            db_adapter,
+                            repo_model,
+                            pr_model,
+                        )
+                        .await?
+                    }
                     AdminCommand::SetDefaultNeededReviewers(count) => {
                         handlers::handle_set_default_needed_reviewers_command(
                             db_adapter, repo_model, *count,
