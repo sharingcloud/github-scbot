@@ -36,8 +36,14 @@ impl Command for RepositorySetMergeRuleCommand {
 
         if &self.base_branch == "*" && &self.head_branch == "*" {
             // Update default strategy
-            repo.set_default_merge_strategy(strategy_enum);
-            ctx.db_adapter.repository().save(&mut repo).await?;
+            let update = repo
+                .create_update()
+                .default_strategy(strategy_enum)
+                .build_update();
+            ctx.db_adapter
+                .repository()
+                .update(&mut repo, update)
+                .await?;
 
             println!(
                 "Default strategy updated to '{}' for repository '{}'",

@@ -37,6 +37,14 @@ impl TryFrom<&str> for GhMergeStrategy {
     }
 }
 
+impl TryFrom<&String> for GhMergeStrategy {
+    type Error = TypeError;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(&value[..])
+    }
+}
+
 /// GitHub Pull request action.
 #[derive(Debug, Deserialize, Serialize, SmartDefault, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]

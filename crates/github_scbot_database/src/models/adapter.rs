@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     auth::{
         AccountDbAdapter, DummyAccountDbAdapter, DummyExternalAccountDbAdapter,
@@ -47,7 +49,7 @@ pub struct DatabaseAdapter {
 
 impl DatabaseAdapter {
     /// Creates a new database adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self {
             account_adapter: AccountDbAdapter::new(pool.clone()),
             external_account_adapter: ExternalAccountDbAdapter::new(pool.clone()),

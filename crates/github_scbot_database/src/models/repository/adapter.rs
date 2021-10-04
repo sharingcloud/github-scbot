@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
-use super::{RepositoryCreation, RepositoryModel};
+use super::{RepositoryCreation, RepositoryModel, RepositoryUpdate};
 use crate::{schema::repository, DatabaseError, DbPool, Result};
 
 /// Repository DB adapter.
@@ -17,18 +19,18 @@ pub trait IRepositoryDbAdapter {
     async fn get_from_id(&self, id: i32) -> Result<RepositoryModel>;
     /// Gets repository from owner and name.
     async fn get_from_owner_and_name(&self, owner: &str, name: &str) -> Result<RepositoryModel>;
-    /// Saves and updates repository.
-    async fn save(&self, entry: &mut RepositoryModel) -> Result<()>;
+    /// Updates repository.
+    async fn update(&self, entry: &mut RepositoryModel, update: RepositoryUpdate) -> Result<()>;
 }
 
 /// Concrete repository DB adapter.
 pub struct RepositoryDbAdapter {
-    pool: DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl RepositoryDbAdapter {
     /// Creates a new repository DB adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 }
@@ -70,11 +72,9 @@ impl IRepositoryDbAdapter for RepositoryDbAdapter {
             .map_err(|_e| DatabaseError::UnknownRepository(format!("{0}/{1}", owner, name)))
     }
 
-    async fn save(&self, entry: &mut RepositoryModel) -> Result<()> {
-        let copy = entry.clone();
-
-        *entry = diesel::update(repository::table.filter(repository::id.eq(copy.id)))
-            .set(copy)
+    async fn update(&self, entry: &mut RepositoryModel, update: RepositoryUpdate) -> Result<()> {
+        *entry = diesel::update(repository::table.filter(repository::id.eq(entry.id)))
+            .set(update)
             .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
@@ -93,8 +93,6 @@ pub struct DummyRepositoryDbAdapter {
     pub get_from_id_response: Mock<Result<RepositoryModel>>,
     /// Get from owner and name response.
     pub get_from_owner_and_name_response: Mock<Result<RepositoryModel>>,
-    /// Save response.
-    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyRepositoryDbAdapter {
@@ -104,7 +102,6 @@ impl Default for DummyRepositoryDbAdapter {
             list_response: Mock::new(Ok(Vec::new())),
             get_from_id_response: Mock::new(Ok(RepositoryModel::default())),
             get_from_owner_and_name_response: Mock::new(Ok(RepositoryModel::default())),
-            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -137,7 +134,8 @@ impl IRepositoryDbAdapter for DummyRepositoryDbAdapter {
         self.get_from_owner_and_name_response.response()
     }
 
-    async fn save(&self, entry: &mut RepositoryModel) -> Result<()> {
-        self.save_response.response()
+    async fn update(&self, entry: &mut RepositoryModel, update: RepositoryUpdate) -> Result<()> {
+        entry.apply_local_update(update);
+        Ok(())
     }
 }

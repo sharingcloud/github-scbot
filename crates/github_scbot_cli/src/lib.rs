@@ -1,6 +1,6 @@
 //! CLI module.
 
-use std::{ffi::OsStr, path::Path};
+use std::{ffi::OsStr, path::Path, sync::Arc};
 
 use actix_rt::System;
 use argh::FromArgs;
@@ -39,7 +39,7 @@ pub fn initialize_command_line() -> eyre::Result<()> {
     let config = configure_startup()?;
 
     async fn sync(config: Config, cmd: SubCommand, no_input: bool) -> eyre::Result<()> {
-        let pool = establish_pool_connection(&config)?;
+        let pool = Arc::new(establish_pool_connection(&config)?);
         run_migrations(&pool)?;
 
         let db_adapter = DatabaseAdapter::new(pool);

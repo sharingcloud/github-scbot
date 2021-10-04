@@ -51,13 +51,13 @@ impl SummaryCommentSender {
         // Re-fetch comment ID
         let comment_id = db_adapter
             .pull_request()
-            .fetch_status_comment_id(pr_model.id)
+            .fetch_status_comment_id(pr_model.id())
             .await? as u64;
         if comment_id > 0 {
             if let Ok(comment_id) = CommentApi::update_comment(
                 api_adapter,
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 comment_id,
                 &status_comment,
             )
@@ -97,12 +97,12 @@ impl SummaryCommentSender {
         // Re-fetch comment ID
         let comment_id = db_adapter
             .pull_request()
-            .fetch_status_comment_id(pr_model.id)
+            .fetch_status_comment_id(pr_model.id())
             .await? as u64;
 
         if comment_id > 0 {
             api_adapter
-                .comments_delete(&repo_model.owner, &repo_model.name, comment_id)
+                .comments_delete(repo_model.owner(), repo_model.name(), comment_id)
                 .await?;
         }
 
@@ -123,15 +123,19 @@ impl SummaryCommentSender {
     ) -> Result<u64> {
         let comment_id = CommentApi::post_comment(
             api_adapter,
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
             comment,
         )
         .await?;
 
-        pr_model.set_status_comment_id(comment_id);
-        db_adapter.pull_request().save(pr_model).await?;
+        let update = pr_model
+            .create_update()
+            .status_comment_id(comment_id)
+            .build_update();
+        db_adapter.pull_request().update(pr_model, update).await?;
+
         Ok(comment_id)
     }
 }

@@ -21,9 +21,9 @@ impl GifPoster {
         let body = Self::generate_random_gif_comment(config, api_adapter, search_terms).await?;
         CommentApi::post_comment(
             api_adapter,
-            &repo_model.owner,
-            &repo_model.name,
-            pr_model.get_number(),
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
             &body,
         )
         .await?;

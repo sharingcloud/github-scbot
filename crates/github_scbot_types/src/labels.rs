@@ -56,6 +56,14 @@ impl TryFrom<&str> for StepLabel {
     }
 }
 
+impl TryFrom<&String> for StepLabel {
+    type Error = TypeError;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(&value[..])
+    }
+}
+
 impl From<StepLabel> for &'static str {
     fn from(label: StepLabel) -> Self {
         match label {

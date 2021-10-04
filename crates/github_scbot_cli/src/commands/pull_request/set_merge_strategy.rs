@@ -39,8 +39,14 @@ impl Command for PullRequestSetMergeStrategyCommand {
             .get_from_repository_path_and_number(&self.repository_path, self.number)
             .await?;
 
-        pr.set_strategy_override(strategy_enum);
-        ctx.db_adapter.pull_request().save(&mut pr).await?;
+        let update = pr
+            .create_update()
+            .strategy_override(strategy_enum)
+            .build_update();
+        ctx.db_adapter
+            .pull_request()
+            .update(&mut pr, update)
+            .await?;
 
         if let Some(s) = strategy_enum {
             println!(

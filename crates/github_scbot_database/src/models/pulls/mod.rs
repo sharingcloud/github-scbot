@@ -3,6 +3,7 @@
 use std::convert::TryFrom;
 
 use github_scbot_conf::Config;
+use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{
     common::GhRepository,
     labels::StepLabel,
@@ -26,56 +27,93 @@ use builder::PullRequestModelBuilder;
 
 /// Pull request model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    Clone,
-    PartialEq,
-    Eq,
-    AsChangeset,
-    Default,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, PartialEq, Eq, Default, SCGetter,
 )]
 #[table_name = "pull_request"]
-#[changeset_options(treat_none_as_null = "true")]
 pub struct PullRequestModel {
-    /// Database ID.
-    pub id: i32,
-    /// Repository database ID.
-    pub repository_id: i32,
-    /// Pull request number.
+    /// ID.
+    #[get]
+    id: i32,
+    /// Repository ID.
+    #[get]
+    repository_id: i32,
+    /// PR number.
+    #[get_as(u64)]
     number: i32,
-    /// PR creator
-    pub creator: String,
-    /// Pull request title.
-    pub name: String,
+    /// Creator.
+    #[get_ref]
+    creator: String,
+    /// Name.
+    #[get_ref]
+    name: String,
     /// Base branch.
-    pub base_branch: String,
+    #[get_ref]
+    base_branch: String,
     /// Head branch.
-    pub head_branch: String,
-    /// Current step label.
+    #[get_ref]
+    head_branch: String,
     step: Option<String>,
-    /// Current check status.
     check_status: String,
-    /// QA status.
     qa_status: String,
     /// Needed reviewers count.
-    pub needed_reviewers_count: i32,
+    #[get]
+    needed_reviewers_count: i32,
     /// Status comment ID.
+    #[get_as(u64)]
     status_comment_id: i32,
+    /// Automerge.
+    #[get]
+    automerge: bool,
+    /// WIP.
+    #[get]
+    wip: bool,
+    /// Locked.
+    #[get]
+    locked: bool,
+    /// Merged.
+    #[get]
+    merged: bool,
+    /// Closed.
+    #[get]
+    closed: bool,
+    strategy_override: Option<String>,
+}
+
+#[derive(Debug, Identifiable, Clone, AsChangeset, Default)]
+#[table_name = "pull_request"]
+pub struct PullRequestUpdate {
+    /// Database ID.
+    pub id: i32,
+    /// PR creator
+    pub creator: Option<String>,
+    /// Pull request title.
+    pub name: Option<String>,
+    /// Base branch.
+    pub base_branch: Option<String>,
+    /// Head branch.
+    pub head_branch: Option<String>,
+    /// Current step label.
+    pub step: Option<Option<String>>,
+    /// Current check status.
+    pub check_status: Option<String>,
+    /// QA status.
+    pub qa_status: Option<String>,
+    /// Needed reviewers count.
+    pub needed_reviewers_count: Option<i32>,
+    /// Status comment ID.
+    pub status_comment_id: Option<i32>,
     /// Is automerge enabled?.
-    pub automerge: bool,
+    pub automerge: Option<bool>,
     /// Is it WIP?.
-    pub wip: bool,
+    pub wip: Option<bool>,
     /// Is the PR locked?
-    pub locked: bool,
+    pub locked: Option<bool>,
     /// Is the PR merged?
-    pub merged: bool,
+    pub merged: Option<bool>,
     /// Is the PR closed?
-    pub closed: bool,
+    pub closed: Option<bool>,
     /// Merge strategy override.
-    pub strategy_override: Option<String>,
+    pub strategy_override: Option<Option<String>>,
 }
 
 #[derive(Debug, Insertable)]
@@ -132,7 +170,72 @@ impl PullRequestModel {
         pr_number: u64,
         creator: &str,
     ) -> PullRequestModelBuilder<'a> {
-        PullRequestModelBuilder::default(repository, pr_number, creator)
+        PullRequestModelBuilder::new(repository, pr_number, creator)
+    }
+
+    /// Prepare an update builder.
+    pub fn create_update<'a>(&self) -> PullRequestModelBuilder<'a> {
+        PullRequestModelBuilder::with_id(self.id)
+    }
+
+    /// Apply local update on pull request.
+    /// Result will not be in database.
+    pub fn apply_local_update(&mut self, update: PullRequestUpdate) {
+        if let Some(s) = update.name {
+            self.name = s;
+        }
+
+        if let Some(s) = update.base_branch {
+            self.base_branch = s;
+        }
+
+        if let Some(s) = update.head_branch {
+            self.base_branch = s;
+        }
+
+        if let Some(s) = update.step {
+            self.step = s;
+        }
+
+        if let Some(s) = update.check_status {
+            self.check_status = s;
+        }
+
+        if let Some(s) = update.qa_status {
+            self.qa_status = s;
+        }
+
+        if let Some(s) = update.needed_reviewers_count {
+            self.needed_reviewers_count = s;
+        }
+
+        if let Some(s) = update.status_comment_id {
+            self.status_comment_id = s;
+        }
+
+        if let Some(s) = update.automerge {
+            self.automerge = s;
+        }
+
+        if let Some(s) = update.wip {
+            self.wip = s;
+        }
+
+        if let Some(s) = update.locked {
+            self.locked = s;
+        }
+
+        if let Some(s) = update.merged {
+            self.merged = s;
+        }
+
+        if let Some(s) = update.closed {
+            self.closed = s;
+        }
+
+        if let Some(s) = update.strategy_override {
+            self.strategy_override = s;
+        }
     }
 
     /// Create builder from model.
@@ -173,7 +276,7 @@ impl PullRequestModel {
     }
 
     /// Get reviews from a pull request.
-    pub async fn get_reviews(
+    pub async fn reviews(
         &self,
         review_db_adapter: &dyn IReviewDbAdapter,
     ) -> Result<Vec<ReviewModel>> {
@@ -181,31 +284,21 @@ impl PullRequestModel {
     }
 
     /// Get pull request repository.
-    pub async fn get_repository(
+    pub async fn repository(
         &self,
         repository_db_adapter: &dyn IRepositoryDbAdapter,
     ) -> Result<RepositoryModel> {
         repository_db_adapter.get_from_id(self.repository_id).await
     }
 
-    /// Get pull request number as u64, to use with GitHub API.
-    pub fn get_number(&self) -> u64 {
-        self.number as u64
-    }
-
     /// Get merge commit title.
-    pub fn get_merge_commit_title(&self) -> String {
-        format!("{} (#{})", self.name, self.get_number())
-    }
-
-    /// Get status comment ID.
-    pub fn get_status_comment_id(&self) -> u64 {
-        self.status_comment_id as u64
+    pub fn merge_commit_title(&self) -> String {
+        format!("{} (#{})", self.name, self.number())
     }
 
     /// Get checks status enum from database value.
-    pub fn get_checks_status(&self) -> CheckStatus {
-        if let Ok(status) = CheckStatus::try_from(&self.check_status[..]) {
+    pub fn check_status(&self) -> CheckStatus {
+        if let Ok(status) = CheckStatus::try_from(&self.check_status) {
             status
         } else {
             error!(
@@ -219,8 +312,8 @@ impl PullRequestModel {
     }
 
     /// Get QA status enum from database value.
-    pub fn get_qa_status(&self) -> QaStatus {
-        if let Ok(status) = QaStatus::try_from(&self.qa_status[..]) {
+    pub fn qa_status(&self) -> QaStatus {
+        if let Ok(status) = QaStatus::try_from(&self.qa_status) {
             status
         } else {
             error!(
@@ -234,55 +327,25 @@ impl PullRequestModel {
     }
 
     /// Get step label enum from database value.
-    pub fn get_step_label(&self) -> Option<StepLabel> {
-        self.step
-            .as_ref()
-            .and_then(|x| StepLabel::try_from(&x[..]).ok())
+    pub fn step(&self) -> Option<StepLabel> {
+        self.step.as_ref().and_then(|x| StepLabel::try_from(x).ok())
     }
 
     /// Get strategy override.
-    pub fn get_strategy_override(&self) -> Option<GhMergeStrategy> {
+    pub fn strategy_override(&self) -> Option<GhMergeStrategy> {
         self.strategy_override
             .as_ref()
-            .and_then(|x| GhMergeStrategy::try_from(&x[..]).ok())
-    }
-
-    /// Set strategy override.
-    pub fn set_strategy_override(&mut self, strategy: Option<GhMergeStrategy>) {
-        self.strategy_override = strategy.map(|x| x.to_string());
+            .and_then(|x| GhMergeStrategy::try_from(x).ok())
     }
 
     /// Get checks URL for a repository.
-    pub fn get_checks_url(&self, repository: &RepositoryModel) -> String {
+    pub fn checks_url(&self, repository: &RepositoryModel) -> String {
         return format!(
             "https://github.com/{}/{}/pull/{}/checks",
-            repository.owner, repository.name, self.number
+            repository.owner(),
+            repository.name(),
+            self.number
         );
-    }
-
-    /// Set checks status.
-    pub fn set_checks_status(&mut self, checks_status: CheckStatus) {
-        self.check_status = checks_status.to_str().to_string();
-    }
-
-    /// Set step label.
-    pub fn set_step_label(&mut self, step_label: StepLabel) {
-        self.step = Some(step_label.to_str().to_string());
-    }
-
-    /// Remove step label.
-    pub fn remove_step_label(&mut self) {
-        self.step = None;
-    }
-
-    /// Set QA status.
-    pub fn set_qa_status(&mut self, status: QaStatus) {
-        self.qa_status = status.to_str().to_string();
-    }
-
-    /// Set status comment ID.
-    pub fn set_status_comment_id(&mut self, id: u64) {
-        self.status_comment_id = id as i32
     }
 
     /// Remove closed pull requests.
@@ -296,7 +359,7 @@ impl PullRequestModel {
             .await?;
 
         for pr in prs {
-            for review in pr.get_reviews(review_db_adapter).await? {
+            for review in pr.reviews(review_db_adapter).await? {
                 review_db_adapter.remove(review).await?;
             }
 
@@ -309,17 +372,56 @@ impl PullRequestModel {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_types::status::{CheckStatus, QaStatus};
+    use github_scbot_types::{
+        pulls::GhMergeStrategy,
+        status::{CheckStatus, QaStatus},
+    };
     use pretty_assertions::assert_eq;
 
     use crate::{
         models::{
-            pulls::PullRequestDbAdapter, repository::RepositoryDbAdapter, PullRequestModel,
-            RepositoryModel,
+            pulls::PullRequestDbAdapter, repository::RepositoryDbAdapter, IPullRequestDbAdapter,
+            PullRequestModel, RepositoryModel,
         },
         tests::using_test_db,
         DatabaseError, Result,
     };
+
+    #[actix_rt::test]
+    async fn update_pull_request() -> Result<()> {
+        using_test_db("test_update_pull_request", |config, pool| async move {
+            let repo_db_adapter = RepositoryDbAdapter::new(pool.clone());
+            let db_adapter = PullRequestDbAdapter::new(pool.clone());
+            let repo = RepositoryModel::builder(&config, "me", "TestRepo")
+                .create_or_update(&repo_db_adapter)
+                .await
+                .unwrap();
+
+            let pr1 = PullRequestModel::builder(&repo, 1234, "me")
+                .name("Toto")
+                .create_or_update(&db_adapter)
+                .await
+                .unwrap();
+
+            let mut pr2 = PullRequestModel::builder(&repo, 1234, "me")
+                .automerge(true)
+                .strategy_override(Some(GhMergeStrategy::Rebase))
+                .create_or_update(&db_adapter)
+                .await
+                .unwrap();
+
+            assert_eq!(pr1.id(), pr2.id());
+            assert_eq!(pr2.strategy_override(), Some(GhMergeStrategy::Rebase));
+
+            let update = pr2.create_update().strategy_override(None).build_update();
+            db_adapter.update(&mut pr2, update).await?;
+
+            assert_eq!(pr2.strategy_override(), None);
+
+            Ok::<_, DatabaseError>(())
+        })
+        .await
+    }
 
     #[actix_rt::test]
     async fn create_pull_request() -> Result<()> {
@@ -341,7 +443,7 @@ mod tests {
                 pr,
                 PullRequestModel {
                     id: pr.id,
-                    repository_id: repo.id,
+                    repository_id: repo.id(),
                     number: 1234,
                     creator: "me".into(),
                     automerge: false,
@@ -352,7 +454,7 @@ mod tests {
                     locked: false,
                     merged: false,
                     name: "Toto".into(),
-                    needed_reviewers_count: repo.default_needed_reviewers_count,
+                    needed_reviewers_count: repo.default_needed_reviewers_count(),
                     qa_status: QaStatus::Waiting.to_string(),
                     status_comment_id: 0,
                     step: None,

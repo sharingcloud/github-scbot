@@ -24,12 +24,19 @@ impl Command for RepositorySetReviewersCountCommand {
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;
 
-        repo.default_needed_reviewers_count = self.reviewers_count as i32;
+        let update = repo
+            .create_update()
+            .default_needed_reviewers_count(self.reviewers_count as u64)
+            .build_update();
+        ctx.db_adapter
+            .repository()
+            .update(&mut repo, update)
+            .await?;
+
         println!(
             "Default reviewers count updated to {} for repository {}.",
             self.reviewers_count, self.repository_path
         );
-        ctx.db_adapter.repository().save(&mut repo).await?;
 
         Ok(())
     }

@@ -26,7 +26,7 @@ impl Command for RepositoryPurgeCommand {
         let prs_to_purge = ctx
             .db_adapter
             .pull_request()
-            .list_closed_pulls_from_repository(repo.id)
+            .list_closed_pulls_from_repository(repo.id())
             .await?;
         if prs_to_purge.is_empty() {
             println!(
@@ -38,7 +38,7 @@ impl Command for RepositoryPurgeCommand {
                 "You will remove:\n{}",
                 prs_to_purge
                     .iter()
-                    .map(|p| format!("- #{} - {}", p.get_number(), p.name))
+                    .map(|p| format!("- #{} - {}", p.number(), p.name()))
                     .collect::<Vec<_>>()
                     .join("\n")
             );
@@ -47,7 +47,7 @@ impl Command for RepositoryPurgeCommand {
             if Confirm::new().with_prompt(prompt.to_string()).interact()? {
                 ctx.db_adapter
                     .pull_request()
-                    .remove_closed_pulls_from_repository(repo.id)
+                    .remove_closed_pulls_from_repository(repo.id())
                     .await?;
                 println!("{} pull requests removed.", prs_to_purge.len());
             } else {

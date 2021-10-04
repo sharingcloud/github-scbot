@@ -3,14 +3,16 @@ use std::convert::TryFrom;
 use github_scbot_conf::Config;
 use github_scbot_types::{common::GhRepository, pulls::GhMergeStrategy};
 
-use super::{IRepositoryDbAdapter, RepositoryCreation, RepositoryModel};
+use super::{IRepositoryDbAdapter, RepositoryCreation, RepositoryModel, RepositoryUpdate};
 use crate::Result;
 
 #[must_use]
+#[derive(Default)]
 pub struct RepositoryModelBuilder<'a> {
-    owner: String,
-    name: String,
-    config: &'a Config,
+    id: Option<i32>,
+    owner: Option<String>,
+    name: Option<String>,
+    config: Option<&'a Config>,
     default_strategy: Option<GhMergeStrategy>,
     default_needed_reviewers_count: Option<u64>,
     pr_title_validation_regex: Option<String>,
@@ -21,11 +23,19 @@ pub struct RepositoryModelBuilder<'a> {
 }
 
 impl<'a> RepositoryModelBuilder<'a> {
-    pub fn default(config: &'a Config, owner: &str, repo_name: &str) -> Self {
+    pub fn with_id(id: i32) -> Self {
         Self {
-            owner: owner.into(),
-            name: repo_name.into(),
-            config,
+            id: Some(id),
+            ..Default::default()
+        }
+    }
+
+    pub fn new(config: &'a Config, owner: &str, repo_name: &str) -> Self {
+        Self {
+            id: None,
+            owner: Some(owner.into()),
+            name: Some(repo_name.into()),
+            config: Some(config),
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
@@ -38,10 +48,11 @@ impl<'a> RepositoryModelBuilder<'a> {
 
     pub fn from_model(config: &'a Config, model: &RepositoryModel) -> Self {
         Self {
-            owner: model.owner.clone(),
-            name: model.name.clone(),
-            config,
-            default_strategy: Some(model.get_default_merge_strategy()),
+            id: None,
+            owner: Some(model.owner.clone()),
+            name: Some(model.name.clone()),
+            config: Some(config),
+            default_strategy: Some(model.default_merge_strategy()),
             default_needed_reviewers_count: Some(model.default_needed_reviewers_count as u64),
             pr_title_validation_regex: Some(model.pr_title_validation_regex.clone()),
             manual_interaction: Some(model.manual_interaction),
@@ -53,9 +64,10 @@ impl<'a> RepositoryModelBuilder<'a> {
 
     pub fn from_github(config: &'a Config, repo: &GhRepository) -> Self {
         Self {
-            owner: repo.owner.login.clone(),
-            name: repo.name.clone(),
-            config,
+            id: None,
+            owner: Some(repo.owner.login.clone()),
+            name: Some(repo.name.clone()),
+            config: Some(config),
             default_strategy: None,
             default_needed_reviewers_count: None,
             pr_title_validation_regex: None,
@@ -101,22 +113,43 @@ impl<'a> RepositoryModelBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> RepositoryCreation {
-        RepositoryCreation {
-            owner: self.owner.clone(),
+    pub fn build_update(&self) -> RepositoryUpdate {
+        let id = self.id.unwrap();
+
+        RepositoryUpdate {
+            id,
             name: self.name.clone(),
+            owner: self.owner.clone(),
+            default_strategy: self.default_strategy.map(|x| x.to_string()),
+            default_needed_reviewers_count: self.default_needed_reviewers_count.map(|x| x as i32),
+            pr_title_validation_regex: self.pr_title_validation_regex.clone(),
+            manual_interaction: self.manual_interaction,
+            default_automerge: self.default_automerge,
+            default_enable_qa: self.default_enable_qa,
+            default_enable_checks: self.default_enable_checks,
+        }
+    }
+
+    pub fn build(&self) -> RepositoryCreation {
+        let owner = self.owner.as_ref().unwrap();
+        let name = self.name.as_ref().unwrap();
+        let config = self.config.unwrap();
+
+        RepositoryCreation {
+            owner: owner.to_owned(),
+            name: name.to_owned(),
             pr_title_validation_regex: self
                 .pr_title_validation_regex
                 .clone()
-                .unwrap_or_else(|| self.config.default_pr_title_validation_regex.clone()),
+                .unwrap_or_else(|| config.default_pr_title_validation_regex.clone()),
             default_needed_reviewers_count: self
                 .default_needed_reviewers_count
-                .unwrap_or(self.config.default_needed_reviewers_count)
+                .unwrap_or(config.default_needed_reviewers_count)
                 as i32,
             default_strategy: self
                 .default_strategy
                 .unwrap_or_else(|| {
-                    GhMergeStrategy::try_from(&self.config.default_merge_strategy[..]).unwrap()
+                    GhMergeStrategy::try_from(&config.default_merge_strategy[..]).unwrap()
                 })
                 .to_string(),
             manual_interaction: self.manual_interaction.unwrap_or(false),
@@ -127,47 +160,22 @@ impl<'a> RepositoryModelBuilder<'a> {
     }
 
     pub async fn create_or_update(
-        self,
+        mut self,
         db_adapter: &dyn IRepositoryDbAdapter,
     ) -> Result<RepositoryModel> {
-        let mut handle = match db_adapter
-            .get_from_owner_and_name(&self.owner, &self.name)
-            .await
-        {
-            Ok(entry) => entry,
+        let owner = self.owner.as_ref().unwrap();
+        let name = self.name.as_ref().unwrap();
+
+        let handle = match db_adapter.get_from_owner_and_name(owner, name).await {
+            Ok(mut entry) => {
+                self.id = Some(entry.id);
+                let update = self.build_update();
+                db_adapter.update(&mut entry, update).await?;
+                entry
+            }
             Err(_) => db_adapter.create(self.build()).await?,
         };
 
-        handle.pr_title_validation_regex = match self.pr_title_validation_regex {
-            Some(p) => p,
-            None => handle.pr_title_validation_regex,
-        };
-        handle.default_needed_reviewers_count = match self.default_needed_reviewers_count {
-            Some(d) => d as i32,
-            None => handle.default_needed_reviewers_count,
-        };
-        handle.default_strategy = match self.default_strategy {
-            Some(d) => d.to_string(),
-            None => handle.default_strategy,
-        };
-        handle.manual_interaction = match self.manual_interaction {
-            Some(m) => m,
-            None => handle.manual_interaction,
-        };
-        handle.default_automerge = match self.default_automerge {
-            Some(m) => m,
-            None => handle.default_automerge,
-        };
-        handle.default_enable_qa = match self.default_enable_qa {
-            Some(m) => m,
-            None => handle.default_enable_qa,
-        };
-        handle.default_enable_checks = match self.default_enable_checks {
-            Some(m) => m,
-            None => handle.default_enable_checks,
-        };
-
-        db_adapter.save(&mut handle).await?;
         Ok(handle)
     }
 }

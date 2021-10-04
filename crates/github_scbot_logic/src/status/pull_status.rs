@@ -46,15 +46,15 @@ impl PullRequestStatus {
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
     ) -> Result<Self> {
-        let reviews = pr_model.get_reviews(db_adapter.review()).await?;
-        let strategy = if let Some(s) = pr_model.get_strategy_override() {
+        let reviews = pr_model.reviews(db_adapter.review()).await?;
+        let strategy = if let Some(s) = pr_model.strategy_override() {
             s
         } else {
             MergeRuleModel::get_strategy_from_branches(
                 db_adapter.merge_rule(),
                 repo_model,
-                &pr_model.base_branch[..],
-                &pr_model.head_branch[..],
+                pr_model.base_branch(),
+                pr_model.head_branch(),
             )
             .await
         };
@@ -71,40 +71,40 @@ impl PullRequestStatus {
     ) -> Result<Self> {
         // Validate reviews
         let valid_reviews = Self::filter_valid_reviews(reviews);
-        let needed_reviews = pr_model.needed_reviewers_count as usize;
+        let needed_reviews = pr_model.needed_reviewers_count() as usize;
         let mut approved_reviews = vec![];
         let mut required_reviews = vec![];
 
         for review in valid_reviews {
-            let state = review.get_review_state();
-            if review.required && state != GhReviewState::Approved {
-                required_reviews.push(review.username.clone());
+            let state = review.state();
+            if review.required() && state != GhReviewState::Approved {
+                required_reviews.push(review.username().into());
             } else if state == GhReviewState::Approved {
-                approved_reviews.push(review.username.clone());
+                approved_reviews.push(review.username().into());
             }
         }
 
         Ok(Self {
             approved_reviewers: approved_reviews,
-            automerge: pr_model.automerge,
-            checks_status: pr_model.get_checks_status(),
-            checks_url: pr_model.get_checks_url(repo_model),
-            pull_request_title_regex: repo_model.pr_title_validation_regex.clone(),
+            automerge: pr_model.automerge(),
+            checks_status: pr_model.check_status(),
+            checks_url: pr_model.checks_url(repo_model),
+            pull_request_title_regex: repo_model.pr_title_validation_regex().into(),
             needed_reviewers_count: needed_reviews,
-            qa_status: pr_model.get_qa_status(),
+            qa_status: pr_model.qa_status(),
             missing_required_reviewers: required_reviews,
             valid_pr_title: Self::check_pr_title(
-                &pr_model.name,
-                &repo_model.pr_title_validation_regex,
+                pr_model.name(),
+                repo_model.pr_title_validation_regex(),
             )?,
-            locked: pr_model.locked,
-            wip: pr_model.wip,
+            locked: pr_model.locked(),
+            wip: pr_model.wip(),
             merge_strategy: strategy,
         })
     }
 
     fn filter_valid_reviews(reviews: &[ReviewModel]) -> Vec<&ReviewModel> {
-        reviews.iter().filter(|r| r.valid).collect()
+        reviews.iter().filter(|r| r.valid()).collect()
     }
 
     /// Check if there are missing required reviews.

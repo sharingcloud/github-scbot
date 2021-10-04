@@ -54,7 +54,7 @@ pub async fn handle_check_suite_event(
             }
 
             // Skip if checks are skipped
-            if pr_model.get_checks_status() == CheckStatus::Skipped {
+            if pr_model.check_status() == CheckStatus::Skipped {
                 return Ok(());
             }
 
@@ -64,21 +64,32 @@ pub async fn handle_check_suite_event(
                         // Check if other checks are still running
                         let status = PullRequestLogic::get_checks_status_from_github(
                             api_adapter,
-                            &repo_model.owner,
-                            &repo_model.name,
+                            repo_model.owner(),
+                            repo_model.name(),
                             &gh_pr.head.sha,
                             &[event.check_suite.id],
                         )
                         .await?;
 
                         // Update check status
-                        pr_model.set_checks_status(status);
-                        db_adapter.pull_request().save(&mut pr_model).await?;
+                        let update = pr_model.create_update().check_status(status).build_update();
+
+                        db_adapter
+                            .pull_request()
+                            .update(&mut pr_model, update)
+                            .await?;
                     }
                     Some(GhCheckConclusion::Failure) => {
                         // Update check status
-                        pr_model.set_checks_status(CheckStatus::Fail);
-                        db_adapter.pull_request().save(&mut pr_model).await?;
+                        let update = pr_model
+                            .create_update()
+                            .check_status(CheckStatus::Fail)
+                            .build_update();
+
+                        db_adapter
+                            .pull_request()
+                            .update(&mut pr_model, update)
+                            .await?;
                     }
                     _ => (),
                 }

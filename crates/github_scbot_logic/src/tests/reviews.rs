@@ -120,10 +120,10 @@ async fn test_review_creation() -> Result<()> {
         .await?;
 
         // List reviews
-        let reviews = pr.get_reviews(db_adapter.review()).await.unwrap();
-        assert_eq!(reviews[0].username, "me");
-        assert_eq!(reviews[1].username, "him");
-        assert!(!reviews[1].required);
+        let reviews = pr.reviews(db_adapter.review()).await.unwrap();
+        assert_eq!(reviews[0].username(), "me");
+        assert_eq!(reviews[1].username(), "him");
+        assert!(!reviews[1].required());
 
         // Parse comment
         parse_and_execute_command(
@@ -143,7 +143,7 @@ async fn test_review_creation() -> Result<()> {
             .get_from_pull_request_and_username(&repo, &pr, "him")
             .await
             .unwrap();
-        assert!(review.required);
+        assert!(review.required());
 
         // Parse comment
         parse_and_execute_command(
@@ -175,7 +175,7 @@ async fn test_review_creation() -> Result<()> {
             .get_from_pull_request_and_username(&repo, &pr, "him")
             .await
             .unwrap();
-        assert!(!review.required);
+        assert!(!review.required());
 
         // Generate status
         let status = PullRequestStatus::from_database(&db_adapter, &repo, &pr)
@@ -185,7 +185,7 @@ async fn test_review_creation() -> Result<()> {
         assert!(!status.automerge);
         assert_eq!(
             status.needed_reviewers_count,
-            repo.default_needed_reviewers_count as usize
+            repo.default_needed_reviewers_count() as usize
         );
         assert!(status.missing_required_reviewers.is_empty());
         assert!(status.locked);

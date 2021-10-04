@@ -25,7 +25,7 @@ impl Command for PullRequestListCommand {
             println!("No PR found from repository '{}'.", self.repository_path);
         } else {
             for pr in prs {
-                println!("- #{}: {}", pr.get_number(), pr.name);
+                println!("- #{}: {}", pr.number(), pr.name());
             }
         }
 

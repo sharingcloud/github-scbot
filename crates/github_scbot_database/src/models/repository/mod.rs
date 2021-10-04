@@ -3,6 +3,7 @@
 use std::convert::TryInto;
 
 use github_scbot_conf::Config;
+use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{common::GhRepository, pulls::GhMergeStrategy};
 use serde::{Deserialize, Serialize};
 use tracing::error;
@@ -19,39 +20,63 @@ use builder::RepositoryModelBuilder;
 
 /// Repository model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    AsChangeset,
-    PartialEq,
-    Clone,
-    Eq,
-    Default,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, PartialEq, Clone, Eq, Default, SCGetter,
 )]
 #[table_name = "repository"]
 pub struct RepositoryModel {
     /// Database ID.
-    pub id: i32,
+    #[get]
+    id: i32,
     /// Repository name.
-    pub name: String,
+    #[get_ref]
+    name: String,
     /// Repository owner.
-    pub owner: String,
-    /// Default strategy.
+    #[get_ref]
+    owner: String,
     default_strategy: String,
     /// Default reviewers count needed for a pull request.
-    pub default_needed_reviewers_count: i32,
+    #[get]
+    default_needed_reviewers_count: i32,
     /// Validation regex for pull request titles.
-    pub pr_title_validation_regex: String,
+    #[get_ref]
+    pr_title_validation_regex: String,
     /// Manual interaction.
-    pub manual_interaction: bool,
+    #[get]
+    manual_interaction: bool,
     /// Default automerge.
-    pub default_automerge: bool,
+    #[get]
+    default_automerge: bool,
     /// Enable QA on this repository.
-    pub default_enable_qa: bool,
+    #[get]
+    default_enable_qa: bool,
     /// Enable checks on this repository.
-    pub default_enable_checks: bool,
+    #[get]
+    default_enable_checks: bool,
+}
+
+#[derive(Debug, Identifiable, Clone, AsChangeset, Default)]
+#[table_name = "repository"]
+pub struct RepositoryUpdate {
+    /// Database ID.
+    pub id: i32,
+    /// Repository name.
+    pub name: Option<String>,
+    /// Repository owner.
+    pub owner: Option<String>,
+    /// Default merge strategy.
+    pub default_strategy: Option<String>,
+    /// Default needed reviewers count.
+    pub default_needed_reviewers_count: Option<i32>,
+    /// Title validation regex.
+    pub pr_title_validation_regex: Option<String>,
+    /// Manual interaction.
+    pub manual_interaction: Option<bool>,
+    /// Default automerge.
+    pub default_automerge: Option<bool>,
+    /// Default QA status.
+    pub default_enable_qa: Option<bool>,
+    /// Default check status.
+    pub default_enable_checks: Option<bool>,
 }
 
 #[derive(Debug, Insertable)]
@@ -88,7 +113,52 @@ impl From<RepositoryCreation> for RepositoryModel {
 impl RepositoryModel {
     /// Create builder.
     pub fn builder<'a>(config: &'a Config, owner: &str, name: &str) -> RepositoryModelBuilder<'a> {
-        RepositoryModelBuilder::default(config, owner, name)
+        RepositoryModelBuilder::new(config, owner, name)
+    }
+
+    /// Prepare an update builder.
+    pub fn create_update<'a>(&self) -> RepositoryModelBuilder<'a> {
+        RepositoryModelBuilder::with_id(self.id)
+    }
+
+    /// Apply local update on repository.
+    /// Result will not be in database.
+    pub fn apply_local_update(&mut self, update: RepositoryUpdate) {
+        if let Some(s) = update.name {
+            self.name = s;
+        }
+
+        if let Some(s) = update.owner {
+            self.owner = s;
+        }
+
+        if let Some(s) = update.default_strategy {
+            self.default_strategy = s;
+        }
+
+        if let Some(s) = update.default_needed_reviewers_count {
+            self.default_needed_reviewers_count = s;
+        }
+
+        if let Some(s) = update.pr_title_validation_regex {
+            self.pr_title_validation_regex = s;
+        }
+
+        if let Some(s) = update.manual_interaction {
+            self.manual_interaction = s;
+        }
+
+        if let Some(s) = update.default_automerge {
+            self.default_automerge = s;
+        }
+
+        if let Some(s) = update.default_enable_qa {
+            self.default_enable_qa = s;
+        }
+
+        if let Some(s) = update.default_enable_checks {
+            self.default_enable_checks = s;
+        }
     }
 
     /// Create builder from model.
@@ -127,7 +197,7 @@ impl RepositoryModel {
     }
 
     /// Get default merge strategy.
-    pub fn get_default_merge_strategy(&self) -> GhMergeStrategy {
+    pub fn default_merge_strategy(&self) -> GhMergeStrategy {
         if let Ok(strategy) = (&self.default_strategy[..]).try_into() {
             strategy
         } else {
@@ -147,7 +217,7 @@ impl RepositoryModel {
     }
 
     /// Get repository path.
-    pub fn get_path(&self) -> String {
+    pub fn path(&self) -> String {
         format!("{}/{}", self.owner, self.name)
     }
 

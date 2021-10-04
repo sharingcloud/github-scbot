@@ -1,31 +1,41 @@
 use github_scbot_types::reviews::{GhReview, GhReviewState};
 
-use super::{IReviewDbAdapter, ReviewModel};
+use super::{IReviewDbAdapter, ReviewModel, ReviewUpdate};
 use crate::{
     models::{PullRequestModel, RepositoryModel},
     Result,
 };
 
 #[must_use]
+#[derive(Default)]
 pub struct ReviewModelBuilder<'a> {
-    repo_model: &'a RepositoryModel,
-    pr_model: &'a PullRequestModel,
-    username: String,
+    id: Option<i32>,
+    repo_model: Option<&'a RepositoryModel>,
+    pr_model: Option<&'a PullRequestModel>,
+    username: Option<String>,
     state: Option<GhReviewState>,
     required: Option<bool>,
     valid: Option<bool>,
 }
 
 impl<'a> ReviewModelBuilder<'a> {
-    pub fn default<T: Into<String>>(
+    pub fn with_id(id: i32) -> Self {
+        Self {
+            id: Some(id),
+            ..Default::default()
+        }
+    }
+
+    pub fn new<T: Into<String>>(
         repo_model: &'a RepositoryModel,
         pr_model: &'a PullRequestModel,
         username: T,
     ) -> Self {
         Self {
-            repo_model,
-            pr_model,
-            username: username.into(),
+            id: None,
+            repo_model: Some(repo_model),
+            pr_model: Some(pr_model),
+            username: Some(username.into()),
             state: None,
             required: None,
             valid: None,
@@ -38,10 +48,11 @@ impl<'a> ReviewModelBuilder<'a> {
         review: &ReviewModel,
     ) -> Self {
         Self {
-            repo_model,
-            pr_model,
-            username: review.username.clone(),
-            state: Some(review.get_review_state()),
+            id: None,
+            repo_model: Some(repo_model),
+            pr_model: Some(pr_model),
+            username: Some(review.username.clone()),
+            state: Some(review.state()),
             required: Some(review.required),
             valid: Some(review.valid),
         }
@@ -53,9 +64,10 @@ impl<'a> ReviewModelBuilder<'a> {
         review: &GhReview,
     ) -> Self {
         Self {
-            repo_model,
-            pr_model,
-            username: review.user.login.clone(),
+            id: None,
+            repo_model: Some(repo_model),
+            pr_model: Some(pr_model),
+            username: Some(review.user.login.clone()),
             state: Some(review.state),
             required: None,
             valid: None,
@@ -63,7 +75,7 @@ impl<'a> ReviewModelBuilder<'a> {
     }
 
     pub fn username<T: Into<String>>(mut self, username: T) -> Self {
-        self.username = username.into();
+        self.username = Some(username.into());
         self
     }
 
@@ -82,40 +94,53 @@ impl<'a> ReviewModelBuilder<'a> {
         self
     }
 
-    fn build(&self) -> ReviewModel {
+    pub fn build_update(&self) -> ReviewUpdate {
+        let id = self.id.unwrap();
+
+        ReviewUpdate {
+            id,
+            username: self.username.clone(),
+            state: self.state.map(|x| x.to_string()),
+            required: self.required,
+            valid: self.valid,
+        }
+    }
+
+    pub fn build(&self) -> ReviewModel {
+        let pr_model = self.pr_model.unwrap();
+        let username = self.username.as_ref().unwrap();
+
         ReviewModel {
             id: -1,
-            pull_request_id: self.pr_model.id,
-            username: self.username.clone(),
+            pull_request_id: pr_model.id(),
+            username: username.to_owned(),
             state: self.state.unwrap_or(GhReviewState::Pending).to_string(),
             required: self.required.unwrap_or(false),
             valid: self.valid.unwrap_or(false),
         }
     }
 
-    pub async fn create_or_update(self, db_adapter: &dyn IReviewDbAdapter) -> Result<ReviewModel> {
-        let mut handle = match db_adapter
-            .get_from_pull_request_and_username(self.repo_model, self.pr_model, &self.username)
+    pub async fn create_or_update(
+        mut self,
+        db_adapter: &dyn IReviewDbAdapter,
+    ) -> Result<ReviewModel> {
+        let repo_model = self.repo_model.unwrap();
+        let pr_model = self.pr_model.unwrap();
+        let username = self.username.as_ref().unwrap();
+
+        let handle = match db_adapter
+            .get_from_pull_request_and_username(repo_model, pr_model, username)
             .await
         {
-            Ok(entry) => entry,
+            Ok(mut entry) => {
+                self.id = Some(entry.id);
+                let update = self.build_update();
+                db_adapter.update(&mut entry, update).await?;
+                entry
+            }
             Err(_) => db_adapter.create(self.build().into()).await?,
         };
 
-        handle.state = match self.state {
-            Some(s) => s.to_string(),
-            None => handle.state,
-        };
-        handle.required = match self.required {
-            Some(r) => r,
-            None => handle.required,
-        };
-        handle.valid = match self.valid {
-            Some(v) => v,
-            None => handle.valid,
-        };
-
-        db_adapter.save(&mut handle).await?;
         Ok(handle)
     }
 }

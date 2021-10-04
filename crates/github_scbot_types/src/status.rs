@@ -78,6 +78,14 @@ impl TryFrom<&str> for CheckStatus {
     }
 }
 
+impl TryFrom<&String> for CheckStatus {
+    type Error = TypeError;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(&value[..])
+    }
+}
+
 impl From<CheckStatus> for &'static str {
     fn from(check_status: CheckStatus) -> Self {
         match check_status {
@@ -127,6 +135,14 @@ impl TryFrom<&str> for QaStatus {
             "skipped" => Ok(Self::Skipped),
             e => Err(TypeError::UnknownQaStatus(e.to_string())),
         }
+    }
+}
+
+impl TryFrom<&String> for QaStatus {
+    type Error = TypeError;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(&value[..])
     }
 }
 

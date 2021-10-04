@@ -122,30 +122,31 @@ where
     for repository in &mut model.repositories {
         println!(
             "> Importing repository {}/{}",
-            repository.owner, repository.name
+            repository.owner(),
+            repository.name()
         );
 
         let repo = RepositoryModel::builder_from_model(config, repository)
             .create_or_update(db_adapter.repository())
             .await?;
 
-        repo_id_map.insert(repository.id, repo.id);
-        repo_map.insert(repo.id, repo);
+        repo_id_map.insert(repository.id(), repo.id());
+        repo_map.insert(repo.id(), repo);
     }
 
     // Create or update merge rules
     for merge_rule in &mut model.merge_rules {
         println!(
             "> Importing merge rule '{}' (base) <- '{}' (head), strategy '{}' for repository ID {}",
-            merge_rule.base_branch,
-            merge_rule.head_branch,
-            merge_rule.get_strategy().to_string(),
-            merge_rule.repository_id
+            merge_rule.base_branch(),
+            merge_rule.head_branch(),
+            merge_rule.strategy().to_string(),
+            merge_rule.repository_id()
         );
 
         let repo_id = repo_id_map
-            .get(&merge_rule.repository_id)
-            .ok_or(ImportError::UnknownRepositoryId(merge_rule.repository_id))?;
+            .get(&merge_rule.repository_id())
+            .ok_or_else(|| ImportError::UnknownRepositoryId(merge_rule.repository_id()))?;
         let repo = repo_map.get(repo_id).unwrap();
 
         MergeRuleModel::builder_from_model(repo, merge_rule)
@@ -155,33 +156,34 @@ where
 
     // Create or update pull requests
     for pull_request in &mut model.pull_requests {
-        println!("> Importing pull request #{}", pull_request.get_number());
+        println!("> Importing pull request #{}", pull_request.number());
 
         let repo_id = repo_id_map
-            .get(&pull_request.repository_id)
-            .ok_or(ImportError::UnknownRepositoryId(pull_request.repository_id))?;
+            .get(&pull_request.repository_id())
+            .ok_or_else(|| ImportError::UnknownRepositoryId(pull_request.repository_id()))?;
         let repo = repo_map.get(repo_id).unwrap();
 
         let pr = PullRequestModel::builder_from_model(repo, pull_request)
             .create_or_update(db_adapter.pull_request())
             .await?;
 
-        pr_id_map.insert(pull_request.id, pr.id);
-        pr_map.insert(pr.id, pr);
+        pr_id_map.insert(pull_request.id(), pr.id());
+        pr_map.insert(pr.id(), pr);
     }
 
     // Create or update reviews
     for review in &mut model.reviews {
         println!(
             "> Importing review for PR {} by @{}",
-            review.id, review.username
+            review.id(),
+            review.username()
         );
 
         let pr_id = pr_id_map
-            .get(&review.pull_request_id)
-            .ok_or(ImportError::UnknownPullRequestId(review.pull_request_id))?;
+            .get(&review.pull_request_id())
+            .ok_or_else(|| ImportError::UnknownPullRequestId(review.pull_request_id()))?;
         let pr = pr_map.get(pr_id).unwrap();
-        let repo = repo_map.get(&pr.repository_id).unwrap();
+        let repo = repo_map.get(&pr.repository_id()).unwrap();
 
         ReviewModel::builder_from_model(repo, pr, review)
             .create_or_update(db_adapter.review())

@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-database"
-version = "0.13.1"
+version = "0.14.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 
@@ -9,6 +9,7 @@ github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-types = { path = "../github_scbot_types" }
 github-scbot-utils = { path = "../github_scbot_utils" }
+github-scbot-database-macros = { path = "../github_scbot_database_macros" }
 
 async-trait = "0.1.50"
 chrono = { version = "0.4.19", features = ["serde"] }
@@ -21,7 +22,10 @@ smart-default = "0.6.0"
 thiserror = "1.0"
 tokio-diesel = "0.3.0"
 tracing = "0.1"
+derive_builder = "0.10.2"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
 actix-rt = "1"
+
+[features]

@@ -1,5 +1,6 @@
 //! Database review models.
 
+use github_scbot_database_macros::SCGetter;
 use github_scbot_types::reviews::{GhReview, GhReviewState};
 use serde::{Deserialize, Serialize};
 
@@ -13,31 +14,42 @@ use builder::ReviewModelBuilder;
 
 /// Review model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    AsChangeset,
-    PartialEq,
-    Eq,
-    Clone,
-    Default,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, PartialEq, Eq, Clone, Default, SCGetter,
 )]
 #[table_name = "review"]
 pub struct ReviewModel {
     /// Database ID.
-    pub id: i32,
+    #[get]
+    id: i32,
     /// Pull request database ID.
-    pub pull_request_id: i32,
+    #[get]
+    pull_request_id: i32,
     /// Username.
-    pub username: String,
+    #[get_ref]
+    username: String,
     /// Review state.
     state: String,
     /// Is the review required?
-    pub required: bool,
+    #[get]
+    required: bool,
     /// Is the review valid?
-    pub valid: bool,
+    #[get]
+    valid: bool,
+}
+
+#[derive(Debug, Identifiable, Clone, AsChangeset, Default)]
+#[table_name = "review"]
+pub struct ReviewUpdate {
+    /// Database ID.
+    pub id: i32,
+    /// Username.
+    pub username: Option<String>,
+    /// Review state.
+    pub state: Option<String>,
+    /// Review required?
+    pub required: Option<bool>,
+    /// Review valid?
+    pub valid: Option<bool>,
 }
 
 #[derive(Insertable)]
@@ -82,7 +94,28 @@ impl ReviewModel {
         pr_model: &'a PullRequestModel,
         username: &str,
     ) -> ReviewModelBuilder<'a> {
-        ReviewModelBuilder::default(repo_model, pr_model, username)
+        ReviewModelBuilder::new(repo_model, pr_model, username)
+    }
+
+    /// Prepare an update builder.
+    pub fn create_update<'a>(&self) -> ReviewModelBuilder<'a> {
+        ReviewModelBuilder::with_id(self.id)
+    }
+
+    /// Apply local update on pull request.
+    /// Result will not be in database.
+    pub fn apply_local_update(&mut self, update: ReviewUpdate) {
+        if let Some(s) = update.state {
+            self.state = s;
+        }
+
+        if let Some(s) = update.required {
+            self.required = s;
+        }
+
+        if let Some(s) = update.valid {
+            self.valid = s;
+        }
     }
 
     /// Create builder from model.
@@ -104,14 +137,8 @@ impl ReviewModel {
     }
 
     /// Get review state.
-    #[must_use]
-    pub fn get_review_state(&self) -> GhReviewState {
+    pub fn state(&self) -> GhReviewState {
         self.state.as_str().into()
-    }
-
-    /// Set review state.
-    pub fn set_review_state(&mut self, review_state: GhReviewState) {
-        self.state = review_state.to_string();
     }
 }
 
@@ -148,7 +175,7 @@ mod tests {
                 entry,
                 ReviewModel {
                     id: entry.id,
-                    pull_request_id: pr.id,
+                    pull_request_id: pr.id(),
                     username: "him".into(),
                     state: GhReviewState::Pending.to_string(),
                     required: false,
@@ -157,10 +184,13 @@ mod tests {
             );
 
             // Manually update review
-            entry.set_review_state(GhReviewState::Commented);
-            entry.required = true;
-            entry.valid = true;
-            db_adapter.review().save(&mut entry).await?;
+            let update = entry
+                .create_update()
+                .state(GhReviewState::Commented)
+                .required(true)
+                .valid(true)
+                .build_update();
+            db_adapter.review().update(&mut entry, update).await?;
 
             // Now, update review with builder
             let entry = ReviewModel::builder(&repo, &pr, "him")
@@ -172,7 +202,7 @@ mod tests {
                 entry,
                 ReviewModel {
                     id: entry.id,
-                    pull_request_id: pr.id,
+                    pull_request_id: pr.id(),
                     username: "him".into(),
                     state: GhReviewState::Commented.to_string(),
                     required: false,

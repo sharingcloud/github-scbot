@@ -96,7 +96,7 @@ impl CommandExecutor {
     ) -> Result<()> {
         if command_result.should_update_status {
             let sha = api_adapter
-                .pulls_get(&repo_model.owner, &repo_model.name, pr_model.get_number())
+                .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
                 .await?
                 .head
                 .sha;
@@ -116,8 +116,8 @@ impl CommandExecutor {
                 ResultAction::AddReaction(reaction) => {
                     CommentApi::add_reaction_to_comment(
                         api_adapter,
-                        &repo_model.owner,
-                        &repo_model.name,
+                        repo_model.owner(),
+                        repo_model.name(),
                         comment_id,
                         *reaction,
                     )
@@ -126,9 +126,9 @@ impl CommandExecutor {
                 ResultAction::PostComment(comment) => {
                     CommentApi::post_comment(
                         api_adapter,
-                        &repo_model.owner,
-                        &repo_model.name,
-                        pr_model.get_number(),
+                        repo_model.owner(),
+                        repo_model.name(),
+                        pr_model.number(),
                         comment,
                     )
                     .await?;
@@ -206,8 +206,8 @@ impl CommandExecutor {
         info!(
             command = ?command,
             comment_author = comment_author,
-            repository_path = %repo_model.get_path(),
-            pull_request_number = pr_model.get_number(),
+            repository_path = %repo_model.path(),
+            pull_request_number = pr_model.number(),
             message = "Interpreting command"
         );
 

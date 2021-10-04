@@ -23,10 +23,10 @@ impl Command for HistoryListWebhookEventsCommand {
         let entries = ctx
             .db_adapter
             .history_webhook()
-            .list_from_repository_id(repo.id)
+            .list_from_repository_id(repo.id())
             .await?;
         if entries.is_empty() {
-            println!("No events for repository {}.", repo.get_path());
+            println!("No events for repository {}.", repo.path());
         } else {
             for entry in entries {
                 entry.show();

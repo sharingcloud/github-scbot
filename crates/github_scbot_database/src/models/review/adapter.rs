@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
-use super::{ReviewCreation, ReviewModel};
+use super::{ReviewCreation, ReviewModel, ReviewUpdate};
 use crate::{
     models::{PullRequestModel, RepositoryModel},
     schema::review,
@@ -30,18 +32,18 @@ pub trait IReviewDbAdapter {
     async fn remove(&self, entry: ReviewModel) -> Result<()>;
     /// Removes all existing reviews for a pull request ID.
     async fn remove_all_for_pull_request(&self, pull_request_id: i32) -> Result<()>;
-    /// Saves and updates an existing review.
-    async fn save(&self, entry: &mut ReviewModel) -> Result<()>;
+    /// Update.
+    async fn update(&self, entry: &mut ReviewModel, update: ReviewUpdate) -> Result<()>;
 }
 
 /// Concrete review DB adapter.
 pub struct ReviewDbAdapter {
-    pool: DbPool,
+    pool: Arc<DbPool>,
 }
 
 impl ReviewDbAdapter {
     /// Creates a new review DB adapter.
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Arc<DbPool>) -> Self {
         Self { pool }
     }
 }
@@ -83,15 +85,15 @@ impl IReviewDbAdapter for ReviewDbAdapter {
         let pull_request = pull_request.clone();
 
         review::table
-            .filter(review::pull_request_id.eq(pull_request.id))
+            .filter(review::pull_request_id.eq(pull_request.id()))
             .filter(review::username.eq(username.clone()))
             .first_async(&self.pool)
             .await
             .map_err(|_e| {
                 DatabaseError::UnknownReviewState(
                     username.to_string(),
-                    repository.get_path(),
-                    pull_request.get_number(),
+                    repository.path(),
+                    pull_request.number(),
                 )
             })
     }
@@ -112,11 +114,9 @@ impl IReviewDbAdapter for ReviewDbAdapter {
         Ok(())
     }
 
-    async fn save(&self, entry: &mut ReviewModel) -> Result<()> {
-        let copy = entry.clone();
-
-        *entry = diesel::update(review::table.filter(review::id.eq(copy.id)))
-            .set(copy)
+    async fn update(&self, entry: &mut ReviewModel, update: ReviewUpdate) -> Result<()> {
+        *entry = diesel::update(review::table.filter(review::id.eq(entry.id)))
+            .set(update)
             .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
@@ -139,8 +139,6 @@ pub struct DummyReviewDbAdapter {
     pub remove_response: Mock<Result<()>>,
     /// Remove all for pull request response.
     pub remove_all_for_pull_request_response: Mock<Result<()>>,
-    /// Save response.
-    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyReviewDbAdapter {
@@ -152,7 +150,6 @@ impl Default for DummyReviewDbAdapter {
             get_from_pull_request_and_username_response: Mock::new(Ok(ReviewModel::default())),
             remove_response: Mock::new(Ok(())),
             remove_all_for_pull_request_response: Mock::new(Ok(())),
-            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -198,7 +195,8 @@ impl IReviewDbAdapter for DummyReviewDbAdapter {
         self.remove_all_for_pull_request_response.response()
     }
 
-    async fn save(&self, entry: &mut ReviewModel) -> Result<()> {
-        self.save_response.response()
+    async fn update(&self, entry: &mut ReviewModel, update: ReviewUpdate) -> Result<()> {
+        entry.apply_local_update(update);
+        Ok(())
     }
 }

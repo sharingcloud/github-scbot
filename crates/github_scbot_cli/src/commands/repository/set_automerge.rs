@@ -23,8 +23,15 @@ impl Command for RepositorySetAutomergeCommand {
         let mut repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;
-        repo.default_automerge = self.status;
-        ctx.db_adapter.repository().save(&mut repo).await?;
+
+        let update = repo
+            .create_update()
+            .default_automerge(self.status)
+            .build_update();
+        ctx.db_adapter
+            .repository()
+            .update(&mut repo, update)
+            .await?;
 
         println!(
             "Default automerge set to '{}' for repository {}.",

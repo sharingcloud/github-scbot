@@ -1,0 +1,13 @@
+[package]
+name = "github-scbot-database-macros"
+version = "0.14.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0.9"
+syn = "1.0.77"
+proc-macro2 = { version = "1", default-features = false }
