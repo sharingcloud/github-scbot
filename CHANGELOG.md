@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2021-10-04
+
+### Fixed
+
+- Fix most data races on database (using update statements only containing altered fields instead of all fields)
+
 ### Added
 
 - Add Prometheus support
@@ -147,7 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/sharingcloud/github-scbot/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/sharingcloud/github-scbot/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/sharingcloud/github-scbot/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/sharingcloud/github-scbot/compare/v0.11.0...v0.12.0
