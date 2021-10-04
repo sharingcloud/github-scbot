@@ -49,7 +49,7 @@ impl<'a> HistoryWebhookModelBuilder<'a> {
         self
     }
 
-    fn build(self) -> HistoryWebhookModel {
+    pub fn build(self) -> HistoryWebhookModel {
         HistoryWebhookModel {
             id: -1,
             repository_id: self.repo_model.id(),
