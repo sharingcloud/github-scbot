@@ -32,7 +32,7 @@ impl Command for AuthListAccountRightsCommand {
             println!("Rights from account '{}':", self.username);
             for right in rights {
                 if let Ok(repo) = right.get_repository(ctx.db_adapter.repository()).await {
-                    println!("- {}", repo.get_path());
+                    println!("- {}", repo.path());
                 }
             }
         }

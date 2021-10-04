@@ -52,7 +52,7 @@ impl<'a> HistoryWebhookModelBuilder<'a> {
     fn build(self) -> HistoryWebhookModel {
         HistoryWebhookModel {
             id: -1,
-            repository_id: self.repo_model.id,
+            repository_id: self.repo_model.id(),
             pull_request_id: self.pr_model.id(),
             username: self.username,
             event_key: self.event_key.to_str().into(),

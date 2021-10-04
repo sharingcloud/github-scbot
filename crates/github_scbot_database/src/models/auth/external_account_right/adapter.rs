@@ -77,12 +77,10 @@ impl IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter {
 
         external_account_right::table
             .filter(external_account_right::username.eq(username.clone()))
-            .filter(external_account_right::repository_id.eq(repository.id))
+            .filter(external_account_right::repository_id.eq(repository.id()))
             .first_async(&self.pool)
             .await
-            .map_err(|_e| {
-                DatabaseError::UnknownExternalAccountRight(username, repository.get_path())
-            })
+            .map_err(|_e| DatabaseError::UnknownExternalAccountRight(username, repository.path()))
     }
 
     async fn add_right(
@@ -95,7 +93,7 @@ impl IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter {
         } else {
             let entry = ExternalAccountRightModel {
                 username: username.into(),
-                repository_id: repository.id,
+                repository_id: repository.id(),
             };
 
             Ok(diesel::insert_into(external_account_right::table)
@@ -113,7 +111,7 @@ impl IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter {
         diesel::delete(
             external_account_right::table
                 .filter(external_account_right::username.eq(username))
-                .filter(external_account_right::repository_id.eq(repository.id)),
+                .filter(external_account_right::repository_id.eq(repository.id())),
         )
         .execute_async(&self.pool)
         .await?;

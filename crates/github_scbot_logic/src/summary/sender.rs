@@ -56,8 +56,8 @@ impl SummaryCommentSender {
         if comment_id > 0 {
             if let Ok(comment_id) = CommentApi::update_comment(
                 api_adapter,
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 comment_id,
                 &status_comment,
             )
@@ -102,7 +102,7 @@ impl SummaryCommentSender {
 
         if comment_id > 0 {
             api_adapter
-                .comments_delete(&repo_model.owner, &repo_model.name, comment_id)
+                .comments_delete(repo_model.owner(), repo_model.name(), comment_id)
                 .await?;
         }
 
@@ -123,8 +123,8 @@ impl SummaryCommentSender {
     ) -> Result<u64> {
         let comment_id = CommentApi::post_comment(
             api_adapter,
-            &repo_model.owner,
-            &repo_model.name,
+            repo_model.owner(),
+            repo_model.name(),
             pr_model.number(),
             comment,
         )

@@ -109,11 +109,11 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
         let repository = repository.clone();
 
         pull_request::table
-            .filter(pull_request::repository_id.eq(repository.id))
+            .filter(pull_request::repository_id.eq(repository.id()))
             .filter(pull_request::number.eq(number as i32))
             .first_async(&self.pool)
             .await
-            .map_err(|_e| DatabaseError::UnknownPullRequest(repository.get_path(), number))
+            .map_err(|_e| DatabaseError::UnknownPullRequest(repository.path(), number))
     }
 
     async fn get_from_repository_path_and_number(

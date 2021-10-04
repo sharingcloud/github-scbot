@@ -28,8 +28,15 @@ impl Command for RepositorySetTitleRegexCommand {
             "Setting value '{}' as PR title validation regex",
             self.value
         );
-        repo.pr_title_validation_regex = self.value.to_owned();
-        ctx.db_adapter.repository().save(&mut repo).await?;
+
+        let update = repo
+            .create_update()
+            .pr_title_validation_regex(&self.value)
+            .build_update();
+        ctx.db_adapter
+            .repository()
+            .update(&mut repo, update)
+            .await?;
 
         Ok(())
     }

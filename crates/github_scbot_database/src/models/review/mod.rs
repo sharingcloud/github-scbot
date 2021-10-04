@@ -14,17 +14,7 @@ use builder::ReviewModelBuilder;
 
 /// Review model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    AsChangeset,
-    PartialEq,
-    Eq,
-    Clone,
-    Default,
-    SCGetter,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, PartialEq, Eq, Clone, Default, SCGetter,
 )]
 #[table_name = "review"]
 pub struct ReviewModel {
@@ -147,8 +137,7 @@ impl ReviewModel {
     }
 
     /// Get review state.
-    #[must_use]
-    pub fn get_review_state(&self) -> GhReviewState {
+    pub fn state(&self) -> GhReviewState {
         self.state.as_str().into()
     }
 }

@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use github_scbot_utils::Mock;
 use tokio_diesel::AsyncRunQueryDsl;
 
-use super::{MergeRuleCreation, MergeRuleModel, RuleBranch};
+use super::{MergeRuleCreation, MergeRuleModel, MergeRuleUpdate, RuleBranch};
 use crate::{models::RepositoryModel, schema::merge_rule, DatabaseError, DbPool, Result};
 
 /// Merge rule DB adapter.
@@ -26,8 +26,8 @@ pub trait IMergeRuleDbAdapter {
     async fn list(&self) -> Result<Vec<MergeRuleModel>>;
     /// Remove a specific merge rule.
     async fn remove(&self, entry: MergeRuleModel) -> Result<()>;
-    /// Saves and updates a specific merge rule.
-    async fn save(&self, entry: &mut MergeRuleModel) -> Result<()>;
+    /// Update.
+    async fn update(&self, entry: &mut MergeRuleModel, update: MergeRuleUpdate) -> Result<()>;
 }
 
 /// Concrete merge rule DB adapter.
@@ -63,14 +63,14 @@ impl IMergeRuleDbAdapter for MergeRuleDbAdapter {
         let repository = repository.clone();
 
         merge_rule::table
-            .filter(merge_rule::repository_id.eq(repository.id))
+            .filter(merge_rule::repository_id.eq(repository.id()))
             .filter(merge_rule::base_branch.eq(base_branch.name()))
             .filter(merge_rule::head_branch.eq(head_branch.name()))
             .first_async(&self.pool)
             .await
             .map_err(|_e| {
                 DatabaseError::UnknownMergeRule(
-                    repository.get_path(),
+                    repository.path(),
                     base_branch.name(),
                     head_branch.name(),
                 )
@@ -100,11 +100,9 @@ impl IMergeRuleDbAdapter for MergeRuleDbAdapter {
         Ok(())
     }
 
-    async fn save(&self, entry: &mut MergeRuleModel) -> Result<()> {
-        let copy = entry.clone();
-
-        *entry = diesel::update(merge_rule::table.filter(merge_rule::id.eq(copy.id)))
-            .set(copy)
+    async fn update(&self, entry: &mut MergeRuleModel, update: MergeRuleUpdate) -> Result<()> {
+        *entry = diesel::update(merge_rule::table.filter(merge_rule::id.eq(entry.id)))
+            .set(update)
             .get_result_async(&self.pool)
             .await
             .map_err(DatabaseError::from)?;
@@ -125,8 +123,6 @@ pub struct DummyMergeRuleDbAdapter {
     pub list_response: Mock<Result<Vec<MergeRuleModel>>>,
     /// Remove response.
     pub remove_response: Mock<Result<()>>,
-    /// Save response.
-    pub save_response: Mock<Result<()>>,
 }
 
 impl Default for DummyMergeRuleDbAdapter {
@@ -137,7 +133,6 @@ impl Default for DummyMergeRuleDbAdapter {
             list_from_repository_id_response: Mock::new(Ok(Vec::new())),
             list_response: Mock::new(Ok(Vec::new())),
             remove_response: Mock::new(Ok(())),
-            save_response: Mock::new(Ok(())),
         }
     }
 }
@@ -179,7 +174,7 @@ impl IMergeRuleDbAdapter for DummyMergeRuleDbAdapter {
         self.remove_response.response()
     }
 
-    async fn save(&self, entry: &mut MergeRuleModel) -> Result<()> {
-        self.save_response.response()
+    async fn update(&self, entry: &mut MergeRuleModel, update: MergeRuleUpdate) -> Result<()> {
+        todo!()
     }
 }

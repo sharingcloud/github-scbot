@@ -52,7 +52,7 @@ impl<'a> ReviewModelBuilder<'a> {
             repo_model: Some(repo_model),
             pr_model: Some(pr_model),
             username: Some(review.username.clone()),
-            state: Some(review.get_review_state()),
+            state: Some(review.state()),
             required: Some(review.required),
             valid: Some(review.valid),
         }

@@ -20,11 +20,11 @@ impl Command for RepositoryListMergeRulesCommand {
         let repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;
-        let default_strategy = repo.get_default_merge_strategy();
+        let default_strategy = repo.default_merge_strategy();
         let rules = ctx
             .db_adapter
             .merge_rule()
-            .list_from_repository_id(repo.id)
+            .list_from_repository_id(repo.id())
             .await?;
 
         println!("Merge rules for repository {}:", self.repository_path);
@@ -32,9 +32,9 @@ impl Command for RepositoryListMergeRulesCommand {
         for rule in rules {
             println!(
                 "- '{}' (base) <- '{}' (head): '{}'",
-                rule.base_branch,
-                rule.head_branch,
-                rule.get_strategy().to_string()
+                rule.base_branch(),
+                rule.head_branch(),
+                rule.strategy().to_string()
             );
         }
 

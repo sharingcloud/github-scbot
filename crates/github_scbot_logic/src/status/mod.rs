@@ -83,8 +83,8 @@ impl StatusLogic {
             Self::generate_pr_status_message(&pr_status)?;
         api_adapter
             .commit_statuses_update(
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 commit_sha,
                 status_state,
                 status_title,
@@ -126,8 +126,8 @@ impl StatusLogic {
             Self::generate_pr_status_message(&pr_status)?;
         api_adapter
             .commit_statuses_update(
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 commit_sha,
                 status_state,
                 status_title,
@@ -143,8 +143,8 @@ impl StatusLogic {
             // Use lock
             let key = format!(
                 "pr-merge_{}-{}_{}",
-                repo_model.owner,
-                repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 pr_model.number()
             );
             if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await?
@@ -250,15 +250,15 @@ impl StatusLogic {
         pr_model: &mut PullRequestModel,
     ) -> Result<()> {
         let sha = api_adapter
-            .pulls_get(&repo_model.owner, &repo_model.name, pr_model.number())
+            .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
             .await?
             .head
             .sha;
 
         api_adapter
             .commit_statuses_update(
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 &sha,
                 StatusState::Success,
                 VALIDATION_STATUS_MESSAGE,

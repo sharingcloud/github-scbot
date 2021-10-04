@@ -76,7 +76,7 @@ impl PullRequestStatus {
         let mut required_reviews = vec![];
 
         for review in valid_reviews {
-            let state = review.get_review_state();
+            let state = review.state();
             if review.required() && state != GhReviewState::Approved {
                 required_reviews.push(review.username().into());
             } else if state == GhReviewState::Approved {
@@ -89,13 +89,13 @@ impl PullRequestStatus {
             automerge: pr_model.automerge(),
             checks_status: pr_model.check_status(),
             checks_url: pr_model.checks_url(repo_model),
-            pull_request_title_regex: repo_model.pr_title_validation_regex.clone(),
+            pull_request_title_regex: repo_model.pr_title_validation_regex().into(),
             needed_reviewers_count: needed_reviews,
             qa_status: pr_model.qa_status(),
             missing_required_reviewers: required_reviews,
             valid_pr_title: Self::check_pr_title(
                 pr_model.name(),
-                &repo_model.pr_title_validation_regex,
+                repo_model.pr_title_validation_regex(),
             )?,
             locked: pr_model.locked(),
             wip: pr_model.wip(),

@@ -206,20 +206,20 @@ impl<'a> PullRequestModelBuilder<'a> {
         let creator = self.creator.as_ref().unwrap();
 
         PullRequestCreation {
-            repository_id: repo.id,
+            repository_id: repo.id(),
             number: pr_number as i32,
             creator: creator.clone(),
             name: self
                 .name
                 .clone()
                 .unwrap_or_else(|| format!("Unnamed PR #{}", pr_number)),
-            automerge: self.automerge.unwrap_or(repo.default_automerge),
+            automerge: self.automerge.unwrap_or_else(|| repo.default_automerge()),
             base_branch: self.base_branch.clone().unwrap_or_else(|| "unknown".into()),
             head_branch: self.head_branch.clone().unwrap_or_else(|| "unknown".into()),
             check_status: self
                 .check_status
                 .unwrap_or_else(|| {
-                    if repo.default_enable_checks {
+                    if repo.default_enable_checks() {
                         CheckStatus::Waiting
                     } else {
                         CheckStatus::Skipped
@@ -229,7 +229,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             qa_status: self
                 .qa_status
                 .unwrap_or_else(|| {
-                    if repo.default_enable_qa {
+                    if repo.default_enable_qa() {
                         QaStatus::Waiting
                     } else {
                         QaStatus::Skipped
@@ -239,7 +239,7 @@ impl<'a> PullRequestModelBuilder<'a> {
             status_comment_id: self.status_comment_id.unwrap_or(0) as i32,
             needed_reviewers_count: self
                 .needed_reviewers_count
-                .unwrap_or_else(|| repo.default_needed_reviewers_count as u64)
+                .unwrap_or_else(|| repo.default_needed_reviewers_count() as u64)
                 as i32,
             step: self.step.unwrap_or(None).map(|x| x.to_string()),
             wip: self.wip.unwrap_or(false),

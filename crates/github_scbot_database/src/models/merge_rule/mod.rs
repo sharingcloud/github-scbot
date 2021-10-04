@@ -2,6 +2,7 @@
 
 use std::convert::TryInto;
 
+use github_scbot_database_macros::SCGetter;
 use github_scbot_types::pulls::GhMergeStrategy;
 use serde::{Deserialize, Serialize};
 use tracing::error;
@@ -44,29 +45,36 @@ impl RuleBranch {
 
 /// Merge rule model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    Clone,
-    AsChangeset,
-    PartialEq,
-    Eq,
-    Default,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, PartialEq, Eq, Default, SCGetter,
 )]
 #[table_name = "merge_rule"]
 pub struct MergeRuleModel {
     /// Merge rule ID.
-    pub id: i32,
+    #[get]
+    id: i32,
     /// Repository ID.
-    pub repository_id: i32,
+    #[get]
+    repository_id: i32,
     /// Base branch name.
-    pub base_branch: String,
+    #[get_ref]
+    base_branch: String,
     /// Head branch name.
-    pub head_branch: String,
-    /// Strategy name.
+    #[get_ref]
+    head_branch: String,
     strategy: String,
+}
+
+#[derive(Debug, Identifiable, Clone, AsChangeset, Default)]
+#[table_name = "merge_rule"]
+pub struct MergeRuleUpdate {
+    /// Database ID.
+    pub id: i32,
+    /// Base branch name.
+    pub base_branch: Option<String>,
+    /// Head branch name.
+    pub head_branch: Option<String>,
+    /// Strategy.
+    pub strategy: Option<String>,
 }
 
 #[derive(Debug, Insertable)]
@@ -108,7 +116,28 @@ impl MergeRuleModel {
         base_branch: T1,
         head_branch: T2,
     ) -> MergeRuleBuilder {
-        MergeRuleBuilder::default(repo_model, base_branch.into(), head_branch.into())
+        MergeRuleBuilder::new(repo_model, base_branch.into(), head_branch.into())
+    }
+
+    /// Prepare an update builder.
+    pub fn create_update<'a>(&self) -> MergeRuleBuilder<'a> {
+        MergeRuleBuilder::with_id(self.id)
+    }
+
+    /// Apply local update on merge rule.
+    /// Result will not be in database.
+    pub fn apply_local_update(&mut self, update: MergeRuleUpdate) {
+        if let Some(s) = update.base_branch {
+            self.base_branch = s;
+        }
+
+        if let Some(s) = update.head_branch {
+            self.head_branch = s;
+        }
+
+        if let Some(s) = update.strategy {
+            self.strategy = s;
+        }
     }
 
     /// Create builder from model.
@@ -120,7 +149,7 @@ impl MergeRuleModel {
     }
 
     /// Get strategy.
-    pub fn get_strategy(&self) -> GhMergeStrategy {
+    pub fn strategy(&self) -> GhMergeStrategy {
         if let Ok(strategy) = (&self.strategy[..]).try_into() {
             strategy
         } else {
@@ -132,11 +161,6 @@ impl MergeRuleModel {
 
             GhMergeStrategy::Merge
         }
-    }
-
-    /// Set strategy.
-    pub fn set_strategy(&mut self, strategy: GhMergeStrategy) {
-        self.strategy = strategy.to_string();
     }
 
     /// Get merge rule for branches.
@@ -168,7 +192,7 @@ impl MergeRuleModel {
             head_branch.clone(),
         )
         .await
-        .map(|x| x.get_strategy())
+        .map(|x| x.strategy())
         {
             v
         } else if let Ok(v) = Self::get_from_branches(
@@ -178,11 +202,11 @@ impl MergeRuleModel {
             RuleBranch::Wildcard,
         )
         .await
-        .map(|x| x.get_strategy())
+        .map(|x| x.strategy())
         {
             v
         } else {
-            repository.get_default_merge_strategy()
+            repository.default_merge_strategy()
         }
     }
 }
@@ -214,7 +238,7 @@ mod tests {
                 rule,
                 MergeRuleModel {
                     id: rule.id,
-                    repository_id: repo.id,
+                    repository_id: repo.id(),
                     base_branch: "test".into(),
                     head_branch: "*".into(),
                     strategy: "merge".into()
@@ -231,7 +255,7 @@ mod tests {
                 rule,
                 MergeRuleModel {
                     id: rule.id,
-                    repository_id: repo.id,
+                    repository_id: repo.id(),
                     base_branch: "test".into(),
                     head_branch: "*".into(),
                     strategy: "squash".into()

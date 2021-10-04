@@ -185,7 +185,7 @@ async fn test_review_creation() -> Result<()> {
         assert!(!status.automerge);
         assert_eq!(
             status.needed_reviewers_count,
-            repo.default_needed_reviewers_count as usize
+            repo.default_needed_reviewers_count() as usize
         );
         assert!(status.missing_required_reviewers.is_empty());
         assert!(status.locked);

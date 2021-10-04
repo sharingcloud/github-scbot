@@ -17,7 +17,7 @@ impl Command for RepositoryListCommand {
             println!("No repository known.");
         } else {
             for repo in repos {
-                println!("- {}/{}", repo.owner, repo.name);
+                println!("- {}/{}", repo.owner(), repo.name());
             }
         }
 

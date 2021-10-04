@@ -233,12 +233,12 @@ async fn test_import_models_from_json() -> Result<()> {
             .await
             .unwrap();
 
-        assert_eq!(rep_1.pr_title_validation_regex, "[a-z]*");
-        assert!(!rep_1.manual_interaction);
-        assert!(!rep_1.default_automerge);
-        assert_eq!(rep_2.pr_title_validation_regex, "");
-        assert!(rep_2.manual_interaction);
-        assert!(rep_2.default_automerge);
+        assert_eq!(rep_1.pr_title_validation_regex(), "[a-z]*");
+        assert!(!rep_1.manual_interaction());
+        assert!(!rep_1.default_automerge());
+        assert_eq!(rep_2.pr_title_validation_regex(), "");
+        assert!(rep_2.manual_interaction());
+        assert!(rep_2.default_automerge());
         assert_eq!(pr_1.name(), "Tutu");
         assert!(!pr_1.automerge());
         assert_eq!(pr_1.check_status(), CheckStatus::Waiting);
@@ -249,8 +249,8 @@ async fn test_import_models_from_json() -> Result<()> {
         assert_eq!(pr_2.qa_status(), QaStatus::Pass);
         assert!(review_1.required());
         assert!(acc_1.is_admin);
-        assert_eq!(review_1.get_review_state(), GhReviewState::Commented);
-        assert!(matches!(rule_1.get_strategy(), GhMergeStrategy::Merge));
+        assert_eq!(review_1.state(), GhReviewState::Commented);
+        assert!(matches!(rule_1.strategy(), GhMergeStrategy::Merge));
         assert_eq!(ext_acc_1.public_key, "pub");
         assert_eq!(ext_acc_right_1.username, "ext");
 

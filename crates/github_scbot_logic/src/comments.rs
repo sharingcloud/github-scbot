@@ -133,7 +133,7 @@ pub async fn handle_comment_creation(
 
     info!(
         commands = ?commands,
-        repository_path = %repo_model.get_path(),
+        repository_path = %repo_model.path(),
         pull_request_number = pr_model.number(),
         message = "Will execute commands",
     );

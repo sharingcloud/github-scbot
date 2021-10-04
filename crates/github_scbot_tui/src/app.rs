@@ -40,7 +40,7 @@ impl<'a> App<'a> {
         for repo in repositories {
             let mut prs = Vec::new();
             for pr in &pull_requests {
-                if repo.id == pr.repository_id() {
+                if repo.id() == pr.repository_id() {
                     prs.push(pr.clone());
                 }
             }
@@ -68,7 +68,7 @@ impl<'a> App<'a> {
                 .data
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(i.0.get_path())];
+                    let lines = vec![Spans::from(i.0.path())];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -126,7 +126,7 @@ impl<'a> App<'a> {
         if let Some(selected_repo) = self.data.get_current_repository() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    selected_repo.get_path(),
+                    selected_repo.path(),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),

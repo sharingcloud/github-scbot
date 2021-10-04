@@ -27,20 +27,9 @@ use builder::PullRequestModelBuilder;
 
 /// Pull request model.
 #[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Queryable,
-    Identifiable,
-    Clone,
-    PartialEq,
-    Eq,
-    AsChangeset,
-    Default,
-    SCGetter,
+    Debug, Deserialize, Serialize, Queryable, Identifiable, Clone, PartialEq, Eq, Default, SCGetter,
 )]
 #[table_name = "pull_request"]
-#[changeset_options(treat_none_as_null = "true")]
 pub struct PullRequestModel {
     /// ID.
     #[get]
@@ -353,7 +342,9 @@ impl PullRequestModel {
     pub fn checks_url(&self, repository: &RepositoryModel) -> String {
         return format!(
             "https://github.com/{}/{}/pull/{}/checks",
-            repository.owner, repository.name, self.number
+            repository.owner(),
+            repository.name(),
+            self.number
         );
     }
 
@@ -452,7 +443,7 @@ mod tests {
                 pr,
                 PullRequestModel {
                     id: pr.id,
-                    repository_id: repo.id,
+                    repository_id: repo.id(),
                     number: 1234,
                     creator: "me".into(),
                     automerge: false,
@@ -463,7 +454,7 @@ mod tests {
                     locked: false,
                     merged: false,
                     name: "Toto".into(),
-                    needed_reviewers_count: repo.default_needed_reviewers_count,
+                    needed_reviewers_count: repo.default_needed_reviewers_count(),
                     qa_status: QaStatus::Waiting.to_string(),
                     status_comment_id: 0,
                     step: None,

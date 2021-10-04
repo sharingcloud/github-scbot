@@ -122,30 +122,31 @@ where
     for repository in &mut model.repositories {
         println!(
             "> Importing repository {}/{}",
-            repository.owner, repository.name
+            repository.owner(),
+            repository.name()
         );
 
         let repo = RepositoryModel::builder_from_model(config, repository)
             .create_or_update(db_adapter.repository())
             .await?;
 
-        repo_id_map.insert(repository.id, repo.id);
-        repo_map.insert(repo.id, repo);
+        repo_id_map.insert(repository.id(), repo.id());
+        repo_map.insert(repo.id(), repo);
     }
 
     // Create or update merge rules
     for merge_rule in &mut model.merge_rules {
         println!(
             "> Importing merge rule '{}' (base) <- '{}' (head), strategy '{}' for repository ID {}",
-            merge_rule.base_branch,
-            merge_rule.head_branch,
-            merge_rule.get_strategy().to_string(),
-            merge_rule.repository_id
+            merge_rule.base_branch(),
+            merge_rule.head_branch(),
+            merge_rule.strategy().to_string(),
+            merge_rule.repository_id()
         );
 
         let repo_id = repo_id_map
-            .get(&merge_rule.repository_id)
-            .ok_or(ImportError::UnknownRepositoryId(merge_rule.repository_id))?;
+            .get(&merge_rule.repository_id())
+            .ok_or_else(|| ImportError::UnknownRepositoryId(merge_rule.repository_id()))?;
         let repo = repo_map.get(repo_id).unwrap();
 
         MergeRuleModel::builder_from_model(repo, merge_rule)

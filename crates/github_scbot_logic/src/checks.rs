@@ -64,8 +64,8 @@ pub async fn handle_check_suite_event(
                         // Check if other checks are still running
                         let status = PullRequestLogic::get_checks_status_from_github(
                             api_adapter,
-                            &repo_model.owner,
-                            &repo_model.name,
+                            repo_model.owner(),
+                            repo_model.name(),
                             &gh_pr.head.sha,
                             &[event.check_suite.id],
                         )

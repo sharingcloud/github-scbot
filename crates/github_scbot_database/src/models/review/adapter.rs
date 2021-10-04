@@ -92,7 +92,7 @@ impl IReviewDbAdapter for ReviewDbAdapter {
             .map_err(|_e| {
                 DatabaseError::UnknownReviewState(
                     username.to_string(),
-                    repository.get_path(),
+                    repository.path(),
                     pull_request.number(),
                 )
             })

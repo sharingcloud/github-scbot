@@ -23,8 +23,14 @@ impl Command for RepositorySetManualInteractionCommand {
         let mut repo =
             RepositoryModel::get_from_path(ctx.db_adapter.repository(), &self.repository_path)
                 .await?;
-        repo.manual_interaction = self.manual_interaction;
-        ctx.db_adapter.repository().save(&mut repo).await?;
+        let update = repo
+            .create_update()
+            .manual_interaction(self.manual_interaction)
+            .build_update();
+        ctx.db_adapter
+            .repository()
+            .update(&mut repo, update)
+            .await?;
 
         println!(
             "Manual interaction mode set to '{}' for repository {}.",

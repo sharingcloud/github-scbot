@@ -61,8 +61,8 @@ pub async fn handle_merge_command(
     if matches!(step, StepLabel::AwaitingMerge) {
         if let Err(e) = api_adapter
             .pulls_merge(
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 pr_model.number(),
                 &commit_title,
                 "",
@@ -126,8 +126,8 @@ pub async fn handle_admin_sync_command(
         config,
         api_adapter,
         db_adapter,
-        &repo_model.owner,
-        &repo_model.name,
+        repo_model.owner(),
+        repo_model.name(),
         pr_model.number(),
     )
     .await?;
@@ -329,8 +329,8 @@ pub async fn handle_assign_required_reviewers_command(
     // Communicate to GitHub
     api_adapter
         .pull_reviewer_requests_add(
-            &repo_model.owner,
-            &repo_model.name,
+            repo_model.owner(),
+            repo_model.name(),
             pr_model.number(),
             &reviewers,
         )
@@ -375,8 +375,8 @@ pub async fn handle_unassign_required_reviewers_command(
 
     api_adapter
         .pull_reviewer_requests_remove(
-            &repo_model.owner,
-            &repo_model.name,
+            repo_model.owner(),
+            repo_model.name(),
             pr_model.number(),
             &reviewers,
         )
@@ -438,8 +438,11 @@ pub async fn handle_set_default_needed_reviewers_command(
     repo_model: &mut RepositoryModel,
     count: u32,
 ) -> Result<CommandExecutionResult> {
-    repo_model.default_needed_reviewers_count = count as i32;
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .default_needed_reviewers_count(count as u64)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = format!(
         "Needed reviewers count set to **{}** for this repository.",
@@ -458,8 +461,11 @@ pub async fn handle_set_default_merge_strategy_command(
     repo_model: &mut RepositoryModel,
     strategy: GhMergeStrategy,
 ) -> Result<CommandExecutionResult> {
-    repo_model.set_default_merge_strategy(strategy);
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .default_strategy(strategy)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = format!(
         "Merge strategy set to **{}** for this repository.",
@@ -478,8 +484,11 @@ pub async fn handle_set_default_pr_title_regex_command(
     repo_model: &mut RepositoryModel,
     pr_title_regex: String,
 ) -> Result<CommandExecutionResult> {
-    repo_model.pr_title_validation_regex = pr_title_regex.clone();
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .pr_title_validation_regex(&pr_title_regex)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = if pr_title_regex.is_empty() {
         "PR title regex unset for this repository.".into()
@@ -501,8 +510,11 @@ pub async fn handle_set_default_qa_status_command(
     repo_model: &mut RepositoryModel,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    repo_model.default_enable_qa = status;
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .default_enable_qa(status)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = if status {
         "QA disabled for this repository."
@@ -521,8 +533,11 @@ pub async fn handle_set_default_checks_status_command(
     repo_model: &mut RepositoryModel,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    repo_model.default_enable_checks = status;
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .default_enable_checks(status)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = if status {
         "Checks disabled for this repository."
@@ -561,8 +576,11 @@ pub async fn handle_set_default_automerge_command(
     repo_model: &mut RepositoryModel,
     value: bool,
 ) -> Result<CommandExecutionResult> {
-    repo_model.default_automerge = value;
-    db_adapter.repository().save(repo_model).await?;
+    let update = repo_model
+        .create_update()
+        .default_automerge(value)
+        .build_update();
+    db_adapter.repository().update(repo_model, update).await?;
 
     let comment = format!(
         "Default automerge status set to **{}** for this repository.",
@@ -581,7 +599,7 @@ pub async fn handle_admin_disable_command(
     repo_model: &RepositoryModel,
     pr_model: &mut PullRequestModel,
 ) -> Result<CommandExecutionResult> {
-    if repo_model.manual_interaction {
+    if repo_model.manual_interaction() {
         StatusLogic::disable_validation_status(api_adapter, db_adapter, repo_model, pr_model)
             .await?;
         db_adapter.pull_request().remove(pr_model).await?;
@@ -1191,14 +1209,16 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_set_default_needed_reviewers_command() -> Result<()> {
+        let config = Config::from_env();
         let db_adapter = DummyDatabaseAdapter::new();
-        let mut repo_model = RepositoryModel::default();
-        repo_model.default_needed_reviewers_count = 10;
+        let mut repo_model = RepositoryModel::builder(&config, "me", "test")
+            .default_needed_reviewers_count(10)
+            .create_or_update(db_adapter.repository())
+            .await?;
 
         let result =
             handle_set_default_needed_reviewers_command(&db_adapter, &mut repo_model, 0).await?;
-        assert_eq!(repo_model.default_needed_reviewers_count, 0);
-        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert_eq!(repo_model.default_needed_reviewers_count(), 0);
         assert!(!result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -1225,11 +1245,7 @@ mod tests {
             GhMergeStrategy::Squash,
         )
         .await?;
-        assert_eq!(
-            repo_model.get_default_merge_strategy(),
-            GhMergeStrategy::Squash
-        );
-        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert_eq!(repo_model.default_merge_strategy(), GhMergeStrategy::Squash);
         assert!(!result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -1246,9 +1262,12 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_set_default_pr_title_regex_command() -> Result<()> {
+        let config = Config::from_env();
         let db_adapter = DummyDatabaseAdapter::new();
-        let mut repo_model = RepositoryModel::default();
-        repo_model.pr_title_validation_regex = String::new();
+        let mut repo_model = RepositoryModel::builder(&config, "me", "test")
+            .pr_title_validation_regex(String::new())
+            .create_or_update(db_adapter.repository())
+            .await?;
 
         // Non empty
         let result = handle_set_default_pr_title_regex_command(
@@ -1257,8 +1276,7 @@ mod tests {
             r"[A-Z]+".into(),
         )
         .await?;
-        assert_eq!(repo_model.pr_title_validation_regex, r"[A-Z]+");
-        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 1);
+        assert_eq!(repo_model.pr_title_validation_regex(), r"[A-Z]+");
         assert!(result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -1274,8 +1292,7 @@ mod tests {
         let result =
             handle_set_default_pr_title_regex_command(&db_adapter, &mut repo_model, "".into())
                 .await?;
-        assert_eq!(repo_model.pr_title_validation_regex, "");
-        assert_eq!(db_adapter.repository_adapter.save_response.call_count(), 2);
+        assert_eq!(repo_model.pr_title_validation_regex(), "");
         assert!(result.should_update_status);
         assert_eq!(
             result.result_actions,
@@ -1319,11 +1336,14 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_admin_disable_command() -> Result<()> {
+        let config = Config::from_env();
         let api_adapter = DummyAPIAdapter::new();
         let db_adapter = DummyDatabaseAdapter::new();
-        let mut repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();
-        repo_model.manual_interaction = false;
+        let mut repo_model = RepositoryModel::builder(&config, "me", "test")
+            .manual_interaction(false)
+            .create_or_update(db_adapter.repository())
+            .await?;
 
         let result =
             handle_admin_disable_command(&api_adapter, &db_adapter, &repo_model, &mut pr_model)
@@ -1341,7 +1361,14 @@ mod tests {
             ResultAction::PostComment("You can not disable the bot on this PR, the repository is not in manual interaction mode.".into())
         ]);
 
-        repo_model.manual_interaction = true;
+        let update = repo_model
+            .create_update()
+            .manual_interaction(true)
+            .build_update();
+        db_adapter
+            .repository()
+            .update(&mut repo_model, update)
+            .await?;
         let update = pr_model.create_update().status_comment_id(0).build_update();
         db_adapter
             .pull_request()

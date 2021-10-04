@@ -57,7 +57,9 @@ pub async fn handle_pull_request_opened(
         if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
             let key = format!(
                 "pr-creation_{}-{}_{}",
-                repo_model.owner, repo_model.name, event.pull_request.number
+                repo_model.owner(),
+                repo_model.name(),
+                event.pull_request.number
             );
             if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await?
             {
@@ -82,7 +84,7 @@ pub async fn handle_pull_request_opened(
                 let update = pr_model
                     .create_update()
                     .check_status(CheckStatus::Waiting)
-                    .needed_reviewers_count(repo_model.default_needed_reviewers_count as u64)
+                    .needed_reviewers_count(repo_model.default_needed_reviewers_count() as u64)
                     .build_update();
                 db_adapter
                     .pull_request()
@@ -90,7 +92,7 @@ pub async fn handle_pull_request_opened(
                     .await?;
 
                 info!(
-                    repository_path = %repo_model.get_path(),
+                    repository_path = %repo_model.path(),
                     pr_model = ?pr_model,
                     message = "Creating pull request",
                 );
@@ -272,7 +274,7 @@ impl PullRequestLogic {
         repo_model: &RepositoryModel,
         event: &GhPullRequestEvent,
     ) -> bool {
-        if repo_model.manual_interaction {
+        if repo_model.manual_interaction() {
             if let Some(body) = &event.pull_request.body {
                 // Check for magic instruction to enable bot
                 let commands = CommandParser::parse_commands(config, body);
@@ -425,8 +427,8 @@ impl PullRequestLogic {
 
         if let Err(e) = api_adapter
             .pulls_merge(
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 pr_model.number(),
                 &commit_title,
                 "",
@@ -436,8 +438,8 @@ impl PullRequestLogic {
         {
             CommentApi::post_comment(
                 api_adapter,
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 pr_model.number(),
                 &format!(
                     "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
@@ -449,8 +451,8 @@ impl PullRequestLogic {
         } else {
             CommentApi::post_comment(
                 api_adapter,
-                &repo_model.owner,
-                &repo_model.name,
+                repo_model.owner(),
+                repo_model.name(),
                 pr_model.number(),
                 &format!(
                     "Pull request successfully auto-merged! (strategy: '{}')",
@@ -470,8 +472,8 @@ impl PullRequestLogic {
     ) -> Result<()> {
         LabelApi::set_step_label(
             api_adapter,
-            &repository_model.owner,
-            &repository_model.name,
+            repository_model.owner(),
+            repository_model.name(),
             pr_model.number(),
             pr_model.step(),
         )
@@ -488,8 +490,8 @@ impl PullRequestLogic {
     ) -> Result<()> {
         CommentApi::post_comment(
             api_adapter,
-            &repo_model.owner,
-            &repo_model.name,
+            repo_model.owner(),
+            repo_model.name(),
             pr_model.number(),
             &format!(
                 ":tada: Welcome, _{}_ ! :tada:\n\
