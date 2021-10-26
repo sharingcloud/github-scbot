@@ -92,7 +92,12 @@ impl SummaryTextGenerator {
             "No :heavy_check_mark:"
         };
 
-        let code_review_section = if pull_request_status.missing_required_reviews() {
+        let code_review_section = if pull_request_status.changes_required() {
+            format!(
+                "_waiting on change requests..._ ({}) :clock2:",
+                pull_request_status.changes_required_reviewers.join(", ")
+            )
+        } else if pull_request_status.missing_required_reviews() {
             format!(
                 "_waiting on mandatory reviews..._ ({}) :clock2:",
                 pull_request_status.missing_required_reviewers.join(", ")

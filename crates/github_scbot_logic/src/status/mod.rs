@@ -27,7 +27,9 @@ impl StatusLogic {
         } else if pull_request_status.valid_pr_title {
             match pull_request_status.checks_status {
                 CheckStatus::Pass | CheckStatus::Skipped => {
-                    if pull_request_status.missing_required_reviews() {
+                    if pull_request_status.changes_required() {
+                        StepLabel::AwaitingChanges
+                    } else if pull_request_status.missing_required_reviews() {
                         StepLabel::AwaitingRequiredReview
                     } else if pull_request_status.missing_reviews() {
                         StepLabel::AwaitingReview
