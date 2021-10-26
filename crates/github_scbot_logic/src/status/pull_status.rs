@@ -13,6 +13,8 @@ use crate::errors::Result;
 /// Pull request status.
 #[derive(Debug)]
 pub struct PullRequestStatus {
+    /// Reviewers waiting for changes
+    pub changes_required_reviewers: Vec<String>,
     /// Approved reviewer usernames.
     pub approved_reviewers: Vec<String>,
     /// Automerge enabled?
@@ -74,10 +76,13 @@ impl PullRequestStatus {
         let needed_reviews = pr_model.needed_reviewers_count() as usize;
         let mut approved_reviews = vec![];
         let mut required_reviews = vec![];
+        let mut changes_required_reviews = vec![];
 
         for review in valid_reviews {
             let state = review.state();
-            if review.required() && state != GhReviewState::Approved {
+            if state == GhReviewState::ChangesRequested {
+                changes_required_reviews.push(review.username().into());
+            } else if review.required() && state != GhReviewState::Approved {
                 required_reviews.push(review.username().into());
             } else if state == GhReviewState::Approved {
                 approved_reviews.push(review.username().into());
@@ -85,6 +90,7 @@ impl PullRequestStatus {
         }
 
         Ok(Self {
+            changes_required_reviewers: changes_required_reviews,
             approved_reviewers: approved_reviews,
             automerge: pr_model.automerge(),
             checks_status: pr_model.check_status(),
@@ -116,6 +122,11 @@ impl PullRequestStatus {
     pub fn missing_reviews(&self) -> bool {
         self.missing_required_reviews()
             || self.needed_reviewers_count > self.approved_reviewers.len()
+    }
+
+    /// Check if changes are required.
+    pub fn changes_required(&self) -> bool {
+        !self.changes_required_reviewers.is_empty()
     }
 
     /// Check PR title
