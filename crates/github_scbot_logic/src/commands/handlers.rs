@@ -394,7 +394,7 @@ pub async fn handle_assign_required_reviewers_command(
     }
 
     Ok(CommandExecutionResult::builder()
-        .with_status_update(true)
+        .with_status_update(approved_len > 0)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())
@@ -746,7 +746,7 @@ mod tests {
         adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
         ApiError,
     };
-    use github_scbot_types::pulls::GhPullRequest;
+    use github_scbot_types::{common::GhUserPermission, pulls::GhPullRequest};
     use maplit::hashmap;
 
     use super::*;
@@ -1065,7 +1065,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_assign_required_reviewers_command() -> Result<()> {
-        let api_adapter = DummyAPIAdapter::new();
+        let mut api_adapter = DummyAPIAdapter::new();
         let mut db_adapter = DummyDatabaseAdapter::new();
         db_adapter
             .review_adapter
@@ -1075,6 +1075,10 @@ mod tests {
                 "repo".into(),
                 1,
             )));
+
+        api_adapter
+            .user_permissions_get_response
+            .set_response(Ok(GhUserPermission::Write));
 
         let repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();
@@ -1090,10 +1094,10 @@ mod tests {
         .await?;
         assert_eq!(
             api_adapter.pull_reviewer_requests_add_response.call_count(),
-            1
+            0
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
-        assert!(result.should_update_status);
+        assert!(!result.should_update_status);
 
         let reviewers = vec!["one".into(), "two".into()];
         let result = handle_assign_required_reviewers_command(
@@ -1106,7 +1110,7 @@ mod tests {
         .await?;
         assert_eq!(
             api_adapter.pull_reviewer_requests_add_response.call_count(),
-            2
+            1
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
         assert!(result.should_update_status);
