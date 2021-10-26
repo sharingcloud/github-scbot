@@ -326,16 +326,6 @@ pub async fn handle_assign_required_reviewers_command(
         message = "Request required reviewers",
     );
 
-    // Communicate to GitHub
-    api_adapter
-        .pull_reviewer_requests_add(
-            repo_model.owner(),
-            repo_model.name(),
-            pr_model.number(),
-            &reviewers,
-        )
-        .await?;
-
     let mut approved_reviewers = vec![];
     let mut rejected_reviewers = vec![];
 
@@ -358,9 +348,22 @@ pub async fn handle_assign_required_reviewers_command(
             .await?;
     }
 
-    let mut comment = String::new();
     let approved_len = approved_reviewers.len();
     let rejected_len = rejected_reviewers.len();
+
+    if approved_len > 0 {
+        // Communicate to GitHub
+        api_adapter
+            .pull_reviewer_requests_add(
+                repo_model.owner(),
+                repo_model.name(),
+                pr_model.number(),
+                &approved_reviewers,
+            )
+            .await?;
+    }
+
+    let mut comment = String::new();
 
     match approved_len {
         0 => (),
@@ -374,16 +377,20 @@ pub async fn handle_assign_required_reviewers_command(
         )),
     }
 
+    if approved_len > 0 && rejected_len > 0 {
+        comment.push_str("\n\nBut");
+    }
+
     match rejected_len {
         0 => (),
         1 => comment.push_str(&format!(
-            "\nBut **{}** has no write permission on this repository and can't be a required reviewer.",
+            "**{}** has no write permission on this repository and can't be a required reviewer.",
             rejected_reviewers[0]
         )),
         _ => comment.push_str(&format!(
-            "\nBut **{}** have no write permission on this repository and can't be required reviewers.",
+            "**{}** have no write permission on this repository and can't be required reviewers.",
             rejected_reviewers.join(", ")
-        ))
+        )),
     }
 
     Ok(CommandExecutionResult::builder()
