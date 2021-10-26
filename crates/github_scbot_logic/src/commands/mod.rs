@@ -602,7 +602,7 @@ mod tests {
                     ResultAction::PostComment(
                         "> test-bot req+ user\n\
                         \n\
-                        user is now a required reviewer on this PR.\n\
+                        **user** has no write permission on this repository and can't be a required reviewer.\n\
                         \n\
                         ---\n\
                         \n\

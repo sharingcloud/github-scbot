@@ -326,34 +326,75 @@ pub async fn handle_assign_required_reviewers_command(
         message = "Request required reviewers",
     );
 
-    // Communicate to GitHub
-    api_adapter
-        .pull_reviewer_requests_add(
-            repo_model.owner(),
-            repo_model.name(),
-            pr_model.number(),
-            &reviewers,
-        )
-        .await?;
+    let mut approved_reviewers = vec![];
+    let mut rejected_reviewers = vec![];
 
     for reviewer in &reviewers {
+        let permission = api_adapter
+            .user_permissions_get(repo_model.owner(), repo_model.name(), reviewer)
+            .await?
+            .can_write();
+
+        if permission {
+            approved_reviewers.push(reviewer.clone());
+        } else {
+            rejected_reviewers.push(reviewer.clone());
+        }
+
         ReviewModel::builder(repo_model, pr_model, reviewer)
             .required(true)
+            .valid(permission)
             .create_or_update(db_adapter.review())
             .await?;
     }
 
-    let comment = if reviewers.len() == 1 {
-        format!("{} is now a required reviewer on this PR.", reviewers[0])
-    } else {
-        format!(
-            "{} are now required reviewers on this PR.",
-            reviewers.join(" ")
-        )
-    };
+    let approved_len = approved_reviewers.len();
+    let rejected_len = rejected_reviewers.len();
+
+    if approved_len > 0 {
+        // Communicate to GitHub
+        api_adapter
+            .pull_reviewer_requests_add(
+                repo_model.owner(),
+                repo_model.name(),
+                pr_model.number(),
+                &approved_reviewers,
+            )
+            .await?;
+    }
+
+    let mut comment = String::new();
+
+    match approved_len {
+        0 => (),
+        1 => comment.push_str(&format!(
+            "**{}** is now a required reviewer on this PR.",
+            approved_reviewers[0]
+        )),
+        _ => comment.push_str(&format!(
+            "**{}** are now required reviewers on this PR.",
+            approved_reviewers.join(", ")
+        )),
+    }
+
+    if approved_len > 0 && rejected_len > 0 {
+        comment.push_str("\n\nBut");
+    }
+
+    match rejected_len {
+        0 => (),
+        1 => comment.push_str(&format!(
+            "**{}** has no write permission on this repository and can't be a required reviewer.",
+            rejected_reviewers[0]
+        )),
+        _ => comment.push_str(&format!(
+            "**{}** have no write permission on this repository and can't be required reviewers.",
+            rejected_reviewers.join(", ")
+        )),
+    }
 
     Ok(CommandExecutionResult::builder()
-        .with_status_update(true)
+        .with_status_update(approved_len > 0)
         .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
         .with_action(ResultAction::PostComment(comment))
         .build())
@@ -705,7 +746,7 @@ mod tests {
         adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
         ApiError,
     };
-    use github_scbot_types::pulls::GhPullRequest;
+    use github_scbot_types::{common::GhUserPermission, pulls::GhPullRequest};
     use maplit::hashmap;
 
     use super::*;
@@ -1024,7 +1065,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_assign_required_reviewers_command() -> Result<()> {
-        let api_adapter = DummyAPIAdapter::new();
+        let mut api_adapter = DummyAPIAdapter::new();
         let mut db_adapter = DummyDatabaseAdapter::new();
         db_adapter
             .review_adapter
@@ -1034,6 +1075,10 @@ mod tests {
                 "repo".into(),
                 1,
             )));
+
+        api_adapter
+            .user_permissions_get_response
+            .set_response(Ok(GhUserPermission::Write));
 
         let repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();
@@ -1049,10 +1094,10 @@ mod tests {
         .await?;
         assert_eq!(
             api_adapter.pull_reviewer_requests_add_response.call_count(),
-            1
+            0
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
-        assert!(result.should_update_status);
+        assert!(!result.should_update_status);
 
         let reviewers = vec!["one".into(), "two".into()];
         let result = handle_assign_required_reviewers_command(
@@ -1065,7 +1110,7 @@ mod tests {
         .await?;
         assert_eq!(
             api_adapter.pull_reviewer_requests_add_response.call_count(),
-            2
+            1
         );
         assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
         assert!(result.should_update_status);
