@@ -336,21 +336,55 @@ pub async fn handle_assign_required_reviewers_command(
         )
         .await?;
 
+    let mut approved_reviewers = vec![];
+    let mut rejected_reviewers = vec![];
+
     for reviewer in &reviewers {
+        let permission = api_adapter
+            .user_permissions_get(repo_model.owner(), repo_model.name(), reviewer)
+            .await?
+            .can_write();
+
+        if permission {
+            approved_reviewers.push(reviewer.clone());
+        } else {
+            rejected_reviewers.push(reviewer.clone());
+        }
+
         ReviewModel::builder(repo_model, pr_model, reviewer)
             .required(true)
+            .valid(permission)
             .create_or_update(db_adapter.review())
             .await?;
     }
 
-    let comment = if reviewers.len() == 1 {
-        format!("{} is now a required reviewer on this PR.", reviewers[0])
-    } else {
-        format!(
-            "{} are now required reviewers on this PR.",
-            reviewers.join(" ")
-        )
-    };
+    let mut comment = String::new();
+    let approved_len = approved_reviewers.len();
+    let rejected_len = rejected_reviewers.len();
+
+    match approved_len {
+        0 => (),
+        1 => comment.push_str(&format!(
+            "**{}** is now a required reviewer on this PR.",
+            approved_reviewers[0]
+        )),
+        _ => comment.push_str(&format!(
+            "**{}** are now required reviewers on this PR.",
+            approved_reviewers.join(", ")
+        )),
+    }
+
+    match rejected_len {
+        0 => (),
+        1 => comment.push_str(&format!(
+            "\nBut **{}** has no write permission on this repository and can't be a required reviewer.",
+            rejected_reviewers[0]
+        )),
+        _ => comment.push_str(&format!(
+            "\nBut **{}** have no write permission on this repository and can't be required reviewers.",
+            rejected_reviewers.join(", ")
+        ))
+    }
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
