@@ -9,7 +9,7 @@ use github_scbot_database::{
 use github_scbot_ghapi::adapter::{DummyAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
-    common::GhUser,
+    common::{GhUser, GhUserPermission},
     reviews::{GhReview, GhReviewState},
 };
 
@@ -71,8 +71,11 @@ async fn test_review_creation() -> Result<()> {
 
     using_test_db("test_logic_reviews", |config, pool| async move {
         let db_adapter = DatabaseAdapter::new(pool);
-        let api_adapter = DummyAPIAdapter::new();
+        let mut api_adapter = DummyAPIAdapter::new();
         let mut redis_adapter = DummyRedisAdapter::new();
+        api_adapter
+            .user_permissions_get_response
+            .set_response(Ok(GhUserPermission::Write));
 
         let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 

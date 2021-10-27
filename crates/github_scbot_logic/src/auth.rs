@@ -1,6 +1,7 @@
 //! Authentication logic module.
 
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel};
+use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_types::common::GhUserPermission;
 
 use crate::Result;
 
@@ -21,13 +22,13 @@ impl AuthLogic {
             .collect())
     }
 
-    /// Check if user has right on pull request.
-    pub fn has_right_on_pull_request(
+    /// Check if user has write right.
+    pub fn has_write_right(
         username: &str,
-        pr_model: &PullRequestModel,
+        user_permission: GhUserPermission,
         known_admins: &[String],
     ) -> bool {
-        Self::is_admin(username, known_admins) || pr_model.creator() == username
+        Self::is_admin(username, known_admins) || user_permission.can_write()
     }
 
     /// Check if user is admin.

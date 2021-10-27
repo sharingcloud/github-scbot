@@ -386,7 +386,7 @@ impl Command {
     fn parse_reviewers(reviewers: &[&str]) -> CommandResult<Vec<String>> {
         let reviewers: Vec<String> = reviewers
             .iter()
-            .filter_map(|x| x.strip_prefix('@').map(str::to_string))
+            .map(|x| x.trim_matches('@').to_string())
             .collect();
 
         if reviewers.is_empty() {
@@ -465,14 +465,15 @@ mod tests {
                 "one".to_string(),
                 "two".to_string(),
                 "three".to_string(),
-                "@four".to_string()
+                "four".to_string(),
+                "5".to_string()
             ]
         );
 
-        assert!(matches!(
-            Command::parse_reviewers(&["toto"]),
-            Err(CommandError::IncompleteCommand)
-        ));
+        assert_eq!(
+            Command::parse_reviewers(&["toto"]).unwrap(),
+            vec!["toto".to_string(),]
+        );
         assert!(matches!(
             Command::parse_reviewers(&[]),
             Err(CommandError::IncompleteCommand)
