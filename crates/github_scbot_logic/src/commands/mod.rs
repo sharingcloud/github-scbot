@@ -8,7 +8,7 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::issues::GhReactionType;
+use github_scbot_types::{common::GhUserPermission, issues::GhReactionType};
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
 use tracing::info;
@@ -211,7 +211,11 @@ impl CommandExecutor {
             message = "Interpreting command"
         );
 
-        if Self::validate_user_rights_on_command(db_adapter, comment_author, pr_model, &command)
+        let permission = api_adapter
+            .user_permissions_get(repo_model.owner(), repo_model.name(), comment_author)
+            .await?;
+
+        if Self::validate_user_rights_on_command(db_adapter, comment_author, permission, &command)
             .await?
         {
             command_result = match &command {
@@ -405,7 +409,7 @@ impl CommandExecutor {
     pub async fn validate_user_rights_on_command(
         db_adapter: &dyn IDatabaseAdapter,
         username: &str,
-        pr_model: &PullRequestModel,
+        user_permission: GhUserPermission,
         command: &Command,
     ) -> Result<bool> {
         let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
@@ -413,9 +417,9 @@ impl CommandExecutor {
         match command {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
-                _ => Ok(AuthLogic::has_right_on_pull_request(
+                _ => Ok(AuthLogic::has_write_right(
                     username,
-                    pr_model,
+                    user_permission,
                     &known_admins,
                 )),
             },
@@ -440,19 +444,9 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_validate_user_rights_on_command() -> Result<()> {
-        using_test_db("test_logic_commands", |config, pool| async move {
+        using_test_db("test_logic_commands", |_config, pool| async move {
             let db_adapter = DatabaseAdapter::new(pool);
-
             let creator = "me";
-            let repo = RepositoryModel::builder(&config, "me", "test")
-                .create_or_update(db_adapter.repository())
-                .await
-                .unwrap();
-
-            let pr = PullRequestModel::builder(&repo, 1, creator)
-                .create_or_update(db_adapter.pull_request())
-                .await
-                .unwrap();
 
             AccountModel::builder("non-admin")
                 .admin(false)
@@ -470,16 +464,25 @@ mod tests {
             assert!(CommandExecutor::validate_user_rights_on_command(
                 &db_adapter,
                 creator,
-                &pr,
+                GhUserPermission::Write,
                 &Command::User(UserCommand::Merge(None))
             )
             .await
             .unwrap());
-            // Non-admin should be invalid
+            // Non-admin without write permission should be invalid
             assert!(!CommandExecutor::validate_user_rights_on_command(
                 &db_adapter,
                 "non-admin",
-                &pr,
+                GhUserPermission::Read,
+                &Command::User(UserCommand::Merge(None))
+            )
+            .await
+            .unwrap());
+            // Non-admin with write permission should be valid
+            assert!(CommandExecutor::validate_user_rights_on_command(
+                &db_adapter,
+                "non-admin",
+                GhUserPermission::Write,
                 &Command::User(UserCommand::Merge(None))
             )
             .await
@@ -488,7 +491,7 @@ mod tests {
             assert!(CommandExecutor::validate_user_rights_on_command(
                 &db_adapter,
                 "admin",
-                &pr,
+                GhUserPermission::Write,
                 &Command::User(UserCommand::Merge(None))
             )
             .await
@@ -555,13 +558,17 @@ mod tests {
     async fn test_issue_78() {
         let mut config = Config::from_env();
         config.bot_username = "test-bot".into();
-        let api_adapter = DummyAPIAdapter::new();
+        let mut api_adapter = DummyAPIAdapter::new();
         let db_adapter = DummyDatabaseAdapter::new();
         let redis_adapter = DummyRedisAdapter::new();
         let mut repo = RepositoryModel::builder(&config, "me", "repo")
             .build()
             .into();
         let mut pr = PullRequestModel::builder(&repo, 1, "me").build().into();
+
+        api_adapter
+            .user_permissions_get_response
+            .set_response(Ok(GhUserPermission::Write));
 
         let commands = CommandParser::parse_commands(
             &config,
@@ -602,7 +609,7 @@ mod tests {
                     ResultAction::PostComment(
                         "> test-bot req+ user\n\
                         \n\
-                        **user** has no write permission on this repository and can't be a required reviewer.\n\
+                        **user** is now a required reviewer on this PR.\n\
                         \n\
                         ---\n\
                         \n\

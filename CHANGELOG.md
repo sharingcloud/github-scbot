@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2021-10-27
+
+## Changed
+
+- Support reviewers without the leading '@' in req+/- commands
+- Check command rights based on write permissions instead of PR owner
+
 ## [0.15.0] - 2021-10-26
 
-## Fixed
+## Added
 
 - Handle changes requests
 - Check permissions when adding required reviewers
@@ -160,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/sharingcloud/github-scbot/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/sharingcloud/github-scbot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/sharingcloud/github-scbot/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/sharingcloud/github-scbot/compare/v0.13.0...v0.13.1
