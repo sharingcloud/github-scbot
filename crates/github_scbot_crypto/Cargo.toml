@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 jsonwebtoken = "7"
-openssl = "0.10"
+rand = "0.8.4"
+rsa = "0.5.0"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1.0"

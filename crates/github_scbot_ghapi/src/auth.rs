@@ -87,7 +87,7 @@ mod tests {
         config.github_api_token = "123456".into();
 
         let (pri_key, _) = RsaUtils::generate_rsa_keys();
-        config.github_app_private_key = pri_key;
+        config.github_app_private_key = pri_key.to_string();
         config
     }
 

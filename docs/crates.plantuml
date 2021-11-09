@@ -17,6 +17,8 @@ API --> Crypto
 API --> Types
 API --> Utils
 
+Conf -> Crypto
+
 CLI --> API
 CLI --> Conf
 CLI --> DB

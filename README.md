@@ -121,15 +121,16 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 ## Building and developing
 
 This project is written in the [Rust programming language](https://www.rust-lang.org/), so to build you have to [install the Rust tools](https://www.rust-lang.org/tools/install).
-To use the development server with "watch mode", you will also need the `cargo-watch` tool (installable using `cargo install cargo-watch`).
+To use the development server with "watch mode", you will also need the `cargo-watch` tool (installable using `cargo install cargo-watch`).  
+You will also need the [`just` command runner](https://github.com/casey/just).
 
 ### Running server locally
 
-You can type `cargo xtask server` or `cargo xtask server --dev` for watch mode.
+Type `just runserver`.
 
 ### Docker building
 
-You can type `cargo xtask build-image` to automatically generate a Docker image with the current bot version.
+You can type `just docker-build` to automatically generate a Docker image with the current bot version.
 
 Once your image is ready, you can use the [docker/docker-compose.yml](./docker/docker-compose.yml) file to easily mount a Docker Compose stack.
 
