@@ -39,8 +39,8 @@ impl ExternalAccountModelBuilder {
 
     pub fn generate_keys(mut self) -> Self {
         let (private_key, public_key) = RsaUtils::generate_rsa_keys();
-        self.private_key = Some(private_key);
-        self.public_key = Some(public_key);
+        self.private_key = Some(private_key.to_string());
+        self.public_key = Some(public_key.to_string());
         self
     }
 
