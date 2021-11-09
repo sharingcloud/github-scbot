@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use openssl::rsa::Rsa;
-
 const RSA_SIZE: u32 = 2048;
 
 /// RSA utilities.
@@ -40,21 +38,26 @@ impl Display for PrivateRsaKey {
 impl RsaUtils {
     /// Generate a RSA key-pair.
     pub fn generate_rsa_keys() -> (PrivateRsaKey, PublicRsaKey) {
-        let rsa = Rsa::generate(RSA_SIZE).expect("RSA generation should work");
-        let private_key = rsa
-            .private_key_to_pem()
+        use ::rsa::{
+            pkcs1::{ToRsaPrivateKey, ToRsaPublicKey},
+            RsaPrivateKey, RsaPublicKey,
+        };
+        use rand::rngs::OsRng;
+
+        let mut rng = OsRng;
+        let priv_key =
+            RsaPrivateKey::new(&mut rng, RSA_SIZE as usize).expect("failed to generate a key");
+        let pub_key = RsaPublicKey::from(&priv_key);
+        let priv_key_pem = priv_key
+            .to_pkcs1_pem()
             .expect("RSA private key to PEM conversion should work");
-        let public_key = rsa
-            .public_key_to_pem_pkcs1()
+        let pub_key_pem = pub_key
+            .to_pkcs1_pem()
             .expect("RSA public key to PEM conversion should work");
 
         (
-            PrivateRsaKey(
-                String::from_utf8(private_key).expect("RSA private key should be valid utf-8"),
-            ),
-            PublicRsaKey(
-                String::from_utf8(public_key).expect("RSA public key should be valid utf-8"),
-            ),
+            PrivateRsaKey(priv_key_pem.to_string()),
+            PublicRsaKey(pub_key_pem),
         )
     }
 }

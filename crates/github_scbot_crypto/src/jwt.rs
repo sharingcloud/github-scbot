@@ -46,4 +46,16 @@ impl JwtUtils {
             .map_err(|e| CryptoError::JwtVerificationFailed(e.to_string()))?
             .claims)
     }
+
+    /// Parse decoding key.
+    pub fn parse_decoding_key(rsa_pub_key: &str) -> Result<DecodingKey> {
+        DecodingKey::from_rsa_pem(rsa_pub_key.as_bytes())
+            .map_err(|e| CryptoError::InvalidDecodingKey(e.to_string()))
+    }
+
+    /// Parse encoding key.
+    pub fn parse_encoding_key(rsa_priv_key: &str) -> Result<EncodingKey> {
+        EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes())
+            .map_err(|e| CryptoError::InvalidEncodingKey(e.to_string()))
+    }
 }

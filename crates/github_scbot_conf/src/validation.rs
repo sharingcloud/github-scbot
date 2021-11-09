@@ -1,6 +1,6 @@
 //! Validation utilities.
 
-use jsonwebtoken::EncodingKey;
+use github_scbot_crypto::JwtUtils;
 
 use crate::{config::Config, ConfError, Result};
 
@@ -88,7 +88,7 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
     if config.github_app_private_key.is_empty() {
         Err(ApiConfigError::MissingPrivateKey)
     } else {
-        match EncodingKey::from_rsa_pem(config.github_app_private_key.as_bytes()) {
+        match JwtUtils::parse_encoding_key(&config.github_app_private_key) {
             Err(_) => Err(ApiConfigError::InvalidPrivateKey),
             Ok(_) => {
                 // Check App ID

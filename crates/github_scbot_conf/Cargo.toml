@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 dotenv = "0.15"
-jsonwebtoken = "7"
+github-scbot-crypto = { path = "../github_scbot_crypto" }
 sentry = "0.21"
 sentry-eyre = { path = "../sentry_eyre" }
 stable-eyre = "0.2"
