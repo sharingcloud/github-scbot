@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Changed
+
+- Use the `rsa` crate instead of `openssl` (to generate RSA keys)
+- Reuse `just` instead of an adhoc crate.
+
 ## [0.16.0] - 2021-10-27
 
 ## Changed

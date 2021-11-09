@@ -1,3 +1,0 @@
-[alias]
-xtask = "run --package xtask --"
-run-cli = "run --package github-scbot-cli"

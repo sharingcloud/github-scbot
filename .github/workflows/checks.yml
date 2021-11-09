@@ -1,0 +1,86 @@
+name: Lint, format, build and test
+
+on:
+  push:
+
+jobs:
+  format:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/actions/prepare
+    - run: just fmt-check
+
+  lint:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/actions/prepare
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: lint-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - run: just lint-err
+
+  test:
+    runs-on: ubuntu-20.04
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: test-bot
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/actions/prepare
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: test-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - uses: actions-rs/tarpaulin@v0.1
+      with:
+        args: '-- --test-threads 1'
+        out-type: Lcov
+    - uses: coverallsapp/github-action@master
+      with:
+        path-to-lcov: lcov.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/actions/prepare
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: build-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - run: just build

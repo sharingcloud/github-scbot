@@ -1,7 +1,19 @@
 [workspace]
 members = [
-    "crates/*",
-    "xtask"
+    "crates/github_scbot_cli",
+    "crates/github_scbot_conf",
+    "crates/github_scbot_crypto",
+    "crates/github_scbot_database",
+    "crates/github_scbot_database_macros",
+    "crates/github_scbot_ghapi",
+    "crates/github_scbot_logic",
+    "crates/github_scbot_redis",
+    "crates/github_scbot_server",
+    "crates/github_scbot_tui",
+    "crates/github_scbot_types",
+    "crates/github_scbot_utils",
+    "crates/sentry_actix",
+    "crates/sentry_eyre"
 ]
 
 [profile.dev.package.backtrace]

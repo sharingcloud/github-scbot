@@ -1,0 +1,19 @@
+name: "Prepare Rust environment"
+description: "Prepare Rust environment"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache toolchain
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.rustup/toolchains
+          ~/.rustup/update-hashes
+          ~/.rustup/settings.toml
+        key: toolchain-${{ hashFiles('rust-toolchain.toml') }}
+    - run: rustup show
+      shell: bash
+    - uses: extractions/setup-just@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
