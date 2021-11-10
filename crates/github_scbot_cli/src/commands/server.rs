@@ -1,7 +1,7 @@
 use argh::FromArgs;
 use async_trait::async_trait;
+use github_scbot_sentry::eyre::Result;
 use github_scbot_server::server::{run_bot_server, AppContext};
-use stable_eyre::eyre::Result;
 
 use super::{Command, CommandContext};
 

@@ -1,0 +1,12 @@
+[package]
+name = "github-scbot-sentry"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sentry = { version = "0.23.0", features = ["debug-logs", "tracing"] }
+sentry-actix = { path = "../sentry-actix", features = ["eyre"] }
+sentry-eyre = { path = "../sentry-eyre" }
+tracing = "0.1.29"

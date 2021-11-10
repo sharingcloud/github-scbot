@@ -2,8 +2,8 @@ use std::convert::TryFrom;
 
 use argh::FromArgs;
 use async_trait::async_trait;
+use github_scbot_sentry::eyre::Result;
 use github_scbot_types::pulls::GhMergeStrategy;
-use stable_eyre::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
 

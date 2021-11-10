@@ -3,7 +3,7 @@ use std::{fs::File, io::BufReader, path::PathBuf};
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database::import_export::{import_models_from_json, ImportError};
-use stable_eyre::eyre::Result;
+use github_scbot_sentry::eyre::Result;
 
 use super::{Command, CommandContext};
 

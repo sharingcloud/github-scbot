@@ -1,21 +1,16 @@
-//! Sentry module.
+use std::{future::Future, str::FromStr};
 
-use std::future::Future;
-
-use sentry as sentry_crate;
-use stable_eyre::eyre::Report;
+use sentry::{types::Dsn, ClientOptions};
 use tracing::info;
 
-use crate::Config;
-
 /// Configure Sentry integration by wrapping a function.
-pub async fn with_sentry_configuration<T, Fut, E>(config: &Config, func: T) -> Result<(), E>
+pub async fn with_sentry_configuration<T, Fut, E>(sentry_url: &str, func: T) -> Result<(), E>
 where
     T: FnOnce() -> Fut,
     Fut: Future<Output = Result<(), E>>,
 {
     let _guard = {
-        if config.sentry_url.is_empty() {
+        if sentry_url.is_empty() {
             None
         } else {
             info!("Sentry integration enabled.");
@@ -24,7 +19,9 @@ where
             std::env::set_var("RUST_BACKTRACE", "1");
 
             // Ignore eyre modules
-            let mut options = sentry_crate::ClientOptions::new();
+            let mut options = ClientOptions::new();
+            options.dsn = Some(Dsn::from_str(sentry_url).unwrap());
+            options.default_integrations = true;
             options.in_app_exclude.push("actix_cors");
             options.in_app_exclude.push("actix_http");
             options.in_app_exclude.push("actix_rt");
@@ -37,17 +34,15 @@ where
             options.in_app_exclude.push("sentry_actix");
             options.in_app_exclude.push("stable_eyre");
             options.in_app_exclude.push("tokio");
-            options.release = sentry_crate::release_name!();
+            options.release = sentry::release_name!();
             options.send_default_pii = true;
+            // options.attach_stacktrace = true;
+            options.debug = true;
 
-            Some(sentry_crate::init((config.sentry_url.clone(), options)))
+            let init = sentry::init(options);
+            Some(init)
         }
     };
 
     func().await
-}
-
-/// Capture eyre report.
-pub fn capture_eyre(err: &Report) {
-    sentry_eyre::capture_eyre(err);
 }

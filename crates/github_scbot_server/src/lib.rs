@@ -1,9 +1,10 @@
-//! Webhook module.
-
+//! Server module.
+#![feature(backtrace)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
 pub mod constants;
+mod debug;
 pub mod errors;
 mod external;
 pub mod middlewares;

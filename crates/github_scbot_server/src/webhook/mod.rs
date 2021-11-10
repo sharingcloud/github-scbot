@@ -16,8 +16,8 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
+use github_scbot_sentry::{sentry, WrapEyre};
 use github_scbot_types::events::EventType;
-use sentry_actix::eyre::WrapEyre;
 use serde::Deserialize;
 
 use self::{
@@ -120,7 +120,7 @@ pub(crate) async fn event_handler(
                 &body,
             )
             .await
-            .map_err(|e| WrapEyre::internal_server_error(e).into())
+            .map_err(WrapEyre::to_http_error)
         } else {
             let event_type: &str = event_type.into();
             Ok(HttpResponse::BadRequest().json(serde_json::json!({

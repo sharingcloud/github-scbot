@@ -8,12 +8,10 @@
 //!
 //! # Example
 //!
-//! ```ignore
-//! use std::env;
+//! ```no_run
 //! use std::io;
 //!
 //! use actix_web::{get, App, Error, HttpRequest, HttpServer};
-//! use sentry::Level;
 //!
 //! #[get("/")]
 //! async fn failing(_req: HttpRequest) -> Result<String, Error> {
@@ -23,7 +21,7 @@
 //! #[actix_web::main]
 //! async fn main() -> io::Result<()> {
 //!     let _guard = sentry::init(());
-//!     env::set_var("RUST_BACKTRACE", "1");
+//!     std::env::set_var("RUST_BACKTRACE", "1");
 //!
 //!     HttpServer::new(|| {
 //!         App::new()
@@ -38,22 +36,32 @@
 //! }
 //! ```
 //!
+//! # Using Release Health
+//!
+//! The actix middleware will automatically start a new session for each request
+//! when `auto_session_tracking` is enabled and the client is configured to
+//! use `SessionMode::Request`.
+//!
+//! ```
+//! let _sentry = sentry::init(sentry::ClientOptions {
+//!     session_mode: sentry::SessionMode::Request,
+//!     auto_session_tracking: true,
+//!     ..Default::default()
+//! });
+//! ```
+//!
 //! # Reusing the Hub
 //!
-//! This integration will automatically update the current Hub instance. For example,
-//! the following will capture a message in the current request's Hub:
+//! This integration will automatically create a new per-request Hub from the main Hub, and update the
+//! current Hub instance. For example, the following will capture a message in the current request's Hub:
 //!
-//! ```ignore
-//! # fn test(req: &actix_web::HttpRequest) {
-//! use sentry::Level;
-//! sentry::capture_message("Something is not well", Level::Warning);
-//! # }
+//! ```
+//! sentry::capture_message("Something is not well", sentry::Level::Warning);
 //! ```
 
 #![doc(html_favicon_url = "https://sentry-brand.storage.googleapis.com/favicon.ico")]
 #![doc(html_logo_url = "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png")]
 #![warn(missing_docs)]
-#![allow(clippy::needless_doctest_main)]
 #![allow(deprecated)]
 #![allow(clippy::type_complexity)]
 
@@ -74,7 +82,10 @@ use sentry_core::{
 };
 
 #[cfg(feature = "eyre")]
-pub mod eyre;
+mod eyre;
+
+#[cfg(feature = "eyre")]
+pub use eyre::WrapEyre;
 
 /// A helper construct that can be used to reconfigure and build the middleware.
 pub struct SentryBuilder {
@@ -112,14 +123,6 @@ impl SentryBuilder {
         self.middleware.capture_server_errors = val;
         self
     }
-
-    /// Enables or disables error reporting for client errors.
-    ///
-    /// The default is to report all errors.
-    pub fn capture_client_errors(mut self, val: bool) -> Self {
-        self.middleware.capture_client_errors = val;
-        self
-    }
 }
 
 /// Reports certain failures to Sentry.
@@ -127,7 +130,6 @@ impl SentryBuilder {
 pub struct Sentry {
     hub: Option<Arc<Hub>>,
     emit_header: bool,
-    capture_client_errors: bool,
     capture_server_errors: bool,
 }
 
@@ -138,7 +140,6 @@ impl Sentry {
             hub: None,
             emit_header: false,
             capture_server_errors: true,
-            capture_client_errors: false,
         }
     }
 
@@ -208,14 +209,25 @@ where
             inner.hub.clone().unwrap_or_else(Hub::main),
         ));
         let client = hub.client();
+        let track_sessions = client.as_ref().map_or(false, |client| {
+            let options = client.options();
+            options.auto_session_tracking
+                && options.session_mode == sentry_core::SessionMode::Request
+        });
+        if track_sessions {
+            hub.start_session();
+        }
         let with_pii = client
             .as_ref()
-            .map_or(false, |x| x.options().send_default_pii);
+            .map_or(false, |client| client.options().send_default_pii);
 
         let (tx, sentry_req) = sentry_request_from_http(&req, with_pii);
         hub.configure_scope(|scope| {
             scope.set_transaction(tx.as_deref());
-            scope.add_event_processor(Box::new(move |event| process_event(event, &sentry_req)))
+            scope.add_event_processor(Box::new(move |event| {
+                let evt = process_event(event, &sentry_req);
+                Some(evt)
+            }));
         });
 
         let fut = self.service.call(req).bind_hub(hub.clone());
@@ -225,7 +237,7 @@ where
             let mut res: Self::Response = match fut.await {
                 Ok(res) => res,
                 Err(e) => {
-                    if inner.capture_server_errors || inner.capture_client_errors {
+                    if inner.capture_server_errors {
                         process_error(hub, &e);
                     }
                     return Err(e);
@@ -233,10 +245,7 @@ where
             };
 
             // Response errors
-            let status = res.response().status();
-            if inner.capture_server_errors && status.is_server_error()
-                || inner.capture_client_errors && status.is_client_error()
-            {
+            if inner.capture_server_errors && res.response().status().is_server_error() {
                 if let Some(e) = res.response().error() {
                     let event_id = process_error(hub, e);
 
@@ -255,15 +264,9 @@ where
     }
 }
 
-fn process_error(hub: Arc<Hub>, e: &actix_web::Error) -> Uuid {
-    process_eyre_report(hub.clone(), e).unwrap_or_else(|| hub.capture_error(e))
-}
-
 #[cfg(feature = "eyre")]
 fn process_eyre_report(hub: Arc<Hub>, e: &actix_web::Error) -> Option<Uuid> {
     use sentry_eyre::EyreHubExt;
-
-    use self::eyre::WrapEyre;
 
     e.as_error::<WrapEyre>()
         .map(|report| hub.capture_eyre(report))
@@ -272,6 +275,10 @@ fn process_eyre_report(hub: Arc<Hub>, e: &actix_web::Error) -> Option<Uuid> {
 #[cfg(not(feature = "eyre"))]
 fn process_eyre_report(_hub: Arc<Hub>, _e: &actix_web::Error) -> Option<Uuid> {
     None
+}
+
+fn process_error(hub: Arc<Hub>, e: &actix_web::Error) -> Uuid {
+    process_eyre_report(hub.clone(), e).unwrap_or_else(|| hub.capture_error(e))
 }
 
 /// Build a Sentry request struct from the HTTP request
@@ -311,8 +318,7 @@ fn sentry_request_from_http(request: &ServiceRequest, with_pii: bool) -> (Option
 }
 
 /// Add request data to a Sentry event
-#[allow(clippy::unnecessary_wraps)]
-fn process_event(mut event: Event<'static>, request: &Request) -> Option<Event<'static>> {
+fn process_event(mut event: Event<'static>, request: &Request) -> Event<'static> {
     // Request
     if event.request.is_none() {
         event.request = Some(request.clone());
@@ -327,5 +333,5 @@ fn process_event(mut event: Event<'static>, request: &Request) -> Option<Event<'
         });
         event.sdk = Some(Cow::Owned(sdk));
     }
-    Some(event)
+    event
 }

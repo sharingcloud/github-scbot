@@ -5,7 +5,7 @@ use std::fmt;
 use actix_web::{
     dev::HttpResponseBuilder,
     http::{header, StatusCode},
-    HttpResponse, ResponseError,
+    Error, HttpResponse, ResponseError,
 };
 use stable_eyre::eyre;
 
@@ -13,6 +13,21 @@ use stable_eyre::eyre;
 pub struct WrapEyre {
     report: eyre::Report,
     status_code: StatusCode,
+}
+
+impl WrapEyre {
+    /// Create eyre wrapper.
+    pub fn new(report: eyre::Report, status_code: StatusCode) -> Self {
+        Self {
+            report,
+            status_code,
+        }
+    }
+
+    /// Convert any error
+    pub fn to_http_error<E: Into<WrapEyre>>(e: E) -> Error {
+        e.into().into()
+    }
 }
 
 impl fmt::Display for WrapEyre {
@@ -32,48 +47,6 @@ impl std::ops::Deref for WrapEyre {
 
     fn deref(&self) -> &Self::Target {
         &self.report
-    }
-}
-
-impl<E> From<E> for WrapEyre
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    fn from(error: E) -> Self {
-        Self {
-            report: error.into(),
-            status_code: StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-macro_rules! impl_err {
-    ($name: ident, $code: expr) => {
-        /// Create a specific error. See `with_status` for reference.
-        pub fn $name<E: std::error::Error + Send + Sync + 'static>(err: E) -> Self {
-            Self::with_status(err, $code)
-        }
-    };
-}
-
-impl WrapEyre {
-    impl_err!(bad_request, StatusCode::BAD_REQUEST);
-
-    impl_err!(internal_server_error, StatusCode::INTERNAL_SERVER_ERROR);
-
-    impl_err!(unauthorized, StatusCode::UNAUTHORIZED);
-
-    impl_err!(forbidden, StatusCode::FORBIDDEN);
-
-    /// Create error with status.
-    pub fn with_status<E: std::error::Error + Send + Sync + 'static>(
-        e: E,
-        status_code: StatusCode,
-    ) -> Self {
-        Self {
-            report: e.into(),
-            status_code,
-        }
     }
 }
 

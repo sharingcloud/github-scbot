@@ -1,8 +1,9 @@
 //! Webhook errors.
 
-use std::fmt;
+use std::{backtrace::Backtrace, fmt};
 
-use actix_http::error::BlockingError;
+use actix_http::{error::BlockingError, http::StatusCode};
+use github_scbot_sentry::WrapEyre;
 use github_scbot_types::events::EventType;
 use thiserror::Error;
 
@@ -22,7 +23,7 @@ pub enum ServerError {
     InvalidWebhookSignature,
 
     /// Wraps [`std::io::Error`].
-    #[error(transparent)]
+    #[error("I/O error.")]
     IoError(#[from] std::io::Error),
 
     /// Wraps [`regex::Error`].
@@ -30,24 +31,36 @@ pub enum ServerError {
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error.")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
-    #[error(transparent)]
-    LogicError(#[from] github_scbot_logic::LogicError),
+    #[error("Logic error.")]
+    LogicError(#[from] github_scbot_logic::LogicError, Backtrace),
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
-    #[error(transparent)]
+    #[error("API error.")]
     ApiError(#[from] github_scbot_ghapi::ApiError),
 
     /// Wraps [`serde_json::Error`].
-    #[error(transparent)]
+    #[error("Serde error.")]
     SerdeError(#[from] serde_json::Error),
 
     /// Threadpool error.
     #[error("Threadpool error.")]
     ThreadpoolError,
+}
+
+impl From<ServerError> for WrapEyre {
+    fn from(e: ServerError) -> Self {
+        let status_code = match &e {
+            ServerError::InvalidWebhookSignature => StatusCode::FORBIDDEN,
+            ServerError::MissingWebhookSignature => StatusCode::UNAUTHORIZED,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        Self::new(e.into(), status_code)
+    }
 }
 
 impl<E: Into<ServerError> + fmt::Debug + Sync + 'static> From<BlockingError<E>> for ServerError {

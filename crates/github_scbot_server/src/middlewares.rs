@@ -22,7 +22,7 @@ use futures::{
     Future,
 };
 use github_scbot_conf::Config;
-use sentry_actix::eyre::WrapEyre;
+use github_scbot_sentry::WrapEyre;
 use tracing::warn;
 
 use super::{
@@ -118,20 +118,15 @@ where
                     let signature = headers
                         .get(GITHUB_SIGNATURE_HEADER)
                         .ok_or_else(|| {
-                            WrapEyre::unauthorized(ServerError::MissingWebhookSignature)
+                            WrapEyre::to_http_error(ServerError::MissingWebhookSignature)
                         })?
                         .to_str()
-                        .map_err(|_e| WrapEyre::forbidden(ServerError::InvalidWebhookSignature))
-                        .map_err(|e| {
-                            let err: actix_http::Error = e.into();
-                            err
-                        })?;
+                        .map_err(|_e| ServerError::InvalidWebhookSignature)
+                        .map_err(WrapEyre::to_http_error)?;
 
                     // Quick check because split_at can panic.
                     if signature.len() <= SIGNATURE_PREFIX_LENGTH {
-                        return Err(
-                            WrapEyre::forbidden(ServerError::InvalidWebhookSignature).into()
-                        );
+                        return Err(WrapEyre::from(ServerError::InvalidWebhookSignature).into());
                     }
 
                     // Strip signature prefix
@@ -145,9 +140,7 @@ where
                     }
 
                     if !is_valid_signature(sig, &body, &secret) {
-                        return Err(
-                            WrapEyre::forbidden(ServerError::InvalidWebhookSignature).into()
-                        );
+                        return Err(WrapEyre::from(ServerError::InvalidWebhookSignature).into());
                     }
 
                     // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438

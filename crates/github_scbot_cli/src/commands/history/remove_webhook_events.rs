@@ -1,8 +1,8 @@
 use argh::FromArgs;
 use async_trait::async_trait;
 use dialoguer::Confirm;
+use github_scbot_sentry::eyre::Result;
 use owo_colors::OwoColorize;
-use stable_eyre::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
 

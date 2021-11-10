@@ -2,11 +2,12 @@
 
 use std::sync::Arc;
 
+use actix_http::http::StatusCode;
 use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_crypto::{CryptoError, JwtUtils};
 use github_scbot_database::models::{ExternalAccountModel, ExternalJwtClaims, IDatabaseAdapter};
-use sentry_actix::eyre::WrapEyre;
+use github_scbot_sentry::{sentry, WrapEyre};
 use thiserror::Error;
 
 use crate::server::AppContext;
@@ -30,6 +31,12 @@ impl ValidationError {
     }
 }
 
+impl From<ValidationError> for WrapEyre {
+    fn from(e: ValidationError) -> Self {
+        Self::new(e.into(), StatusCode::BAD_REQUEST)
+    }
+}
+
 /// Jwt authentication validator.
 pub async fn jwt_auth_validator(
     req: ServiceRequest,
@@ -37,7 +44,7 @@ pub async fn jwt_auth_validator(
 ) -> Result<ServiceRequest, Error> {
     jwt_auth_validator_inner(req, credentials)
         .await
-        .map_err(|e| WrapEyre::bad_request(e).into())
+        .map_err(WrapEyre::to_http_error)
 }
 
 async fn jwt_auth_validator_inner(

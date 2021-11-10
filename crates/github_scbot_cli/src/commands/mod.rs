@@ -6,7 +6,7 @@ use github_scbot_conf::Config;
 use github_scbot_database::models::IDatabaseAdapter;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
-use stable_eyre::eyre::Result;
+use github_scbot_sentry::eyre::Result;
 
 use self::{
     auth::AuthCommand, debug::DebugCommand, export::ExportCommand, history::HistoryCommand,
