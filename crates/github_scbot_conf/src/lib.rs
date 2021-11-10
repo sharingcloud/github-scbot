@@ -6,7 +6,6 @@
 pub mod config;
 pub mod errors;
 mod logging;
-pub mod sentry;
 pub mod validation;
 
 pub use crate::{
@@ -17,7 +16,7 @@ pub use crate::{
 /// Configure application startup.
 pub fn configure_startup() -> Result<Config> {
     dotenv::dotenv().ok();
-    stable_eyre::install().ok();
+    github_scbot_sentry::eyre::install().ok();
 
     self::logging::configure_logging();
     let config = Config::from_env();

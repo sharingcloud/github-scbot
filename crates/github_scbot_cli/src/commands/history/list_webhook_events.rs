@@ -1,7 +1,7 @@
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database::models::RepositoryModel;
-use stable_eyre::eyre::Result;
+use github_scbot_sentry::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
 

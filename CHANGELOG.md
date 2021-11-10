@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+
+- Creation of a `github-scbot-sentry` crate for easy maintenance.
+- New `/debug` route (enabled with the `BOT_TEST_DEBUG_MODE` environment variable) to try error reporting.
+
 ## Changed
 
 - Use the `rsa` crate instead of `openssl` (to generate RSA keys)
 - Reuse `just` instead of an adhoc crate.
+- Update Sentry to `0.23`, with adaptations in `sentry-actix` and `sentry-eyre`
 
 ## [0.16.0] - 2021-10-27
 

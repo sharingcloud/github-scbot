@@ -6,14 +6,14 @@ use actix_cors::Cors;
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetrics;
-use github_scbot_conf::{sentry::with_sentry_configuration, Config};
+use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
     DbPool,
 };
 use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
-use sentry_actix::Sentry;
+use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
 
 use crate::{
@@ -80,7 +80,7 @@ pub async fn run_bot_server(context: AppContext) -> Result<()> {
         message = "Starting bot server",
     );
 
-    with_sentry_configuration(&context.config.clone(), || async {
+    with_sentry_configuration(&context.config.sentry_url.clone(), || async {
         let config = context.config.clone();
         let address = get_bind_address(&config);
         run_bot_server_internal(address, context).await
@@ -100,7 +100,7 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
         let mut app = App::new()
             .data(context.clone())
             .wrap(prometheus.clone())
-            .wrap(Sentry::builder().capture_client_errors(true).finish())
+            .wrap(Sentry::new())
             .wrap(Logger::default())
             .service(
                 web::scope("/external")

@@ -1,8 +1,9 @@
 //! Webhook errors.
 
-use std::fmt;
+use std::{backtrace::Backtrace, fmt};
 
-use actix_http::error::BlockingError;
+use actix_http::{error::BlockingError, http::StatusCode};
+use github_scbot_sentry::WrapEyre;
 use github_scbot_types::events::EventType;
 use thiserror::Error;
 
@@ -35,7 +36,7 @@ pub enum ServerError {
 
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error("Logic error.")]
-    LogicError(#[from] github_scbot_logic::LogicError),
+    LogicError(#[from] github_scbot_logic::LogicError, Backtrace),
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
     #[error("API error.")]
@@ -48,6 +49,18 @@ pub enum ServerError {
     /// Threadpool error.
     #[error("Threadpool error.")]
     ThreadpoolError,
+}
+
+impl From<ServerError> for WrapEyre {
+    fn from(e: ServerError) -> Self {
+        let status_code = match &e {
+            ServerError::InvalidWebhookSignature => StatusCode::FORBIDDEN,
+            ServerError::MissingWebhookSignature => StatusCode::UNAUTHORIZED,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        Self::new(e.into(), status_code)
+    }
 }
 
 impl<E: Into<ServerError> + fmt::Debug + Sync + 'static> From<BlockingError<E>> for ServerError {

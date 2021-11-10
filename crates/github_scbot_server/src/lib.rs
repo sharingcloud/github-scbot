@@ -1,5 +1,5 @@
-//! Webhook module.
-
+//! Server module.
+#![feature(backtrace)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 

@@ -8,7 +8,7 @@ use github_scbot_conf::{configure_startup, Config};
 use github_scbot_database::{establish_pool_connection, models::DatabaseAdapter, run_migrations};
 use github_scbot_ghapi::adapter::GithubAPIAdapter;
 use github_scbot_redis::RedisAdapter;
-use stable_eyre::eyre::{self, eyre};
+use github_scbot_sentry::eyre::{self, eyre::eyre};
 
 use self::commands::{Command, CommandContext, SubCommand};
 

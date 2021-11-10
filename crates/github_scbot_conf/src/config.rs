@@ -85,7 +85,7 @@ impl Config {
             ),
             tenor_api_key: env_to_str("BOT_TENOR_API_KEY", ""),
             test_database_url: env_to_str("TEST_DATABASE_URL", ""),
-            test_debug_mode: env_to_bool("TEST_DEBUG_MODE", false),
+            test_debug_mode: env_to_bool("BOT_TEST_DEBUG_MODE", false),
         }
     }
 }

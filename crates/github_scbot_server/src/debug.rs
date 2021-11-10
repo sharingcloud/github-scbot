@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Result as ActixResult};
 use github_scbot_ghapi::ApiError;
 use github_scbot_logic::LogicError;
-use sentry_actix::eyre::WrapEyre;
+use github_scbot_sentry::WrapEyre;
 
 use crate::ServerError;
 
@@ -12,17 +12,13 @@ pub fn configure_debug_handlers(cfg: &mut web::ServiceConfig) {
 }
 
 async fn error_route() -> ActixResult<HttpResponse> {
-    will_error()
-        .await
-        .map_err(WrapEyre::internal_server_error)?;
+    will_error().await.map_err(WrapEyre::to_http_error)?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({"message": "ok"})))
 }
 
 async fn error_route_nest() -> ActixResult<HttpResponse> {
-    will_error_nest()
-        .await
-        .map_err(WrapEyre::internal_server_error)?;
+    will_error_nest().await.map_err(WrapEyre::to_http_error)?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({"message": "ok"})))
 }
@@ -32,7 +28,7 @@ async fn panic_route() -> ActixResult<HttpResponse> {
 }
 
 async fn will_error() -> Result<(), ServerError> {
-    Err(ServerError::InvalidWebhookSignature)
+    Err(ServerError::ThreadpoolError)
 }
 
 async fn _will_error_nest_api() -> Result<(), ApiError> {
