@@ -17,6 +17,7 @@ use sentry_actix::Sentry;
 use tracing::info;
 
 use crate::{
+    debug::configure_debug_handlers,
     external::{status::set_qa_status, validator::jwt_auth_validator},
     middlewares::VerifySignature,
     webhook::configure_webhook_handlers,
@@ -96,7 +97,7 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
     let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
 
     HttpServer::new(move || {
-        App::new()
+        let mut app = App::new()
             .data(context.clone())
             .wrap(prometheus.clone())
             .wrap(Sentry::builder().capture_client_errors(true).finish())
@@ -137,7 +138,13 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
                     })),
                 )
                 .into()
-            }))
+            }));
+
+        if context.config.test_debug_mode {
+            app = app.service(web::scope("/debug").configure(configure_debug_handlers));
+        }
+
+        app
     })
     .bind(ip_with_port)?
     .run()

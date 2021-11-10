@@ -48,6 +48,11 @@ run-server:
 	#!/bin/bash
 	RUST_LOG=info,github_scbot=trace cargo watch -x "run -- server"
 
+# Run server (release)
+run-server-release:
+	#!/bin/bash
+	RUST_LOG=info,github_scbot=trace cargo watch -x "run --release -- server"
+
 # Build Docker image
 docker-build:
 	docker build --rm -t github-scbot:{{ version }} -f ./docker/Dockerfile .

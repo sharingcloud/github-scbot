@@ -4,6 +4,7 @@
 #![warn(clippy::all)]
 
 pub mod constants;
+mod debug;
 pub mod errors;
 mod external;
 pub mod middlewares;

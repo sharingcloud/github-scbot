@@ -10,15 +10,15 @@ pub enum LogicError {
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
-    #[error(transparent)]
+    #[error("API error.")]
     ApiError(#[from] github_scbot_ghapi::ApiError),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error.")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
     /// Wraps [`github_scbot_redis::RedisError`].
-    #[error(transparent)]
+    #[error("Redis error.")]
     RedisError(#[from] github_scbot_redis::RedisError),
 }
 

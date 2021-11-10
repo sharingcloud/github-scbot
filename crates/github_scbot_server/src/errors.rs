@@ -22,7 +22,7 @@ pub enum ServerError {
     InvalidWebhookSignature,
 
     /// Wraps [`std::io::Error`].
-    #[error(transparent)]
+    #[error("I/O error.")]
     IoError(#[from] std::io::Error),
 
     /// Wraps [`regex::Error`].
@@ -30,19 +30,19 @@ pub enum ServerError {
     RegexError(#[from] regex::Error),
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error(transparent)]
+    #[error("Database error.")]
     DatabaseError(#[from] github_scbot_database::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
-    #[error(transparent)]
+    #[error("Logic error.")]
     LogicError(#[from] github_scbot_logic::LogicError),
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
-    #[error(transparent)]
+    #[error("API error.")]
     ApiError(#[from] github_scbot_ghapi::ApiError),
 
     /// Wraps [`serde_json::Error`].
-    #[error(transparent)]
+    #[error("Serde error.")]
     SerdeError(#[from] serde_json::Error),
 
     /// Threadpool error.
