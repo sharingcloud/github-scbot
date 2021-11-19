@@ -92,6 +92,12 @@ impl SummaryTextGenerator {
             "No :heavy_check_mark:"
         };
 
+        let mergeable_message = if pull_request_status.mergeable {
+            "Yes :heavy_check_mark:"
+        } else {
+            "No :x:"
+        };
+
         let code_review_section = if pull_request_status.changes_required() {
             format!(
                 "_waiting on change requests..._ ({}) :clock2:",
@@ -123,12 +129,14 @@ impl SummaryTextGenerator {
             > - :checkered_flag: **Checks**: {checks_message}\n\
             > - :mag: **Code reviews**: {reviews_message}\n\
             > - :test_tube: **QA**: {qa_message}\n\
-            > - :lock: **Locked?**: {lock_message}",
+            > - :lock: **Locked?**: {lock_message}\n\",
+            > - :twisted_rightwards_arrows: **Mergeable?**: {mergeable_message}",
             wip_message = wip_message,
             checks_message = checks_message,
             reviews_message = code_review_section,
             qa_message = qa_message,
             lock_message = lock_message,
+            mergeable_message = mergeable_message,
         )
     }
 

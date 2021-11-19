@@ -135,7 +135,7 @@ impl PullRequestStatus {
 
     /// Check if changes are required.
     pub fn changes_required(&self) -> bool {
-        !self.changes_required_reviewers.is_empty() || !self.mergeable
+        !self.changes_required_reviewers.is_empty()
     }
 
     /// Check PR title
