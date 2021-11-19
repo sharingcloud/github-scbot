@@ -135,31 +135,28 @@ impl IExternalAccountRightDbAdapter for ExternalAccountRightDbAdapter {
 /// Dummy external account right DB adapter.
 pub struct DummyExternalAccountRightDbAdapter {
     /// List response.
-    pub list_response: Mock<Result<Vec<ExternalAccountRightModel>>>,
-    /// Get repository response.
-    pub get_repository_response: Mock<Result<RepositoryModel>>,
+    pub list_response: Mock<(), Result<Vec<ExternalAccountRightModel>>>,
     /// List rights response.
-    pub list_rights_response: Mock<Result<Vec<ExternalAccountRightModel>>>,
+    pub list_rights_response: Mock<String, Result<Vec<ExternalAccountRightModel>>>,
     /// Get right response.
-    pub get_right_response: Mock<Result<ExternalAccountRightModel>>,
+    pub get_right_response: Mock<(String, RepositoryModel), Result<ExternalAccountRightModel>>,
     /// Add right response.
-    pub add_right_response: Mock<Result<ExternalAccountRightModel>>,
+    pub add_right_response: Mock<(String, RepositoryModel), Result<ExternalAccountRightModel>>,
     /// Remove right response.
-    pub remove_right_response: Mock<Result<()>>,
+    pub remove_right_response: Mock<(String, RepositoryModel), Result<()>>,
     /// Remove rights response.
-    pub remove_rights_response: Mock<Result<()>>,
+    pub remove_rights_response: Mock<String, Result<()>>,
 }
 
 impl Default for DummyExternalAccountRightDbAdapter {
     fn default() -> Self {
         Self {
-            list_response: Mock::new(Ok(Vec::new())),
-            get_repository_response: Mock::new(Ok(RepositoryModel::default())),
-            list_rights_response: Mock::new(Ok(Vec::new())),
-            get_right_response: Mock::new(Ok(ExternalAccountRightModel::default())),
-            add_right_response: Mock::new(Ok(ExternalAccountRightModel::default())),
-            remove_right_response: Mock::new(Ok(())),
-            remove_rights_response: Mock::new(Ok(())),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            list_rights_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            get_right_response: Mock::new(Box::new(|_| Ok(ExternalAccountRightModel::default()))),
+            add_right_response: Mock::new(Box::new(|_| Ok(ExternalAccountRightModel::default()))),
+            remove_right_response: Mock::new(Box::new(|_| Ok(()))),
+            remove_rights_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -175,11 +172,11 @@ impl DummyExternalAccountRightDbAdapter {
 #[allow(unused_variables)]
 impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
     async fn list(&self) -> Result<Vec<ExternalAccountRightModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn list_rights(&self, username: &str) -> Result<Vec<ExternalAccountRightModel>> {
-        self.list_rights_response.response()
+        self.list_rights_response.call(username.to_owned())
     }
 
     async fn get_right(
@@ -187,7 +184,8 @@ impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
         username: &str,
         repository: &RepositoryModel,
     ) -> Result<ExternalAccountRightModel> {
-        self.get_right_response.response()
+        self.get_right_response
+            .call((username.to_owned(), repository.clone()))
     }
 
     async fn add_right(
@@ -195,14 +193,16 @@ impl IExternalAccountRightDbAdapter for DummyExternalAccountRightDbAdapter {
         username: &str,
         repository: &RepositoryModel,
     ) -> Result<ExternalAccountRightModel> {
-        self.add_right_response.response()
+        self.add_right_response
+            .call((username.to_owned(), repository.clone()))
     }
 
     async fn remove_right(&self, username: &str, repository: &RepositoryModel) -> Result<()> {
-        self.remove_right_response.response()
+        self.remove_right_response
+            .call((username.to_owned(), repository.clone()))
     }
 
     async fn remove_rights(&self, username: &str) -> Result<()> {
-        self.remove_rights_response.response()
+        self.remove_rights_response.call(username.to_owned())
     }
 }

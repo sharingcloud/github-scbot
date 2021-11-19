@@ -106,7 +106,8 @@ mod tests {
 
         db_adapter
             .get_from_username_response
-            .set_response(Ok(new_account));
+            .set_callback(Box::new(move |_| Ok(new_account.clone())));
+
         let updated_account = AccountModelBuilder::default("new")
             .create_or_update(&db_adapter)
             .await?;

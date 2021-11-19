@@ -74,22 +74,22 @@ impl IHistoryWebhookDbAdapter for HistoryWebhookDbAdapter {
 /// Dummy history webhook DB adapter.
 pub struct DummyHistoryWebhookDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<HistoryWebhookModel>>>,
+    pub create_response: Mock<HistoryWebhookCreation, Result<HistoryWebhookModel>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<HistoryWebhookModel>>>,
+    pub list_response: Mock<(), Result<Vec<HistoryWebhookModel>>>,
     /// List from repository ID response.
-    pub list_from_repository_id_response: Mock<Result<Vec<HistoryWebhookModel>>>,
+    pub list_from_repository_id_response: Mock<i32, Result<Vec<HistoryWebhookModel>>>,
     /// Remove all response.
-    pub remove_all_response: Mock<Result<()>>,
+    pub remove_all_response: Mock<(), Result<()>>,
 }
 
 impl Default for DummyHistoryWebhookDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            list_response: Mock::new(Ok(Vec::new())),
-            list_from_repository_id_response: Mock::new(Ok(Vec::new())),
-            remove_all_response: Mock::new(Ok(())),
+            create_response: Mock::new(Box::new(|e| Ok(e.into()))),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            list_from_repository_id_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            remove_all_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -105,23 +105,21 @@ impl DummyHistoryWebhookDbAdapter {
 #[allow(unused_variables)]
 impl IHistoryWebhookDbAdapter for DummyHistoryWebhookDbAdapter {
     async fn create(&self, entry: HistoryWebhookCreation) -> Result<HistoryWebhookModel> {
-        self.create_response
-            .response()
-            .map_or_else(|| Ok(entry.into()), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn list(&self) -> Result<Vec<HistoryWebhookModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn list_from_repository_id(
         &self,
         repository_id: i32,
     ) -> Result<Vec<HistoryWebhookModel>> {
-        self.list_from_repository_id_response.response()
+        self.list_from_repository_id_response.call(repository_id)
     }
 
     async fn remove_all(&self) -> Result<()> {
-        self.remove_all_response.response()
+        self.remove_all_response.call(())
     }
 }

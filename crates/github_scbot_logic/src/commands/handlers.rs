@@ -52,7 +52,8 @@ pub async fn handle_merge_command(
     merge_strategy: Option<GhMergeStrategy>,
 ) -> Result<CommandExecutionResult> {
     // Use step to determine merge possibility
-    let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
+    let pr_status =
+        PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
     let step = StatusLogic::determine_automatic_step(&pr_status)?;
     let commit_title = pr_model.merge_commit_title();
 
@@ -781,6 +782,14 @@ mod tests {
         let repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();
 
+        // Prepare a mergeable response in API
+        api_adapter.pulls_get_response.set_callback(Box::new(|_| {
+            Ok(GhPullRequest {
+                mergeable: Some(true),
+                ..Default::default()
+            })
+        }));
+
         // Set WIP to lock the pull request
         let update = pr_model.create_update().wip(true).build_update();
         db_adapter
@@ -817,7 +826,7 @@ mod tests {
 
         api_adapter
             .pulls_merge_response
-            .set_response(Err(ApiError::GitHubError("Nope.".into())));
+            .set_callback(Box::new(|_| Err(ApiError::GitHubError("Nope.".into()))));
         let result = handle_merge_command(
             &api_adapter,
             &db_adapter,
@@ -840,7 +849,9 @@ mod tests {
         assert_eq!(api_adapter.pulls_merge_response.call_count(), 1);
 
         // Merge should now work
-        api_adapter.pulls_merge_response.set_response(Ok(()));
+        api_adapter
+            .pulls_merge_response
+            .set_callback(Box::new(|_| Ok(())));
         let result = handle_merge_command(
             &api_adapter,
             &db_adapter,
@@ -881,7 +892,9 @@ mod tests {
         db_adapter
             .account_adapter
             .list_admin_accounts_response
-            .set_response(Ok(vec![AccountModel::builder("me").admin(true).build()]));
+            .set_callback(Box::new(|_| {
+                Ok(vec![AccountModel::builder("me").admin(true).build()])
+            }));
         let result = handle_is_admin_command(&db_adapter, "me").await?;
         assert!(!result.should_update_status);
         assert_eq!(
@@ -901,12 +914,12 @@ mod tests {
         let mut pr_model = PullRequestModel::default();
         let config = Config::from_env();
 
-        api_adapter
-            .pulls_get_response
-            .set_response(Ok(GhPullRequest {
+        api_adapter.pulls_get_response.set_callback(Box::new(|_| {
+            Ok(GhPullRequest {
                 title: "Hello.".into(),
                 ..GhPullRequest::default()
-            }));
+            })
+        }));
 
         let result = handle_admin_sync_command(
             &config,
@@ -1019,9 +1032,8 @@ mod tests {
         let config = Config::from_env();
         let mut api_adapter = DummyAPIAdapter::new();
 
-        api_adapter
-            .gif_search_response
-            .set_response(Ok(GifResponse {
+        api_adapter.gif_search_response.set_callback(Box::new(|_| {
+            Ok(GifResponse {
                 results: vec![GifObject {
                     media: vec![hashmap!(
                         GifFormat::Gif => MediaObject {
@@ -1030,7 +1042,8 @@ mod tests {
                         }
                     )],
                 }],
-            }));
+            })
+        }));
 
         // Valid GIF
         let result = handle_gif_command(&config, &api_adapter, "what").await?;
@@ -1047,7 +1060,7 @@ mod tests {
 
         api_adapter
             .gif_search_response
-            .set_response(Ok(GifResponse { results: vec![] }));
+            .set_callback(Box::new(|_| Ok(GifResponse { results: vec![] })));
 
         // No GIFs
         let result = handle_gif_command(&config, &api_adapter, "what").await?;
@@ -1070,15 +1083,17 @@ mod tests {
         db_adapter
             .review_adapter
             .get_from_pull_request_and_username_response
-            .set_response(Err(DatabaseError::UnknownReviewState(
-                "me".into(),
-                "repo".into(),
-                1,
-            )));
+            .set_callback(Box::new(|_| {
+                Err(DatabaseError::UnknownReviewState(
+                    "me".into(),
+                    "repo".into(),
+                    1,
+                ))
+            }));
 
         api_adapter
             .user_permissions_get_response
-            .set_response(Ok(GhUserPermission::Write));
+            .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
 
         let repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();
@@ -1125,11 +1140,13 @@ mod tests {
         db_adapter
             .review_adapter
             .get_from_pull_request_and_username_response
-            .set_response(Err(DatabaseError::UnknownReviewState(
-                "me".into(),
-                "repo".into(),
-                1,
-            )));
+            .set_callback(Box::new(|_| {
+                Err(DatabaseError::UnknownReviewState(
+                    "me".into(),
+                    "repo".into(),
+                    1,
+                ))
+            }));
 
         let repo_model = RepositoryModel::default();
         let mut pr_model = PullRequestModel::default();

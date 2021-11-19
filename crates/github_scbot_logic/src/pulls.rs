@@ -391,7 +391,8 @@ impl PullRequestLogic {
         ReviewLogic::synchronize_reviews(api_adapter, db_adapter, &repo, &pr).await?;
 
         // Determine step label
-        let pr_status = PullRequestStatus::from_database(db_adapter, &repo, &pr).await?;
+        let pr_status =
+            PullRequestStatus::from_database(api_adapter, db_adapter, &repo, &pr).await?;
         let label = StatusLogic::determine_automatic_step(&pr_status)?;
         let label = if upstream_pr.merged_at.is_some() {
             None

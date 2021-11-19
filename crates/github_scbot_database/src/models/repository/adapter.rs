@@ -86,22 +86,24 @@ impl IRepositoryDbAdapter for RepositoryDbAdapter {
 /// Dummy repository DB adapter.
 pub struct DummyRepositoryDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<RepositoryModel>>>,
+    pub create_response: Mock<RepositoryCreation, Result<RepositoryModel>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<RepositoryModel>>>,
+    pub list_response: Mock<(), Result<Vec<RepositoryModel>>>,
     /// Get from ID response.
-    pub get_from_id_response: Mock<Result<RepositoryModel>>,
+    pub get_from_id_response: Mock<i32, Result<RepositoryModel>>,
     /// Get from owner and name response.
-    pub get_from_owner_and_name_response: Mock<Result<RepositoryModel>>,
+    pub get_from_owner_and_name_response: Mock<(String, String), Result<RepositoryModel>>,
 }
 
 impl Default for DummyRepositoryDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            list_response: Mock::new(Ok(Vec::new())),
-            get_from_id_response: Mock::new(Ok(RepositoryModel::default())),
-            get_from_owner_and_name_response: Mock::new(Ok(RepositoryModel::default())),
+            create_response: Mock::new(Box::new(|e| Ok(e.into()))),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            get_from_id_response: Mock::new(Box::new(|_| Ok(RepositoryModel::default()))),
+            get_from_owner_and_name_response: Mock::new(Box::new(|_| {
+                Ok(RepositoryModel::default())
+            })),
         }
     }
 }
@@ -117,21 +119,20 @@ impl DummyRepositoryDbAdapter {
 #[allow(unused_variables)]
 impl IRepositoryDbAdapter for DummyRepositoryDbAdapter {
     async fn create(&self, entry: RepositoryCreation) -> Result<RepositoryModel> {
-        self.create_response
-            .response()
-            .map_or_else(|| Ok(entry.into()), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn list(&self) -> Result<Vec<RepositoryModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn get_from_id(&self, id: i32) -> Result<RepositoryModel> {
-        self.get_from_id_response.response()
+        self.get_from_id_response.call(id)
     }
 
     async fn get_from_owner_and_name(&self, owner: &str, name: &str) -> Result<RepositoryModel> {
-        self.get_from_owner_and_name_response.response()
+        self.get_from_owner_and_name_response
+            .call((owner.to_owned(), name.to_owned()))
     }
 
     async fn update(&self, entry: &mut RepositoryModel, update: RepositoryUpdate) -> Result<()> {
