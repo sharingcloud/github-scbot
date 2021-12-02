@@ -91,9 +91,9 @@ fn test_check_suite_completed_event_parsing() -> ServerResult<()> {
                     login: "Example".to_string()
                 }
             },
-            organization: GhUser {
+            organization: Some(GhUser {
                 login: "Example".to_string()
-            },
+            }),
             sender: GhUser {
                 login: "me".to_string()
             },
@@ -147,9 +147,9 @@ fn test_issue_comment_created_event_parsing() -> ServerResult<()> {
                     login: "Example".to_string()
                 }
             },
-            organization: GhUser {
+            organization: Some(GhUser {
                 login: "Example".to_string()
-            },
+            }),
             sender: GhUser {
                 login: "me".to_string()
             }
@@ -215,9 +215,9 @@ fn test_pull_request_opened_event_parsing() -> ServerResult<()> {
                     login: "Example".to_string()
                 },
             },
-            organization: GhUser {
+            organization: Some(GhUser {
                 login: "Example".to_string()
-            },
+            }),
             sender: GhUser {
                 login: "me".to_string()
             }
@@ -300,9 +300,9 @@ fn test_pull_request_labeled_event_parsing() -> ServerResult<()> {
                     login: "Example".to_string()
                 },
             },
-            organization: GhUser {
+            organization: Some(GhUser {
                 login: "Example".to_string()
-            },
+            }),
             sender: GhUser {
                 login: "bot".to_string()
             }
@@ -395,9 +395,9 @@ fn test_review_submitted_event_parsing() -> ServerResult<()> {
                     login: "Example".to_string()
                 }
             },
-            organization: GhUser {
+            organization: Some(GhUser {
                 login: "Example".to_string()
-            },
+            }),
             sender: GhUser {
                 login: "me".to_string()
             }

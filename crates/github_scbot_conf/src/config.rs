@@ -35,6 +35,8 @@ pub struct Config {
     pub server_bind_ip: String,
     /// Server bind port.
     pub server_bind_port: u16,
+    /// Server workers count.
+    pub server_workers_count: Option<u16>,
     /// Disable webhook signature verification.
     pub server_disable_webhook_signature: bool,
     /// Enable history tracking.
@@ -71,6 +73,7 @@ impl Config {
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),
             server_bind_port: env_to_u16("BOT_SERVER_BIND_IP", 8008),
+            server_workers_count: env_to_optional_u16("BOT_SERVER_WORKERS_COUNT", None),
             server_disable_webhook_signature: env_to_bool(
                 "BOT_SERVER_DISABLE_WEBHOOK_SIGNATURE",
                 false,
@@ -93,6 +96,12 @@ impl Config {
 fn env_to_u16(name: &str, default: u16) -> u16 {
     env::var(name)
         .map(|e| e.parse().unwrap_or(default))
+        .unwrap_or(default)
+}
+
+fn env_to_optional_u16(name: &str, default: Option<u16>) -> Option<u16> {
+    env::var(name)
+        .map(|e| e.parse::<u16>().map(Some).unwrap_or(default))
         .unwrap_or(default)
 }
 

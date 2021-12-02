@@ -10,4 +10,6 @@ github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-sentry = { path = "../github_scbot_sentry" }
 thiserror = "1.0"
 tracing = "0.1"
-tracing-subscriber = "0.2"
+tracing-bunyan-formatter = "0.3.0"
+tracing-log = "0.1.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

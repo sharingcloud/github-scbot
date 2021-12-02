@@ -129,7 +129,7 @@ impl SummaryTextGenerator {
             > - :checkered_flag: **Checks**: {checks_message}\n\
             > - :mag: **Code reviews**: {reviews_message}\n\
             > - :test_tube: **QA**: {qa_message}\n\
-            > - :lock: **Locked?**: {lock_message}\n\",
+            > - :lock: **Locked?**: {lock_message}\n\
             > - :twisted_rightwards_arrows: **Mergeable?**: {mergeable_message}",
             wip_message = wip_message,
             checks_message = checks_message,
