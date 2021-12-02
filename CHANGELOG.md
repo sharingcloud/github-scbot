@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2021-12-02
+
 ## Added
 
 - Handle conflict status on pull requests.
@@ -179,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/sharingcloud/github-scbot/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/sharingcloud/github-scbot/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/sharingcloud/github-scbot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/sharingcloud/github-scbot/compare/v0.13.1...v0.14.0
