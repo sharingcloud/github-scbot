@@ -11,7 +11,7 @@ use github_scbot_types::{
 };
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{
     adapter::{GhReviewApi, GifResponse, IAPIAdapter},
@@ -43,6 +43,10 @@ impl GithubAPIAdapter {
     }
 }
 
+fn trace_call(method: &str) {
+    debug!(message = "GitHub API call", method = method)
+}
+
 #[async_trait(?Send)]
 impl IAPIAdapter for GithubAPIAdapter {
     async fn issue_labels_list(
@@ -51,6 +55,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<String>> {
+        trace_call("issue_labels_list");
+
         Ok(self
             .get_client()
             .await?
@@ -71,6 +77,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         labels: &[String],
     ) -> Result<()> {
+        trace_call("issue_labels_replace_all");
+
         self.get_client()
             .await?
             .issues(owner, name)
@@ -86,6 +94,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         name: &str,
         username: &str,
     ) -> Result<GhUserPermission> {
+        trace_call("user_permissions_get");
+
         #[derive(Deserialize)]
         struct PermissionResponse {
             permission: GhUserPermission,
@@ -114,6 +124,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         name: &str,
         git_ref: &str,
     ) -> Result<Vec<GhCheckSuite>> {
+        trace_call("check_suites_list");
+
         #[derive(Deserialize)]
         struct Response {
             check_suites: Vec<GhCheckSuite>,
@@ -144,6 +156,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         body: &str,
     ) -> Result<u64> {
+        trace_call("comments_post");
+
         Ok(self
             .get_client()
             .await?
@@ -160,6 +174,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         comment_id: u64,
         body: &str,
     ) -> Result<u64> {
+        trace_call("comments_update");
+
         Ok(self
             .get_client()
             .await?
@@ -170,6 +186,8 @@ impl IAPIAdapter for GithubAPIAdapter {
     }
 
     async fn comments_delete(&self, owner: &str, name: &str, comment_id: u64) -> Result<()> {
+        trace_call("comments_delete");
+
         self.get_client()
             .await?
             .issues(owner, name)
@@ -186,6 +204,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         comment_id: u64,
         reaction_type: GhReactionType,
     ) -> Result<()> {
+        trace_call("comment_reactions_add");
+
         let body = serde_json::json!({
             "content": reaction_type.to_str()
         });
@@ -212,6 +232,8 @@ impl IAPIAdapter for GithubAPIAdapter {
     }
 
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
+        trace_call("pulls_get");
+
         let pull: GhPullRequest = self
             .get_client()
             .await?
@@ -238,6 +260,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
     ) -> Result<()> {
+        trace_call("pulls_merge");
+
         let body = serde_json::json!({
             "commit_title": commit_title,
             "commit_message": commit_message,
@@ -273,6 +297,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
+        trace_call("pull_reviewer_requests_add");
+
         let body = serde_json::json!({ "reviewers": reviewers });
         let client = self.get_client().await?;
 
@@ -296,6 +322,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
+        trace_call("pull_reviewer_requests_remove");
+
         let body = serde_json::json!({ "reviewers": reviewers });
         let client = self.get_client().await?;
         let url = client.absolute_url(format!(
@@ -326,6 +354,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<GhReviewApi>> {
+        trace_call("pull_reviews_list");
+
         let data: Vec<GhReviewApi> = self
             .get_client()
             .await?
@@ -352,6 +382,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         title: &str,
         body: &str,
     ) -> Result<()> {
+        trace_call("commit_statuses_update");
+
         let body = serde_json::json!({
             "state": status.to_str(),
             "description": body.chars().take(MAX_STATUS_DESCRIPTION_LEN).collect::<String>(),
@@ -371,6 +403,8 @@ impl IAPIAdapter for GithubAPIAdapter {
     }
 
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
+        trace_call("gif_search");
+
         let client = reqwest::Client::new();
         client
             .get(&format!("{}/search", GIF_API_URL))
@@ -395,6 +429,8 @@ impl IAPIAdapter for GithubAPIAdapter {
         auth_token: &str,
         installation_id: u64,
     ) -> Result<String> {
+        trace_call("installations_create_token");
+
         #[derive(Debug, Deserialize)]
         struct InstallationTokenResponse {
             token: String,

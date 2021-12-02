@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -25,12 +23,12 @@ pub trait IExternalAccountDbAdapter {
 
 /// Concrete external account DB adapter.
 pub struct ExternalAccountDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl ExternalAccountDbAdapter {
     /// Creates a new external account DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
@@ -90,25 +88,27 @@ impl IExternalAccountDbAdapter for ExternalAccountDbAdapter {
 /// Dummy external account DB adapter.
 pub struct DummyExternalAccountDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<ExternalAccountModel>>>,
+    pub create_response: Mock<ExternalAccountModel, Result<ExternalAccountModel>>,
     /// Get from username response.
-    pub get_from_username_response: Mock<Result<ExternalAccountModel>>,
+    pub get_from_username_response: Mock<String, Result<ExternalAccountModel>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<ExternalAccountModel>>>,
+    pub list_response: Mock<(), Result<Vec<ExternalAccountModel>>>,
     /// Remove response.
-    pub remove_response: Mock<Result<()>>,
+    pub remove_response: Mock<ExternalAccountModel, Result<()>>,
     /// Save response.
-    pub save_response: Mock<Result<()>>,
+    pub save_response: Mock<ExternalAccountModel, Result<()>>,
 }
 
 impl Default for DummyExternalAccountDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            get_from_username_response: Mock::new(Ok(ExternalAccountModel::default())),
-            list_response: Mock::new(Ok(Vec::new())),
-            remove_response: Mock::new(Ok(())),
-            save_response: Mock::new(Ok(())),
+            create_response: Mock::new(Box::new(Ok)),
+            get_from_username_response: Mock::new(Box::new(
+                |_| Ok(ExternalAccountModel::default()),
+            )),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            remove_response: Mock::new(Box::new(|_| Ok(()))),
+            save_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -124,22 +124,22 @@ impl DummyExternalAccountDbAdapter {
 #[allow(unused_variables)]
 impl IExternalAccountDbAdapter for DummyExternalAccountDbAdapter {
     async fn create(&self, entry: ExternalAccountModel) -> Result<ExternalAccountModel> {
-        self.create_response.response().map_or(Ok(entry), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn get_from_username(&self, username: &str) -> Result<ExternalAccountModel> {
-        self.get_from_username_response.response()
+        self.get_from_username_response.call(username.to_owned())
     }
 
     async fn list(&self) -> Result<Vec<ExternalAccountModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn remove(&self, entry: ExternalAccountModel) -> Result<()> {
-        self.remove_response.response()
+        self.remove_response.call(entry)
     }
 
     async fn save(&self, entry: &mut ExternalAccountModel) -> Result<()> {
-        self.save_response.response()
+        self.save_response.call(entry.clone())
     }
 }

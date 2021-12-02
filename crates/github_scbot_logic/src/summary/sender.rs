@@ -24,7 +24,7 @@ impl SummaryCommentSender {
         pr_model: &mut PullRequestModel,
     ) -> Result<u64> {
         let pull_request_status =
-            PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
         self.post_github_comment(
             api_adapter,
@@ -45,7 +45,7 @@ impl SummaryCommentSender {
         pr_model: &mut PullRequestModel,
     ) -> Result<u64> {
         let pull_request_status =
-            PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
 
         // Re-fetch comment ID

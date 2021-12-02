@@ -95,7 +95,7 @@ pub struct GhCheckSuiteEvent {
     /// Repository.
     pub repository: GhRepository,
     /// Organization.
-    pub organization: GhUser,
+    pub organization: Option<GhUser>,
     /// Sender.
     pub sender: GhUser,
 }

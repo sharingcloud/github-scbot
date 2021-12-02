@@ -1,8 +1,9 @@
 use github_scbot_database::models::{
     IDatabaseAdapter, MergeRuleModel, PullRequestModel, RepositoryModel, ReviewModel,
 };
+use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_types::{
-    pulls::GhMergeStrategy,
+    pulls::{GhMergeStrategy, GhPullRequest},
     reviews::GhReviewState,
     status::{CheckStatus, QaStatus},
 };
@@ -37,6 +38,8 @@ pub struct PullRequestStatus {
     pub locked: bool,
     /// PR is in WIP?
     pub wip: bool,
+    /// PR is mergeable?
+    pub mergeable: bool,
     /// Merge strategy
     pub merge_strategy: GhMergeStrategy,
 }
@@ -44,6 +47,7 @@ pub struct PullRequestStatus {
 impl PullRequestStatus {
     /// Create status from pull request and database.
     pub async fn from_database(
+        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,
@@ -61,7 +65,10 @@ impl PullRequestStatus {
             .await
         };
 
-        Self::from_pull_request(repo_model, pr_model, &reviews, strategy)
+        let upstream_pr = api_adapter
+            .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+            .await?;
+        Self::from_pull_request(repo_model, pr_model, &reviews, strategy, upstream_pr)
     }
 
     /// Create status from pull request.
@@ -70,6 +77,7 @@ impl PullRequestStatus {
         pr_model: &PullRequestModel,
         reviews: &[ReviewModel],
         strategy: GhMergeStrategy,
+        upstream_pr: GhPullRequest,
     ) -> Result<Self> {
         // Validate reviews
         let valid_reviews = Self::filter_valid_reviews(reviews);
@@ -105,6 +113,7 @@ impl PullRequestStatus {
             )?,
             locked: pr_model.locked(),
             wip: pr_model.wip(),
+            mergeable: upstream_pr.mergeable.unwrap_or(false),
             merge_strategy: strategy,
         })
     }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -32,12 +30,12 @@ pub trait IMergeRuleDbAdapter {
 
 /// Concrete merge rule DB adapter.
 pub struct MergeRuleDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl MergeRuleDbAdapter {
     /// Creates a new merge rule DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
@@ -114,25 +112,26 @@ impl IMergeRuleDbAdapter for MergeRuleDbAdapter {
 /// Dummy merge rule DB adapter.
 pub struct DummyMergeRuleDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<MergeRuleModel>>>,
+    pub create_response: Mock<MergeRuleCreation, Result<MergeRuleModel>>,
     /// Get from branches response.
-    pub get_from_branches_response: Mock<Result<MergeRuleModel>>,
+    pub get_from_branches_response:
+        Mock<(RepositoryModel, RuleBranch, RuleBranch), Result<MergeRuleModel>>,
     /// List from repository ID response.
-    pub list_from_repository_id_response: Mock<Result<Vec<MergeRuleModel>>>,
+    pub list_from_repository_id_response: Mock<i32, Result<Vec<MergeRuleModel>>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<MergeRuleModel>>>,
+    pub list_response: Mock<(), Result<Vec<MergeRuleModel>>>,
     /// Remove response.
-    pub remove_response: Mock<Result<()>>,
+    pub remove_response: Mock<MergeRuleModel, Result<()>>,
 }
 
 impl Default for DummyMergeRuleDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            get_from_branches_response: Mock::new(Ok(MergeRuleModel::default())),
-            list_from_repository_id_response: Mock::new(Ok(Vec::new())),
-            list_response: Mock::new(Ok(Vec::new())),
-            remove_response: Mock::new(Ok(())),
+            create_response: Mock::new(Box::new(|e| Ok(e.into()))),
+            get_from_branches_response: Mock::new(Box::new(|_| Ok(MergeRuleModel::default()))),
+            list_from_repository_id_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            remove_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -148,9 +147,7 @@ impl DummyMergeRuleDbAdapter {
 #[allow(unused_variables)]
 impl IMergeRuleDbAdapter for DummyMergeRuleDbAdapter {
     async fn create(&self, entry: MergeRuleCreation) -> Result<MergeRuleModel> {
-        self.create_response
-            .response()
-            .map_or_else(|| Ok(entry.into()), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn get_from_branches(
@@ -159,22 +156,27 @@ impl IMergeRuleDbAdapter for DummyMergeRuleDbAdapter {
         base_branch: &RuleBranch,
         head_branch: &RuleBranch,
     ) -> Result<MergeRuleModel> {
-        self.get_from_branches_response.response()
+        self.get_from_branches_response.call((
+            repository.clone(),
+            base_branch.clone(),
+            head_branch.clone(),
+        ))
     }
 
     async fn list_from_repository_id(&self, repository_id: i32) -> Result<Vec<MergeRuleModel>> {
-        self.list_from_repository_id_response.response()
+        self.list_from_repository_id_response.call(repository_id)
     }
 
     async fn list(&self) -> Result<Vec<MergeRuleModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn remove(&self, entry: MergeRuleModel) -> Result<()> {
-        self.remove_response.response()
+        self.remove_response.call(entry)
     }
 
     async fn update(&self, entry: &mut MergeRuleModel, update: MergeRuleUpdate) -> Result<()> {
-        todo!()
+        entry.apply_local_update(update);
+        Ok(())
     }
 }

@@ -568,7 +568,7 @@ mod tests {
 
         api_adapter
             .user_permissions_get_response
-            .set_response(Ok(GhUserPermission::Write));
+            .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
 
         let commands = CommandParser::parse_commands(
             &config,

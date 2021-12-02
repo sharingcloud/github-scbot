@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -27,12 +25,12 @@ pub trait IAccountDbAdapter {
 
 /// Concrete account DB adapter.
 pub struct AccountDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl AccountDbAdapter {
     /// Creates a new account DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
@@ -96,30 +94,30 @@ impl IAccountDbAdapter for AccountDbAdapter {
 /// Dummy account DB adapter.
 pub struct DummyAccountDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<AccountModel>>>,
+    pub create_response: Mock<AccountModel, Result<AccountModel>>,
     /// Get from username response.
-    pub get_from_username_response: Mock<Result<AccountModel>>,
+    pub get_from_username_response: Mock<String, Result<AccountModel>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<AccountModel>>>,
+    pub list_response: Mock<(), Result<Vec<AccountModel>>>,
     /// List admin accounts response.
-    pub list_admin_accounts_response: Mock<Result<Vec<AccountModel>>>,
+    pub list_admin_accounts_response: Mock<(), Result<Vec<AccountModel>>>,
     /// Remove response.
-    pub remove_response: Mock<Result<()>>,
+    pub remove_response: Mock<AccountModel, Result<()>>,
     /// Save response.
-    pub save_response: Mock<Result<()>>,
+    pub save_response: Mock<AccountModel, Result<()>>,
 }
 
 impl Default for DummyAccountDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            get_from_username_response: Mock::new(Err(DatabaseError::UnknownAccount(
-                "test".into(),
-            ))),
-            list_response: Mock::new(Ok(Vec::new())),
-            list_admin_accounts_response: Mock::new(Ok(Vec::new())),
-            remove_response: Mock::new(Ok(())),
-            save_response: Mock::new(Ok(())),
+            create_response: Mock::new(Box::new(Ok)),
+            get_from_username_response: Mock::new(Box::new(|_| {
+                Err(DatabaseError::UnknownAccount("test".into()))
+            })),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            list_admin_accounts_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            remove_response: Mock::new(Box::new(|_| Ok(()))),
+            save_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -135,27 +133,27 @@ impl DummyAccountDbAdapter {
 #[allow(unused_variables)]
 impl IAccountDbAdapter for DummyAccountDbAdapter {
     async fn create(&self, entry: AccountModel) -> Result<AccountModel> {
-        self.create_response.response().map_or(Ok(entry), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn get_from_username(&self, username: &str) -> Result<AccountModel> {
-        self.get_from_username_response.response()
+        self.get_from_username_response.call(username.to_owned())
     }
 
     async fn list(&self) -> Result<Vec<AccountModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn list_admin_accounts(&self) -> Result<Vec<AccountModel>> {
-        self.list_admin_accounts_response.response()
+        self.list_admin_accounts_response.call(())
     }
 
     async fn remove(&self, entry: AccountModel) -> Result<()> {
-        self.remove_response.response()
+        self.remove_response.call(entry)
     }
 
     async fn save(&self, entry: &mut AccountModel) -> Result<()> {
-        self.save_response.response()
+        self.save_response.call(entry.clone())
     }
 }
 

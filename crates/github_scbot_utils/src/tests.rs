@@ -8,17 +8,17 @@ pub(crate) struct MockInternal {
 }
 
 /// Simple mock.
-pub struct Mock<Response: Clone> {
+pub struct Mock<Args, Output> {
     internal: RwLock<MockInternal>,
-    response: Response,
+    cb: Box<dyn Fn(Args) -> Output + Send + Sync>,
 }
 
-impl<Response: Clone> Mock<Response> {
+impl<Args, Output> Mock<Args, Output> {
     /// Creates a new mock.
-    pub fn new(response: Response) -> Self {
+    pub fn new(cb: Box<dyn Fn(Args) -> Output + Send + Sync>) -> Self {
         Self {
             internal: RwLock::new(MockInternal::default()),
-            response,
+            cb,
         }
     }
 
@@ -37,13 +37,58 @@ impl<Response: Clone> Mock<Response> {
     }
 
     /// Gets mock response.
-    pub fn response(&self) -> Response {
+    pub fn call(&self, args: Args) -> Output {
         self.increment_call_count();
-        self.response.clone()
+        (self.cb)(args)
     }
 
     /// Sets mock response.
-    pub fn set_response(&mut self, r: Response) {
-        self.response = r;
+    pub fn set_callback(&mut self, f: Box<dyn Fn(Args) -> Output + Send + Sync>) {
+        self.cb = f;
+    }
+}
+
+#[allow(clippy::module_inception)]
+#[cfg(test)]
+mod tests {
+    use super::Mock;
+
+    #[test]
+    fn test_mock() {
+        let mut mock: Mock<u16, u16> = Mock::new(Box::new(|x| x * 2));
+        assert_eq!(mock.call(2), 4);
+        assert!(mock.called());
+        assert_eq!(mock.call_count(), 1);
+
+        mock.set_callback(Box::new(|x| x * 4));
+        assert_eq!(mock.call(2), 8);
+        assert_eq!(mock.call_count(), 2);
+    }
+
+    #[test]
+    fn test_set_callback() {
+        #[derive(Clone, Debug, PartialEq)]
+        struct MyStruct {
+            pub a: String,
+            pub b: String,
+        }
+
+        let mut mock: Mock<MyStruct, MyStruct> = Mock::new(Box::new(|mut x| {
+            x.a = "Pouet".to_string();
+            x
+        }));
+
+        let struct_test_input = MyStruct {
+            a: "1".to_string(),
+            b: "2".to_string(),
+        };
+        let struct_test = MyStruct {
+            a: "A".to_string(),
+            b: "B".to_string(),
+        };
+        let struct_test_clone = struct_test.clone();
+
+        mock.set_callback(Box::new(move |_| struct_test_clone.clone()));
+        assert_eq!(mock.call(struct_test_input), struct_test);
     }
 }

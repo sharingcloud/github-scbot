@@ -8,7 +8,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use std::io;
 //!
 //! use actix_web::{get, App, Error, HttpRequest, HttpServer};
@@ -42,7 +42,7 @@
 //! when `auto_session_tracking` is enabled and the client is configured to
 //! use `SessionMode::Request`.
 //!
-//! ```
+//! ```ignore
 //! let _sentry = sentry::init(sentry::ClientOptions {
 //!     session_mode: sentry::SessionMode::Request,
 //!     auto_session_tracking: true,
@@ -55,7 +55,7 @@
 //! This integration will automatically create a new per-request Hub from the main Hub, and update the
 //! current Hub instance. For example, the following will capture a message in the current request's Hub:
 //!
-//! ```
+//! ```ignore
 //! sentry::capture_message("Something is not well", sentry::Level::Warning);
 //! ```
 

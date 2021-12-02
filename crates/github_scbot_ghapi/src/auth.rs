@@ -112,7 +112,7 @@ mod tests {
         let mut adapter = DummyAPIAdapter::new();
         adapter
             .installations_create_token_response
-            .set_response(Ok("this-is-a-token".to_string()));
+            .set_callback(Box::new(|_| Ok("this-is-a-token".to_string())));
 
         assert_eq!(
             create_installation_access_token(&config, &adapter)
@@ -129,7 +129,7 @@ mod tests {
         let mut adapter = DummyAPIAdapter::new();
         adapter
             .installations_create_token_response
-            .set_response(Ok("token".to_string()));
+            .set_callback(Box::new(|_| Ok("token".to_string())));
 
         // Should use api token
         assert_eq!(

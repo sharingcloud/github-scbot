@@ -1307,6 +1307,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gethostname"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e692e296bfac1d2533ef168d0b60ff5897b8b70a4009276834014dd8924cc028"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1346,7 +1356,7 @@ checksum = "f6503fe142514ca4799d4c26297c4248239fe8838d827db6bd6065c6ed29a6ce"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix-rt",
  "argh",
@@ -1367,19 +1377,21 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-conf"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "dotenv",
  "github-scbot-crypto",
  "github-scbot-sentry",
  "thiserror",
  "tracing",
- "tracing-subscriber",
+ "tracing-bunyan-formatter",
+ "tracing-log",
+ "tracing-subscriber 0.3.2",
 ]
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "jsonwebtoken",
  "rand 0.8.4",
@@ -1390,7 +1402,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1415,7 +1427,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-macros"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "proc-macro2 1.0.27",
  "quote 1.0.9",
@@ -1424,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1448,7 +1460,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix-rt",
  "chrono",
@@ -1467,7 +1479,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix",
  "actix-redis",
@@ -1480,7 +1492,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-sentry"
-version = "0.1.0"
+version = "0.17.0"
 dependencies = [
  "sentry",
  "sentry-actix",
@@ -1490,7 +1502,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1517,11 +1529,12 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tracing",
+ "tracing-actix-web",
 ]
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database",
@@ -1533,7 +1546,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-types"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1544,7 +1557,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-utils"
-version = "0.16.0"
+version = "0.17.0"
 
 [[package]]
 name = "h2"
@@ -1859,9 +1872,9 @@ checksum = "47be2f14c678be2fdcab04ab1171db51b2762ce6f0a8ee87c8dd4a04ed216135"
 
 [[package]]
 name = "itoa"
-version = "0.4.6"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
+checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "js-sys"
@@ -1973,6 +1986,15 @@ name = "matchers"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f099785f7595cc4b4553a174ce30dd7589ef93391ff414dbb67f62392b9e0ce1"
+dependencies = [
+ "regex-automata",
+]
+
+[[package]]
+name = "matchers"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
  "regex-automata",
 ]
@@ -3118,7 +3140,7 @@ checksum = "d291df287241b0ef97f5bf9e9a595691ef8dfb49bc6acfd55b9dc2ade681f1c9"
 dependencies = [
  "sentry-core",
  "tracing-core",
- "tracing-subscriber",
+ "tracing-subscriber 0.2.15",
 ]
 
 [[package]]
@@ -3701,6 +3723,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-actix-web"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc36fc2f840643e49d220d07cd7ca81bc31c7f6df25f164d4257971533dab354"
+dependencies = [
+ "actix-web",
+ "futures",
+ "tracing",
+ "tracing-futures",
+ "uuid",
+]
+
+[[package]]
 name = "tracing-attributes"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3709,6 +3744,23 @@ dependencies = [
  "proc-macro2 1.0.27",
  "quote 1.0.9",
  "syn",
+]
+
+[[package]]
+name = "tracing-bunyan-formatter"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0814e45b1ba02f79418d90107acc44ae55dceb0623d40f4ee7d981b5e1984869"
+dependencies = [
+ "chrono",
+ "gethostname",
+ "log",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber 0.3.2",
 ]
 
 [[package]]
@@ -3732,9 +3784,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-log"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e0f8c7178e13481ff6765bd169b33e8d554c5d2bbede5e32c356194be02b9b9"
+checksum = "a6923477a48e41c1951f1999ef8bb5a3023eb723ceadafe78ffb65dc366761e3"
 dependencies = [
  "lazy_static",
  "log",
@@ -3760,7 +3812,7 @@ dependencies = [
  "ansi_term 0.12.1",
  "chrono",
  "lazy_static",
- "matchers",
+ "matchers 0.0.1",
  "regex",
  "serde",
  "serde_json",
@@ -3771,6 +3823,24 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7507ec620f809cdf07cccb5bc57b13069a88031b795efd4079b1c71b66c1613d"
+dependencies = [
+ "ansi_term 0.12.1",
+ "lazy_static",
+ "matchers 0.1.0",
+ "regex",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
 ]
 
 [[package]]

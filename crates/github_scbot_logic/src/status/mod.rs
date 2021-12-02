@@ -27,7 +27,7 @@ impl StatusLogic {
         } else if pull_request_status.valid_pr_title {
             match pull_request_status.checks_status {
                 CheckStatus::Pass | CheckStatus::Skipped => {
-                    if pull_request_status.changes_required() {
+                    if pull_request_status.changes_required() || !pull_request_status.mergeable {
                         StepLabel::AwaitingChanges
                     } else if pull_request_status.missing_required_reviews() {
                         StepLabel::AwaitingRequiredReview
@@ -63,7 +63,8 @@ impl StatusLogic {
         pr_model: &mut PullRequestModel,
         commit_sha: &str,
     ) -> Result<()> {
-        let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
+        let pr_status =
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
@@ -106,7 +107,8 @@ impl StatusLogic {
         pr_model: &mut PullRequestModel,
         commit_sha: &str,
     ) -> Result<()> {
-        let pr_status = PullRequestStatus::from_database(db_adapter, repo_model, pr_model).await?;
+        let pr_status =
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
@@ -204,7 +206,13 @@ impl StatusLogic {
                 }
                 CheckStatus::Pass | CheckStatus::Skipped => {
                     // Check review status
-                    if !pull_request_status.missing_required_reviewers.is_empty() {
+                    if pull_request_status.changes_required() {
+                        status_message = "Changes required".to_string();
+                        status_state = StatusState::Failure;
+                    } else if !pull_request_status.mergeable {
+                        status_message = "Pull request is not mergeable.".to_string();
+                        status_state = StatusState::Failure;
+                    } else if !pull_request_status.missing_required_reviewers.is_empty() {
                         status_message = format!(
                             "Waiting on mandatory reviews ({})",
                             pull_request_status.missing_required_reviewers.join(", ")

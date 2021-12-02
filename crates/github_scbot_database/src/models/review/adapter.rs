@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -38,12 +36,12 @@ pub trait IReviewDbAdapter {
 
 /// Concrete review DB adapter.
 pub struct ReviewDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl ReviewDbAdapter {
     /// Creates a new review DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
@@ -128,28 +126,31 @@ impl IReviewDbAdapter for ReviewDbAdapter {
 /// Dummy review DB adapter.
 pub struct DummyReviewDbAdapter {
     /// Create response.
-    pub create_response: Mock<Option<Result<ReviewModel>>>,
+    pub create_response: Mock<ReviewCreation, Result<ReviewModel>>,
     /// List response.
-    pub list_response: Mock<Result<Vec<ReviewModel>>>,
+    pub list_response: Mock<(), Result<Vec<ReviewModel>>>,
     /// List from pull request ID response.
-    pub list_from_pull_request_id_response: Mock<Result<Vec<ReviewModel>>>,
+    pub list_from_pull_request_id_response: Mock<i32, Result<Vec<ReviewModel>>>,
     /// Get from pull request and username response.
-    pub get_from_pull_request_and_username_response: Mock<Result<ReviewModel>>,
+    pub get_from_pull_request_and_username_response:
+        Mock<(RepositoryModel, PullRequestModel, String), Result<ReviewModel>>,
     /// Remove response.
-    pub remove_response: Mock<Result<()>>,
+    pub remove_response: Mock<ReviewModel, Result<()>>,
     /// Remove all for pull request response.
-    pub remove_all_for_pull_request_response: Mock<Result<()>>,
+    pub remove_all_for_pull_request_response: Mock<i32, Result<()>>,
 }
 
 impl Default for DummyReviewDbAdapter {
     fn default() -> Self {
         Self {
-            create_response: Mock::new(None),
-            list_response: Mock::new(Ok(Vec::new())),
-            list_from_pull_request_id_response: Mock::new(Ok(Vec::new())),
-            get_from_pull_request_and_username_response: Mock::new(Ok(ReviewModel::default())),
-            remove_response: Mock::new(Ok(())),
-            remove_all_for_pull_request_response: Mock::new(Ok(())),
+            create_response: Mock::new(Box::new(|e| Ok(e.into()))),
+            list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            list_from_pull_request_id_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            get_from_pull_request_and_username_response: Mock::new(Box::new(|_| {
+                Ok(ReviewModel::default())
+            })),
+            remove_response: Mock::new(Box::new(|_| Ok(()))),
+            remove_all_for_pull_request_response: Mock::new(Box::new(|_| Ok(()))),
         }
     }
 }
@@ -165,17 +166,16 @@ impl DummyReviewDbAdapter {
 #[allow(unused_variables)]
 impl IReviewDbAdapter for DummyReviewDbAdapter {
     async fn create(&self, entry: ReviewCreation) -> Result<ReviewModel> {
-        self.create_response
-            .response()
-            .map_or_else(|| Ok(entry.into()), |r| r)
+        self.create_response.call(entry)
     }
 
     async fn list(&self) -> Result<Vec<ReviewModel>> {
-        self.list_response.response()
+        self.list_response.call(())
     }
 
     async fn list_from_pull_request_id(&self, pull_request_id: i32) -> Result<Vec<ReviewModel>> {
-        self.list_from_pull_request_id_response.response()
+        self.list_from_pull_request_id_response
+            .call(pull_request_id)
     }
 
     async fn get_from_pull_request_and_username(
@@ -184,15 +184,20 @@ impl IReviewDbAdapter for DummyReviewDbAdapter {
         pull_request: &PullRequestModel,
         username: &str,
     ) -> Result<ReviewModel> {
-        self.get_from_pull_request_and_username_response.response()
+        self.get_from_pull_request_and_username_response.call((
+            repository.clone(),
+            pull_request.clone(),
+            username.to_owned(),
+        ))
     }
 
     async fn remove(&self, entry: ReviewModel) -> Result<()> {
-        self.remove_response.response()
+        self.remove_response.call(entry)
     }
 
     async fn remove_all_for_pull_request(&self, pull_request_id: i32) -> Result<()> {
-        self.remove_all_for_pull_request_response.response()
+        self.remove_all_for_pull_request_response
+            .call(pull_request_id)
     }
 
     async fn update(&self, entry: &mut ReviewModel, update: ReviewUpdate) -> Result<()> {

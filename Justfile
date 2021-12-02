@@ -46,12 +46,17 @@ show-version:
 # Run server (debug)
 run-server:
 	#!/bin/bash
-	RUST_LOG=info,github_scbot=trace cargo watch -x "run -- server"
+	RUST_LOG=info,github_scbot=debug cargo run -q -- server
 
 # Run server (release)
 run-server-release:
 	#!/bin/bash
-	RUST_LOG=info,github_scbot=trace cargo watch -x "run --release -- server"
+	RUST_LOG=info,github_scbot=debug cargo run -q --release -- server
+
+# Run server (watch)
+run-server-watch:
+	#!/bin/bash
+	RUST_LOG=info,github_scbot=debug cargo watch -x "run -- server"
 
 # Build Docker image
 docker-build:

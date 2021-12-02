@@ -75,7 +75,7 @@ async fn test_review_creation() -> Result<()> {
         let mut redis_adapter = DummyRedisAdapter::new();
         api_adapter
             .user_permissions_get_response
-            .set_response(Ok(GhUserPermission::Write));
+            .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
 
         let (mut repo, mut pr) = arrange(&config, &db_adapter).await;
 
@@ -91,7 +91,9 @@ async fn test_review_creation() -> Result<()> {
         let instance = LockInstance::new_dummy("pouet");
         redis_adapter
             .try_lock_resource_response
-            .set_response(Ok(LockStatus::SuccessfullyLocked(instance)));
+            .set_callback(Box::new(move |_| {
+                Ok(LockStatus::SuccessfullyLocked(instance.clone()))
+            }));
 
         ReviewLogic::process_review(
             &api_adapter,
@@ -181,7 +183,7 @@ async fn test_review_creation() -> Result<()> {
         assert!(!review.required());
 
         // Generate status
-        let status = PullRequestStatus::from_database(&db_adapter, &repo, &pr)
+        let status = PullRequestStatus::from_database(&api_adapter, &db_adapter, &repo, &pr)
             .await
             .unwrap();
         assert!(status.approved_reviewers.is_empty());

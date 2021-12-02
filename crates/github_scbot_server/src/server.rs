@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{error, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetrics;
 use github_scbot_conf::Config;
@@ -15,6 +15,7 @@ use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
+use tracing_actix_web::TracingLogger;
 
 use crate::{
     debug::configure_debug_handlers,
@@ -38,7 +39,7 @@ pub struct AppContext {
 
 impl AppContext {
     /// Create new app context.
-    pub fn new(config: Config, pool: Arc<DbPool>) -> Self {
+    pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
             db_adapter: Box::new(DatabaseAdapter::new(pool)),
@@ -94,14 +95,15 @@ fn get_bind_address(config: &Config) -> String {
 
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
     let context = Arc::new(context);
+    let cloned_context = context.clone();
     let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
 
-    HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         let mut app = App::new()
             .data(context.clone())
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
-            .wrap(Logger::default())
+            .wrap(TracingLogger)
             .service(
                 web::scope("/external")
                     .wrap(HttpAuthentication::bearer(jwt_auth_validator))
@@ -145,9 +147,15 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
         }
 
         app
-    })
-    .bind(ip_with_port)?
-    .run()
-    .await
-    .map_err(ServerError::from)
+    });
+
+    if let Some(workers) = cloned_context.config.server_workers_count {
+        server = server.workers(workers as usize);
+    }
+
+    server
+        .bind(ip_with_port)?
+        .run()
+        .await
+        .map_err(ServerError::from)
 }
