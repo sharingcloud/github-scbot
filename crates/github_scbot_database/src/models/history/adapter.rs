@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -24,12 +22,12 @@ pub trait IHistoryWebhookDbAdapter {
 
 /// Concrete history webhook DB adapter.
 pub struct HistoryWebhookDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl HistoryWebhookDbAdapter {
     /// Creates a new history webhook DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }

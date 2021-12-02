@@ -1,6 +1,6 @@
 //! Test utils
 
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 use diesel::{r2d2::ConnectionManager, Connection, PgConnection, RunQueryDsl};
 use github_scbot_conf::Config;
@@ -85,7 +85,7 @@ fn teardown_test_db(base_url: &str, db_name: &str) -> Result<()> {
 pub async fn using_test_db<F, Fut, E>(db_name: &str, test: F) -> Result<()>
 where
     E: std::fmt::Debug,
-    F: FnOnce(Config, Arc<DbPool>) -> Fut,
+    F: FnOnce(Config, DbPool) -> Fut,
     Fut: Future<Output = core::result::Result<(), E>>,
 {
     let mut config = Config::from_env();
@@ -95,7 +95,7 @@ where
     teardown_test_db(&base_url, db_name)?;
     setup_test_db(&base_url, db_name)?;
 
-    let pool = Arc::new(create_pool(&base_url, db_name)?);
+    let pool = create_pool(&base_url, db_name)?;
     let result = test(config, pool).await;
     teardown_test_db(&base_url, db_name)?;
 

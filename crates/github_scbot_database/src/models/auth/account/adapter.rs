@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -27,12 +25,12 @@ pub trait IAccountDbAdapter {
 
 /// Concrete account DB adapter.
 pub struct AccountDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl AccountDbAdapter {
     /// Creates a new account DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }

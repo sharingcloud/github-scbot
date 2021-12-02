@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use diesel::prelude::*;
 use github_scbot_utils::Mock;
@@ -25,12 +23,12 @@ pub trait IRepositoryDbAdapter {
 
 /// Concrete repository DB adapter.
 pub struct RepositoryDbAdapter {
-    pool: Arc<DbPool>,
+    pool: DbPool,
 }
 
 impl RepositoryDbAdapter {
     /// Creates a new repository DB adapter.
-    pub fn new(pool: Arc<DbPool>) -> Self {
+    pub fn new(pool: DbPool) -> Self {
         Self { pool }
     }
 }
