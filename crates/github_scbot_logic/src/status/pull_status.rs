@@ -40,6 +40,8 @@ pub struct PullRequestStatus {
     pub wip: bool,
     /// PR is mergeable?
     pub mergeable: bool,
+    /// PR is merged?,
+    pub merged: bool,
     /// Merge strategy
     pub merge_strategy: GhMergeStrategy,
 }
@@ -114,6 +116,7 @@ impl PullRequestStatus {
             locked: pr_model.locked(),
             wip: pr_model.wip(),
             mergeable: upstream_pr.mergeable.unwrap_or(false),
+            merged: upstream_pr.merged.unwrap_or(false),
             merge_strategy: strategy,
         })
     }
