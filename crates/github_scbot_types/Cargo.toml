@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-types"
-version = "0.17.0"
+version = "0.17.1"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2018"
 

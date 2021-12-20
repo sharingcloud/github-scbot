@@ -27,7 +27,9 @@ impl StatusLogic {
         } else if pull_request_status.valid_pr_title {
             match pull_request_status.checks_status {
                 CheckStatus::Pass | CheckStatus::Skipped => {
-                    if pull_request_status.changes_required() || !pull_request_status.mergeable {
+                    if pull_request_status.changes_required()
+                        || !pull_request_status.mergeable && !pull_request_status.merged
+                    {
                         StepLabel::AwaitingChanges
                     } else if pull_request_status.missing_required_reviews() {
                         StepLabel::AwaitingRequiredReview
@@ -209,7 +211,7 @@ impl StatusLogic {
                     if pull_request_status.changes_required() {
                         status_message = "Changes required".to_string();
                         status_state = StatusState::Failure;
-                    } else if !pull_request_status.mergeable {
+                    } else if !pull_request_status.mergeable && !pull_request_status.merged {
                         status_message = "Pull request is not mergeable.".to_string();
                         status_state = StatusState::Failure;
                     } else if !pull_request_status.missing_required_reviewers.is_empty() {

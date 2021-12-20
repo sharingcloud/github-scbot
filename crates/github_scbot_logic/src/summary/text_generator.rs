@@ -92,7 +92,7 @@ impl SummaryTextGenerator {
             "No :heavy_check_mark:"
         };
 
-        let mergeable_message = if pull_request_status.mergeable {
+        let mergeable_message = if pull_request_status.mergeable || pull_request_status.merged {
             "Yes :heavy_check_mark:"
         } else {
             "No :x:"
