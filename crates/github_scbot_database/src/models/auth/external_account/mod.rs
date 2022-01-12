@@ -43,6 +43,8 @@ pub struct ExternalAccountModel {
     pub public_key: String,
     /// Private key.
     pub private_key: String,
+    /// Superuser status.
+    pub is_superuser: bool,
 }
 
 impl ExternalAccountModel {
@@ -92,6 +94,7 @@ mod tests {
                     username: "ext1".into(),
                     public_key: String::new(),
                     private_key: String::new(),
+                    is_superuser: false,
                 }
             );
 
@@ -107,7 +110,8 @@ mod tests {
                 ExternalAccountModel {
                     username: "ext1".into(),
                     private_key: "pri".into(),
-                    public_key: "pub".into()
+                    public_key: "pub".into(),
+                    is_superuser: false,
                 }
             );
 
@@ -122,7 +126,8 @@ mod tests {
                 ExternalAccountModel {
                     username: "ext1".into(),
                     private_key: "pri".into(),
-                    public_key: "public".into()
+                    public_key: "public".into(),
+                    is_superuser: false,
                 }
             );
 

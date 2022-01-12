@@ -8,7 +8,7 @@ use crate::{schema::external_account, DatabaseError, DbPool, Result};
 
 /// External account DB adapter.
 #[async_trait]
-pub trait IExternalAccountDbAdapter {
+pub trait IExternalAccountDbAdapter: Send + Sync {
     /// Creates a new external account.
     async fn create(&self, entry: ExternalAccountModel) -> Result<ExternalAccountModel>;
     /// Gets an external account from username.

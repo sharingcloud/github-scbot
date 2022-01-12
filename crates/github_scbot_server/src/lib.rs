@@ -1,8 +1,9 @@
 //! Server module.
-#![feature(backtrace)]
+
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+mod admin;
 pub mod constants;
 mod debug;
 pub mod errors;

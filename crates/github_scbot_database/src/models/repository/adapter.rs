@@ -8,7 +8,7 @@ use crate::{schema::repository, DatabaseError, DbPool, Result};
 
 /// Repository DB adapter.
 #[async_trait]
-pub trait IRepositoryDbAdapter {
+pub trait IRepositoryDbAdapter: Send + Sync {
     /// Creates a new repository.
     async fn create(&self, entry: RepositoryCreation) -> Result<RepositoryModel>;
     /// Lists available repositories.

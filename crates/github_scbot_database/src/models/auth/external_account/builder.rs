@@ -8,6 +8,7 @@ pub struct ExternalAccountModelBuilder {
     username: String,
     public_key: Option<String>,
     private_key: Option<String>,
+    is_superuser: Option<bool>,
 }
 
 impl ExternalAccountModelBuilder {
@@ -16,6 +17,7 @@ impl ExternalAccountModelBuilder {
             username: username.into(),
             public_key: None,
             private_key: None,
+            is_superuser: None,
         }
     }
 
@@ -24,6 +26,7 @@ impl ExternalAccountModelBuilder {
             username: model.username.clone(),
             private_key: Some(model.private_key.clone()),
             public_key: Some(model.public_key.clone()),
+            is_superuser: Some(model.is_superuser),
         }
     }
 
@@ -34,6 +37,11 @@ impl ExternalAccountModelBuilder {
 
     pub fn public_key<T: Into<String>>(mut self, key: T) -> Self {
         self.public_key = Some(key.into());
+        self
+    }
+
+    pub fn is_superuser(mut self, value: bool) -> Self {
+        self.is_superuser = Some(value);
         self
     }
 
@@ -61,6 +69,10 @@ impl ExternalAccountModelBuilder {
             Some(k) => k,
             None => handle.private_key,
         };
+        handle.is_superuser = match self.is_superuser {
+            Some(v) => v,
+            None => handle.is_superuser,
+        };
         db_adapter.save(&mut handle).await?;
 
         Ok(handle)
@@ -71,6 +83,7 @@ impl ExternalAccountModelBuilder {
             username: self.username.clone(),
             public_key: self.public_key.clone().unwrap_or_else(String::new),
             private_key: self.private_key.clone().unwrap_or_else(String::new),
+            is_superuser: self.is_superuser.unwrap_or(false)
         }
     }
 }

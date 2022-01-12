@@ -3,10 +3,12 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_identity::{IdentityService, CookieIdentityPolicy};
 use actix_web::{error, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetrics;
 use github_scbot_conf::Config;
+use github_scbot_crypto::rand::Rng;
 use github_scbot_database::{
     models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
     DbPool,
@@ -22,7 +24,8 @@ use crate::{
     external::{status::set_qa_status, validator::jwt_auth_validator},
     middlewares::VerifySignature,
     webhook::configure_webhook_handlers,
-    Result, ServerError,
+    admin::graphql::create_schema,
+    Result, ServerError, admin::configure_admin_handlers,
 };
 
 /// App context.
@@ -97,10 +100,18 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
     let context = Arc::new(context);
     let cloned_context = context.clone();
     let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
+    let schema = Arc::new(create_schema());
+    let private_key = github_scbot_crypto::rand::thread_rng().gen::<[u8; 32]>();
 
     let mut server = HttpServer::new(move || {
         let mut app = App::new()
             .data(context.clone())
+            .data(schema.clone())
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&private_key)
+                    .name("admin-auth")
+                    .secure(false),
+            ))
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
             .wrap(TracingLogger)
@@ -114,6 +125,10 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
                 web::scope("/webhook")
                     .wrap(VerifySignature::new(&context.config))
                     .configure(configure_webhook_handlers),
+            )
+            .service(
+                web::scope("/admin")
+                    .configure(configure_admin_handlers),
             )
             .route(
                 "/health-check",

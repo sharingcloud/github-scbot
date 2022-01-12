@@ -8,7 +8,7 @@ use crate::{models::RepositoryModel, schema::merge_rule, DatabaseError, DbPool, 
 
 /// Merge rule DB adapter.
 #[async_trait]
-pub trait IMergeRuleDbAdapter {
+pub trait IMergeRuleDbAdapter: Send + Sync {
     /// Creates a new merge rule entry.
     async fn create(&self, entry: MergeRuleCreation) -> Result<MergeRuleModel>;
     /// Gets a merge rule from branches.

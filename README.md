@@ -124,6 +124,14 @@ This project is written in the [Rust programming language](https://www.rust-lang
 To use the development server with "watch mode", you will also need the `cargo-watch` tool (installable using `cargo install cargo-watch`).  
 You will also need the [`just` command runner](https://github.com/casey/just).
 
+On Ubuntu, to build locally, you need the following packages:
+
+- pkg-config
+- libssl-dev
+- libpq-dev
+
+Then to use the Diesel CLI, use `cargo +stable install diesel_cli --no-default-features --features postgres`
+
 ### Running server locally
 
 Type `just runserver`.

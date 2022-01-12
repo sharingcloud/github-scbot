@@ -27,6 +27,8 @@ pub struct Config {
     pub github_app_private_key: String,
     /// GitHub webhook secret.
     pub github_webhook_secret: String,
+    /// Use bunyan logging.
+    pub logging_use_bunyan: bool,
     /// Redis address.
     pub redis_address: String,
     /// Sentry URL.
@@ -69,6 +71,7 @@ impl Config {
             github_app_installation_id: env_to_u64("BOT_GITHUB_APP_INSTALLATION_ID", 0),
             github_app_private_key: env_to_str("BOT_GITHUB_APP_PRIVATE_KEY", ""),
             github_webhook_secret: env_to_str("BOT_GITHUB_WEBHOOK_SECRET", ""),
+            logging_use_bunyan: env_to_bool("BOT_LOGGING_USE_BUNYAN", false),
             redis_address: env_to_str("BOT_REDIS_ADDRESS", ""),
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),

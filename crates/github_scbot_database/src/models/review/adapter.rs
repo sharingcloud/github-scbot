@@ -12,7 +12,7 @@ use crate::{
 
 /// Review DB adapter.
 #[async_trait]
-pub trait IReviewDbAdapter {
+pub trait IReviewDbAdapter: Send + Sync {
     /// Creates a new review.
     async fn create(&self, entry: ReviewCreation) -> Result<ReviewModel>;
     /// Lists available reviews.

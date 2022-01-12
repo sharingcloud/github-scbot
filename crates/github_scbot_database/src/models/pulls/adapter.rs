@@ -12,7 +12,7 @@ use crate::{
 
 /// Pull request DB adapter.
 #[async_trait]
-pub trait IPullRequestDbAdapter {
+pub trait IPullRequestDbAdapter: Send + Sync {
     /// Creates a pull request.
     async fn create(&self, entry: PullRequestCreation) -> Result<PullRequestModel>;
     /// Fetch status comment ID from a pull request ID.

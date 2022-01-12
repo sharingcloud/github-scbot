@@ -8,7 +8,7 @@ use crate::{schema::account, DatabaseError, DbPool, Result};
 
 /// Account DB adapter.
 #[async_trait]
-pub trait IAccountDbAdapter {
+pub trait IAccountDbAdapter: Send + Sync {
     /// Creates a new account.
     async fn create(&self, entry: AccountModel) -> Result<AccountModel>;
     /// Gets account from username.

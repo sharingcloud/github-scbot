@@ -4,7 +4,7 @@ version := `cat ./crates/github_scbot_cli/Cargo.toml | sed -n "s/^version = \"\(
 _default:
 	@just -l
 
-# # Check code style
+# Check code style
 fmt:
 	cargo fmt --all
 

@@ -8,7 +8,7 @@ use crate::{schema::history_webhook, DatabaseError, DbPool, Result};
 
 /// History webhook DB adapter.
 #[async_trait]
-pub trait IHistoryWebhookDbAdapter {
+pub trait IHistoryWebhookDbAdapter: Send + Sync {
     /// Creates a new history webhook entry.
     async fn create(&self, entry: HistoryWebhookCreation) -> Result<HistoryWebhookModel>;
     /// Lists existing history webhook entries.

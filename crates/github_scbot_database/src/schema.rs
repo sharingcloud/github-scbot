@@ -10,6 +10,7 @@ table! {
         username -> Varchar,
         public_key -> Text,
         private_key -> Text,
+        is_superuser -> Bool,
     }
 }
 

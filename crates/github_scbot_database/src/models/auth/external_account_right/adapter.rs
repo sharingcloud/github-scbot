@@ -11,7 +11,7 @@ use crate::{
 
 /// External account right DB adapter.
 #[async_trait]
-pub trait IExternalAccountRightDbAdapter {
+pub trait IExternalAccountRightDbAdapter: Send + Sync {
     /// Lists available external account rights.
     async fn list(&self) -> Result<Vec<ExternalAccountRightModel>>;
     /// Lists available external accounts rights for username.
