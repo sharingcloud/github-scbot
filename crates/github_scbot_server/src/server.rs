@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{error, web, App, HttpResponse, HttpServer};
+use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetrics;
 use github_scbot_conf::Config;
@@ -103,6 +103,7 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
             .data(context.clone())
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
+            .wrap(Logger::default())
             .wrap(TracingLogger)
             .service(
                 web::scope("/external")
