@@ -67,9 +67,15 @@ pub async fn extract_account_from_auth(
     db_adapter: &dyn IDatabaseAdapter,
     credentials: &BearerAuth,
 ) -> Result<ExternalAccountModel, ValidationError> {
-    let tok = credentials.token();
+    extract_account_from_token(db_adapter, credentials.token()).await
+}
+
+pub async fn extract_account_from_token(
+    db_adapter: &dyn IDatabaseAdapter,
+    token: &str,
+) -> Result<ExternalAccountModel, ValidationError> {
     let claims: ExternalJwtClaims =
-        JwtUtils::decode_jwt(tok).map_err(|e| ValidationError::token_error(tok, e))?;
+        JwtUtils::decode_jwt(token).map_err(|e| ValidationError::token_error(token, e))?;
     db_adapter
         .external_account()
         .get_from_username(&claims.iss)
