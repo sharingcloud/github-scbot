@@ -2,7 +2,7 @@
 FROM rust:buster as builder
 WORKDIR /usr/src/app
 
-RUN rustup toolchain install nightly-2021-09-20 --profile default && rustup default nightly-2021-09-20
+RUN rustup toolchain install 1.57.0
 
 COPY ./crates /usr/src/app/crates
 COPY ./migrations /usr/src/app/migrations
