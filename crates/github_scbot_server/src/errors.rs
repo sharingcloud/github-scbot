@@ -1,6 +1,6 @@
 //! Webhook errors.
 
-use std::{backtrace::Backtrace, fmt};
+use std::fmt;
 
 use actix_http::{error::BlockingError, http::StatusCode};
 use github_scbot_sentry::WrapEyre;
@@ -36,7 +36,7 @@ pub enum ServerError {
 
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error("Logic error.")]
-    LogicError(#[from] github_scbot_logic::LogicError, Backtrace),
+    LogicError(#[from] github_scbot_logic::LogicError),
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
     #[error("API error.")]
