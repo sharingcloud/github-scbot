@@ -35,6 +35,9 @@ pub struct ReviewModel {
     /// Is the review valid?
     #[get]
     valid: bool,
+    /// Has approved?
+    #[get]
+    approved: bool,
 }
 
 #[derive(Debug, Identifiable, Clone, AsChangeset, Default)]
@@ -50,6 +53,8 @@ pub struct ReviewUpdate {
     pub required: Option<bool>,
     /// Review valid?
     pub valid: Option<bool>,
+    /// Has approved?
+    pub approved: Option<bool>,
 }
 
 #[derive(Insertable)]
@@ -60,6 +65,7 @@ pub struct ReviewCreation {
     pub state: String,
     pub required: bool,
     pub valid: bool,
+    pub approved: bool,
 }
 
 impl From<ReviewModel> for ReviewCreation {
@@ -70,6 +76,7 @@ impl From<ReviewModel> for ReviewCreation {
             state: model.state,
             required: model.required,
             valid: model.valid,
+            approved: model.approved,
         }
     }
 }
@@ -83,6 +90,7 @@ impl From<ReviewCreation> for ReviewModel {
             state: creation.state,
             required: creation.required,
             valid: creation.valid,
+            approved: creation.approved,
         }
     }
 }
@@ -179,7 +187,8 @@ mod tests {
                     username: "him".into(),
                     state: GhReviewState::Pending.to_string(),
                     required: false,
-                    valid: false
+                    valid: false,
+                    approved: false,
                 }
             );
 
@@ -206,7 +215,8 @@ mod tests {
                     username: "him".into(),
                     state: GhReviewState::Commented.to_string(),
                     required: false,
-                    valid: true
+                    valid: true,
+                    approved: false,
                 }
             );
 

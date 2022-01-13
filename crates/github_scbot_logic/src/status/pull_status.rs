@@ -90,11 +90,12 @@ impl PullRequestStatus {
 
         for review in valid_reviews {
             let state = review.state();
+            let approved = review.approved();
             if state == GhReviewState::ChangesRequested {
                 changes_required_reviews.push(review.username().into());
-            } else if review.required() && state != GhReviewState::Approved {
+            } else if review.required() && !approved {
                 required_reviews.push(review.username().into());
-            } else if state == GhReviewState::Approved {
+            } else if approved {
                 approved_reviews.push(review.username().into());
             }
         }

@@ -151,7 +151,8 @@ async fn test_import_models_from_json() -> Result<()> {
                     "username": "tutu",
                     "state": "commented",
                     "required": true,
-                    "valid": true
+                    "valid": true,
+                    "approved": false,
                 }
             ],
             "merge_rules": [
