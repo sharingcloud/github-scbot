@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_identity::{IdentityService, CookieIdentityPolicy};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{error, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetrics;
@@ -20,12 +20,12 @@ use tracing::info;
 use tracing_actix_web::TracingLogger;
 
 use crate::{
+    admin::{configure_admin_handlers, graphql::create_schema},
     debug::configure_debug_handlers,
     external::{status::set_qa_status, validator::jwt_auth_validator},
     middlewares::VerifySignature,
     webhook::configure_webhook_handlers,
-    admin::graphql::create_schema,
-    Result, ServerError, admin::configure_admin_handlers,
+    Result, ServerError,
 };
 
 /// App context.
@@ -126,10 +126,7 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
                     .wrap(VerifySignature::new(&context.config))
                     .configure(configure_webhook_handlers),
             )
-            .service(
-                web::scope("/admin")
-                    .configure(configure_admin_handlers),
-            )
+            .service(web::scope("/admin").configure(configure_admin_handlers))
             .route(
                 "/health-check",
                 web::get().to(|| async {

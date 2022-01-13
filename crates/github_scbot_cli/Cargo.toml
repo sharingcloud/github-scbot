@@ -10,10 +10,10 @@ github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-logic = { path = "../github_scbot_logic" }
 github-scbot-server = { path = "../github_scbot_server" }
-github-scbot-tui = { path = "../github_scbot_tui" }
 github-scbot-redis = { path = "../github_scbot_redis" }
 github-scbot-sentry = { path = "../github_scbot_sentry" }
 github-scbot-types = { path = "../github_scbot_types" }
+github-scbot-tui = { path = "../github_scbot_tui" }
 
 actix-rt = "1.1.1"
 async-trait = "0.1.50"

@@ -40,6 +40,7 @@ impl ExternalAccountModelBuilder {
         self
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn is_superuser(mut self, value: bool) -> Self {
         self.is_superuser = Some(value);
         self
@@ -83,7 +84,7 @@ impl ExternalAccountModelBuilder {
             username: self.username.clone(),
             public_key: self.public_key.clone().unwrap_or_else(String::new),
             private_key: self.private_key.clone().unwrap_or_else(String::new),
-            is_superuser: self.is_superuser.unwrap_or(false)
+            is_superuser: self.is_superuser.unwrap_or(false),
         }
     }
 }

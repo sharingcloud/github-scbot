@@ -1,6 +1,5 @@
-use github_scbot_database::models::{IDatabaseAdapter, RepositoryModel, PullRequestModel};
-use juniper::FieldResult;
-use juniper::{EmptySubscription, RootNode};
+use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use juniper::{EmptySubscription, FieldResult, RootNode};
 
 #[derive(GraphQLEnum)]
 enum Episode {
@@ -26,7 +25,7 @@ struct Repository {
     default_needed_reviewers_count: i32,
     default_automerge: bool,
     default_enable_qa: bool,
-    default_enable_checks: bool
+    default_enable_checks: bool,
 }
 
 impl From<github_scbot_database::models::RepositoryModel> for Repository {
@@ -40,7 +39,7 @@ impl From<github_scbot_database::models::RepositoryModel> for Repository {
             default_needed_reviewers_count: m.default_needed_reviewers_count(),
             default_automerge: m.default_automerge(),
             default_enable_qa: m.default_enable_qa(),
-            default_enable_checks: m.default_enable_checks()
+            default_enable_checks: m.default_enable_checks(),
         }
     }
 }
@@ -64,7 +63,7 @@ struct PullRequest {
     locked: bool,
     merged: bool,
     closed: bool,
-    strategy_override: Option<String>
+    strategy_override: Option<String>,
 }
 
 impl From<github_scbot_database::models::PullRequestModel> for PullRequest {
@@ -86,7 +85,7 @@ impl From<github_scbot_database::models::PullRequestModel> for PullRequest {
             locked: m.locked(),
             merged: m.merged(),
             closed: m.closed(),
-            strategy_override: m.strategy_override().map(|x| x.to_string())
+            strategy_override: m.strategy_override().map(|x| x.to_string()),
         }
     }
 }
@@ -107,7 +106,7 @@ struct MergeRule {
     repository_id: i32,
     base_branch: String,
     head_branch: String,
-    strategy: String
+    strategy: String,
 }
 
 impl From<github_scbot_database::models::MergeRuleModel> for MergeRule {
@@ -116,7 +115,7 @@ impl From<github_scbot_database::models::MergeRuleModel> for MergeRule {
             repository_id: m.repository_id(),
             base_branch: m.base_branch().to_string(),
             head_branch: m.head_branch().to_string(),
-            strategy: m.strategy().to_string()
+            strategy: m.strategy().to_string(),
         }
     }
 }
@@ -147,14 +146,30 @@ impl QueryRoot {
         Ok(repositories.into_iter().map(Into::into).collect())
     }
 
-    async fn pull_requests(context: &AppContext, repository_path: String) -> FieldResult<Vec<PullRequest>> {
-        let pull_requests = context.db_adapter.pull_request().list_from_repository_path(&repository_path).await?;
+    async fn pull_requests(
+        context: &AppContext,
+        repository_path: String,
+    ) -> FieldResult<Vec<PullRequest>> {
+        let pull_requests = context
+            .db_adapter
+            .pull_request()
+            .list_from_repository_path(&repository_path)
+            .await?;
         Ok(pull_requests.into_iter().map(Into::into).collect())
     }
 
-    async fn merge_rules(context: &AppContext, repository_path: String) -> FieldResult<Vec<MergeRule>> {
-        let repository = RepositoryModel::get_from_path(context.db_adapter.repository(), &repository_path).await?;
-        let merge_rules = context.db_adapter.merge_rule().list_from_repository_id(repository.id()).await?;
+    async fn merge_rules(
+        context: &AppContext,
+        repository_path: String,
+    ) -> FieldResult<Vec<MergeRule>> {
+        let repository =
+            RepositoryModel::get_from_path(context.db_adapter.repository(), &repository_path)
+                .await?;
+        let merge_rules = context
+            .db_adapter
+            .merge_rule()
+            .list_from_repository_id(repository.id())
+            .await?;
         Ok(merge_rules.into_iter().map(Into::into).collect())
     }
 }

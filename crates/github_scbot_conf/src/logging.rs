@@ -22,8 +22,7 @@ pub fn configure_logging(config: &Config) {
             .with(layer);
         tracing::subscriber::set_global_default(subscriber).unwrap();
     } else {
-        let subscriber = tracing_subscriber::fmt()
-            .finish();
+        let subscriber = tracing_subscriber::fmt().finish();
         tracing::subscriber::set_global_default(subscriber).unwrap();
     }
 

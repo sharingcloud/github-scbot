@@ -8,7 +8,8 @@ edition = "2018"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database = { path = "../github_scbot_database" }
 github-scbot-types = { path = "../github_scbot_types" }
-
-termion = "1.5.5"
 thiserror = "1.0"
+
+[target.'cfg(unix)'.dependencies]
+termion = "1.5.5"
 tui = "0.13"
