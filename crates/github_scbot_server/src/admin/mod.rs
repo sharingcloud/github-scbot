@@ -5,9 +5,8 @@ use actix_identity::Identity;
 use actix_web::{web, HttpResponse, Responder};
 use juniper::http::{graphiql::graphiql_source, GraphQLRequest};
 use serde::Deserialize;
-use tracing::info;
 
-use crate::{server::AppContext, external::validator::extract_account_from_token};
+use crate::{external::validator::extract_account_from_token, server::AppContext};
 
 pub(crate) mod graphql;
 
@@ -17,10 +16,20 @@ pub struct AdminLogin {
 }
 
 async fn graphiql_endpoint(id: Identity) -> HttpResponse {
-    let html = graphiql_source("http://localhost:8008/admin/graphql", None);
-    HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(html)
+    if let Some(_name) = id.identity() {
+        let html = graphiql_source("http://localhost:8008/admin/graphql", None);
+        HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html)
+    } else {
+        redirect_to_login().await
+    }
+}
+
+async fn redirect_to_login() -> HttpResponse {
+    HttpResponse::Found()
+        .header(http::header::LOCATION, "/admin/login")
+        .finish()
 }
 
 async fn graphql_endpoint(
@@ -29,16 +38,20 @@ async fn graphql_endpoint(
     ctx: web::Data<Arc<AppContext>>,
     data: web::Json<GraphQLRequest>,
 ) -> Result<HttpResponse, Error> {
-    let cloned_ctx = ctx.clone();
-    let resp = data.execute(&st, &cloned_ctx).await;
-    let body = serde_json::to_string(&resp)?;
-    Ok(HttpResponse::Ok()
-        .content_type("application/json")
-        .body(body))
+    if let Some(_name) = id.identity() {
+        let cloned_ctx = ctx.clone();
+        let resp = data.execute(&st, &cloned_ctx).await;
+        let body = serde_json::to_string(&resp)?;
+        Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body))
+    } else {
+        Ok(redirect_to_login().await)
+    }
 }
 
 async fn admin_login_get(id: Identity) -> impl Responder {
-    if let Some(tok) = id.identity() {
+    if let Some(_name) = id.identity() {
         HttpResponse::Found()
             .header(http::header::LOCATION, "/admin/")
             .finish()
@@ -61,44 +74,46 @@ async fn admin_login_get(id: Identity) -> impl Responder {
     }
 }
 
-async fn admin_login_post(id: Identity, ctx: web::Data<Arc<AppContext>>, body: web::Form<AdminLogin>) -> impl Responder {
+async fn admin_login_post(
+    id: Identity,
+    ctx: web::Data<Arc<AppContext>>,
+    body: web::Form<AdminLogin>,
+) -> impl Responder {
     let token = &body.key;
-    match extract_account_from_token(&*ctx.db_adapter, token).await {
-        Ok(account) => {
-            if account.is_superuser {
-                id.remember(account.username);
-                HttpResponse::Ok()
-            } else {
-                HttpResponse::Forbidden()
-            }
-        },
-        Err(_) => HttpResponse::Forbidden()
+    if let Ok(account) = extract_account_from_token(&*ctx.db_adapter, token).await {
+        if account.is_superuser {
+            id.remember(account.username);
+            return HttpResponse::Found()
+                .header(http::header::LOCATION, "/admin/")
+                .finish();
+        }
     }
+
+    redirect_to_login().await
 }
 
 async fn admin_logout(id: Identity) -> impl Responder {
     id.forget();
-    HttpResponse::Ok()
+    redirect_to_login().await
 }
 
 async fn admin_index(id: Identity) -> HttpResponse {
     if let Some(name) = id.identity() {
         admin_index_frontend(name).await
     } else {
-        info!("Oh no");
-        HttpResponse::Found()
-            .header(http::header::LOCATION, "/admin/login")
-            .finish()
+        redirect_to_login().await
     }
 }
 
 #[cfg(not(feature = "embedded-frontend"))]
-async fn admin_index_frontend(name: String) -> HttpResponse {
-    HttpResponse::Ok().body("hello.")
+async fn admin_index_frontend(_name: String) -> HttpResponse {
+    HttpResponse::Found()
+        .header(http::header::LOCATION, "http://localhost:8081")
+        .finish()
 }
 
 #[cfg(feature = "embedded-frontend")]
-async fn admin_index_frontend(name: String) -> HttpResponse {
+async fn admin_index_frontend(_name: String) -> HttpResponse {
     let body = include_str!("./frontend/dist/index.html");
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")

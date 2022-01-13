@@ -1,4 +1,4 @@
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_database::models::RepositoryModel;
 use juniper::{EmptySubscription, FieldResult, RootNode};
 
 #[derive(GraphQLEnum)]
@@ -8,11 +8,17 @@ enum Episode {
     Jedi,
 }
 
-use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject};
+use juniper::{GraphQLEnum, GraphQLObject};
 
 use crate::server::AppContext;
 
 impl juniper::Context for AppContext {}
+
+#[derive(GraphQLObject)]
+#[graphql(description = "Dummy")]
+struct Dummy {
+    prop: String,
+}
 
 #[derive(GraphQLObject)]
 #[graphql(description = "GitHub Repository")]
@@ -120,23 +126,6 @@ impl From<github_scbot_database::models::MergeRuleModel> for MergeRule {
     }
 }
 
-#[derive(GraphQLObject)]
-#[graphql(description = "A humanoid creature in the Star Wars universe")]
-struct Human {
-    id: String,
-    name: String,
-    appears_in: Vec<Episode>,
-    home_planet: String,
-}
-
-#[derive(GraphQLInputObject)]
-#[graphql(description = "A humanoid creature in the Star Wars universe")]
-struct NewHuman {
-    name: String,
-    appears_in: Vec<Episode>,
-    home_planet: String,
-}
-
 pub struct QueryRoot;
 
 #[juniper::graphql_object(Context = AppContext)]
@@ -178,12 +167,9 @@ pub struct MutationRoot;
 
 #[juniper::graphql_object(Context = AppContext)]
 impl MutationRoot {
-    fn create_human(context: &AppContext, new_human: NewHuman) -> FieldResult<Human> {
-        Ok(Human {
-            id: "1234".to_owned(),
-            name: new_human.name,
-            appears_in: new_human.appears_in,
-            home_planet: new_human.home_planet,
+    fn dummy(_context: &AppContext) -> FieldResult<Dummy> {
+        Ok(Dummy {
+            prop: "Hello".into(),
         })
     }
 }

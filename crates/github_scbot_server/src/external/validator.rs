@@ -70,7 +70,6 @@ pub async fn extract_account_from_auth(
     extract_account_from_token(db_adapter, credentials.token()).await
 }
 
-
 pub async fn extract_account_from_token(
     db_adapter: &dyn IDatabaseAdapter,
     token: &str,
