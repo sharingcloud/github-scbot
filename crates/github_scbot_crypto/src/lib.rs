@@ -8,6 +8,7 @@ mod jwt;
 mod rsa;
 
 pub use jwt::JwtUtils;
+pub use rand;
 
 pub use crate::{
     errors::{CryptoError, Result},

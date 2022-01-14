@@ -5,6 +5,10 @@ use thiserror::Error;
 /// UI error.
 #[derive(Debug, Error)]
 pub enum UiError {
+    /// Unsupported OS.
+    #[error("Current OS is unsupported (for now).")]
+    Unsupported,
+
     /// Wraps [`std::io::IoError`].
     #[error(transparent)]
     Io(#[from] std::io::Error),

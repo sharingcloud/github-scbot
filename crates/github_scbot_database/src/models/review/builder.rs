@@ -16,6 +16,7 @@ pub struct ReviewModelBuilder<'a> {
     state: Option<GhReviewState>,
     required: Option<bool>,
     valid: Option<bool>,
+    approved: Option<bool>,
 }
 
 impl<'a> ReviewModelBuilder<'a> {
@@ -39,6 +40,7 @@ impl<'a> ReviewModelBuilder<'a> {
             state: None,
             required: None,
             valid: None,
+            approved: None,
         }
     }
 
@@ -55,6 +57,7 @@ impl<'a> ReviewModelBuilder<'a> {
             state: Some(review.state()),
             required: Some(review.required),
             valid: Some(review.valid),
+            approved: Some(review.approved),
         }
     }
 
@@ -71,6 +74,7 @@ impl<'a> ReviewModelBuilder<'a> {
             state: Some(review.state),
             required: None,
             valid: None,
+            approved: None,
         }
     }
 
@@ -94,6 +98,11 @@ impl<'a> ReviewModelBuilder<'a> {
         self
     }
 
+    pub fn approved<T: Into<bool>>(mut self, valid: T) -> Self {
+        self.approved = Some(valid.into());
+        self
+    }
+
     pub fn build_update(&self) -> ReviewUpdate {
         let id = self.id.unwrap();
 
@@ -103,6 +112,7 @@ impl<'a> ReviewModelBuilder<'a> {
             state: self.state.map(|x| x.to_string()),
             required: self.required,
             valid: self.valid,
+            approved: self.approved,
         }
     }
 
@@ -117,6 +127,7 @@ impl<'a> ReviewModelBuilder<'a> {
             state: self.state.unwrap_or(GhReviewState::Pending).to_string(),
             required: self.required.unwrap_or(false),
             valid: self.valid.unwrap_or(false),
+            approved: self.approved.unwrap_or(false),
         }
     }
 
@@ -127,6 +138,19 @@ impl<'a> ReviewModelBuilder<'a> {
         let repo_model = self.repo_model.unwrap();
         let pr_model = self.pr_model.unwrap();
         let username = self.username.as_ref().unwrap();
+
+        // Update logic
+        match self.state {
+            Some(GhReviewState::Approved) => {
+                self.approved = Some(true);
+            }
+            Some(
+                GhReviewState::Pending | GhReviewState::Dismissed | GhReviewState::ChangesRequested,
+            ) => {
+                self.approved = Some(false);
+            }
+            _ => (),
+        }
 
         let handle = match db_adapter
             .get_from_pull_request_and_username(repo_model, pr_model, username)

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2022-01-14
+
+## Changed
+
+- Use stable Rust 1.57.0.
+- Add bunyan formatter in logging configuration.
+- The bot can now compile on Windows (but without TUI support)
+- Approval status is now stored in reviews in a separate field.
+
 ## [0.17.1] - 2021-12-20
 
 ## Fixed
@@ -187,7 +196,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/sharingcloud/github-scbot/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/sharingcloud/github-scbot/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/sharingcloud/github-scbot/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/sharingcloud/github-scbot/compare/v0.15.0...v0.16.0

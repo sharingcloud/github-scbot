@@ -3,25 +3,39 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+#[cfg(unix)]
 mod app;
-mod errors;
+#[cfg(unix)]
 mod events;
+#[cfg(unix)]
 mod state;
 
-use std::io;
-
+mod errors;
 use github_scbot_database::models::IDatabaseAdapter;
-use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::{backend::TermionBackend, Terminal};
 
-use self::{
-    app::App,
-    errors::Result,
-    events::{Event, Events},
-};
+use self::errors::Result;
 
 /// Run TUI interface.
+#[cfg(windows)]
 pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
+    use self::errors::UiError;
+
+    Err(UiError::Unsupported)
+}
+
+/// Run TUI interface.
+#[cfg(unix)]
+pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
+    use std::io;
+
+    use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
+    use tui::{backend::TermionBackend, Terminal};
+
+    use self::{
+        app::App,
+        events::{Event, Events},
+    };
+
     // Terminal initialization
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
