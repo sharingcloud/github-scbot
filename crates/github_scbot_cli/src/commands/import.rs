@@ -19,7 +19,7 @@ pub(crate) struct ImportCommand {
 #[async_trait(?Send)]
 impl Command for ImportCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let file = File::open(self.input_file.to_path_buf())
+        let file = File::open(&self.input_file)
             .map_err(|e| ImportError::IoError(self.input_file.to_path_buf(), e.to_string()))?;
         let reader = BufReader::new(file);
         import_models_from_json(&ctx.config, ctx.db_adapter.as_ref(), reader).await?;

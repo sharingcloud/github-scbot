@@ -69,8 +69,8 @@ impl ExternalAccountModelBuilder {
     pub fn build(&self) -> ExternalAccountModel {
         ExternalAccountModel {
             username: self.username.clone(),
-            public_key: self.public_key.clone().unwrap_or_else(String::new),
-            private_key: self.private_key.clone().unwrap_or_else(String::new),
+            public_key: self.public_key.clone().unwrap_or_default(),
+            private_key: self.private_key.clone().unwrap_or_default(),
         }
     }
 }

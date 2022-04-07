@@ -8,8 +8,13 @@ edition = "2018"
 dotenv = "0.15"
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-sentry = { path = "../github_scbot_sentry" }
+opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
+opentelemetry-jaeger = { version = "0.16.0", features = ["rt-tokio"] }
 thiserror = "1.0"
 tracing = "0.1"
 tracing-bunyan-formatter = "0.3.0"
+tracing-error = "0.2.0"
 tracing-log = "0.1.2"
+tracing-opentelemetry = "0.17.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-tree = "0.2.0"

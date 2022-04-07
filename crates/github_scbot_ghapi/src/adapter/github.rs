@@ -144,7 +144,8 @@ impl IAPIAdapter for GithubAPIAdapter {
             )
             .await?
             .json()
-            .await?;
+            .await
+            .map_err(|e| ApiError::HTTPError(e.to_string()))?;
 
         Ok(response.check_suites)
     }
@@ -331,7 +332,7 @@ impl IAPIAdapter for GithubAPIAdapter {
             owner, name, issue_number
         ))?;
         let builder = client
-            .request_builder(&url.into_string(), http::Method::DELETE)
+            .request_builder(String::from(url), http::Method::DELETE)
             .json(&body)
             .header(http::header::ACCEPT, octocrab::format_media_type("json"));
 

@@ -284,7 +284,7 @@ impl Command {
                     format!("admin-set-default-needed-reviewers {}", count)
                 }
                 AdminCommand::SetDefaultPRTitleRegex(rgx) => {
-                    format!("admin-set-default-pr-title-regex {}", rgx.to_string())
+                    format!("admin-set-default-pr-title-regex {}", rgx)
                 }
                 AdminCommand::SetDefaultChecksStatus(status) => {
                     format!(
