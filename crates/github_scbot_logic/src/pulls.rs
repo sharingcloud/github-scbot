@@ -300,6 +300,7 @@ impl PullRequestLogic {
     }
 
     /// Get checks status from GitHub.
+    #[tracing::instrument(skip(api_adapter))]
     pub async fn get_checks_status_from_github(
         api_adapter: &dyn IAPIAdapter,
         repository_owner: &str,
@@ -364,6 +365,7 @@ impl PullRequestLogic {
     }
 
     /// Synchronize pull request from upstream.
+    #[tracing::instrument(skip(config, api_adapter, db_adapter))]
     pub async fn synchronize_pull_request(
         config: &Config,
         api_adapter: &dyn IAPIAdapter,
@@ -474,6 +476,7 @@ impl PullRequestLogic {
     }
 
     /// Apply pull request step.
+    #[tracing::instrument(skip(api_adapter))]
     pub async fn apply_pull_request_step(
         api_adapter: &dyn IAPIAdapter,
         repository_model: &RepositoryModel,

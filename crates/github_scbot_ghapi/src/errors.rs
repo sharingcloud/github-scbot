@@ -17,10 +17,6 @@ pub enum ApiError {
     #[error("Merge error: {0}")]
     MergeError(String),
 
-    /// GitHub error.
-    #[error("GitHub error: {0}")]
-    GitHubError(String),
-
     /// HTTP error
     #[error("HTTP error: {0}")]
     HTTPError(String),
@@ -28,12 +24,6 @@ pub enum ApiError {
     /// JWT Error
     #[error("JWT error: {0}")]
     JWTError(String),
-}
-
-impl From<octocrab::Error> for ApiError {
-    fn from(error: octocrab::Error) -> Self {
-        Self::GitHubError(error.to_string())
-    }
 }
 
 impl From<reqwest::Error> for ApiError {

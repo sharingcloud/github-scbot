@@ -21,6 +21,7 @@ pub struct StatusLogic;
 
 impl StatusLogic {
     /// Determine automatic step for a pull request.
+    #[tracing::instrument]
     pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> Result<StepLabel> {
         Ok(if pull_request_status.wip {
             StepLabel::Wip
@@ -101,6 +102,7 @@ impl StatusLogic {
     }
 
     /// Update pull request status.
+    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn update_pull_request_status(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,

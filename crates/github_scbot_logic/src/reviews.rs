@@ -187,6 +187,7 @@ impl ReviewLogic {
     }
 
     /// Synchronize reviews.
+    #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn synchronize_reviews(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
