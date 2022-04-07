@@ -2,7 +2,7 @@
 FROM rust:buster as builder
 WORKDIR /usr/src/app
 
-RUN rustup toolchain install 1.57.0
+RUN rustup toolchain install 1.60.0
 
 COPY ./crates /usr/src/app/crates
 COPY ./migrations /usr/src/app/migrations
