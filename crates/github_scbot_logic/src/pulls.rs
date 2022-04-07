@@ -27,6 +27,7 @@ use crate::{
 };
 
 /// Pull request opened status.
+#[derive(Debug, PartialEq)]
 pub enum PullRequestOpenedStatus {
     /// Pull request is already created.
     AlreadyCreated,
@@ -81,9 +82,16 @@ pub async fn handle_pull_request_opened(
                         .await?;
                 }
 
+                let check_status = if repo_model.default_enable_checks() {
+                    // Set waiting for now, but check GitHub just in case
+                    CheckStatus::Waiting
+                } else {
+                    CheckStatus::Skipped
+                };
+
                 let update = pr_model
                     .create_update()
-                    .check_status(CheckStatus::Waiting)
+                    .check_status(check_status)
                     .needed_reviewers_count(repo_model.default_needed_reviewers_count() as u64)
                     .build_update();
                 db_adapter
