@@ -1,5 +1,7 @@
 //! Pull requests logic.
 
+use std::collections::{hash_map::Entry, HashMap};
+
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{
@@ -332,7 +334,8 @@ impl PullRequestLogic {
 
             Ok(CheckStatus::Skipped)
         } else {
-            let filtered = Self::merge_check_suite_statuses(&check_suites, exclude_check_suite_ids);
+            let filtered =
+                Self::filter_and_merge_check_suites(check_suites, exclude_check_suite_ids);
 
             debug!(
                 repository_path = %repository_path,
@@ -345,15 +348,44 @@ impl PullRequestLogic {
         }
     }
 
-    /// Merge check suite statuses.
-    pub fn merge_check_suite_statuses(
-        check_suites: &[GhCheckSuite],
+    /// Filter and merge check suites.
+    pub fn filter_and_merge_check_suites(
+        check_suites: Vec<GhCheckSuite>,
         exclude_ids: &[u64],
     ) -> CheckStatus {
+        let filtered = Self::filter_last_check_suites(check_suites, exclude_ids);
+        Self::merge_check_suite_statuses(&filtered)
+    }
+
+    /// Filter last check suites.
+    fn filter_last_check_suites(
+        check_suites: Vec<GhCheckSuite>,
+        exclude_ids: &[u64],
+    ) -> Vec<GhCheckSuite> {
+        let mut map: HashMap<u64, GhCheckSuite> = HashMap::new();
+        // Only fetch GitHub Actions statuses
+        for check_suite in check_suites
+            .into_iter()
+            .filter(|s| s.app.slug == "github-actions" && !exclude_ids.contains(&s.id))
+        {
+            if let Entry::Vacant(e) = map.entry(check_suite.id) {
+                e.insert(check_suite);
+            } else {
+                let entry = map.get_mut(&check_suite.id).unwrap();
+                if entry.updated_at < check_suite.updated_at {
+                    *entry = check_suite;
+                }
+            }
+        }
+
+        map.into_values().collect()
+    }
+
+    /// Merge check suite statuses.
+    #[tracing::instrument]
+    fn merge_check_suite_statuses(check_suites: &[GhCheckSuite]) -> CheckStatus {
         check_suites
             .iter()
-            // Only fetch GitHub Actions statuses
-            .filter(|&s| s.app.slug == "github-actions" && !exclude_ids.contains(&s.id))
             .fold(CheckStatus::Skipped, |acc, s| match (&acc, &s.conclusion) {
                 (CheckStatus::Fail, _) | (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
                 (CheckStatus::Skipped | CheckStatus::Pass, Some(GhCheckConclusion::Success)) => {
@@ -523,6 +555,7 @@ impl PullRequestLogic {
 
 #[cfg(test)]
 mod tests {
+    use chrono::{Duration, Utc};
     use github_scbot_types::{
         checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
         common::GhApplication,
@@ -536,7 +569,7 @@ mod tests {
     pub fn test_merge_check_suite_statuses() {
         // No check suite, no need to wait
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[], &[]),
+            PullRequestLogic::merge_check_suite_statuses(&[]),
             CheckStatus::Skipped
         );
 
@@ -550,21 +583,18 @@ mod tests {
 
         // Should wait on queued status
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[GhCheckSuite {
-                    status: GhCheckStatus::Queued,
-                    conclusion: None,
-                    ..base_suite.clone()
-                }],
-                &[]
-            ),
+            PullRequestLogic::merge_check_suite_statuses(&[GhCheckSuite {
+                status: GhCheckStatus::Queued,
+                conclusion: None,
+                ..base_suite.clone()
+            }]),
             CheckStatus::Waiting
         );
 
         // Suite should be skipped
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[GhCheckSuite {
+            PullRequestLogic::filter_and_merge_check_suites(
+                vec![GhCheckSuite {
                     id: 1,
                     status: GhCheckStatus::Queued,
                     conclusion: None,
@@ -577,8 +607,8 @@ mod tests {
 
         // Ignore unsupported apps
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[GhCheckSuite {
+            PullRequestLogic::filter_and_merge_check_suites(
+                vec![GhCheckSuite {
                     status: GhCheckStatus::Queued,
                     app: GhApplication {
                         slug: "toto".into(),
@@ -593,75 +623,96 @@ mod tests {
 
         // Success
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[GhCheckSuite {
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Success),
-                    ..base_suite.clone()
-                }],
-                &[]
-            ),
+            PullRequestLogic::merge_check_suite_statuses(&[GhCheckSuite {
+                status: GhCheckStatus::Completed,
+                conclusion: Some(GhCheckConclusion::Success),
+                ..base_suite.clone()
+            }]),
             CheckStatus::Pass
         );
 
         // Success with skipped
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[
-                    GhCheckSuite {
-                        status: GhCheckStatus::Completed,
-                        conclusion: Some(GhCheckConclusion::Success),
-                        ..base_suite.clone()
-                    },
-                    GhCheckSuite {
-                        status: GhCheckStatus::Completed,
-                        conclusion: Some(GhCheckConclusion::Skipped),
-                        ..base_suite.clone()
-                    }
-                ],
-                &[]
-            ),
+            PullRequestLogic::merge_check_suite_statuses(&[
+                GhCheckSuite {
+                    id: 1,
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    ..base_suite.clone()
+                },
+                GhCheckSuite {
+                    id: 2,
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Skipped),
+                    ..base_suite.clone()
+                }
+            ]),
             CheckStatus::Pass
         );
 
         // Success with queued
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[
-                    GhCheckSuite {
-                        status: GhCheckStatus::Completed,
-                        conclusion: Some(GhCheckConclusion::Success),
-                        ..base_suite.clone()
-                    },
-                    GhCheckSuite {
-                        status: GhCheckStatus::Queued,
-                        conclusion: None,
-                        ..base_suite.clone()
-                    }
-                ],
-                &[]
-            ),
+            PullRequestLogic::merge_check_suite_statuses(&[
+                GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    ..base_suite.clone()
+                },
+                GhCheckSuite {
+                    status: GhCheckStatus::Queued,
+                    conclusion: None,
+                    ..base_suite.clone()
+                }
+            ]),
             CheckStatus::Waiting
         );
 
         // One failing check make the status fail
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(
-                &[
+            PullRequestLogic::merge_check_suite_statuses(&[
+                GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Failure),
+                    ..base_suite.clone()
+                },
+                GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    ..base_suite.clone()
+                }
+            ]),
+            CheckStatus::Fail
+        );
+
+        // Two GitHub actions at different moments
+        let now = Utc::now();
+        assert_eq!(
+            PullRequestLogic::filter_and_merge_check_suites(
+                vec![
                     GhCheckSuite {
+                        id: 1,
                         status: GhCheckStatus::Completed,
-                        conclusion: Some(GhCheckConclusion::Failure),
+                        conclusion: Some(GhCheckConclusion::Success),
+                        updated_at: now + Duration::hours(1),
                         ..base_suite.clone()
                     },
                     GhCheckSuite {
+                        id: 1,
                         status: GhCheckStatus::Completed,
-                        conclusion: Some(GhCheckConclusion::Success),
+                        conclusion: Some(GhCheckConclusion::Failure),
+                        updated_at: now,
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        id: 2,
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Skipped),
                         ..base_suite
                     }
                 ],
                 &[]
             ),
-            CheckStatus::Fail
+            CheckStatus::Pass
         );
     }
 }
