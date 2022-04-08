@@ -175,6 +175,7 @@ impl RepositoryModel {
     }
 
     /// Create or update repository from GitHub object.
+    #[tracing::instrument(skip(config, db_adapter))]
     pub async fn create_or_update_from_github(
         config: Config,
         db_adapter: &dyn IRepositoryDbAdapter,

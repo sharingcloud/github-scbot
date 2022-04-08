@@ -48,6 +48,7 @@ pub struct PullRequestStatus {
 
 impl PullRequestStatus {
     /// Create status from pull request and database.
+    #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn from_database(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
@@ -74,6 +75,7 @@ impl PullRequestStatus {
     }
 
     /// Create status from pull request.
+    #[tracing::instrument]
     pub fn from_pull_request(
         repo_model: &RepositoryModel,
         pr_model: &PullRequestModel,

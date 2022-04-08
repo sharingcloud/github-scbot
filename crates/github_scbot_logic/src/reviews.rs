@@ -65,6 +65,7 @@ pub struct ReviewLogic;
 
 impl ReviewLogic {
     /// Handle GitHub review.
+    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn process_review(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
@@ -102,6 +103,7 @@ impl ReviewLogic {
     }
 
     /// Handle review request.
+    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn process_review_request(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
@@ -142,6 +144,7 @@ impl ReviewLogic {
     }
 
     /// Re-request existing reviews.
+    #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn rerequest_existing_reviews(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,

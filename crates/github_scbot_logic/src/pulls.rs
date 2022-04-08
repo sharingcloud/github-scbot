@@ -460,6 +460,7 @@ impl PullRequestLogic {
     }
 
     /// Try automerge pull request.
+    #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn try_automerge_pull_request(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
