@@ -284,6 +284,14 @@ impl CommandExecutor {
                     UserCommand::UnsetMergeStrategy => {
                         handlers::handle_unset_merge_strategy(db_adapter, pr_model).await?
                     }
+                    UserCommand::SetLabels(labels) => {
+                        handlers::handle_set_labels(api_adapter, repo_model, pr_model, labels)
+                            .await?
+                    }
+                    UserCommand::UnsetLabels(labels) => {
+                        handlers::handle_unset_labels(api_adapter, repo_model, pr_model, labels)
+                            .await?
+                    }
                     UserCommand::UnassignRequiredReviewers(reviewers) => {
                         handlers::handle_unassign_required_reviewers_command(
                             api_adapter,

@@ -313,6 +313,46 @@ pub async fn handle_unset_merge_strategy(
         .build())
 }
 
+pub async fn handle_set_labels(
+    api_adapter: &dyn IAPIAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &PullRequestModel,
+    labels: &[String],
+) -> Result<CommandExecutionResult> {
+    api_adapter
+        .issue_labels_add(
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
+            labels,
+        )
+        .await?;
+
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
+}
+
+pub async fn handle_unset_labels(
+    api_adapter: &dyn IAPIAdapter,
+    repo_model: &RepositoryModel,
+    pr_model: &mut PullRequestModel,
+    labels: &[String],
+) -> Result<CommandExecutionResult> {
+    api_adapter
+        .issue_labels_remove(
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
+            labels,
+        )
+        .await?;
+
+    Ok(CommandExecutionResult::builder()
+        .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
+        .build())
+}
+
 /// Handle `AssignRequiredReviewers` command.
 pub async fn handle_assign_required_reviewers_command(
     api_adapter: &dyn IAPIAdapter,
@@ -689,6 +729,8 @@ pub fn handle_help_command(
         - `strategy+ <strategy>`: _Override merge strategy for this pull request_\n\
         - `strategy-`: _Remove the overriden merge strategy for this pull request_\n\
         - `merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_\n\
+        - `labels+ <label>`: _Set specific labels_\n\
+        - `labels- <label>`: _Unset specific labels_\n\
         - `ping`: _Ping me_\n\
         - `gif <search>`: _Post a random GIF with a tag_\n\
         - `is-admin`: _Check if you are admin_\n\

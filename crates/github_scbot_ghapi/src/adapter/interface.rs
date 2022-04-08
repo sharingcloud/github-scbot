@@ -123,6 +123,30 @@ pub trait IAPIAdapter: Send + Sync {
         issue_number: u64,
         labels: &[String],
     ) -> Result<()>;
+    /// Add labels for a target issue.
+    async fn issue_labels_add(
+        &self,
+        owner: &str,
+        name: &str,
+        issue_number: u64,
+        labels: &[String],
+    ) -> Result<()>;
+    /// Remove labels for a target issue.
+    async fn issue_labels_remove(
+        &self,
+        owner: &str,
+        name: &str,
+        issue_number: u64,
+        labels: &[String],
+    ) -> Result<()> {
+        let known_labels = self.issue_labels_list(owner, name, issue_number).await?;
+        let all_labels = known_labels
+            .into_iter()
+            .filter(|x| !labels.contains(x))
+            .collect::<Vec<_>>();
+        self.issue_labels_replace_all(owner, name, issue_number, &all_labels)
+            .await
+    }
     /// Get user permissions from a repository.
     async fn user_permissions_get(
         &self,

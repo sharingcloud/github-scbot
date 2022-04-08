@@ -53,6 +53,10 @@ pub enum UserCommand {
     SetMergeStrategy(GhMergeStrategy),
     /// Unset merge strategy.
     UnsetMergeStrategy,
+    /// Set labels.
+    SetLabels(Vec<String>),
+    /// Unset labels.
+    UnsetLabels(Vec<String>),
     /// Add/Remove lock with optional reason.
     Lock(bool, Option<String>),
     /// Post a random gif.
@@ -218,6 +222,8 @@ impl Command {
             "merge" => Self::User(UserCommand::Merge(Self::parse_optional_merge_strategy(
                 args,
             )?)),
+            "labels+" => Self::User(UserCommand::SetLabels(Self::parse_labels(args)?)),
+            "labels-" => Self::User(UserCommand::UnsetLabels(Self::parse_labels(args)?)),
             "ping" => Self::User(UserCommand::Ping),
             "is-admin" => Self::User(UserCommand::IsAdmin),
             "help" => Self::User(UserCommand::Help),
@@ -333,6 +339,8 @@ impl Command {
                     format!("strategy+ {}", strategy.to_string())
                 }
                 UserCommand::UnsetMergeStrategy => "strategy-".into(),
+                UserCommand::SetLabels(labels) => format!("labels+ {}", labels.join(" ")),
+                UserCommand::UnsetLabels(labels) => format!("labels- {}", labels.join(" ")),
                 UserCommand::Ping => "ping".into(),
                 UserCommand::QaStatus(status) => format!("qa{}", Self::plus_minus_option(*status)),
                 UserCommand::SkipQaStatus(status) => {
@@ -381,6 +389,19 @@ impl Command {
 
     fn parse_text(words: &[&str]) -> String {
         words.join(" ")
+    }
+
+    fn parse_labels(labels: &[&str]) -> CommandResult<Vec<String>> {
+        let labels = labels
+            .iter()
+            .map(|x| x.trim().to_string())
+            .collect::<Vec<_>>();
+
+        if labels.is_empty() {
+            Err(CommandError::IncompleteCommand)
+        } else {
+            Ok(labels)
+        }
     }
 
     fn parse_reviewers(reviewers: &[&str]) -> CommandResult<Vec<String>> {

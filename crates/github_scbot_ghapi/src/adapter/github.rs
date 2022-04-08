@@ -102,6 +102,32 @@ impl IAPIAdapter for GithubAPIAdapter {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn issue_labels_add(
+        &self,
+        owner: &str,
+        name: &str,
+        issue_number: u64,
+        labels: &[String],
+    ) -> Result<()> {
+        #[derive(Serialize)]
+        struct Request<'a> {
+            labels: &'a [String],
+        }
+
+        self.get_client()
+            .await?
+            .post(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/{issue_number}/labels"
+            )))
+            .json(&Request { labels })
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn user_permissions_get(
         &self,
         owner: &str,
