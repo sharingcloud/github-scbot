@@ -75,6 +75,11 @@ pub async fn handle_pull_request_opened(
                 )
                 .await?;
 
+                // Get upstream pull request
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+                    .await?;
+
                 if config.server_enable_history_tracking {
                     HistoryWebhookModel::builder(&repo_model, &pr_model)
                         .username(&event.sender.login)
@@ -85,8 +90,14 @@ pub async fn handle_pull_request_opened(
                 }
 
                 let check_status = if repo_model.default_enable_checks() {
-                    // Set waiting for now, but check GitHub just in case
-                    CheckStatus::Waiting
+                    PullRequestLogic::get_checks_status_from_github(
+                        api_adapter,
+                        repo_model.owner(),
+                        repo_model.name(),
+                        &upstream_pr.head.sha,
+                        &[],
+                    )
+                    .await?
                 } else {
                     CheckStatus::Skipped
                 };
