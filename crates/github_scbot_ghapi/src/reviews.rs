@@ -35,7 +35,7 @@ impl ReviewApi {
             output.insert(
                 review.user.login.clone(),
                 GhReview {
-                    submitted_at: review.submitted_at,
+                    submitted_at: Some(review.submitted_at),
                     user: review.user,
                     state: review.state.into(),
                 },

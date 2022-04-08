@@ -56,8 +56,7 @@ pub struct GhReview {
     /// User.
     pub user: GhUser,
     /// Submitted at.
-    #[default(chrono::Utc::now())]
-    pub submitted_at: DateTime<Utc>,
+    pub submitted_at: Option<DateTime<Utc>>,
     /// State.
     pub state: GhReviewState,
 }
