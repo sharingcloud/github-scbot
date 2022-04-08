@@ -441,7 +441,6 @@ impl IAPIAdapter for GithubAPIAdapter {
             .map_err(ApiError::from)
     }
 
-    #[tracing::instrument(skip(self))]
     async fn installations_create_token(
         &self,
         auth_token: &str,
