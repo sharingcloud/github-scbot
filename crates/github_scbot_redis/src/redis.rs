@@ -27,6 +27,7 @@ impl RedisAdapter {
 
 #[async_trait]
 impl IRedisAdapter for RedisAdapter {
+    #[tracing::instrument(skip(self))]
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError> {
         let response = self
             .execute_command(resp_array!["SET", name, "1", "NX", "PX", "30000"])
