@@ -35,6 +35,8 @@ pub enum GhCheckStatus {
     Queued,
     /// Requested.
     Requested,
+    /// Pending.
+    Pending,
 }
 
 /// GitHub Check conclusion.
@@ -53,6 +55,8 @@ pub enum GhCheckConclusion {
     Skipped,
     /// Stale.
     Stale,
+    /// Startup failure.
+    StartupFailure,
     /// Success.
     #[default]
     Success,

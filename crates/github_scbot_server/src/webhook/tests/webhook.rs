@@ -322,9 +322,11 @@ fn test_review_submitted_event_parsing() -> ServerResult<()> {
                 user: GhUser {
                     login: "me".to_string()
                 },
-                submitted_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:25:46Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                submitted_at: Some(
+                    chrono::DateTime::parse_from_rfc3339("2020-11-13T17:25:46Z")
+                        .expect("bad date")
+                        .with_timezone(&chrono::Utc)
+                ),
                 state: GhReviewState::ChangesRequested
             },
             pull_request: GhPullRequest {

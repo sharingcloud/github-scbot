@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use github_scbot_types::reviews::GhReview;
 
 use crate::{
-    adapter::{GhReviewApi, IAPIAdapter},
+    adapter::{GhReviewApi, GhReviewStateApi, IAPIAdapter},
     Result,
 };
 
@@ -32,14 +32,26 @@ impl ReviewApi {
         let mut output: HashMap<String, GhReview> = HashMap::new();
 
         for review in reviews {
-            output.insert(
-                review.user.login.clone(),
-                GhReview {
-                    submitted_at: review.submitted_at,
-                    user: review.user,
-                    state: review.state.into(),
-                },
-            );
+            let user_login = review.user.login.clone();
+            let overwrite_review = {
+                if output.contains_key(&user_login) {
+                    // Comments should not replace approvals or change requests
+                    !matches!(review.state, GhReviewStateApi::Commented)
+                } else {
+                    true
+                }
+            };
+
+            if overwrite_review {
+                output.insert(
+                    user_login,
+                    GhReview {
+                        submitted_at: Some(review.submitted_at),
+                        user: review.user,
+                        state: review.state.into(),
+                    },
+                );
+            }
         }
 
         let mut res: Vec<_> = output.into_iter().map(|(_k, v)| v).collect();

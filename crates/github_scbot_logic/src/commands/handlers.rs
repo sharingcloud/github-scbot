@@ -826,7 +826,7 @@ mod tests {
 
         api_adapter
             .pulls_merge_response
-            .set_callback(Box::new(|_| Err(ApiError::GitHubError("Nope.".into()))));
+            .set_callback(Box::new(|_| Err(ApiError::HTTPError("Nope.".into()))));
         let result = handle_merge_command(
             &api_adapter,
             &db_adapter,
@@ -842,7 +842,7 @@ mod tests {
             vec![
                 ResultAction::AddReaction(GhReactionType::MinusOne),
                 ResultAction::PostComment(
-                    "Could not merge this pull request: _GitHub error: Nope._".into()
+                    "Could not merge this pull request: _HTTP error: Nope._".into()
                 )
             ]
         );

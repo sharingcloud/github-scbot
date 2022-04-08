@@ -9,13 +9,12 @@ use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::StatusState,
 };
-use octocrab::Octocrab;
-use serde::Deserialize;
-use tracing::{debug, error};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     adapter::{GhReviewApi, GifResponse, IAPIAdapter},
-    auth::get_client_builder,
+    auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
     ApiError, Result,
 };
 
@@ -34,42 +33,49 @@ impl GithubAPIAdapter {
         Self { config }
     }
 
-    async fn get_client(&self) -> Result<Octocrab> {
-        get_client_builder(&self.config, self)
+    async fn get_client(&self) -> Result<Client> {
+        get_authenticated_client_builder(&self.config, self)
             .await?
-            .add_preview("squirrel-girl")
             .build()
             .map_err(ApiError::from)
     }
-}
 
-fn trace_call(method: &str) {
-    debug!(message = "GitHub API call", method = method)
+    fn build_url(&self, path: String) -> String {
+        build_github_url(&self.config, path)
+    }
 }
 
 #[async_trait(?Send)]
 impl IAPIAdapter for GithubAPIAdapter {
+    #[tracing::instrument(skip(self))]
     async fn issue_labels_list(
         &self,
         owner: &str,
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<String>> {
-        trace_call("issue_labels_list");
+        #[derive(Deserialize)]
+        struct Label {
+            name: String,
+        }
 
         Ok(self
             .get_client()
             .await?
-            .issues(owner, name)
-            .list_labels_for_issue(issue_number)
+            .get(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/{issue_number}/labels"
+            )))
             .send()
             .await?
-            .take_items()
+            .error_for_status()?
+            .json::<Vec<Label>>()
+            .await?
             .into_iter()
             .map(|x| x.name)
             .collect())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn issue_labels_replace_all(
         &self,
         owner: &str,
@@ -77,79 +83,79 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         labels: &[String],
     ) -> Result<()> {
-        trace_call("issue_labels_replace_all");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            labels: &'a [String],
+        }
 
         self.get_client()
             .await?
-            .issues(owner, name)
-            .replace_all_labels(issue_number, labels)
-            .await
-            .map_err(ApiError::from)
-            .map(|_| ())
+            .put(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/{issue_number}/labels"
+            )))
+            .json(&Request { labels })
+            .send()
+            .await?
+            .error_for_status()?;
+
+        Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn user_permissions_get(
         &self,
         owner: &str,
         name: &str,
         username: &str,
     ) -> Result<GhUserPermission> {
-        trace_call("user_permissions_get");
-
         #[derive(Deserialize)]
-        struct PermissionResponse {
+        struct Response {
             permission: GhUserPermission,
         }
 
-        let output: PermissionResponse = self
+        let response = self
             .get_client()
             .await?
-            .get(
-                format!(
-                    "/repos/{owner}/{repo}/collaborators/{username}/permission",
-                    owner = owner,
-                    repo = name,
-                    username = username
-                ),
-                None::<&()>,
-            )
+            .get(&self.build_url(format!(
+                "/repos/{owner}/{name}/collaborators/{username}/permission"
+            )))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
             .await?;
 
-        Ok(output.permission)
+        Ok(response.permission)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn check_suites_list(
         &self,
         owner: &str,
         name: &str,
         git_ref: &str,
     ) -> Result<Vec<GhCheckSuite>> {
-        trace_call("check_suites_list");
-
         #[derive(Deserialize)]
         struct Response {
             check_suites: Vec<GhCheckSuite>,
         }
 
-        let client = self.get_client().await?;
-        let response: Response = client
-            ._get(
-                client.absolute_url(format!(
-                    "/repos/{owner}/{name}/commits/{git_ref}/check-suites",
-                    owner = owner,
-                    name = name,
-                    git_ref = git_ref
-                ))?,
-                None::<&()>,
-            )
+        let response = self
+            .get_client()
             .await?
-            .json()
-            .await
-            .map_err(|e| ApiError::HTTPError(e.to_string()))?;
+            .get(&self.build_url(format!(
+                "/repos/{owner}/{name}/commits/{git_ref}/check-suites"
+            )))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
+            .await?;
 
         Ok(response.check_suites)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn comments_post(
         &self,
         owner: &str,
@@ -157,17 +163,32 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         body: &str,
     ) -> Result<u64> {
-        trace_call("comments_post");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            body: &'a str,
+        }
+
+        #[derive(Deserialize)]
+        struct Response {
+            id: u64,
+        }
 
         Ok(self
             .get_client()
             .await?
-            .issues(owner, name)
-            .create_comment(issue_number, body)
+            .post(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/{issue_number}/comments"
+            )))
+            .json(&Request { body })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
             .await?
             .id)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn comments_update(
         &self,
         owner: &str,
@@ -175,29 +196,46 @@ impl IAPIAdapter for GithubAPIAdapter {
         comment_id: u64,
         body: &str,
     ) -> Result<u64> {
-        trace_call("comments_update");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            body: &'a str,
+        }
+
+        #[derive(Deserialize)]
+        struct Response {
+            id: u64,
+        }
 
         Ok(self
             .get_client()
             .await?
-            .issues(owner, name)
-            .update_comment(comment_id, body)
+            .patch(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/comments/{comment_id}"
+            )))
+            .json(&Request { body })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
             .await?
             .id)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn comments_delete(&self, owner: &str, name: &str, comment_id: u64) -> Result<()> {
-        trace_call("comments_delete");
-
         self.get_client()
             .await?
-            .issues(owner, name)
-            .delete_comment(comment_id)
-            .await?;
+            .delete(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/comments/{comment_id}"
+            )))
+            .send()
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn comment_reactions_add(
         &self,
         owner: &str,
@@ -205,53 +243,40 @@ impl IAPIAdapter for GithubAPIAdapter {
         comment_id: u64,
         reaction_type: GhReactionType,
     ) -> Result<()> {
-        trace_call("comment_reactions_add");
-
-        let body = serde_json::json!({
-            "content": reaction_type.to_str()
-        });
-
-        let client = self.get_client().await?;
-        let data = client
-            ._post(
-                client.absolute_url(format!(
-                    "/repos/{}/{}/issues/comments/{}/reactions",
-                    owner, name, comment_id
-                ))?,
-                Some(&body),
-            )
-            .await?;
-
-        if data.status() != 201 {
-            error!(
-                status_code = %data.status(),
-                message = "Could not add reaction to comment",
-            );
+        #[derive(Serialize)]
+        struct Request<'a> {
+            content: &'a str,
         }
+
+        self.get_client()
+            .await?
+            .post(&self.build_url(format!(
+                "/repos/{owner}/{name}/issues/comments/{comment_id}/reactions"
+            )))
+            .json(&Request {
+                content: reaction_type.to_str(),
+            })
+            .send()
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
-        trace_call("pulls_get");
-
-        let pull: GhPullRequest = self
+        Ok(self
             .get_client()
             .await?
-            .get(
-                format!(
-                    "/repos/{owner}/{name}/pulls/{pr_number}",
-                    owner = owner,
-                    name = name,
-                    pr_number = issue_number
-                ),
-                None::<&()>,
-            )
-            .await?;
-
-        Ok(pull)
+            .get(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}")))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn pulls_merge(
         &self,
         owner: &str,
@@ -261,36 +286,30 @@ impl IAPIAdapter for GithubAPIAdapter {
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
     ) -> Result<()> {
-        trace_call("pulls_merge");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            commit_title: &'a str,
+            commit_message: &'a str,
+            merge_method: String,
+        }
 
-        let body = serde_json::json!({
-            "commit_title": commit_title,
-            "commit_message": commit_message,
-            "merge_method": merge_strategy.to_string()
-        });
+        self.get_client()
+            .await?
+            .put(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}/merge")))
+            .json(&Request {
+                commit_title,
+                commit_message,
+                merge_method: merge_strategy.to_string(),
+            })
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| ApiError::MergeError(e.to_string()))?;
 
-        let client = self.get_client().await?;
-
-        let response = client
-            ._put(
-                client.absolute_url(format!(
-                    "/repos/{}/{}/pulls/{}/merge",
-                    owner, name, issue_number
-                ))?,
-                Some(&body),
-            )
-            .await?;
-
-        let code: u16 = response.status().into();
-        return match code {
-            403 => Err(ApiError::MergeError("Forbidden".to_string())),
-            404 => Err(ApiError::MergeError("Not found".to_string())),
-            405 => Err(ApiError::MergeError("Not mergeable".to_string())),
-            409 => Err(ApiError::MergeError("Conflicts".to_string())),
-            _ => Ok(()),
-        };
+        Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn pull_reviewer_requests_add(
         &self,
         owner: &str,
@@ -298,24 +317,25 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
-        trace_call("pull_reviewer_requests_add");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            reviewers: &'a [String],
+        }
 
-        let body = serde_json::json!({ "reviewers": reviewers });
-        let client = self.get_client().await?;
-
-        client
-            ._post(
-                client.absolute_url(format!(
-                    "/repos/{}/{}/pulls/{}/requested_reviewers",
-                    owner, name, issue_number
-                ))?,
-                Some(&body),
-            )
-            .await?;
+        self.get_client()
+            .await?
+            .post(&self.build_url(format!(
+                "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+            )))
+            .json(&Request { reviewers })
+            .send()
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn pull_reviewer_requests_remove(
         &self,
         owner: &str,
@@ -323,57 +343,49 @@ impl IAPIAdapter for GithubAPIAdapter {
         issue_number: u64,
         reviewers: &[String],
     ) -> Result<()> {
-        trace_call("pull_reviewer_requests_remove");
-
-        let body = serde_json::json!({ "reviewers": reviewers });
-        let client = self.get_client().await?;
-        let url = client.absolute_url(format!(
-            "/repos/{}/{}/pulls/{}/requested_reviewers",
-            owner, name, issue_number
-        ))?;
-        let builder = client
-            .request_builder(String::from(url), http::Method::DELETE)
-            .json(&body)
-            .header(http::header::ACCEPT, octocrab::format_media_type("json"));
-
-        let response = client.execute(builder).await?;
-        if response.status() != 200 {
-            error!(
-                reviewers = ?reviewers,
-                repository_path = %format!("{}/{}", owner, name),
-                status_code = %response.status(),
-                message = "Could not remove reviewers",
-            );
+        #[derive(Serialize)]
+        struct Request<'a> {
+            reviewers: &'a [String],
         }
+
+        self.get_client()
+            .await?
+            .delete(&self.build_url(format!(
+                "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+            )))
+            .json(&Request { reviewers })
+            .header(
+                http::header::ACCEPT,
+                http::header::HeaderValue::from_static("application/vnd.github.v3+json"),
+            )
+            .send()
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn pull_reviews_list(
         &self,
         owner: &str,
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<GhReviewApi>> {
-        trace_call("pull_reviews_list");
-
-        let data: Vec<GhReviewApi> = self
+        Ok(self
             .get_client()
             .await?
-            .get(
-                format!(
-                    "/repos/{owner}/{name}/pulls/{pr_number}/reviews",
-                    owner = owner,
-                    name = name,
-                    pr_number = issue_number
-                ),
-                None::<&()>,
-            )
-            .await?;
-
-        Ok(data)
+            .get(&self.build_url(format!(
+                "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
+            )))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn commit_statuses_update(
         &self,
         owner: &str,
@@ -383,29 +395,33 @@ impl IAPIAdapter for GithubAPIAdapter {
         title: &str,
         body: &str,
     ) -> Result<()> {
-        trace_call("commit_statuses_update");
+        #[derive(Serialize)]
+        struct Request<'a> {
+            state: &'a str,
+            description: String,
+            context: &'a str,
+        }
 
-        let body = serde_json::json!({
-            "state": status.to_str(),
-            "description": body.chars().take(MAX_STATUS_DESCRIPTION_LEN).collect::<String>(),
-            "context": title
-        });
-
-        let client = self.get_client().await?;
-
-        client
-            ._post(
-                client.absolute_url(format!("/repos/{}/{}/statuses/{}", owner, name, git_ref))?,
-                Some(&body),
-            )
-            .await?;
+        self.get_client()
+            .await?
+            .post(&self.build_url(format!("/repos/{owner}/{name}/statuses/{git_ref}")))
+            .json(&Request {
+                state: status.to_str(),
+                context: title,
+                description: body
+                    .chars()
+                    .take(MAX_STATUS_DESCRIPTION_LEN)
+                    .collect::<String>(),
+            })
+            .send()
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
-        trace_call("gif_search");
-
         let client = reqwest::Client::new();
         client
             .get(&format!("{}/search", GIF_API_URL))
@@ -430,39 +446,22 @@ impl IAPIAdapter for GithubAPIAdapter {
         auth_token: &str,
         installation_id: u64,
     ) -> Result<String> {
-        trace_call("installations_create_token");
-
-        #[derive(Debug, Deserialize)]
-        struct InstallationTokenResponse {
+        #[derive(Deserialize)]
+        struct Response {
             token: String,
         }
 
-        let client = Octocrab::builder()
-            .personal_token(auth_token.into())
-            .build()?;
-
-        let response = client
-            ._post(
-                client.absolute_url(&format!(
-                    "/app/installations/{}/access_tokens",
-                    installation_id
-                ))?,
-                None::<&()>,
-            )
-            .await?;
-
-        let status = response.status();
-        if status == 201 {
-            let inst_resp: InstallationTokenResponse = response
-                .json()
-                .await
-                .map_err(|e| ApiError::GitHubError(format!("Bad response: {}", e)))?;
-            Ok(inst_resp.token)
-        } else {
-            Err(ApiError::GitHubError(format!(
-                "Bad status code: {}",
-                status
+        Ok(get_anonymous_client_builder(&self.config)?
+            .build()?
+            .post(&self.build_url(format!(
+                "/app/installations/{installation_id}/access_tokens"
             )))
-        }
+            .bearer_auth(auth_token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
+            .await?
+            .token)
     }
 }

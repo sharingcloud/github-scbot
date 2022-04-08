@@ -82,7 +82,7 @@ async fn test_review_creation() -> Result<()> {
         // Simulate review
         let review = GhReview {
             state: GhReviewState::Pending,
-            submitted_at: chrono::Utc::now(),
+            submitted_at: Some(chrono::Utc::now()),
             user: GhUser {
                 login: "me".to_string(),
             },
@@ -108,7 +108,7 @@ async fn test_review_creation() -> Result<()> {
         // Simulate another review
         let review2 = GhReview {
             state: GhReviewState::ChangesRequested,
-            submitted_at: chrono::Utc::now(),
+            submitted_at: Some(chrono::Utc::now()),
             user: GhUser {
                 login: "him".to_string(),
             },

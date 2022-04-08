@@ -17,6 +17,10 @@ pub struct Config {
     pub default_needed_reviewers_count: u64,
     /// Default PR title validation regex.
     pub default_pr_title_validation_regex: String,
+    /// GitHub API connect timeout.
+    pub github_api_connect_timeout: u64,
+    /// GitHub API root URL.
+    pub github_api_root_url: String,
     /// GitHub API personal token.
     pub github_api_token: String,
     /// GitHub App ID.
@@ -68,6 +72,8 @@ impl Config {
                 "BOT_DEFAULT_PR_TITLE_VALIDATION_REGEX",
                 "",
             ),
+            github_api_connect_timeout: env_to_u64("BOT_GITHUB_API_CONNECT_TIMEOUT", 5000),
+            github_api_root_url: env_to_str("BOT_GITHUB_API_ROOT_URL", "https://api.github.com"),
             github_api_token: env_to_str("BOT_GITHUB_API_TOKEN", ""),
             github_app_id: env_to_u64("BOT_GITHUB_APP_ID", 0),
             github_app_installation_id: env_to_u64("BOT_GITHUB_APP_INSTALLATION_ID", 0),

@@ -1,9 +1,12 @@
 //! Auth.
 
+use std::time::Duration;
+
 use github_scbot_conf::Config;
 use github_scbot_crypto::JwtUtils;
 use github_scbot_utils::TimeUtils;
-use octocrab::{Octocrab, OctocrabBuilder};
+use http::{header, HeaderMap};
+use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
 
 use crate::{adapter::IAPIAdapter, ApiError, Result};
@@ -22,17 +25,45 @@ struct InstallationTokenResponse {
 }
 
 /// Get an authenticated GitHub client builder.
-pub async fn get_client_builder(
+pub async fn get_authenticated_client_builder(
     config: &Config,
     api_adapter: &dyn IAPIAdapter,
-) -> Result<OctocrabBuilder> {
+) -> Result<ClientBuilder> {
+    let builder = get_anonymous_client_builder(config)?;
     let token = get_authentication_credentials(config, api_adapter).await?;
-    Ok(Octocrab::builder().personal_token(token))
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::ACCEPT,
+        header::HeaderValue::from_static("application/vnd.github.squirrel-girl-preview"),
+    );
+    headers.insert(
+        header::AUTHORIZATION,
+        header::HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
+    );
+
+    Ok(builder.default_headers(headers))
 }
 
-/// Get uninitialized client.
-pub fn get_uninitialized_client() -> Result<Octocrab> {
-    Octocrab::builder().build().map_err(ApiError::from)
+/// Get anonymous GitHub client builder.
+pub fn get_anonymous_client_builder(config: &Config) -> Result<ClientBuilder> {
+    const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::ACCEPT,
+        header::HeaderValue::from_static("application/vnd.github.squirrel-girl-preview"),
+    );
+
+    Ok(ClientBuilder::new()
+        .connect_timeout(Duration::from_millis(config.github_api_connect_timeout))
+        .user_agent(format!("github-scbot/{APP_VERSION}"))
+        .default_headers(headers))
+}
+
+/// Build a GitHub URL.
+pub fn build_github_url<T: Into<String>>(config: &Config, path: T) -> String {
+    format!("{}{}", config.github_api_root_url, path.into())
 }
 
 async fn get_authentication_credentials(
@@ -92,11 +123,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_uninitialized_client() {
-        get_uninitialized_client().unwrap();
-    }
-
-    #[test]
     fn test_create_app_token() {
         let config = arrange_config();
         let token = create_app_token(&config).unwrap();
@@ -153,10 +179,10 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_get_client_builder() {
+    async fn test_get_authenticated_client_builder() {
         let config = arrange_config();
         let adapter = DummyAPIAdapter::new();
-        get_client_builder(&config, &adapter)
+        get_authenticated_client_builder(&config, &adapter)
             .await
             .unwrap()
             .build()
