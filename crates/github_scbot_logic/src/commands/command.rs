@@ -223,7 +223,7 @@ impl Command {
                 args,
             )?)),
             "labels+" => Self::User(UserCommand::SetLabels(Self::parse_labels(args)?)),
-            "labels-" => Self::User(UserCommand::SetLabels(Self::parse_labels(args)?)),
+            "labels-" => Self::User(UserCommand::UnsetLabels(Self::parse_labels(args)?)),
             "ping" => Self::User(UserCommand::Ping),
             "is-admin" => Self::User(UserCommand::IsAdmin),
             "help" => Self::User(UserCommand::Help),
