@@ -7,9 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_N/A_
+
+## [0.19.0] - 2022-04-08
+
+### Added
+
+- New command `labels+ <labels>` and `labels- <labels>` to set/unset labels on pull requests.
+- Optional telemetry report using opentelemetry.
+- Instrumentation on some methods.
+
+### Changed
+
+- Use stable Rust 1.60.0.
+- Update dependencies.
+- Use raw reqwest calls instead of octocrab.
+
+### Fixed
+
+- Comments now do not invalidate approvals or change requests (fixes #128).
+- Check status is now fetched before creating a PR (fixes #130).
+- Only use last check suite if it appears multiple times in a pull request (fixes #132).
+
 ## [0.18.0] - 2022-01-14
 
-## Changed
+### Changed
 
 - Use stable Rust 1.57.0.
 - Add bunyan formatter in logging configuration.
@@ -18,19 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.17.1] - 2021-12-20
 
-## Fixed
+### Fixed
 
 - Do not set the `awaiting-changes` if the PR is not mergeable because it was merged.
 
 ## [0.17.0] - 2021-12-02
 
-## Added
+### Added
 
 - Handle conflict status on pull requests.
 - Creation of a `github-scbot-sentry` crate for easy maintenance.
 - New `/debug` route (enabled with the `BOT_TEST_DEBUG_MODE` environment variable) to try error reporting.
 
-## Changed
+### Changed
 
 - Use the `rsa` crate instead of `openssl` (to generate RSA keys).
 - Reuse `just` instead of an adhoc crate.
@@ -38,14 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.16.0] - 2021-10-27
 
-## Changed
+### Changed
 
 - Support reviewers without the leading '@' in req+/- commands
 - Check command rights based on write permissions instead of PR owner
 
 ## [0.15.0] - 2021-10-26
 
-## Added
+### Added
 
 - Handle changes requests
 - Check permissions when adding required reviewers
@@ -196,7 +218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/sharingcloud/github-scbot/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/sharingcloud/github-scbot/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/sharingcloud/github-scbot/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/sharingcloud/github-scbot/compare/v0.16.0...v0.17.0
