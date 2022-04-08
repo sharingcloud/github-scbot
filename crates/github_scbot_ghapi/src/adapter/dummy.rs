@@ -18,6 +18,7 @@ use crate::Result;
 pub struct DummyAPIAdapter {
     pub issue_labels_list_response: Mock<(String, String, u64), Result<Vec<String>>>,
     pub issue_labels_replace_all_response: Mock<(String, String, u64, Vec<String>), Result<()>>,
+    pub issue_labels_add_response: Mock<(String, String, u64, Vec<String>), Result<()>>,
     pub user_permissions_get_response: Mock<(String, String, String), Result<GhUserPermission>>,
     pub check_suites_list_response: Mock<(String, String, String), Result<Vec<GhCheckSuite>>>,
     pub comments_post_response: Mock<(String, String, u64, String), Result<u64>>,
@@ -42,6 +43,7 @@ impl Default for DummyAPIAdapter {
         Self {
             issue_labels_list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
             issue_labels_replace_all_response: Mock::new(Box::new(|_| Ok(()))),
+            issue_labels_add_response: Mock::new(Box::new(|_| Ok(()))),
             user_permissions_get_response: Mock::new(Box::new(|_| Ok(GhUserPermission::None))),
             check_suites_list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
             comments_post_response: Mock::new(Box::new(|_| Ok(0))),
@@ -88,6 +90,21 @@ impl IAPIAdapter for DummyAPIAdapter {
         labels: &[String],
     ) -> Result<()> {
         self.issue_labels_replace_all_response.call((
+            owner.to_owned(),
+            name.to_owned(),
+            issue_number,
+            labels.to_owned(),
+        ))
+    }
+
+    async fn issue_labels_add(
+        &self,
+        owner: &str,
+        name: &str,
+        issue_number: u64,
+        labels: &[String],
+    ) -> Result<()> {
+        self.issue_labels_add_response.call((
             owner.to_owned(),
             name.to_owned(),
             issue_number,

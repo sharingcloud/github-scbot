@@ -92,6 +92,8 @@ This README supposes the default bot handle: 'bot'.
 - `bot strategy+ <strategy>`: _Override merge strategy for this pull request_
 - `bot strategy-`: _Remove the overriden merge strategy for this pull request_
 - `bot merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_
+- `bot labels+ <label>`: _Set specific labels_
+- `bot labels- <label>`: _Unset specific labels_
 - `bot ping`: _Ping me_
 - `bot gif <search>`: _Post a random GIF with a tag_
 - `bot is-admin`: _Check if you are admin_
