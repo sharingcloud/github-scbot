@@ -54,7 +54,11 @@ pub async fn handle_pull_request_opened(
 
     if let Err(DatabaseError::UnknownPullRequest(_, _)) = db_adapter
         .pull_request()
-        .get_from_repository_and_number(&repo_model, event.pull_request.number)
+        .get_from_repository_and_number(
+            repo_model.owner(),
+            repo_model.name(),
+            event.pull_request.number,
+        )
         .await
     {
         if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
@@ -182,9 +186,13 @@ pub async fn handle_pull_request_event(
         .create_or_update(db_adapter.repository())
         .await?;
 
-    if let Ok(pr_model) = db_adapter
+    if let Ok((pr_model, _)) = db_adapter
         .pull_request()
-        .get_from_repository_and_number(&repo_model, event.pull_request.number)
+        .get_from_repository_and_number(
+            repo_model.owner(),
+            repo_model.name(),
+            event.pull_request.number,
+        )
         .await
     {
         if config.server_enable_history_tracking {

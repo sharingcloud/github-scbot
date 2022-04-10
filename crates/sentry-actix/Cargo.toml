@@ -6,7 +6,7 @@ license = "Apache-2.0"
 description = """
 Sentry client extension for actix-web 3.
 """
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 actix-web = { version = "3", default-features = false }

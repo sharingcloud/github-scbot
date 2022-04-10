@@ -2,7 +2,7 @@
 name = "github-scbot-tui"
 version = "0.19.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 github-scbot-conf = { path = "../github_scbot_conf" }

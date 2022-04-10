@@ -29,9 +29,9 @@ pub async fn set_qa_status_for_pull_requests(
         .await?;
 
     for pr_num in pull_request_numbers {
-        let mut pr = db_adapter
+        let (mut pr, _) = db_adapter
             .pull_request()
-            .get_from_repository_and_number(&repo, *pr_num)
+            .get_from_repository_and_number(repo.owner(), repo.name(), *pr_num)
             .await?;
         let result = handle_qa_command(db_adapter, &mut pr, author, status).await?;
         CommandExecutor::process_command_result(

@@ -203,14 +203,14 @@ async fn test_import_models_from_json() -> Result<()> {
             .get_from_owner_and_name("me", "AnotherRepo")
             .await
             .unwrap();
-        let pr_1 = db_adapter
+        let (pr_1, _) = db_adapter
             .pull_request()
-            .get_from_repository_and_number(&rep_1, 1234)
+            .get_from_repository_and_number(rep_1.owner(), rep_1.name(), 1234)
             .await
             .unwrap();
-        let pr_2 = db_adapter
+        let (pr_2, _) = db_adapter
             .pull_request()
-            .get_from_repository_and_number(&rep_1, 1235)
+            .get_from_repository_and_number(rep_1.owner(), rep_1.name(), 1235)
             .await
             .unwrap();
         let review_1 = db_adapter

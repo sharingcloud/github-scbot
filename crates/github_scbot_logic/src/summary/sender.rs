@@ -29,8 +29,9 @@ impl SummaryCommentSender {
         self.post_github_comment(
             api_adapter,
             db_adapter,
-            repo_model,
-            pr_model,
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
             &status_comment,
         )
         .await
@@ -69,8 +70,9 @@ impl SummaryCommentSender {
                 self.post_github_comment(
                     api_adapter,
                     db_adapter,
-                    repo_model,
-                    pr_model,
+                    repo_model.owner(),
+                    repo_model.name(),
+                    pr_model.number(),
                     &status_comment,
                 )
                 .await
@@ -91,18 +93,19 @@ impl SummaryCommentSender {
         &self,
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        repo_owner: &str,
+        repo_name: &str,
+        pull_request_id: i32,
     ) -> Result<()> {
         // Re-fetch comment ID
         let comment_id = db_adapter
             .pull_request()
-            .fetch_status_comment_id(pr_model.id())
+            .fetch_status_comment_id(pull_request_id)
             .await? as u64;
 
         if comment_id > 0 {
             api_adapter
-                .comments_delete(repo_model.owner(), repo_model.name(), comment_id)
+                .comments_delete(repo_owner, repo_name, comment_id)
                 .await?;
         }
 
@@ -117,24 +120,19 @@ impl SummaryCommentSender {
         &self,
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        repo_owner: &str,
+        repo_name: &str,
+        issue_number: u64,
         comment: &str,
     ) -> Result<u64> {
-        let comment_id = CommentApi::post_comment(
-            api_adapter,
-            repo_model.owner(),
-            repo_model.name(),
-            pr_model.number(),
-            comment,
-        )
-        .await?;
+        let comment_id =
+            CommentApi::post_comment(api_adapter, repo_owner, repo_name, issue_number, comment)
+                .await?;
 
-        let update = pr_model
-            .create_update()
-            .status_comment_id(comment_id)
-            .build_update();
-        db_adapter.pull_request().update(pr_model, update).await?;
+        db_adapter
+            .pull_request()
+            .set_status_comment_id(repo_owner, repo_name, issue_number, comment_id)
+            .await?;
 
         Ok(comment_id)
     }

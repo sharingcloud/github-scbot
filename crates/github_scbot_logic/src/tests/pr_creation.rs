@@ -191,9 +191,9 @@ async fn test_qa_disabled_repository() -> DatabaseResult<()> {
         .await?;
         assert_eq!(result, PullRequestOpenedStatus::Created);
 
-        let pr = db_adapter
+        let (pr, _) = db_adapter
             .pull_request()
-            .get_from_repository_and_number(&repo, 1)
+            .get_from_repository_and_number(repo.owner(), repo.name(), 1)
             .await?;
         let status =
             PullRequestStatus::from_database(&api_adapter, &db_adapter, &repo, &pr).await?;

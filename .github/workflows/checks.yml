@@ -65,7 +65,7 @@ jobs:
         args: '-- --test-threads 1'
         out-type: Lcov
       env:
-        TEST_DATABASE_URL: postgres://user:pass@localhost:5432/test-bot
+        DATABASE_URL: postgres://user:pass@localhost:5432/test-bot
     - uses: coverallsapp/github-action@master
       with:
         path-to-lcov: lcov.info

@@ -24,9 +24,10 @@ pub trait IPullRequestDbAdapter {
     /// Gets an existing pull request from a repository and a pull request number.
     async fn get_from_repository_and_number(
         &self,
-        repository: &RepositoryModel,
+        owner: &str,
+        name: &str,
         number: u64,
-    ) -> Result<PullRequestModel>;
+    ) -> Result<(PullRequestModel, RepositoryModel)>;
     /// Gets an existing pull request from a repository path and a pull request number.
     async fn get_from_repository_path_and_number(
         &self,
@@ -38,6 +39,14 @@ pub trait IPullRequestDbAdapter {
         &self,
         repository_id: i32,
     ) -> Result<Vec<PullRequestModel>>;
+    /// Set status comment ID.
+    async fn set_status_comment_id(
+        &self,
+        repo_owner: &str,
+        repo_name: &str,
+        issue_number: u64,
+        comment_id: u64,
+    ) -> Result<()>;
     /// Removes an existing pull request.
     async fn remove(&self, entry: &PullRequestModel) -> Result<()>;
     /// Removes closed pull requests from a repository.
@@ -101,28 +110,13 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
 
     async fn get_from_repository_and_number(
         &self,
-        repository: &RepositoryModel,
-        number: u64,
-    ) -> Result<PullRequestModel> {
-        let repository = repository.clone();
-
-        pull_request::table
-            .filter(pull_request::repository_id.eq(repository.id()))
-            .filter(pull_request::number.eq(number as i32))
-            .first_async(&self.pool)
-            .await
-            .map_err(|_e| DatabaseError::UnknownPullRequest(repository.path(), number))
-    }
-
-    async fn get_from_repository_path_and_number(
-        &self,
-        path: &str,
+        owner: &str,
+        name: &str,
         number: u64,
     ) -> Result<(PullRequestModel, RepositoryModel)> {
-        let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
         let owner = owner.to_owned();
         let name = name.to_owned();
-        let path = path.to_owned();
+        let path = format!("{owner}/{name}");
 
         let (pr, repo): (PullRequestModel, Option<RepositoryModel>) = pull_request::table
             .left_join(repository::table.on(repository::id.eq(pull_request::repository_id)))
@@ -137,6 +131,16 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
             pr,
             repo.expect("Invalid repository linked to pull request."),
         ))
+    }
+
+    async fn get_from_repository_path_and_number(
+        &self,
+        path: &str,
+        number: u64,
+    ) -> Result<(PullRequestModel, RepositoryModel)> {
+        let (owner, name) = RepositoryModel::extract_owner_and_name_from_path(path)?;
+        self.get_from_repository_and_number(owner, name, number)
+            .await
     }
 
     async fn list_closed_pulls_from_repository(
@@ -176,6 +180,25 @@ impl IPullRequestDbAdapter for PullRequestDbAdapter {
         Ok(())
     }
 
+    async fn set_status_comment_id(
+        &self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        comment_id: u64,
+    ) -> Result<()> {
+        let (pr, _) = self
+            .get_from_repository_and_number(owner, name, number)
+            .await?;
+
+        diesel::update(pull_request::table.filter(pull_request::id.eq(pr.id())))
+            .set(pull_request::status_comment_id.eq(comment_id as i32))
+            .execute_async(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     async fn update(&self, entry: &mut PullRequestModel, update: PullRequestUpdate) -> Result<()> {
         *entry = diesel::update(pull_request::table.filter(pull_request::id.eq(entry.id)))
             .set(update)
@@ -199,12 +222,14 @@ pub struct DummyPullRequestDbAdapter {
     pub list_from_repository_path_response: Mock<String, Result<Vec<PullRequestModel>>>,
     /// Get from repository and number response.
     pub get_from_repository_and_number_response:
-        Mock<(RepositoryModel, u64), Result<PullRequestModel>>,
+        Mock<(String, String, u64), Result<(PullRequestModel, RepositoryModel)>>,
     /// Get from repository path and number response.
     pub get_from_repository_path_and_number_response:
         Mock<(String, u64), Result<(PullRequestModel, RepositoryModel)>>,
     /// List closed pulls from repository response.
     pub list_closed_pulls_from_repository_response: Mock<i32, Result<Vec<PullRequestModel>>>,
+    /// Set status comment ID.
+    pub set_status_comment_id_response: Mock<(String, String, u64, u64), Result<()>>,
     /// Remove response.
     pub remove_response: Mock<PullRequestModel, Result<()>>,
     /// Remove closed pulls from repository response.
@@ -219,12 +244,13 @@ impl Default for DummyPullRequestDbAdapter {
             list_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
             list_from_repository_path_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
             get_from_repository_and_number_response: Mock::new(Box::new(|_| {
-                Ok(PullRequestModel::default())
+                Ok((PullRequestModel::default(), RepositoryModel::default()))
             })),
             get_from_repository_path_and_number_response: Mock::new(Box::new(|_| {
                 Ok((PullRequestModel::default(), RepositoryModel::default()))
             })),
             list_closed_pulls_from_repository_response: Mock::new(Box::new(|_| Ok(Vec::new()))),
+            set_status_comment_id_response: Mock::new(Box::new(|_| Ok(()))),
             remove_response: Mock::new(Box::new(|_| Ok(()))),
             remove_closed_pulls_from_repository_response: Mock::new(Box::new(|_| Ok(()))),
         }
@@ -260,11 +286,15 @@ impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
 
     async fn get_from_repository_and_number(
         &self,
-        repository: &RepositoryModel,
+        owner: &str,
+        name: &str,
         number: u64,
-    ) -> Result<PullRequestModel> {
-        self.get_from_repository_and_number_response
-            .call((repository.clone(), number))
+    ) -> Result<(PullRequestModel, RepositoryModel)> {
+        self.get_from_repository_and_number_response.call((
+            owner.to_owned(),
+            name.to_owned(),
+            number,
+        ))
     }
 
     async fn get_from_repository_path_and_number(
@@ -282,6 +312,21 @@ impl IPullRequestDbAdapter for DummyPullRequestDbAdapter {
     ) -> Result<Vec<PullRequestModel>> {
         self.list_closed_pulls_from_repository_response
             .call(repository_id)
+    }
+
+    async fn set_status_comment_id(
+        &self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        comment_id: u64,
+    ) -> Result<()> {
+        self.set_status_comment_id_response.call((
+            owner.to_owned(),
+            name.to_owned(),
+            number,
+            comment_id,
+        ))
     }
 
     async fn remove(&self, entry: &PullRequestModel) -> Result<()> {

@@ -5,6 +5,7 @@ members = [
     "crates/github_scbot_crypto",
     "crates/github_scbot_database",
     "crates/github_scbot_database_macros",
+    "crates/github_scbot_database2",
     "crates/github_scbot_ghapi",
     "crates/github_scbot_logic",
     "crates/github_scbot_redis",

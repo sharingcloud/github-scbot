@@ -53,8 +53,6 @@ pub struct Config {
     pub telemetry_url: String,
     /// Tenor API key.
     pub tenor_api_key: String,
-    /// Test database URL.
-    pub test_database_url: String,
     /// Test debug mode
     pub test_debug_mode: bool,
 }
@@ -99,7 +97,6 @@ impl Config {
             ),
             telemetry_url: env_to_str("BOT_TELEMETRY_URL", ""),
             tenor_api_key: env_to_str("BOT_TENOR_API_KEY", ""),
-            test_database_url: env_to_str("TEST_DATABASE_URL", ""),
             test_debug_mode: env_to_bool("BOT_TEST_DEBUG_MODE", false),
         }
     }

@@ -29,9 +29,9 @@ pub async fn handle_check_suite_event(
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
-        if let Ok(mut pr_model) = db_adapter
+        if let Ok((mut pr_model, _)) = db_adapter
             .pull_request()
-            .get_from_repository_and_number(&repo_model, gh_pr.number)
+            .get_from_repository_and_number(repo_model.owner(), repo_model.name(), gh_pr.number)
             .await
         {
             // Skip non Github Actions checks

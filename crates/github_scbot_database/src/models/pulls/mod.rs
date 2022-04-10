@@ -339,11 +339,9 @@ impl PullRequestModel {
     }
 
     /// Get checks URL for a repository.
-    pub fn checks_url(&self, repository: &RepositoryModel) -> String {
+    pub fn checks_url(&self, owner: &str, name: &str) -> String {
         return format!(
-            "https://github.com/{}/{}/pull/{}/checks",
-            repository.owner(),
-            repository.name(),
+            "https://github.com/{owner}/{name}/pull/{}/checks",
             self.number
         );
     }

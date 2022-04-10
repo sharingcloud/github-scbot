@@ -10,7 +10,7 @@ use crate::{DbPool, Result};
 
 fn get_base_url(config: &Config) -> String {
     config
-        .test_database_url
+        .database_url
         .split('/')
         .take(3)
         .collect::<Vec<_>>()

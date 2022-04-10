@@ -107,7 +107,7 @@ impl PullRequestStatus {
             approved_reviewers: approved_reviews,
             automerge: pr_model.automerge(),
             checks_status: pr_model.check_status(),
-            checks_url: pr_model.checks_url(repo_model),
+            checks_url: pr_model.checks_url(repo_model.owner(), repo_model.name()),
             pull_request_title_regex: repo_model.pr_title_validation_regex().into(),
             needed_reviewers_count: needed_reviews,
             qa_status: pr_model.qa_status(),

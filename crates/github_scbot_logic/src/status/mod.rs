@@ -281,7 +281,13 @@ impl StatusLogic {
             .await?;
 
         SummaryCommentSender::new()
-            .delete(api_adapter, db_adapter, repo_model, pr_model)
+            .delete(
+                api_adapter,
+                db_adapter,
+                repo_model.owner(),
+                repo_model.name(),
+                pr_model.id(),
+            )
             .await
     }
 }

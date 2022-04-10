@@ -261,10 +261,10 @@ impl<'a> PullRequestModelBuilder<'a> {
         let pr_number = self.pr_number.unwrap();
 
         let handle = match db_adapter
-            .get_from_repository_and_number(repo, pr_number)
+            .get_from_repository_and_number(repo.owner(), repo.name(), pr_number)
             .await
         {
-            Ok(mut entry) => {
+            Ok((mut entry, _)) => {
                 self.id = Some(entry.id);
                 let update = self.build_update();
                 db_adapter.update(&mut entry, update).await?;
