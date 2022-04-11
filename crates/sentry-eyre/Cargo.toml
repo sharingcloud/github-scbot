@@ -10,6 +10,6 @@ Sentry integration for eyre.
 edition = "2021"
 
 [dependencies]
-sentry-backtrace = { version = "0.23.0" }
-sentry-core = { version = "0.23.0", features = ["client"] }
+sentry-backtrace = "0.25.0"
+sentry-core = { version = "0.25.0", features = ["client"] }
 stable-eyre = "0.2"

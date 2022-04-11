@@ -23,5 +23,5 @@ thiserror = "1.0"
 tracing = "0.1"
 
 [dev-dependencies]
-actix-rt = "1"
+actix-rt = "2"
 maplit = "1.0.2"

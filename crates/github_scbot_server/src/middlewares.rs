@@ -2,16 +2,10 @@
 
 #![allow(clippy::type_complexity)]
 
-use std::{
-    cell::RefCell,
-    pin::Pin,
-    rc::Rc,
-    task::{Context, Poll},
-};
+use std::{pin::Pin, rc::Rc};
 
-use actix_service::{Service, Transform};
 use actix_web::{
-    dev::{ServiceRequest, ServiceResponse},
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
     http::Method,
     web::BytesMut,
     Error, HttpMessage,
@@ -62,16 +56,15 @@ impl VerifySignature {
 // Middleware factory is `Transform` trait from actix-service crate
 // `S` - type of the next service
 // `B` - type of response's body
-impl<S, B> Transform<S> for VerifySignature
+impl<S, B> Transform<S, ServiceRequest> for VerifySignature
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
     type Error = Error;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
     type InitError = ();
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Transform = VerifySignatureMiddleware<S>;
 
@@ -79,7 +72,7 @@ where
         ok(VerifySignatureMiddleware {
             enabled: self.enabled,
             secret: self.secret.clone(),
-            service: Rc::new(RefCell::new(service)),
+            service: Rc::new(service),
         })
     }
 }
@@ -88,26 +81,23 @@ where
 pub struct VerifySignatureMiddleware<S> {
     enabled: bool,
     secret: Option<String>,
-    service: Rc<RefCell<S>>,
+    service: Rc<S>,
 }
 
-impl<S, B> Service for VerifySignatureMiddleware<S>
+impl<S, B> Service<ServiceRequest> for VerifySignatureMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
+    actix_web::dev::forward_ready!(service);
 
-    fn call(&mut self, mut req: ServiceRequest) -> Self::Future {
-        let mut svc = self.service.clone();
+    fn call(&self, mut req: ServiceRequest) -> Self::Future {
+        let svc = self.service.clone();
         let enabled = self.enabled;
         let secret = self.secret.clone();
 
@@ -144,7 +134,7 @@ where
                     }
 
                     // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438
-                    let mut payload = actix_http::h1::Payload::empty();
+                    let (_, mut payload) = actix_http::h1::Payload::create(true);
                     payload.unread_data(body.freeze());
                     req.set_payload(payload.into());
                 }

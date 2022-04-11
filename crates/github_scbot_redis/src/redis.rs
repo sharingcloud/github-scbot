@@ -1,4 +1,4 @@
-use actix::prelude::Addr;
+use actix::Addr;
 use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;

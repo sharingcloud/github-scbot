@@ -101,7 +101,7 @@ pub trait IRedisAdapter: Send + Sync {
             if elapsed_time > timeout_ms {
                 return Ok(LockStatus::AlreadyLocked);
             } else {
-                actix::clock::delay_for(duration).await;
+                actix::clock::sleep(duration).await;
                 elapsed_time += millis;
             }
         }

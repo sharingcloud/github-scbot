@@ -5,7 +5,7 @@ use std::sync::Arc;
 use actix_cors::Cors;
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use actix_web_prom::PrometheusMetrics;
+use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
 use github_scbot_database::{
     models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
@@ -96,15 +96,18 @@ fn get_bind_address(config: &Config) -> String {
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
     let context = Arc::new(context);
     let cloned_context = context.clone();
-    let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
+    let prometheus = PrometheusMetricsBuilder::new("api")
+        .endpoint("/metrics")
+        .build()
+        .unwrap();
 
     let mut server = HttpServer::new(move || {
         let mut app = App::new()
-            .data(context.clone())
+            .app_data(context.clone())
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
             .wrap(Logger::default())
-            .wrap(TracingLogger)
+            .wrap(TracingLogger::default())
             .service(
                 web::scope("/external")
                     .wrap(HttpAuthentication::bearer(jwt_auth_validator))
@@ -118,18 +121,14 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
             )
             .route(
                 "/health-check",
-                web::get().to(|| async {
-                    HttpResponse::Ok()
-                        .json(serde_json::json!({"message": "Ok"}))
-                        .await
-                }),
+                web::get()
+                    .to(|| async { HttpResponse::Ok().json(serde_json::json!({"message": "Ok"})) }),
             )
             .route(
                 "/",
                 web::get().to(|| async {
                     HttpResponse::Ok()
                         .json(serde_json::json!({"message": "Welcome on github-scbot !" }))
-                        .await
                 }),
             )
             .app_data(web::JsonConfig::default().error_handler(|err, _req| {

@@ -69,7 +69,7 @@ pub fn initialize_command_line() -> eyre::Result<()> {
         let version = env!("CARGO_PKG_VERSION");
         println!("{} {}", exec_name, version)
     } else if let Some(cmd) = args.cmd {
-        let mut sys = System::new("app");
+        let sys = System::new();
         sys.block_on(sync(config, cmd, args.no_input))?;
     } else {
         return Err(eyre!("Missing subcommand. Use --help for more info."));

@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use actix_http::http::StatusCode;
+use actix_web::http::StatusCode;
 use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_crypto::{CryptoError, JwtUtils};

@@ -26,6 +26,4 @@ derive_builder = "0.10.2"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
-actix-rt = "1"
-
-[features]
+actix-rt = "2"
