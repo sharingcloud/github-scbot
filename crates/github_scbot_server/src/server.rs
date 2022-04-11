@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{error, middleware::Logger, web::{self, Data}, App, HttpResponse, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
@@ -76,14 +76,15 @@ impl AppContext {
 
 /// Run bot server.
 pub async fn run_bot_server(context: AppContext) -> Result<()> {
+    let address = get_bind_address(&context.config);
+
     info!(
         version = env!("CARGO_PKG_VERSION"),
+        address = %address,
         message = "Starting bot server",
     );
 
     with_sentry_configuration(&context.config.sentry_url.clone(), || async {
-        let config = context.config.clone();
-        let address = get_bind_address(&config);
         run_bot_server_internal(address, context).await
     })
     .await
@@ -94,7 +95,7 @@ fn get_bind_address(config: &Config) -> String {
 }
 
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
-    let context = Arc::new(context);
+    let context = Data::new(Arc::new(context));
     let cloned_context = context.clone();
     let prometheus = PrometheusMetricsBuilder::new("api")
         .endpoint("/metrics")

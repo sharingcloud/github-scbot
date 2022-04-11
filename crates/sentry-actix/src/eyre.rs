@@ -6,7 +6,7 @@ use actix_web::{
     http::{header, StatusCode},
     Error, HttpResponse, HttpResponseBuilder, ResponseError,
 };
-use stable_eyre::eyre;
+use sentry_eyre::eyre;
 
 /// Eyre Report wrapper.
 pub struct WrapEyre {

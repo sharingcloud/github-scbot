@@ -2,7 +2,6 @@
 
 use std::{ffi::OsStr, path::Path};
 
-use actix_rt::System;
 use argh::FromArgs;
 use github_scbot_conf::{configure_startup, Config};
 use github_scbot_database::{establish_pool_connection, models::DatabaseAdapter, run_migrations};
@@ -69,8 +68,12 @@ pub fn initialize_command_line() -> eyre::Result<()> {
         let version = env!("CARGO_PKG_VERSION");
         println!("{} {}", exec_name, version)
     } else if let Some(cmd) = args.cmd {
-        let sys = System::new();
-        sys.block_on(sync(config, cmd, args.no_input))?;
+        actix_rt::System::with_tokio_rt(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+        }).block_on(sync(config, cmd, args.no_input))?;
     } else {
         return Err(eyre!("Missing subcommand. Use --help for more info."));
     }

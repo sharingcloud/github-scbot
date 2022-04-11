@@ -47,7 +47,7 @@ mod tests {
     use super::AuthAddAccountRightCommand;
     use crate::{commands::Command, tests::create_test_context};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_command() {
         let context = create_test_context();
 

@@ -12,4 +12,4 @@ edition = "2021"
 [dependencies]
 sentry-backtrace = "0.25.0"
 sentry-core = { version = "0.25.0", features = ["client"] }
-stable-eyre = "0.2"
+stable-eyre = "0.2.2"
