@@ -3,7 +3,12 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{error, middleware::Logger, web::{self, Data}, App, HttpResponse, HttpServer};
+use actix_web::{
+    error,
+    middleware::Logger,
+    web::{self, Data},
+    App, HttpResponse, HttpServer,
+};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;

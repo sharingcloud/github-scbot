@@ -73,7 +73,8 @@ pub fn initialize_command_line() -> eyre::Result<()> {
                 .enable_all()
                 .build()
                 .unwrap()
-        }).block_on(sync(config, cmd, args.no_input))?;
+        })
+        .block_on(sync(config, cmd, args.no_input))?;
     } else {
         return Err(eyre!("Missing subcommand. Use --help for more info."));
     }

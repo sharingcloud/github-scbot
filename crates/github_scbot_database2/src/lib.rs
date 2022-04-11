@@ -9,6 +9,10 @@ pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
 };
+pub use models::external_account_right::{
+    ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl,
+    ExternalAccountRightDBImplPool,
+};
 pub use models::merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
 pub use models::pull_request::{
     PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
@@ -22,6 +26,7 @@ pub use errors::{DatabaseError, Result};
 pub type DbPool = sqlx::postgres::PgPool;
 
 use github_scbot_conf::Config;
+use sqlx::PgPool;
 use sqlx::{migrate::Migrate, postgres::PgPoolOptions, Acquire};
 
 pub async fn run_migrations<'a, A>(migrator: A) -> Result<()>
@@ -45,22 +50,82 @@ pub async fn establish_pool_connection(config: Config) -> Result<DbPool> {
         .map_err(DatabaseError::ConnectionError)
 }
 
+#[cfg_attr(test, mockall::automock)]
+pub trait DbService {
+    fn accounts(&self) -> Box<dyn AccountDB>;
+    fn external_accounts(&self) -> Box<dyn ExternalAccountDB>;
+    fn external_account_rights(&self) -> Box<dyn ExternalAccountRightDB>;
+    fn merge_rules(&self) -> Box<dyn MergeRuleDB>;
+    fn pull_requests(&self) -> Box<dyn PullRequestDB>;
+    fn repositories(&self) -> Box<dyn RepositoryDB>;
+    fn required_reviewers(&self) -> Box<dyn RequiredReviewerDB>;
+}
+
+pub struct DbServiceImplPool {
+    pool: PgPool,
+}
+
+impl DbServiceImplPool {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+impl DbService for DbServiceImplPool {
+    fn accounts(&self) -> Box<dyn AccountDB> {
+        Box::new(AccountDBImplPool::new(self.pool.clone()))
+    }
+
+    fn external_accounts(&self) -> Box<dyn ExternalAccountDB> {
+        Box::new(ExternalAccountDBImplPool::new(self.pool.clone()))
+    }
+
+    fn external_account_rights(&self) -> Box<dyn ExternalAccountRightDB> {
+        Box::new(ExternalAccountRightDBImplPool::new(self.pool.clone()))
+    }
+
+    fn merge_rules(&self) -> Box<dyn MergeRuleDB> {
+        Box::new(MergeRuleDBImplPool::new(self.pool.clone()))
+    }
+
+    fn pull_requests(&self) -> Box<dyn PullRequestDB> {
+        Box::new(PullRequestDBImplPool::new(self.pool.clone()))
+    }
+
+    fn repositories(&self) -> Box<dyn RepositoryDB> {
+        Box::new(RepositoryDBImplPool::new(self.pool.clone()))
+    }
+
+    fn required_reviewers(&self) -> Box<dyn RequiredReviewerDB> {
+        Box::new(RequiredReviewerDBImplPool::new(self.pool.clone()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::errors::StdError;
+    use crate::{errors::StdError, utils::use_temporary_db};
 
     use super::*;
 
     #[actix_rt::test]
-    async fn test_init() -> core::result::Result<(), StdError> {
-        let config = Config::from_env();
+    async fn test_service() {
+        use_temporary_db(Config::from_env(), "service-test", |_config, conn| async {
+            let db = DbServiceImplPool::new(conn);
 
-        let conn = establish_pool_connection(config).await?;
-        let mut transaction = conn.begin().await?;
-        run_migrations(&mut transaction).await?;
+            async fn sample(
+                repo_db: &mut dyn RepositoryDB,
+                pr_db: &mut dyn PullRequestDB,
+            ) -> core::result::Result<(), StdError> {
+                let _r = repo_db.get("", "").await?;
+                let _p = pr_db.get("", "", 1).await?;
 
-        // Ok, you can use transaction now
+                Ok(())
+            }
 
-        Ok(())
+            sample(&mut *db.repositories(), &mut *db.pull_requests()).await?;
+
+            Ok(())
+        })
+        .await
     }
 }
