@@ -7,11 +7,11 @@ use crate::{errors::Result, DatabaseError};
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
 #[builder(default)]
 pub struct ExternalAccount {
-    #[get_ref]
+    #[get_deref]
     username: String,
-    #[get_ref]
+    #[get_deref]
     public_key: String,
-    #[get_ref]
+    #[get_deref]
     private_key: String,
 }
 

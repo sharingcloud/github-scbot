@@ -45,6 +45,12 @@ impl TryFrom<&String> for GhMergeStrategy {
     }
 }
 
+impl Default for GhMergeStrategy {
+    fn default() -> Self {
+        Self::Merge
+    }
+}
+
 /// GitHub Pull request action.
 #[derive(Debug, Deserialize, Serialize, SmartDefault, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]

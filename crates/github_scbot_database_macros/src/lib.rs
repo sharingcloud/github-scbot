@@ -8,7 +8,7 @@ extern crate syn;
 #[macro_use]
 extern crate quote;
 
-#[proc_macro_derive(SCGetter, attributes(get, get_ref, get_as, get_try_from))]
+#[proc_macro_derive(SCGetter, attributes(get, get_ref, get_deref, get_as, get_try_from))]
 pub fn add_scgetter(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
 
@@ -20,7 +20,7 @@ pub fn add_scgetter(input: TokenStream) -> TokenStream {
         let generated = fields
             .iter()
             .filter_map(|field| {
-                if has_tag(field.attrs.iter(), "get_ref") {
+                if has_tag(field.attrs.iter(), "get_deref") {
                     let field_name = field.clone().ident.unwrap();
                     let ty = field.ty.clone();
                     let fn_name = Ident::new(&format!("{}", field_name), Span::call_site());
@@ -33,6 +33,22 @@ pub fn add_scgetter(input: TokenStream) -> TokenStream {
                         #(#doc)*
                         #[inline(always)]
                         pub fn #fn_name(&self) -> &<#ty as std::ops::Deref>::Target {
+                            &self.#field_name
+                        }
+                    })
+                } else if has_tag(field.attrs.iter(), "get_ref") {
+                    let field_name = field.clone().ident.unwrap();
+                    let ty = field.ty.clone();
+                    let fn_name = Ident::new(&format!("{}", field_name), Span::call_site());
+                    let doc = field.attrs.iter().filter(|v| {
+                        v.parse_meta()
+                            .map(|meta| meta.path().is_ident("doc"))
+                            .unwrap_or(false)
+                    });
+                    Some(quote! {
+                        #(#doc)*
+                        #[inline(always)]
+                        pub fn #fn_name(&self) -> &#ty {
                             &self.#field_name
                         }
                     })

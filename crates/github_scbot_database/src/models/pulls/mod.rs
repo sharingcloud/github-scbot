@@ -41,16 +41,16 @@ pub struct PullRequestModel {
     #[get_as(u64)]
     number: i32,
     /// Creator.
-    #[get_ref]
+    #[get_deref]
     creator: String,
     /// Name.
-    #[get_ref]
+    #[get_deref]
     name: String,
     /// Base branch.
-    #[get_ref]
+    #[get_deref]
     base_branch: String,
     /// Head branch.
-    #[get_ref]
+    #[get_deref]
     head_branch: String,
     step: Option<String>,
     check_status: String,

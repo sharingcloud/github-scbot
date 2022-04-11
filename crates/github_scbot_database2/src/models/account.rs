@@ -7,7 +7,7 @@ use crate::{errors::Result, DatabaseError};
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
 #[builder(default)]
 pub struct Account {
-    #[get_ref]
+    #[get_deref]
     username: String,
     #[get]
     is_admin: bool,

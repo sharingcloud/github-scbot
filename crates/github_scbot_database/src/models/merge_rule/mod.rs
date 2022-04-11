@@ -56,10 +56,10 @@ pub struct MergeRuleModel {
     #[get]
     repository_id: i32,
     /// Base branch name.
-    #[get_ref]
+    #[get_deref]
     base_branch: String,
     /// Head branch name.
-    #[get_ref]
+    #[get_deref]
     head_branch: String,
     strategy: String,
 }

@@ -1,4 +1,5 @@
 mod errors;
+pub(crate) mod fields;
 pub(crate) mod models;
 pub(crate) mod utils;
 
@@ -8,7 +9,14 @@ pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
 };
+pub use models::merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
+pub use models::pull_request::{
+    PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
+};
 pub use models::repository::{Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool};
+pub use models::required_reviewer::{
+    RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl, RequiredReviewerDBImplPool,
+};
 
 pub use errors::{DatabaseError, Result};
 pub type DbPool = sqlx::postgres::PgPool;

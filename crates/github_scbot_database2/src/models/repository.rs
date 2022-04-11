@@ -1,32 +1,27 @@
-use std::ops::Deref;
-
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::pulls::GhMergeStrategy;
-use sqlx::{
-    postgres::{PgRow, PgTypeInfo, PgValueRef},
-    Decode, FromRow, PgConnection, PgPool, Postgres, Row, Transaction, Type,
-};
+use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, DatabaseError};
+use crate::{errors::Result, fields::GhMergeStrategyDecode, DatabaseError};
 
 #[derive(SCGetter, Debug, Clone, derive_builder::Builder)]
 #[builder(default)]
 pub struct Repository {
     #[get]
-    id: i32,
-    #[get_ref]
+    id: u64,
+    #[get_deref]
     owner: String,
-    #[get_ref]
+    #[get_deref]
     name: String,
     #[get]
     manual_interaction: bool,
-    #[get_ref]
+    #[get_deref]
     pr_title_validation_regex: String,
     #[get]
     default_strategy: GhMergeStrategy,
     #[get]
-    default_needed_reviewers_count: i32,
+    default_needed_reviewers_count: u64,
     #[get]
     default_automerge: bool,
     #[get]
@@ -52,30 +47,6 @@ impl Default for Repository {
     }
 }
 
-struct GhMergeStrategyDecode(GhMergeStrategy);
-impl<'r> Decode<'r, Postgres> for GhMergeStrategyDecode {
-    fn decode(value: PgValueRef) -> core::result::Result<Self, sqlx::error::BoxDynError> {
-        let str_value = <&str as Decode<Postgres>>::decode(value)?;
-        GhMergeStrategy::try_from(str_value)
-            .map(Self)
-            .map_err(Into::into)
-    }
-}
-
-impl Type<Postgres> for GhMergeStrategyDecode {
-    fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("varchar")
-    }
-}
-
-impl Deref for GhMergeStrategyDecode {
-    type Target = GhMergeStrategy;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl Repository {
     pub fn builder() -> RepositoryBuilder {
         RepositoryBuilder::default()
@@ -85,13 +56,15 @@ impl Repository {
 impl<'r> FromRow<'r, PgRow> for Repository {
     fn from_row(row: &'r PgRow) -> core::result::Result<Self, sqlx::Error> {
         Ok(Self {
-            id: row.try_get("id")?,
+            id: row.try_get::<i32, _>("id")? as u64,
             owner: row.try_get("owner")?,
             name: row.try_get("name")?,
             manual_interaction: row.try_get("manual_interaction")?,
             pr_title_validation_regex: row.try_get("pr_title_validation_regex")?,
             default_strategy: *row.try_get::<GhMergeStrategyDecode, _>("default_strategy")?,
-            default_needed_reviewers_count: row.try_get("default_needed_reviewers_count")?,
+            default_needed_reviewers_count: row
+                .try_get::<i32, _>("default_needed_reviewers_count")?
+                as u64,
             default_automerge: row.try_get("default_automerge")?,
             default_enable_qa: row.try_get("default_enable_qa")?,
             default_enable_checks: row.try_get("default_enable_checks")?,
@@ -104,7 +77,7 @@ impl<'r> FromRow<'r, PgRow> for Repository {
 pub trait RepositoryDB {
     async fn create(&mut self, instance: Repository) -> Result<Repository>;
     async fn get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>>;
-    async fn get_from_id(&mut self, id: i32) -> Result<Option<Repository>>;
+    async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>>;
     async fn delete(&mut self, owner: &str, name: &str) -> Result<bool>;
     async fn set_manual_interaction(
         &mut self,
@@ -195,7 +168,7 @@ impl RepositoryDB for RepositoryDBImplPool {
         Ok(data)
     }
 
-    async fn get_from_id(&mut self, id: i32) -> Result<Option<Repository>> {
+    async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
         let mut transaction = self.begin().await?;
         let data = RepositoryDBImpl::new(&mut *transaction)
             .get_from_id(id)
@@ -359,7 +332,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(instance.manual_interaction)
         .bind(instance.pr_title_validation_regex)
         .bind(instance.default_strategy.to_string())
-        .bind(instance.default_needed_reviewers_count)
+        .bind(instance.default_needed_reviewers_count as i32)
         .bind(instance.default_automerge)
         .bind(instance.default_enable_qa)
         .bind(instance.default_enable_checks)
@@ -368,10 +341,10 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(new_id).await.map(|x| x.unwrap())
+        self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
-    async fn get_from_id(&mut self, id: i32) -> Result<Option<Repository>> {
+    async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
         sqlx::query_as::<_, Repository>(
             r#"
             SELECT *
@@ -379,7 +352,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
             WHERE id = $1
         "#,
         )
-        .bind(id)
+        .bind(id as i32)
         .fetch_optional(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)
@@ -439,7 +412,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_pr_title_validation_regex(
@@ -465,7 +438,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_default_strategy(
@@ -491,7 +464,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_default_needed_reviewers_count(
@@ -517,7 +490,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_default_automerge(
@@ -543,7 +516,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_default_enable_qa(
@@ -569,7 +542,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
     async fn set_default_enable_checks(
@@ -595,7 +568,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)?
         .get(0);
 
-        self.get_from_id(id).await.map(|x| x.unwrap())
+        self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 }
 
@@ -633,7 +606,7 @@ mod tests {
             });
 
         let repo = mock.get("me", "me").await?.unwrap();
-        assert_eq!(repo.default_automerge, true);
+        assert!(repo.default_automerge);
         Ok(())
     }
 
@@ -674,15 +647,15 @@ mod tests {
                 let mut repo_db = RepositoryDBImpl::new(&mut transaction);
                 let repo = repo_db.get("me", "me").await?.unwrap();
                 assert_eq!(repo.default_strategy, GhMergeStrategy::Squash);
-                assert_eq!(repo.manual_interaction, false);
+                assert!(!repo.manual_interaction);
 
                 // Update manual_interaction
                 let repo = repo_db.set_manual_interaction("me", "me", true).await?;
-                assert_eq!(repo.manual_interaction, true);
+                assert!(repo.manual_interaction);
 
                 // Disable checks
                 let repo = repo_db.set_default_enable_checks("me", "me", false).await?;
-                assert_eq!(repo.default_enable_checks, false);
+                assert!(!repo.default_enable_checks);
 
                 // Try to get unknown repository
                 assert!(
@@ -691,7 +664,7 @@ mod tests {
                 );
 
                 // Delete repository
-                assert_eq!(repo_db.delete("me", "me").await?, true);
+                assert!(repo_db.delete("me", "me").await?);
                 assert!(
                     repo_db.get("me", "me").await?.is_none(),
                     "'me' repo should not exist anymore"

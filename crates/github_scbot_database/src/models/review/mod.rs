@@ -25,7 +25,7 @@ pub struct ReviewModel {
     #[get]
     pull_request_id: i32,
     /// Username.
-    #[get_ref]
+    #[get_deref]
     username: String,
     /// Review state.
     state: String,

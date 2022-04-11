@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
-use sqlx::{postgres::PgRow, FromRow, PgConnection, Row};
+use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, DatabaseError};
 
@@ -8,8 +8,8 @@ use crate::{errors::Result, DatabaseError};
 #[builder(default)]
 pub struct RequiredReviewer {
     #[get]
-    pull_request_id: i32,
-    #[get_ref]
+    pull_request_id: u64,
+    #[get_deref]
     username: String,
 }
 
@@ -22,7 +22,7 @@ impl RequiredReviewer {
 impl<'r> FromRow<'r, PgRow> for RequiredReviewer {
     fn from_row(row: &'r PgRow) -> core::result::Result<Self, sqlx::Error> {
         Ok(Self {
-            pull_request_id: row.try_get("pull_request_id")?,
+            pull_request_id: row.try_get::<i32, _>("pull_request_id")? as u64,
             username: row.try_get("username")?,
         })
     }
@@ -32,20 +32,20 @@ impl<'r> FromRow<'r, PgRow> for RequiredReviewer {
 #[cfg_attr(test, mockall::automock)]
 pub trait RequiredReviewerDB {
     async fn create(&mut self, instance: RequiredReviewer) -> Result<RequiredReviewer>;
-    async fn list(&mut self, owner: &str, name: &str, number: i32)
+    async fn list(&mut self, owner: &str, name: &str, number: u64)
         -> Result<Vec<RequiredReviewer>>;
     async fn get(
         &mut self,
         owner: &str,
         name: &str,
-        number: i32,
+        number: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>>;
     async fn delete(
         &mut self,
         owner: &str,
         name: &str,
-        number: i32,
+        number: u64,
         username: &str,
     ) -> Result<bool>;
 }
@@ -61,7 +61,7 @@ impl<'a> RequiredReviewerDBImpl<'a> {
 
     async fn get_from_pull_request_id(
         &mut self,
-        pull_request_id: i32,
+        pull_request_id: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
@@ -72,11 +72,91 @@ impl<'a> RequiredReviewerDBImpl<'a> {
                 AND username = $2
             "#,
         )
-        .bind(pull_request_id)
+        .bind(pull_request_id as i32)
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)
+    }
+}
+
+pub struct RequiredReviewerDBImplPool {
+    pool: PgPool,
+}
+
+impl RequiredReviewerDBImplPool {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
+        self.pool
+            .begin()
+            .await
+            .map_err(DatabaseError::ConnectionError)
+    }
+
+    pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
+        transaction
+            .commit()
+            .await
+            .map_err(DatabaseError::TransactionError)
+    }
+}
+
+#[async_trait]
+impl RequiredReviewerDB for RequiredReviewerDBImplPool {
+    async fn create(&mut self, instance: RequiredReviewer) -> Result<RequiredReviewer> {
+        let mut transaction = self.begin().await?;
+        let data = RequiredReviewerDBImpl::new(&mut *transaction)
+            .create(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn get(
+        &mut self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        username: &str,
+    ) -> Result<Option<RequiredReviewer>> {
+        let mut transaction = self.begin().await?;
+        let data = RequiredReviewerDBImpl::new(&mut *transaction)
+            .get(owner, name, number, username)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn delete(
+        &mut self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        username: &str,
+    ) -> Result<bool> {
+        let mut transaction = self.begin().await?;
+        let data = RequiredReviewerDBImpl::new(&mut *transaction)
+            .delete(owner, name, number, username)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn list(
+        &mut self,
+        owner: &str,
+        name: &str,
+        number: u64,
+    ) -> Result<Vec<RequiredReviewer>> {
+        let mut transaction = self.begin().await?;
+        let data = RequiredReviewerDBImpl::new(&mut *transaction)
+            .list(owner, name, number)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
     }
 }
 
@@ -97,7 +177,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
             );
         "#,
         )
-        .bind(instance.pull_request_id)
+        .bind(instance.pull_request_id as i32)
         .bind(instance.username())
         .execute(&mut *self.connection)
         .await
@@ -112,7 +192,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         &mut self,
         owner: &str,
         name: &str,
-        number: i32,
+        number: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
@@ -126,7 +206,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         )
         .bind(owner)
         .bind(name)
-        .bind(number)
+        .bind(number as i32)
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
@@ -137,20 +217,24 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         &mut self,
         owner: &str,
         name: &str,
-        number: i32,
+        number: u64,
         username: &str,
     ) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM required_reviewer
-            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
-            INNER JOIN pull_request ON (pull_request.repository_id = repository.id AND pull_request.number = $3 AND required_reviewer.pull_request_id = pull_request.id)
-            WHERE username = $4
+            USING repository, pull_request
+            WHERE repository.owner = $1
+            AND repository.name = $2
+            AND pull_request.repository_id = repository.id
+            AND pull_request.number = $3
+            AND required_reviewer.pull_request_id = pull_request.id
+            AND username = $4
         "#,
         )
         .bind(owner)
         .bind(name)
-        .bind(number)
+        .bind(number as i32)
         .bind(username)
         .execute(&mut *self.connection)
         .await
@@ -162,7 +246,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         &mut self,
         owner: &str,
         name: &str,
-        number: i32,
+        number: u64,
     ) -> Result<Vec<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
             r#"
@@ -174,7 +258,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         )
         .bind(owner)
         .bind(name)
-        .bind(number)
+        .bind(number as i32)
         .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)
@@ -233,7 +317,7 @@ mod tests {
                 )
             "#,
                 )
-                .bind(repo.id())
+                .bind(repo.id() as i32)
                 .bind(1i32)
                 .bind("skipped")
                 .bind(0i32)
@@ -254,8 +338,32 @@ mod tests {
                             .build()?,
                     )
                     .await?;
-                assert!(db.get("", "", 1, "nope").await?.is_none());
-                assert!(db.get("", "", 1, "test").await?.is_some());
+                let _reviewer = db
+                    .create(
+                        RequiredReviewer::builder()
+                            .pull_request_id(1)
+                            .username("test2".into())
+                            .build()?,
+                    )
+                    .await?;
+
+                assert!(
+                    db.get("", "", 1, "nope").await?.is_none(),
+                    "the 'nope' user is not a required reviewer"
+                );
+                assert!(
+                    db.get("", "", 1, "test").await?.is_some(),
+                    "the 'test' user is a required reviewer"
+                );
+                assert_eq!(
+                    db.list("", "", 1).await?.len(),
+                    2,
+                    "there should be two required reviewers"
+                );
+                assert!(
+                    db.delete("", "", 1, "test").await?,
+                    "the 'test' user deletion should work"
+                );
 
                 Ok(())
             },

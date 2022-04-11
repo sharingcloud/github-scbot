@@ -28,17 +28,17 @@ pub struct RepositoryModel {
     #[get]
     id: i32,
     /// Repository name.
-    #[get_ref]
+    #[get_deref]
     name: String,
     /// Repository owner.
-    #[get_ref]
+    #[get_deref]
     owner: String,
     default_strategy: String,
     /// Default reviewers count needed for a pull request.
     #[get]
     default_needed_reviewers_count: i32,
     /// Validation regex for pull request titles.
-    #[get_ref]
+    #[get_deref]
     pr_title_validation_regex: String,
     /// Manual interaction.
     #[get]
