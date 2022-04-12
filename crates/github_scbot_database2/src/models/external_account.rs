@@ -1,8 +1,20 @@
 use async_trait::async_trait;
+use github_scbot_crypto::{JwtUtils, RsaUtils};
 use github_scbot_database_macros::SCGetter;
+use github_scbot_utils::TimeUtils;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, DatabaseError};
+
+/// External Jwt claims.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExternalJwtClaims {
+    /// Issued at time
+    pub iat: u64,
+    /// Identifier
+    pub iss: String,
+}
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
 #[builder(default)]
@@ -19,6 +31,19 @@ impl ExternalAccount {
     pub fn builder() -> ExternalAccountBuilder {
         ExternalAccountBuilder::default()
     }
+
+    pub fn generate_access_token(&self) -> Result<String> {
+        let now_ts = TimeUtils::now_timestamp();
+        let claims = ExternalJwtClaims {
+            // Issued at time
+            iat: now_ts,
+            // Username
+            iss: self.username.clone(),
+        };
+
+        JwtUtils::create_jwt(&self.private_key, &claims)
+            .map_err(|e| DatabaseError::UnknownError(e.into()))
+    }
 }
 
 impl<'r> FromRow<'r, PgRow> for ExternalAccount {
@@ -31,12 +56,22 @@ impl<'r> FromRow<'r, PgRow> for ExternalAccount {
     }
 }
 
+impl ExternalAccountBuilder {
+    pub fn generate_keys(&mut self) -> &mut Self {
+        let (private_key, public_key) = RsaUtils::generate_rsa_keys();
+        self.private_key = Some(private_key.to_string());
+        self.public_key = Some(public_key.to_string());
+        self
+    }
+}
+
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait ExternalAccountDB {
     async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
     async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>>;
     async fn delete(&mut self, username: &str) -> Result<bool>;
+    async fn list(&mut self) -> Result<Vec<ExternalAccount>>;
     async fn set_keys(
         &mut self,
         username: &str,
@@ -104,6 +139,13 @@ impl ExternalAccountDB for ExternalAccountDBImplPool {
         let data = ExternalAccountDBImpl::new(&mut *transaction)
             .delete(username)
             .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn list(&mut self) -> Result<Vec<ExternalAccount>> {
+        let mut transaction = self.begin().await?;
+        let data = ExternalAccountDBImpl::new(&mut *transaction).list().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -177,6 +219,18 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn list(&mut self) -> Result<Vec<ExternalAccount>> {
+        sqlx::query_as::<_, ExternalAccount>(
+            r#"
+            SELECT *
+            FROM external_account;
+        "#,
+        )
+        .fetch_all(&mut *self.connection)
+        .await
         .map_err(DatabaseError::SqlError)
     }
 

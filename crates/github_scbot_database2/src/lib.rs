@@ -42,7 +42,7 @@ where
     Ok(())
 }
 
-pub async fn establish_pool_connection(config: Config) -> Result<DbPool> {
+pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
     PgPoolOptions::new()
         .max_connections(config.database_pool_size)
         .connect(&config.database_url)
@@ -50,7 +50,7 @@ pub async fn establish_pool_connection(config: Config) -> Result<DbPool> {
         .map_err(DatabaseError::ConnectionError)
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait DbService {
     fn accounts(&self) -> Box<dyn AccountDB>;
     fn external_accounts(&self) -> Box<dyn ExternalAccountDB>;

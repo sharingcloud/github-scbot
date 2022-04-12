@@ -76,6 +76,7 @@ impl<'r> FromRow<'r, PgRow> for Repository {
 #[cfg_attr(test, mockall::automock)]
 pub trait RepositoryDB {
     async fn create(&mut self, instance: Repository) -> Result<Repository>;
+    async fn all(&mut self) -> Result<Vec<Repository>>;
     async fn get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>>;
     async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>>;
     async fn delete(&mut self, owner: &str, name: &str) -> Result<bool>;
@@ -101,7 +102,7 @@ pub trait RepositoryDB {
         &mut self,
         owner: &str,
         name: &str,
-        count: i32,
+        count: u64,
     ) -> Result<Repository>;
     async fn set_default_automerge(
         &mut self,
@@ -164,6 +165,13 @@ impl RepositoryDB for RepositoryDBImplPool {
         let data = RepositoryDBImpl::new(&mut *transaction)
             .create(instance)
             .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn all(&mut self) -> Result<Vec<Repository>> {
+        let mut transaction = self.begin().await?;
+        let data = RepositoryDBImpl::new(&mut *transaction).all().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -255,7 +263,7 @@ impl RepositoryDB for RepositoryDBImplPool {
         &mut self,
         owner: &str,
         name: &str,
-        value: i32,
+        value: u64,
     ) -> Result<Repository> {
         let mut transaction = self.begin().await?;
         let data = RepositoryDBImpl::new(&mut *transaction)
@@ -342,6 +350,18 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
+    }
+
+    async fn all(&mut self) -> Result<Vec<Repository>> {
+        sqlx::query_as::<_, Repository>(
+            r#"
+                SELECT *
+                FROM repository;
+            "#,
+        )
+        .fetch_all(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
     }
 
     async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
@@ -471,7 +491,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         &mut self,
         owner: &str,
         name: &str,
-        count: i32,
+        count: u64,
     ) -> Result<Repository> {
         let id: i32 = sqlx::query(
             r#"
@@ -482,7 +502,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
             RETURNING id
         "#,
         )
-        .bind(count)
+        .bind(count as i32)
         .bind(owner)
         .bind(name)
         .fetch_one(&mut *self.connection)

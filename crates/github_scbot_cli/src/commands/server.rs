@@ -13,13 +13,14 @@ pub(crate) struct ServerCommand {}
 #[async_trait(?Send)]
 impl Command for ServerCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let context = AppContext::new_with_adapters(
-            ctx.config,
-            ctx.db_adapter,
-            ctx.api_adapter,
-            ctx.redis_adapter,
-        );
+        todo!()
+        // let context = AppContext::new_with_adapters(
+        //     ctx.config,
+        //     ctx.db_adapter,
+        //     ctx.api_adapter,
+        //     ctx.redis_adapter,
+        // );
 
-        run_bot_server(context).await.map_err(Into::into)
+        // run_bot_server(context).await.map_err(Into::into)
     }
 }

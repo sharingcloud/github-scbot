@@ -1,50 +1,10 @@
 use std::ops::Deref;
 
-use github_scbot_types::{pulls::GhMergeStrategy, status::QaStatus};
+use github_scbot_types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use sqlx::{
     postgres::{PgTypeInfo, PgValueRef},
     Decode, Postgres, Type,
 };
-
-/// Rule branch.
-#[derive(Clone, Debug)]
-pub enum RuleBranch {
-    /// Named.
-    Named(String),
-    /// Wildcard.
-    Wildcard,
-}
-
-impl From<&str> for RuleBranch {
-    fn from(value: &str) -> Self {
-        match value {
-            "*" => Self::Wildcard,
-            n => Self::Named(n.into()),
-        }
-    }
-}
-
-impl ToString for RuleBranch {
-    fn to_string(&self) -> String {
-        self.name()
-    }
-}
-
-impl RuleBranch {
-    /// Get branch name.
-    pub fn name(&self) -> String {
-        match self {
-            RuleBranch::Named(s) => s.clone(),
-            RuleBranch::Wildcard => "*".into(),
-        }
-    }
-}
-
-impl Default for RuleBranch {
-    fn default() -> Self {
-        RuleBranch::Wildcard
-    }
-}
 
 pub struct RuleBranchDecode(RuleBranch);
 impl<'r> Decode<'r, Postgres> for RuleBranchDecode {

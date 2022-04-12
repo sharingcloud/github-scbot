@@ -13,6 +13,7 @@ pub(crate) struct UiCommand {}
 #[async_trait(?Send)]
 impl Command for UiCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        run_tui(ctx.db_adapter.as_ref()).await.map_err(Into::into)
+        todo!()
+        // run_tui(ctx.db_adapter.as_ref()).await.map_err(Into::into)
     }
 }

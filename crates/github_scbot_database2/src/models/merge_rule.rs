@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
-use github_scbot_types::pulls::GhMergeStrategy;
+use github_scbot_types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
     errors::Result,
-    fields::{GhMergeStrategyDecode, RuleBranch, RuleBranchDecode},
+    fields::{GhMergeStrategyDecode, RuleBranchDecode},
     DatabaseError,
 };
 
@@ -266,10 +266,9 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
 #[cfg(test)]
 mod tests {
     use github_scbot_conf::Config;
-    use github_scbot_types::pulls::GhMergeStrategy;
+    use github_scbot_types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 
     use crate::{
-        fields::RuleBranch,
         models::{
             merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl},
             repository::{Repository, RepositoryDB},

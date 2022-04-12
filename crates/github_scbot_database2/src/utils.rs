@@ -109,5 +109,5 @@ where
 
     block(config, pool).await.unwrap();
 
-    // teardown_test_db(&base_url, &full_name).await;
+    teardown_test_db(&base_url, &full_name).await;
 }

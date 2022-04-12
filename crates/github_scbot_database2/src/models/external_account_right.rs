@@ -39,6 +39,8 @@ pub trait ExternalAccountRightDB {
         username: &str,
     ) -> Result<Option<ExternalAccountRight>>;
     async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool>;
+    async fn delete_all(&mut self, username: &str) -> Result<bool>;
+    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>>;
 }
 
 pub struct ExternalAccountRightDBImpl<'a> {
@@ -128,6 +130,24 @@ impl ExternalAccountRightDB for ExternalAccountRightDBImplPool {
         self.commit(transaction).await?;
         Ok(data)
     }
+
+    async fn delete_all(&mut self, username: &str) -> Result<bool> {
+        let mut transaction = self.begin().await?;
+        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
+            .delete_all(username)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>> {
+        let mut transaction = self.begin().await?;
+        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
+            .list(username)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
 }
 
 #[async_trait]
@@ -198,6 +218,34 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn delete_all(&mut self, username: &str) -> Result<bool> {
+        sqlx::query(
+            r#"
+            DELETE FROM external_account_right
+            WHERE username = $1
+        "#,
+        )
+        .bind(username)
+        .execute(&mut *self.connection)
+        .await
+        .map(|x| x.rows_affected() > 0)
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>> {
+        sqlx::query_as::<_, ExternalAccountRight>(
+            r#"
+            SELECT *
+            FROM external_account_right
+            WHERE username = $1
+        "#,
+        )
+        .bind(username)
+        .fetch_all(&mut *self.connection)
+        .await
         .map_err(DatabaseError::SqlError)
     }
 }

@@ -3,20 +3,19 @@
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_conf::Config;
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_sentry::eyre::Result;
 
 use self::{
-    auth::AuthCommand, debug::DebugCommand, export::ExportCommand, history::HistoryCommand,
-    import::ImportCommand, pull_request::PullRequestCommand, repository::RepositoryCommand,
-    server::ServerCommand, ui::UiCommand,
+    auth::AuthCommand, debug::DebugCommand, export::ExportCommand, import::ImportCommand,
+    pull_request::PullRequestCommand, repository::RepositoryCommand, server::ServerCommand,
+    ui::UiCommand,
 };
 mod auth;
 mod debug;
 mod export;
-mod history;
 mod import;
 mod pull_request;
 mod repository;
@@ -25,7 +24,7 @@ mod ui;
 
 pub(crate) struct CommandContext {
     pub config: Config,
-    pub db_adapter: Box<dyn IDatabaseAdapter>,
+    pub db_adapter: Box<dyn DbService>,
     pub api_adapter: Box<dyn IAPIAdapter>,
     pub redis_adapter: Box<dyn IRedisAdapter>,
     pub no_input: bool,
@@ -47,7 +46,6 @@ pub(crate) enum SubCommand {
     PullRequest(PullRequestCommand),
     Repository(RepositoryCommand),
     Auth(AuthCommand),
-    History(HistoryCommand),
     Debug(DebugCommand),
 }
 
@@ -62,7 +60,6 @@ impl Command for SubCommand {
             Self::PullRequest(sub) => sub.execute(ctx).await,
             Self::Auth(sub) => sub.execute(ctx).await,
             Self::Repository(sub) => sub.execute(ctx).await,
-            Self::History(sub) => sub.execute(ctx).await,
             Self::Debug(sub) => sub.execute(ctx).await,
         }
     }

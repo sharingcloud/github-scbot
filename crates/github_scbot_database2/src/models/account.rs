@@ -34,6 +34,7 @@ pub trait AccountDB {
     async fn create(&mut self, instance: Account) -> Result<Account>;
     async fn get(&mut self, username: &str) -> Result<Option<Account>>;
     async fn delete(&mut self, username: &str) -> Result<bool>;
+    async fn list_admins(&mut self) -> Result<Vec<Account>>;
     async fn set_is_admin(&mut self, username: &str, value: bool) -> Result<Account>;
 }
 
@@ -94,6 +95,13 @@ impl AccountDB for AccountDBImplPool {
         let data = AccountDBImpl::new(&mut *transaction)
             .delete(username)
             .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn list_admins(&mut self) -> Result<Vec<Account>> {
+        let mut transaction = self.begin().await?;
+        let data = AccountDBImpl::new(&mut *transaction).list_admins().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -162,6 +170,20 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn list_admins(&mut self) -> Result<Vec<Account>> {
+        sqlx::query_as::<_, Account>(
+            r#"
+                SELECT *
+                FROM account
+                WHERE is_admin = $1
+            "#,
+        )
+        .bind(true)
+        .fetch_all(&mut *self.connection)
+        .await
         .map_err(DatabaseError::SqlError)
     }
 

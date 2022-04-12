@@ -2,7 +2,10 @@ use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    utils::CliDbExt,
+};
 
 /// remove external account.
 #[derive(FromArgs)]
@@ -16,12 +19,9 @@ pub(crate) struct AuthRemoveExternalAccountCommand {
 #[async_trait(?Send)]
 impl Command for AuthRemoveExternalAccountCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let account = ctx
-            .db_adapter
-            .external_account()
-            .get_from_username(&self.username)
-            .await?;
-        ctx.db_adapter.external_account().remove(account).await?;
+        let mut exa_db = ctx.db_adapter.external_accounts();
+        let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
+        exa_db.delete(&self.username).await?;
 
         println!("External account '{}' removed.", self.username);
 
