@@ -1,7 +1,7 @@
 //! Application module.
 
-use github_scbot_database::models::IDatabaseAdapter;
-use github_scbot_types::status::{CheckStatus, QaStatus};
+use github_scbot_database2::DbService;
+use github_scbot_types::status::QaStatus;
 use termion::event::Key;
 use tui::{
     backend::Backend,
@@ -31,9 +31,9 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
-        let repositories = db_adapter.repository().list().await?;
-        let mut pull_requests = db_adapter.pull_request().list().await?;
+    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbService) -> Result<()> {
+        let repositories = db_adapter.repositories().all().await?;
+        let mut pull_requests = db_adapter.pull_requests().all().await?;
         pull_requests.sort_by_key(|p| u64::MAX - p.number());
 
         let mut pr_kvs = Vec::new();
@@ -95,15 +95,8 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let desc = format!("#{} - {}", i.number(), i.name());
-                    let lines = vec![if i.closed() {
-                        Spans::from(vec![Span::styled(
-                            desc,
-                            Style::default().add_modifier(Modifier::CROSSED_OUT),
-                        )])
-                    } else {
-                        Spans::from(desc)
-                    }];
+                    let desc = format!("#{}", i.number());
+                    let lines = vec![Spans::from(desc)];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -169,48 +162,20 @@ impl<'a> App<'a> {
         if let Some(selected_pr) = self.data.get_current_pull_request() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    format!(
-                        "{title} - #{number}",
-                        title = selected_pr.name(),
-                        number = selected_pr.number()
-                    ),
+                    format!("#{number}", number = selected_pr.number()),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),
                 Spans::from(vec![
-                    Span::styled("base", Style::default().fg(Color::Green)),
-                    Span::raw(": "),
-                    Span::raw(selected_pr.base_branch()),
-                    Span::raw(" <-- "),
-                    Span::styled("head", Style::default().fg(Color::Green)),
-                    Span::raw(": "),
-                    Span::raw(selected_pr.head_branch()),
-                ]),
-                Spans::from(""),
-                Spans::from(vec![
-                    Span::styled("Step", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(": "),
-                    match selected_pr.step() {
-                        Some(label) => {
-                            Span::styled(label.to_str(), Style::default().fg(Color::Green))
-                        }
-                        None => Span::styled("\u{2014}", Style::default().fg(Color::Yellow)),
-                    },
-                ]),
-                Spans::from(vec![
                     Span::styled(
-                        "Check status",
+                        "Checks enabled",
                         Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.check_status();
-                        let color = match status {
-                            CheckStatus::Pass | CheckStatus::Skipped => Color::Green,
-                            CheckStatus::Fail => Color::Red,
-                            CheckStatus::Waiting => Color::Yellow,
-                        };
-                        Span::styled(status.to_str(), Style::default().fg(color))
+                        let status = selected_pr.checks_enabled();
+                        let color = if status { Color::Green } else { Color::Red };
+                        Span::styled(status.to_string(), Style::default().fg(color))
                     },
                 ]),
                 Spans::from(vec![
@@ -238,18 +203,6 @@ impl<'a> App<'a> {
                     ),
                 ]),
                 Spans::from(vec![
-                    Span::styled("WIP?", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" "),
-                    {
-                        let (msg, color) = if selected_pr.wip() {
-                            ("Yes", Color::Yellow)
-                        } else {
-                            ("No", Color::Green)
-                        };
-                        Span::styled(msg, Style::default().fg(color))
-                    },
-                ]),
-                Spans::from(vec![
                     Span::styled("Locked?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
@@ -257,30 +210,6 @@ impl<'a> App<'a> {
                             ("Yes", Color::Red)
                         } else {
                             ("No", Color::Green)
-                        };
-                        Span::styled(msg, Style::default().fg(color))
-                    },
-                ]),
-                Spans::from(vec![
-                    Span::styled("Merged?", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" "),
-                    {
-                        let (msg, color) = if selected_pr.merged() {
-                            ("Yes", Color::Green)
-                        } else {
-                            ("No", Color::Yellow)
-                        };
-                        Span::styled(msg, Style::default().fg(color))
-                    },
-                ]),
-                Spans::from(vec![
-                    Span::styled("Closed?", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(" "),
-                    {
-                        let (msg, color) = if selected_pr.closed() {
-                            ("Yes", Color::Green)
-                        } else {
-                            ("No", Color::Yellow)
                         };
                         Span::styled(msg, Style::default().fg(color))
                     },

@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 github-scbot-conf = { path = "../github_scbot_conf" }
-github-scbot-database = { path = "../github_scbot_database" }
+github-scbot-database2 = { path = "../github_scbot_database2" }
 github-scbot-types = { path = "../github_scbot_types" }
 thiserror = "1.0"
 

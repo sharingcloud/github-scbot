@@ -52,6 +52,10 @@ impl Repository {
     pub fn builder() -> RepositoryBuilder {
         RepositoryBuilder::default()
     }
+
+    pub fn path(&self) -> String {
+        format!("{}/{}", self.owner, self.name)
+    }
 }
 
 impl<'r> FromRow<'r, PgRow> for Repository {

@@ -1,6 +1,6 @@
 //! UI state utils.
 
-use github_scbot_database::models::{PullRequestModel, RepositoryModel};
+use github_scbot_database2::{PullRequest, Repository};
 use termion::event::Key;
 use tui::widgets::ListState;
 
@@ -12,7 +12,7 @@ pub enum SelectionMode {
 pub struct AppState {
     pub repositories_state: ListState,
     pub pull_requests_state: ListState,
-    pub data: Vec<(RepositoryModel, Vec<PullRequestModel>)>,
+    pub data: Vec<(Repository, Vec<PullRequest>)>,
     pub selection_mode: SelectionMode,
 }
 
@@ -26,7 +26,7 @@ impl AppState {
         }
     }
 
-    pub fn with_items(data: Vec<(RepositoryModel, Vec<PullRequestModel>)>) -> Self {
+    pub fn with_items(data: Vec<(Repository, Vec<PullRequest>)>) -> Self {
         Self {
             repositories_state: ListState::default(),
             pull_requests_state: ListState::default(),
@@ -41,7 +41,7 @@ impl AppState {
         }
     }
 
-    pub fn get_current_repository(&self) -> Option<&RepositoryModel> {
+    pub fn get_current_repository(&self) -> Option<&Repository> {
         if let Some(repo_id) = self.repositories_state.selected() {
             return Some(&self.data[repo_id].0);
         }
@@ -49,7 +49,7 @@ impl AppState {
         None
     }
 
-    pub fn get_current_pull_request(&self) -> Option<&PullRequestModel> {
+    pub fn get_current_pull_request(&self) -> Option<&PullRequest> {
         if let Some(repo_id) = self.repositories_state.selected() {
             if let Some(pr_id) = self.pull_requests_state.selected() {
                 return Some(&self.data[repo_id].1[pr_id]);
@@ -89,7 +89,7 @@ impl AppState {
         self.repositories_state.select(Some(i));
     }
 
-    pub fn pull_requests_for_repository(&self) -> Vec<&PullRequestModel> {
+    pub fn pull_requests_for_repository(&self) -> Vec<&PullRequest> {
         self.repositories_state
             .selected()
             .map_or_else(Vec::new, |k| self.data[k].1.iter().collect())
