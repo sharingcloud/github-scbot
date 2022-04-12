@@ -10,6 +10,7 @@ pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
+    ExternalJwtClaims
 };
 pub use models::external_account_right::{
     ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl,
@@ -53,7 +54,7 @@ pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
 }
 
 #[mockall::automock]
-pub trait DbService {
+pub trait DbService: Send + Sync {
     fn accounts(&self) -> Box<dyn AccountDB>;
     fn external_accounts(&self) -> Box<dyn ExternalAccountDB>;
     fn external_account_rights(&self) -> Box<dyn ExternalAccountRightDB>;

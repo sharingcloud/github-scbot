@@ -23,30 +23,31 @@ pub(crate) async fn set_qa_status(
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
-    let target_account = extract_account_from_auth(ctx.db_adapter.as_ref(), &auth)
+    let target_account = extract_account_from_auth(&mut *ctx.db_adapter.external_accounts(), &auth)
         .await
         .map_err(WrapEyre::to_http_error)?;
 
     sentry::configure_scope(|scope| {
         scope.set_user(Some(sentry::User {
-            username: Some(target_account.username.clone()),
+            username: Some(target_account.username().into()),
             ..sentry::User::default()
         }));
     });
 
-    set_qa_status_for_pull_requests(
-        ctx.api_adapter.as_ref(),
-        ctx.db_adapter.as_ref(),
-        ctx.redis_adapter.as_ref(),
-        &target_account,
-        &data.repository_path,
-        &data.pull_request_numbers,
-        &data.author,
-        data.status,
-    )
-    .await
-    .map_err(ServerError::from)
-    .map_err(WrapEyre::to_http_error)?;
+    todo!();
+    // set_qa_status_for_pull_requests(
+    //     ctx.api_adapter.as_ref(),
+    //     ctx.db_adapter.as_ref(),
+    //     ctx.redis_adapter.as_ref(),
+    //     &target_account,
+    //     &data.repository_path,
+    //     &data.pull_request_numbers,
+    //     &data.author,
+    //     data.status,
+    // )
+    // .await
+    // .map_err(ServerError::from)
+    // .map_err(WrapEyre::to_http_error)?;
 
     Ok(HttpResponse::Ok().body("Set QA status."))
 }

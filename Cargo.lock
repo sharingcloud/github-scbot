@@ -1435,7 +1435,7 @@ dependencies = [
  "futures",
  "github-scbot-conf",
  "github-scbot-crypto",
- "github-scbot-database",
+ "github-scbot-database2",
  "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",

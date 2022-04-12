@@ -13,7 +13,7 @@ use std::{convert::TryFrom, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_conf::Config;
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_sentry::{sentry, WrapEyre};
@@ -34,7 +34,7 @@ use crate::{
 async fn parse_event(
     config: &Config,
     api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
+    db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event_type: EventType,
     body: &str,

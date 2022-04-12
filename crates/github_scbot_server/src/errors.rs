@@ -28,9 +28,9 @@ pub enum ServerError {
     #[error("Error while compiling regex.")]
     RegexError(#[from] regex::Error),
 
-    /// Wraps [`github_scbot_database::DatabaseError`].
+    /// Wraps [`github_scbot_database2::DatabaseError`].
     #[error("Database error.")]
-    DatabaseError(#[from] github_scbot_database::DatabaseError),
+    DatabaseError(#[from] github_scbot_database2::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error("Logic error.")]

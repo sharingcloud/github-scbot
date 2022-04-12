@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_logic::reviews::handle_review_event;
 use github_scbot_redis::IRedisAdapter;
@@ -19,7 +19,7 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 pub(crate) async fn review_event(
     config: &Config,
     api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
+    db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
@@ -31,6 +31,7 @@ pub(crate) async fn review_event(
         message = "Pull request review event",
     );
 
-    handle_review_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+    todo!();
+    // handle_review_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }

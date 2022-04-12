@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_logic::comments::handle_issue_comment_event;
 use github_scbot_redis::IRedisAdapter;
@@ -19,7 +19,7 @@ pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEven
 pub(crate) async fn issue_comment_event(
     config: &Config,
     api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
+    db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
@@ -31,6 +31,7 @@ pub(crate) async fn issue_comment_event(
         message = "Issue comment event",
     );
 
-    handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+    todo!();
+    // handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

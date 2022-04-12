@@ -12,10 +12,7 @@ use actix_web::{
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
-use github_scbot_database::{
-    models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
-    DbPool,
-};
+use github_scbot_database2::{DbService, DbPool, DbServiceImplPool, MockDbService};
 use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
@@ -35,7 +32,7 @@ pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_adapter: Box<dyn IDatabaseAdapter>,
+    pub db_adapter: Box<dyn DbService>,
     /// API adapter
     pub api_adapter: Box<dyn IAPIAdapter>,
     /// Redis adapter
@@ -47,7 +44,7 @@ impl AppContext {
     pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
-            db_adapter: Box::new(DatabaseAdapter::new(pool)),
+            db_adapter: Box::new(DbServiceImplPool::new(pool)),
             api_adapter: Box::new(GithubAPIAdapter::new(config.clone())),
             redis_adapter: Box::new(RedisAdapter::new(&config.redis_address)),
         }
@@ -56,7 +53,7 @@ impl AppContext {
     /// Create new app context using adapters.
     pub fn new_with_adapters(
         config: Config,
-        db_adapter: Box<dyn IDatabaseAdapter>,
+        db_adapter: Box<dyn DbService>,
         api_adapter: Box<dyn IAPIAdapter>,
         redis_adapter: Box<dyn IRedisAdapter>,
     ) -> Self {
@@ -72,7 +69,7 @@ impl AppContext {
     pub fn new_dummy(config: Config) -> Self {
         Self {
             config,
-            db_adapter: Box::new(DummyDatabaseAdapter::new()),
+            db_adapter: Box::new(MockDbService::new()),
             api_adapter: Box::new(DummyAPIAdapter::new()),
             redis_adapter: Box::new(DummyRedisAdapter::new()),
         }
