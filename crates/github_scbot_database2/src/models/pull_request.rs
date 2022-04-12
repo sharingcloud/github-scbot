@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{pulls::GhMergeStrategy, status::QaStatus};
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
@@ -9,9 +10,11 @@ use crate::{
     DatabaseError,
 };
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct PullRequest {
+    #[get]
+    id: u64,
     #[get]
     repository_id: u64,
     #[get]
@@ -36,11 +39,16 @@ impl PullRequest {
     pub fn builder() -> PullRequestBuilder {
         PullRequestBuilder::default()
     }
+
+    pub fn set_repository_id(&mut self, id: u64) {
+        self.repository_id = id;
+    }
 }
 
 impl<'r> FromRow<'r, PgRow> for PullRequest {
     fn from_row(row: &'r PgRow) -> core::result::Result<Self, sqlx::Error> {
         Ok(Self {
+            id: row.try_get::<i32, _>("id")? as u64,
             repository_id: row.try_get::<i32, _>("repository_id")? as u64,
             number: row.try_get::<i32, _>("number")? as u64,
             qa_status: *row.try_get::<QaStatusDecode, _>("qa_status")?,
@@ -60,9 +68,11 @@ impl<'r> FromRow<'r, PgRow> for PullRequest {
 #[cfg_attr(test, mockall::automock)]
 pub trait PullRequestDB {
     async fn create(&mut self, instance: PullRequest) -> Result<PullRequest>;
+    async fn update(&mut self, instance: PullRequest) -> Result<PullRequest>;
     async fn get(&mut self, owner: &str, name: &str, number: u64) -> Result<Option<PullRequest>>;
     async fn delete(&mut self, owner: &str, name: &str, number: u64) -> Result<bool>;
     async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<PullRequest>>;
+    async fn all(&mut self) -> Result<Vec<PullRequest>>;
     async fn set_qa_status(
         &mut self,
         owner: &str,
@@ -173,6 +183,15 @@ impl PullRequestDB for PullRequestDBImplPool {
         Ok(data)
     }
 
+    async fn update(&mut self, instance: PullRequest) -> Result<PullRequest> {
+        let mut transaction = self.begin().await?;
+        let data = PullRequestDBImpl::new(&mut *transaction)
+            .update(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
     async fn get(&mut self, owner: &str, name: &str, number: u64) -> Result<Option<PullRequest>> {
         let mut transaction = self.begin().await?;
         let data = PullRequestDBImpl::new(&mut *transaction)
@@ -196,6 +215,13 @@ impl PullRequestDB for PullRequestDBImplPool {
         let data = PullRequestDBImpl::new(&mut *transaction)
             .list(owner, name)
             .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn all(&mut self) -> Result<Vec<PullRequest>> {
+        let mut transaction = self.begin().await?;
+        let data = PullRequestDBImpl::new(&mut *transaction).all().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -356,6 +382,39 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    async fn update(&mut self, instance: PullRequest) -> Result<PullRequest> {
+        let new_id: i32 = sqlx::query(
+            r#"
+            UPDATE pull_request
+            SET qa_status = $1,
+            needed_reviewers_count = $2,
+            status_comment_id = $3,
+            checks_enabled = $4,
+            automerge = $5,
+            locked = $6,
+            strategy_override = $7
+            WHERE repository_id = $8
+            AND number = $9
+            RETURNING id;
+            "#,
+        )
+        .bind(instance.qa_status.to_string())
+        .bind(instance.needed_reviewers_count as i32)
+        .bind(instance.status_comment_id as i32)
+        .bind(instance.checks_enabled)
+        .bind(instance.automerge)
+        .bind(instance.locked)
+        .bind(instance.strategy_override.map(|x| x.to_string()))
+        .bind(instance.repository_id as i32)
+        .bind(instance.number as i32)
+        .fetch_one(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)?
+        .get(0);
+
+        self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
+    }
+
     #[tracing::instrument(skip(self))]
     async fn get(&mut self, owner: &str, name: &str, number: u64) -> Result<Option<PullRequest>> {
         sqlx::query_as::<_, PullRequest>(
@@ -408,6 +467,18 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         )
         .bind(owner)
         .bind(name)
+        .fetch_all(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn all(&mut self) -> Result<Vec<PullRequest>> {
+        sqlx::query_as::<_, PullRequest>(
+            r#"
+            SELECT *
+            FROM pull_request;
+            "#,
+        )
         .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)

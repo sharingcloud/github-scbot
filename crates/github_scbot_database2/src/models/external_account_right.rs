@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, DatabaseError};
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct ExternalAccountRight {
     #[get_deref]
@@ -16,6 +17,10 @@ pub struct ExternalAccountRight {
 impl ExternalAccountRight {
     pub fn builder() -> ExternalAccountRightBuilder {
         ExternalAccountRightBuilder::default()
+    }
+
+    pub fn set_repository_id(&mut self, id: u64) {
+        self.repository_id = id;
     }
 }
 
@@ -41,6 +46,7 @@ pub trait ExternalAccountRightDB {
     async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool>;
     async fn delete_all(&mut self, username: &str) -> Result<bool>;
     async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>>;
+    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>>;
 }
 
 pub struct ExternalAccountRightDBImpl<'a> {
@@ -148,6 +154,15 @@ impl ExternalAccountRightDB for ExternalAccountRightDBImplPool {
         self.commit(transaction).await?;
         Ok(data)
     }
+
+    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>> {
+        let mut transaction = self.begin().await?;
+        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
+            .all()
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
 }
 
 #[async_trait]
@@ -244,6 +259,18 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         "#,
         )
         .bind(username)
+        .fetch_all(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>> {
+        sqlx::query_as::<_, ExternalAccountRight>(
+            r#"
+            SELECT *
+            FROM external_account_right
+        "#,
+        )
         .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)

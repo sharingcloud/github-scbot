@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::pulls::GhMergeStrategy;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, fields::GhMergeStrategyDecode, DatabaseError};
 
-#[derive(SCGetter, Debug, Clone, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct Repository {
     #[get]
@@ -76,6 +77,7 @@ impl<'r> FromRow<'r, PgRow> for Repository {
 #[cfg_attr(test, mockall::automock)]
 pub trait RepositoryDB {
     async fn create(&mut self, instance: Repository) -> Result<Repository>;
+    async fn update(&mut self, instance: Repository) -> Result<Repository>;
     async fn all(&mut self) -> Result<Vec<Repository>>;
     async fn get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>>;
     async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>>;
@@ -164,6 +166,15 @@ impl RepositoryDB for RepositoryDBImplPool {
         let mut transaction = self.begin().await?;
         let data = RepositoryDBImpl::new(&mut *transaction)
             .create(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn update(&mut self, instance: Repository) -> Result<Repository> {
+        let mut transaction = self.begin().await?;
+        let data = RepositoryDBImpl::new(&mut *transaction)
+            .update(instance)
             .await?;
         self.commit(transaction).await?;
         Ok(data)
@@ -344,6 +355,40 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(instance.default_automerge)
         .bind(instance.default_enable_qa)
         .bind(instance.default_enable_checks)
+        .fetch_one(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)?
+        .get(0);
+
+        self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
+    }
+
+    async fn update(&mut self, instance: Repository) -> Result<Repository> {
+        let new_id: i32 = sqlx::query(
+            r#"
+            UPDATE repository
+            SET manual_interaction = $1,
+            pr_title_validation_regex = $2,
+            default_strategy = $3,
+            default_needed_reviewers_count = $4,
+            default_automerge = $5,
+            default_enable_qa = $6,
+            default_enable_checks = $7
+            WHERE owner = $8
+            AND name = $9
+            RETURNING id
+            ;
+        "#,
+        )
+        .bind(instance.manual_interaction)
+        .bind(instance.pr_title_validation_regex)
+        .bind(instance.default_strategy.to_string())
+        .bind(instance.default_needed_reviewers_count as i32)
+        .bind(instance.default_automerge)
+        .bind(instance.default_enable_qa)
+        .bind(instance.default_enable_checks)
+        .bind(instance.owner)
+        .bind(instance.name)
         .fetch_one(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)?

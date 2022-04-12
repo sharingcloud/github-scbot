@@ -1,0 +1,111 @@
+{
+  "repositories": [
+    {
+      "id": 3,
+      "owner": "sharingcloud",
+      "name": "github-scbot",
+      "manual_interaction": false,
+      "pr_title_validation_regex": "",
+      "default_strategy": "squash",
+      "default_needed_reviewers_count": 0,
+      "default_automerge": false,
+      "default_enable_qa": false,
+      "default_enable_checks": true
+    },
+    {
+      "id": 4,
+      "owner": "sharingcloud",
+      "name": "instantsuite-python3",
+      "manual_interaction": false,
+      "pr_title_validation_regex": "",
+      "default_strategy": "merge",
+      "default_needed_reviewers_count": 0,
+      "default_automerge": false,
+      "default_enable_qa": false,
+      "default_enable_checks": true
+    }
+  ],
+  "pull_requests": [],
+  "required_reviewers": [],
+  "merge_rules": [
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "stable"
+      },
+      "head_branch": {
+        "Named": "staging"
+      },
+      "strategy": "merge"
+    },
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "staging"
+      },
+      "head_branch": {
+        "Named": "stable"
+      },
+      "strategy": "merge"
+    },
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "main"
+      },
+      "head_branch": {
+        "Named": "staging"
+      },
+      "strategy": "merge"
+    },
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "staging"
+      },
+      "head_branch": {
+        "Named": "main"
+      },
+      "strategy": "merge"
+    },
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "main"
+      },
+      "head_branch": {
+        "Named": "stable"
+      },
+      "strategy": "merge"
+    },
+    {
+      "repository_id": 4,
+      "base_branch": {
+        "Named": "stable"
+      },
+      "head_branch": {
+        "Named": "main"
+      },
+      "strategy": "merge"
+    }
+  ],
+  "accounts": [
+    {
+      "username": "Srynetix",
+      "is_admin": false
+    }
+  ],
+  "external_accounts": [
+    {
+      "username": "JIRA",
+      "public_key": "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAx3r/l3V7HUtf8cjk4mMjBfjpwx3W2iheok3Sw3Wocyoln9EzPUVD\nM214m3uTYVjg4PE8zaVliTfbr6sLrhPwSEDv8Q7DM5TzM/7iqG41qaZMQ9ClbZst\nRzRQfwse3MrzeVtEhBGtbMYjH3AhDgrmBSuxm4NOqnW6J9EISr22K+G5R34QVZ9Q\n7iHBf6IuHGyEgJNWfugQQCywGCOsUXMjjE95UEtFQEdGJq+X0w40QgP4B5+vPMzB\nzw4Kc6UWxz8SC+sbuUsgBR/KB5b5iqATRbBFENURU8QBd+FjdE/0ltdzvXCUyj7V\nUGKSDxvIOGLjZvpyy4vgLdLbLv6is9XHrwIDAQAB\n-----END RSA PUBLIC KEY-----\n",
+      "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAx3r/l3V7HUtf8cjk4mMjBfjpwx3W2iheok3Sw3Wocyoln9Ez\nPUVDM214m3uTYVjg4PE8zaVliTfbr6sLrhPwSEDv8Q7DM5TzM/7iqG41qaZMQ9Cl\nbZstRzRQfwse3MrzeVtEhBGtbMYjH3AhDgrmBSuxm4NOqnW6J9EISr22K+G5R34Q\nVZ9Q7iHBf6IuHGyEgJNWfugQQCywGCOsUXMjjE95UEtFQEdGJq+X0w40QgP4B5+v\nPMzBzw4Kc6UWxz8SC+sbuUsgBR/KB5b5iqATRbBFENURU8QBd+FjdE/0ltdzvXCU\nyj7VUGKSDxvIOGLjZvpyy4vgLdLbLv6is9XHrwIDAQABAoIBAQC8AWG5FuFk17Bi\nicumznao31M6MPpY/ClM4Poee9q6R+PT/3BCc/AFHUzJhat+2SyA9PwweYz7yaiE\npTnJ5ELXZlR+JkK1b9HTlIt84Po0nWZNl+0CI3mGHXksc4ev4pucKfemXZ7M4OUj\ncSPGP2FRSEAJaLUQlQpREoK1Jp32NgijaSwFsDzQxEfXrE0yurEemApKhKFf3RI9\nbu51D1BFTKNhssAfiEcMVXCkJs8wBjHctpBZpnt9W1uy/sILAnRwhiJrLCLvEW9c\nZIW/hNDLtR4mXAMuKiUjGlds+wbBXTZldvlMfB7QyJ054iq/FNY4VpSgQ1jwE4L0\nci4rQ50pAoGBAMwbsUoU7cOB3oDwCwzMk8VforCwBB8M9LldTWepd4haLj5HR10k\nfXK84f0MMytDq6qesS8mDjozULiH4LVuLh2UIGvQ7cw6BvxdTQXO5Q+xSMv8MEeq\n4yi9f2j5jUF8oc1DO5/zKoCaTiiSVxeXE8PzD3pff5BeOZPb8dGyMEUbAoGBAPoy\nHOiboitxwQBPtorqmCdMTe08+LUFwBr+OTRfPvRqDJqtzvfk6YArotpiwd8u9JiU\nvhZAUcucDy4Pc0Y20TixQi0qLKtPXtqQXWXjWcN7LjMAatb4r37Y2Qalko2EeBse\n0zPhwzHfQCANGCjltqIZMXZIMoUjSfiuP1ldyDT9AoGAXO1mxIHO1qp0MWQYw9UI\nml42ZhddaP2vFg4CxeWERJI6Z6RwO1n3u5t/kIRTb6k5qU7jAMJky969K6bBihkF\n6fWc5TmUat0ofRHFlZVi+MgQir7hBGArWEsejR7BT0V9LUUlCmfdu/uFBjfKazUf\njKFHNMHyBDrCIC2NZZmpHG0CgYEAhoxkl4L61zo5fJ1hoZs/cALM9YQQi+knwlxt\nDwkZpf9R/+zwnMdx+wd8cM0jTY7G4zc6cmTsl/64+yA78cqRAVfyKq+/jfEFJaz1\nTVHSeBnKYosa6bibSC/9pmFsSsaugIc3NXN3sV5J8fKYx4WhjdLWkrGI2ah8o0ux\nrbGNdVECgYBorT7jfc5aDlq6YxzvJpp9EA+aNy8p+VUtGNGn10e70VTRftpQErFh\ne6HSG7Ck/kKasC+TWyGlQBWtTEV2BMlz3PyfwW09JAcc6eTBWnbh+IIKCgzg5PuF\nQD8v1hDIBsI+eE3AfKRTqiL+Uhdr3OdM0WOqy+8SFchU2aTL0PhhIg==\n-----END RSA PRIVATE KEY-----\n"
+    }
+  ],
+  "external_account_rights": [
+    {
+      "username": "JIRA",
+      "repository_id": 3
+    }
+  ]
+}

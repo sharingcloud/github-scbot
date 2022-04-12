@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     DatabaseError,
 };
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct MergeRule {
     #[get]
@@ -25,6 +26,10 @@ pub struct MergeRule {
 impl MergeRule {
     pub fn builder() -> MergeRuleBuilder {
         MergeRuleBuilder::default()
+    }
+
+    pub fn set_repository_id(&mut self, id: u64) {
+        self.repository_id = id;
     }
 }
 
@@ -43,6 +48,7 @@ impl<'r> FromRow<'r, PgRow> for MergeRule {
 #[cfg_attr(test, mockall::automock)]
 pub trait MergeRuleDB {
     async fn create(&mut self, instance: MergeRule) -> Result<MergeRule>;
+    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule>;
     async fn get(
         &mut self,
         owner: &str,
@@ -57,6 +63,7 @@ pub trait MergeRuleDB {
         base_branch: RuleBranch,
         head_branch: RuleBranch,
     ) -> Result<bool>;
+    async fn all(&mut self) -> Result<Vec<MergeRule>>;
     async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>>;
 }
 
@@ -119,6 +126,15 @@ impl MergeRuleDB for MergeRuleDBImplPool {
         Ok(data)
     }
 
+    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule> {
+        let mut transaction = self.begin().await?;
+        let data = MergeRuleDBImpl::new(&mut *transaction)
+            .update(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
     async fn get(
         &mut self,
         owner: &str,
@@ -157,6 +173,13 @@ impl MergeRuleDB for MergeRuleDBImplPool {
         self.commit(transaction).await?;
         Ok(data)
     }
+
+    async fn all(&mut self) -> Result<Vec<MergeRule>> {
+        let mut transaction = self.begin().await?;
+        let data = MergeRuleDBImpl::new(&mut *transaction).all().await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
 }
 
 #[async_trait]
@@ -186,6 +209,29 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .bind(instance.base_branch.to_string())
         .bind(instance.head_branch.to_string())
         .bind(instance.strategy.to_string())
+        .fetch_one(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)?
+        .get(0);
+
+        self.get_from_id(new_id).await.map(|x| x.unwrap())
+    }
+
+    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule> {
+        let new_id: i32 = sqlx::query(
+            r#"
+            UPDATE merge_rule
+            SET strategy = $1
+            WHERE repository_id = $2
+            AND base_branch = $3
+            AND head_branch = $4
+            RETURNING id
+        "#,
+        )
+        .bind(instance.strategy.to_string())
+        .bind(instance.repository_id as i32)
+        .bind(instance.base_branch.to_string())
+        .bind(instance.head_branch.to_string())
         .fetch_one(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)?
@@ -257,6 +303,18 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         )
         .bind(owner)
         .bind(name)
+        .fetch_all(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn all(&mut self) -> Result<Vec<MergeRule>> {
+        sqlx::query_as::<_, MergeRule>(
+            r#"
+            SELECT *
+            FROM merge_rule
+        "#,
+        )
         .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)

@@ -1,10 +1,12 @@
 mod errors;
+pub(crate) mod exchange;
 pub(crate) mod fields;
 pub(crate) mod models;
 pub(crate) mod utils;
 
 use std::ops::Deref;
 
+pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,

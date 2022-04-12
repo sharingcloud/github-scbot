@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, DatabaseError};
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct RequiredReviewer {
     #[get]
@@ -16,6 +17,10 @@ pub struct RequiredReviewer {
 impl RequiredReviewer {
     pub fn builder() -> RequiredReviewerBuilder {
         RequiredReviewerBuilder::default()
+    }
+
+    pub fn set_pull_request_id(&mut self, id: u64) {
+        self.pull_request_id = id;
     }
 }
 
@@ -48,6 +53,7 @@ pub trait RequiredReviewerDB {
         number: u64,
         username: &str,
     ) -> Result<bool>;
+    async fn all(&mut self) -> Result<Vec<RequiredReviewer>>;
 }
 
 pub struct RequiredReviewerDBImpl<'a> {
@@ -158,6 +164,13 @@ impl RequiredReviewerDB for RequiredReviewerDBImplPool {
         self.commit(transaction).await?;
         Ok(data)
     }
+
+    async fn all(&mut self) -> Result<Vec<RequiredReviewer>> {
+        let mut transaction = self.begin().await?;
+        let data = RequiredReviewerDBImpl::new(&mut *transaction).all().await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
 }
 
 #[async_trait]
@@ -259,6 +272,18 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .bind(owner)
         .bind(name)
         .bind(number as i32)
+        .fetch_all(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn all(&mut self) -> Result<Vec<RequiredReviewer>> {
+        sqlx::query_as::<_, RequiredReviewer>(
+            r#"
+                SELECT *
+                FROM required_reviewer
+            "#,
+        )
         .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)

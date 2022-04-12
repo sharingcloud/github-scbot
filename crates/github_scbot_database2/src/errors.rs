@@ -14,6 +14,9 @@ pub enum DatabaseError {
     #[error("Transaction error.")]
     TransactionError(#[source] sqlx::Error),
 
+    #[error("Import/Export error.")]
+    ExchangeError(#[source] StdError),
+
     #[error("Unknown error.")]
     UnknownError(#[from] StdError),
 }

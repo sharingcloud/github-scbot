@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS pull_request (
 
     CONSTRAINT pull_request_pkey PRIMARY KEY (id),
     CONSTRAINT pull_request_repository_id_number_key UNIQUE (repository_id, number),
-    CONSTRAINT pull_request_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id)
+    CONSTRAINT pull_request_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS required_reviewer (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS required_reviewer (
 
     CONSTRAINT review_pkey PRIMARY KEY (id),
     CONSTRAINT review_pull_request_id_username_key UNIQUE (pull_request_id, username),
-    CONSTRAINT review_pull_request_id_fkey FOREIGN KEY (pull_request_id) REFERENCES pull_request(id)
+    CONSTRAINT review_pull_request_id_fkey FOREIGN KEY (pull_request_id) REFERENCES pull_request(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS merge_rule (
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS merge_rule (
 
     CONSTRAINT merge_rule_pkey PRIMARY KEY (id),
     CONSTRAINT merge_rule_repository_id_base_branch_head_branch_key UNIQUE (repository_id, base_branch, head_branch),
-    CONSTRAINT merge_rule_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id)
+    CONSTRAINT merge_rule_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS account (
@@ -73,6 +73,6 @@ CREATE TABLE IF NOT EXISTS external_account_right (
     repository_id int4 NOT NULL,
 
     CONSTRAINT external_account_right_pkey PRIMARY KEY (username, repository_id),
-    CONSTRAINT external_account_right_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id),
-    CONSTRAINT external_account_right_username_fkey FOREIGN KEY (username) REFERENCES external_account(username)
+    CONSTRAINT external_account_right_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES repository(id) ON DELETE CASCADE,
+    CONSTRAINT external_account_right_username_fkey FOREIGN KEY (username) REFERENCES external_account(username) ON DELETE CASCADE
 );

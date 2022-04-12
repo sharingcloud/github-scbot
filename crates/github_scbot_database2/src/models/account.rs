@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
+use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{errors::Result, DatabaseError};
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct Account {
     #[get_deref]
@@ -32,6 +33,8 @@ impl<'r> FromRow<'r, PgRow> for Account {
 #[cfg_attr(test, mockall::automock)]
 pub trait AccountDB {
     async fn create(&mut self, instance: Account) -> Result<Account>;
+    async fn update(&mut self, instance: Account) -> Result<Account>;
+    async fn all(&mut self) -> Result<Vec<Account>>;
     async fn get(&mut self, username: &str) -> Result<Option<Account>>;
     async fn delete(&mut self, username: &str) -> Result<bool>;
     async fn list_admins(&mut self) -> Result<Vec<Account>>;
@@ -83,9 +86,25 @@ impl AccountDB for AccountDBImplPool {
         Ok(data)
     }
 
+    async fn update(&mut self, instance: Account) -> Result<Account> {
+        let mut transaction = self.begin().await?;
+        let data = AccountDBImpl::new(&mut *transaction)
+            .update(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
     async fn get(&mut self, username: &str) -> Result<Option<Account>> {
         let mut transaction = self.begin().await?;
         let data = AccountDBImpl::new(&mut *transaction).get(username).await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
+    async fn all(&mut self) -> Result<Vec<Account>> {
+        let mut transaction = self.begin().await?;
+        let data = AccountDBImpl::new(&mut *transaction).all().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -145,6 +164,25 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    async fn update(&mut self, instance: Account) -> Result<Account> {
+        let username: String = sqlx::query(
+            r#"
+            UPDATE account
+            SET is_admin = $1
+            WHERE username = $2
+            RETURNING username;
+        "#,
+        )
+        .bind(instance.is_admin)
+        .bind(instance.username)
+        .fetch_one(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)?
+        .get(0);
+
+        self.get(&username).await.map(|x| x.unwrap())
+    }
+
     async fn get(&mut self, username: &str) -> Result<Option<Account>> {
         sqlx::query_as::<_, Account>(
             r#"
@@ -155,6 +193,18 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         )
         .bind(username)
         .fetch_optional(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)
+    }
+
+    async fn all(&mut self) -> Result<Vec<Account>> {
+        sqlx::query_as::<_, Account>(
+            r#"
+                SELECT *
+                FROM account
+            "#,
+        )
+        .fetch_all(&mut *self.connection)
         .await
         .map_err(DatabaseError::SqlError)
     }
@@ -239,13 +289,23 @@ mod tests {
                         )
                         .await
                         .unwrap();
-                    let _account = account_db
+                    let account = account_db
                         .create(Account::builder().username("me".into()).build().unwrap())
                         .await
                         .unwrap();
 
+                    assert!(!account.is_admin());
                     assert!(repo_db.get("me", "me").await.unwrap().is_some());
                     assert!(account_db.get("me").await.unwrap().is_some());
+
+                    let account_update = Account::builder()
+                        .username("me".into())
+                        .is_admin(true)
+                        .build()
+                        .unwrap();
+
+                    let account = account_db.update(account_update).await.unwrap();
+                    assert!(account.is_admin());
                 }
 
                 sample(&mut repo_db, &mut account_db).await;

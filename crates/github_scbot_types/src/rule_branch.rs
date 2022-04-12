@@ -2,8 +2,10 @@
 
 use std::{convert::Infallible, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
 /// Rule branch.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum RuleBranch {
     /// Named.
     Named(String),

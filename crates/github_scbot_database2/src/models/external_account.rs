@@ -16,7 +16,7 @@ pub struct ExternalJwtClaims {
     pub iss: String,
 }
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder)]
+#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default)]
 pub struct ExternalAccount {
     #[get_deref]
@@ -69,9 +69,10 @@ impl ExternalAccountBuilder {
 #[cfg_attr(test, mockall::automock)]
 pub trait ExternalAccountDB {
     async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
+    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
     async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>>;
     async fn delete(&mut self, username: &str) -> Result<bool>;
-    async fn list(&mut self) -> Result<Vec<ExternalAccount>>;
+    async fn all(&mut self) -> Result<Vec<ExternalAccount>>;
     async fn set_keys(
         &mut self,
         username: &str,
@@ -125,6 +126,15 @@ impl ExternalAccountDB for ExternalAccountDBImplPool {
         Ok(data)
     }
 
+    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
+        let mut transaction = self.begin().await?;
+        let data = ExternalAccountDBImpl::new(&mut *transaction)
+            .update(instance)
+            .await?;
+        self.commit(transaction).await?;
+        Ok(data)
+    }
+
     async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
         let mut transaction = self.begin().await?;
         let data = ExternalAccountDBImpl::new(&mut *transaction)
@@ -143,9 +153,9 @@ impl ExternalAccountDB for ExternalAccountDBImplPool {
         Ok(data)
     }
 
-    async fn list(&mut self) -> Result<Vec<ExternalAccount>> {
+    async fn all(&mut self) -> Result<Vec<ExternalAccount>> {
         let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction).list().await?;
+        let data = ExternalAccountDBImpl::new(&mut *transaction).all().await?;
         self.commit(transaction).await?;
         Ok(data)
     }
@@ -194,6 +204,27 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
+        let username: String = sqlx::query(
+            r#"
+            UPDATE external_account
+            SET public_key = $1,
+            private_key = $2
+            WHERE username = $3
+            RETURNING username;
+            "#,
+        )
+        .bind(instance.public_key)
+        .bind(instance.private_key)
+        .bind(instance.username)
+        .fetch_one(&mut *self.connection)
+        .await
+        .map_err(DatabaseError::SqlError)?
+        .get(0);
+
+        self.get(&username).await.map(|x| x.unwrap())
+    }
+
     async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
         sqlx::query_as::<_, ExternalAccount>(
             r#"
@@ -222,7 +253,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
-    async fn list(&mut self) -> Result<Vec<ExternalAccount>> {
+    async fn all(&mut self) -> Result<Vec<ExternalAccount>> {
         sqlx::query_as::<_, ExternalAccount>(
             r#"
             SELECT *
