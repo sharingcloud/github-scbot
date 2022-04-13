@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use github_scbot_conf::Config;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::pulls::GhMergeStrategy;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 use crate::{errors::Result, fields::GhMergeStrategyDecode, DatabaseError};
 
 #[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct Repository {
     #[get]
     id: u64,
@@ -55,6 +56,15 @@ impl Repository {
 
     pub fn path(&self) -> String {
         format!("{}/{}", self.owner, self.name)
+    }
+}
+
+impl RepositoryBuilder {
+    pub fn with_config(&mut self, config: &Config) -> &mut Self {
+        self.default_strategy = (&config.default_merge_strategy).try_into().ok();
+        self.default_needed_reviewers_count = Some(config.default_needed_reviewers_count);
+        self.pr_title_validation_regex = Some(config.default_pr_title_validation_regex.clone());
+        self
     }
 }
 
@@ -664,8 +674,8 @@ mod tests {
                 async {
                     Ok(Some(
                         RepositoryBuilder::default()
-                            .owner("me".into())
-                            .name("me".into())
+                            .owner("me")
+                            .name("me")
                             .default_automerge(true)
                             .build()
                             .unwrap(),
@@ -691,8 +701,8 @@ mod tests {
                 {
                     let mut repo_db = RepositoryDBImpl::new(&mut transaction);
                     let repo = RepositoryBuilder::default()
-                        .owner("me".into())
-                        .name("me".into())
+                        .owner("me")
+                        .name("me")
                         .default_strategy(GhMergeStrategy::Squash)
                         .build()?;
                     repo_db.create(repo).await?;
@@ -703,8 +713,8 @@ mod tests {
                     let mut inner_transaction = transaction.begin().await?;
                     let mut repo_db = RepositoryDBImpl::new(&mut inner_transaction);
                     let repo = RepositoryBuilder::default()
-                        .owner("me".into())
-                        .name("me".into())
+                        .owner("me")
+                        .name("me")
                         .build()?;
                     assert!(
                         repo_db.create(repo).await.is_err(),

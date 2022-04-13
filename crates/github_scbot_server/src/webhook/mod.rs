@@ -73,7 +73,6 @@ async fn parse_event(
         }
         EventType::PullRequestReview => {
             reviews::review_event(
-                config,
                 api_adapter,
                 db_adapter,
                 redis_adapter,

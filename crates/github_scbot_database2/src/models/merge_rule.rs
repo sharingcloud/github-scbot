@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct MergeRule {
     #[get]
     repository_id: u64,

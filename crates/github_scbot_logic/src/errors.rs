@@ -13,9 +13,9 @@ pub enum LogicError {
     #[error("API error.")]
     ApiError(#[from] github_scbot_ghapi::ApiError),
 
-    /// Wraps [`github_scbot_database::DatabaseError`].
+    /// Wraps [`github_scbot_database2::DatabaseError`].
     #[error("Database error.")]
-    DatabaseError(#[from] github_scbot_database::DatabaseError),
+    DatabaseError(#[from] github_scbot_database2::DatabaseError),
 
     /// Wraps [`github_scbot_redis::RedisError`].
     #[error("Redis error.")]

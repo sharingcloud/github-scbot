@@ -2,12 +2,12 @@
 
 mod pull_status;
 
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     labels::StepLabel,
-    status::{CheckStatus, QaStatus, StatusState},
+    status::{CheckStatus, QaStatus, StatusState}, pulls::GhPullRequest,
 };
 pub use pull_status::PullRequestStatus;
 use tracing::debug;
@@ -61,27 +61,22 @@ impl StatusLogic {
     /// Create initial pull request status.
     pub async fn create_initial_pull_request_status(
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        db_adapter: &dyn DbService,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
         commit_sha: &str,
+        upstream_pr: &GhPullRequest
     ) -> Result<()> {
         let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        let update = pr_model
-            .create_update()
-            .step(Some(step_label))
-            .build_update();
-        db_adapter.pull_request().update(pr_model, update).await?;
-
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
+        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model.owner(), repo_model.name(), pr_model.number(), Some(step_label)).await?;
 
         // Create status comment
         SummaryCommentSender::new()
-            .create(api_adapter, db_adapter, repo_model, pr_model)
+            .create(api_adapter, db_adapter, repo_model, pr_model, upstream_pr)
             .await?;
 
         // Create or update status.
@@ -105,28 +100,23 @@ impl StatusLogic {
     #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn update_pull_request_status(
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
-        commit_sha: &str,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest
     ) -> Result<()> {
+        let commit_sha = &upstream_pr.head.sha;
         let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        let update = pr_model
-            .create_update()
-            .step(Some(step_label))
-            .build_update();
-        db_adapter.pull_request().update(pr_model, update).await?;
-
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
+        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model.owner(), repo_model.name(), pr_model.number(), Some(step_label)).await?;
 
         // Post status.
         SummaryCommentSender::new()
-            .update(api_adapter, db_adapter, repo_model, pr_model)
+            .update(api_adapter, db_adapter, repo_model, pr_model, upstream_pr)
             .await?;
 
         // Create or update status.
@@ -145,7 +135,7 @@ impl StatusLogic {
 
         // Merge if auto-merge is enabled
         if matches!(step_label, StepLabel::AwaitingMerge)
-            && !pr_model.merged()
+            && upstream_pr.merged != Some(true)
             && pr_model.automerge()
         {
             // Use lock
@@ -162,15 +152,15 @@ impl StatusLogic {
                     db_adapter,
                     repo_model,
                     pr_model,
+                    &upstream_pr
                 )
                 .await?;
                 if !result {
-                    let update = pr_model.create_update().automerge(false).build_update();
-                    db_adapter.pull_request().update(pr_model, update).await?;
+                    let pr_model = db_adapter.pull_requests().set_automerge(repo_model.owner(), repo_model.name(), pr_model.number(), false).await?;
 
                     // Update status
                     SummaryCommentSender::new()
-                        .update(api_adapter, db_adapter, repo_model, pr_model)
+                        .update(api_adapter, db_adapter, repo_model, &pr_model, &upstream_pr)
                         .await?;
                 }
 
@@ -259,20 +249,21 @@ impl StatusLogic {
     /// Disable validation status.
     pub async fn disable_validation_status(
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        db_adapter: &dyn DbService,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
     ) -> Result<()> {
         let sha = api_adapter
-            .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+            .pulls_get(repo_owner, repo_name, pr_number)
             .await?
             .head
             .sha;
 
         api_adapter
             .commit_statuses_update(
-                repo_model.owner(),
-                repo_model.name(),
+                repo_owner,
+                repo_name,
                 &sha,
                 StatusState::Success,
                 VALIDATION_STATUS_MESSAGE,
@@ -284,9 +275,9 @@ impl StatusLogic {
             .delete(
                 api_adapter,
                 db_adapter,
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.id(),
+                repo_owner,
+                repo_name,
+                pr_number,
             )
             .await
     }

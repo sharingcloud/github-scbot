@@ -6,7 +6,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 use crate::{errors::Result, DatabaseError};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct Account {
     #[get_deref]
     username: String,
@@ -282,15 +282,15 @@ mod tests {
                     let _repo = repo_db
                         .create(
                             Repository::builder()
-                                .owner("me".into())
-                                .name("me".into())
+                                .owner("me")
+                                .name("me")
                                 .build()
                                 .unwrap(),
                         )
                         .await
                         .unwrap();
                     let account = account_db
-                        .create(Account::builder().username("me".into()).build().unwrap())
+                        .create(Account::builder().username("me").build().unwrap())
                         .await
                         .unwrap();
 
@@ -299,7 +299,7 @@ mod tests {
                     assert!(account_db.get("me").await.unwrap().is_some());
 
                     let account_update = Account::builder()
-                        .username("me".into())
+                        .username("me")
                         .is_admin(true)
                         .build()
                         .unwrap();

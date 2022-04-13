@@ -5,7 +5,7 @@ mod handlers;
 mod parser;
 
 use github_scbot_conf::Config;
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_database2::{DbService, Repository, PullRequest};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType};
@@ -29,10 +29,10 @@ impl CommandExecutor {
     pub async fn execute_commands(
         config: &Config,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
-        repo_model: &mut RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
         comment_id: u64,
         comment_author: &str,
         commands: Vec<CommandResult<Command>>,
@@ -87,26 +87,24 @@ impl CommandExecutor {
     /// Process command result.
     pub async fn process_command_result(
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
         comment_id: u64,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
-            let sha = api_adapter
+            let upstream_pr = api_adapter
                 .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
-                .await?
-                .head
-                .sha;
+                .await?;
             StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
                 redis_adapter,
                 repo_model,
                 pr_model,
-                &sha,
+                &upstream_pr
             )
             .await?;
         }
@@ -195,24 +193,27 @@ impl CommandExecutor {
     pub async fn execute_command(
         config: &Config,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &mut RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        db_adapter: &dyn DbService,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
         comment_author: &str,
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
+        let repo_owner = repo_model.owner();
+        let repo_name = repo_model.name();
+        let pr_number = pr_model.number();
 
         info!(
             command = ?command,
             comment_author = comment_author,
             repository_path = %repo_model.path(),
-            pull_request_number = pr_model.number(),
+            pull_request_number = pr_number,
             message = "Interpreting command"
         );
 
         let permission = api_adapter
-            .user_permissions_get(repo_model.owner(), repo_model.name(), comment_author)
+            .user_permissions_get(repo_owner, repo_name, comment_author)
             .await?;
 
         if Self::validate_user_rights_on_command(db_adapter, comment_author, permission, &command)
@@ -223,33 +224,39 @@ impl CommandExecutor {
                     UserCommand::Automerge(s) => {
                         handlers::handle_auto_merge_command(
                             db_adapter,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             comment_author,
                             *s,
                         )
                         .await?
                     }
                     UserCommand::SkipQaStatus(s) => {
-                        handlers::handle_skip_qa_command(db_adapter, pr_model, comment_author, *s)
+                        handlers::handle_skip_qa_command(db_adapter, repo_owner, repo_name, pr_number, comment_author, *s)
                             .await?
                     }
                     UserCommand::SkipChecksStatus(s) => {
                         handlers::handle_skip_checks_command(
                             db_adapter,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             comment_author,
                             *s,
                         )
                         .await?
                     }
                     UserCommand::QaStatus(s) => {
-                        handlers::handle_qa_command(db_adapter, pr_model, comment_author, *s)
+                        handlers::handle_qa_command(db_adapter, repo_owner, repo_name, pr_number, comment_author, *s)
                             .await?
                     }
                     UserCommand::Lock(s, reason) => {
                         handlers::handle_lock_command(
                             db_adapter,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             comment_author,
                             *s,
                             reason.clone(),
@@ -272,32 +279,34 @@ impl CommandExecutor {
                         handlers::handle_assign_required_reviewers_command(
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             reviewers.clone(),
                         )
                         .await?
                     }
                     UserCommand::SetMergeStrategy(strategy) => {
-                        handlers::handle_set_merge_strategy(db_adapter, pr_model, *strategy).await?
+                        handlers::handle_set_merge_strategy(db_adapter, repo_owner, repo_name, pr_number, *strategy).await?
                     }
                     UserCommand::UnsetMergeStrategy => {
-                        handlers::handle_unset_merge_strategy(db_adapter, pr_model).await?
+                        handlers::handle_unset_merge_strategy(db_adapter, repo_owner, repo_name, pr_number).await?
                     }
                     UserCommand::SetLabels(labels) => {
-                        handlers::handle_set_labels(api_adapter, repo_model, pr_model, labels)
+                        handlers::handle_set_labels(api_adapter, repo_owner, repo_name, pr_number, labels)
                             .await?
                     }
                     UserCommand::UnsetLabels(labels) => {
-                        handlers::handle_unset_labels(api_adapter, repo_model, pr_model, labels)
+                        handlers::handle_unset_labels(api_adapter, repo_owner, repo_name, pr_number, labels)
                             .await?
                     }
                     UserCommand::UnassignRequiredReviewers(reviewers) => {
                         handlers::handle_unassign_required_reviewers_command(
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             reviewers.clone(),
                         )
                         .await?
@@ -319,8 +328,9 @@ impl CommandExecutor {
                         handlers::handle_admin_disable_command(
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number
                         )
                         .await?
                     }
@@ -329,17 +339,9 @@ impl CommandExecutor {
                             config,
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
-                        )
-                        .await?
-                    }
-                    AdminCommand::ResetReviews => {
-                        handlers::handle_admin_reset_reviews_command(
-                            api_adapter,
-                            db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number
                         )
                         .await?
                     }
@@ -354,44 +356,45 @@ impl CommandExecutor {
                     }
                     AdminCommand::SetDefaultNeededReviewers(count) => {
                         handlers::handle_set_default_needed_reviewers_command(
-                            db_adapter, repo_model, *count,
+                            db_adapter, repo_owner, repo_name, *count,
                         )
                         .await?
                     }
                     AdminCommand::SetDefaultMergeStrategy(strategy) => {
                         handlers::handle_set_default_merge_strategy_command(
-                            db_adapter, repo_model, *strategy,
+                            db_adapter, repo_owner, repo_name, *strategy,
                         )
                         .await?
                     }
                     AdminCommand::SetDefaultPRTitleRegex(rgx) => {
                         handlers::handle_set_default_pr_title_regex_command(
                             db_adapter,
-                            repo_model,
+                            repo_owner,
+                            repo_name,
                             rgx.clone(),
                         )
                         .await?
                     }
                     AdminCommand::SetDefaultQAStatus(status) => {
                         handlers::handle_set_default_qa_status_command(
-                            db_adapter, repo_model, *status,
+                            db_adapter, repo_owner, repo_name, *status,
                         )
                         .await?
                     }
                     AdminCommand::SetDefaultChecksStatus(status) => {
                         handlers::handle_set_default_checks_status_command(
-                            db_adapter, repo_model, *status,
+                            db_adapter, repo_owner, repo_name, *status,
                         )
                         .await?
                     }
                     AdminCommand::SetDefaultAutomerge(value) => {
                         handlers::handle_set_default_automerge_command(
-                            db_adapter, repo_model, *value,
+                            db_adapter, repo_owner, repo_name, *value,
                         )
                         .await?
                     }
                     AdminCommand::SetNeededReviewers(count) => {
-                        handlers::handle_set_needed_reviewers_command(db_adapter, pr_model, *count)
+                        handlers::handle_set_needed_reviewers_command(db_adapter, repo_owner, repo_name, pr_number, *count)
                             .await?
                     }
                 },
@@ -415,7 +418,7 @@ impl CommandExecutor {
 
     /// Validate user rights on command.
     pub async fn validate_user_rights_on_command(
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         username: &str,
         user_permission: GhUserPermission,
         command: &Command,
@@ -438,11 +441,6 @@ impl CommandExecutor {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_database::{
-        models::{AccountModel, DatabaseAdapter, DummyDatabaseAdapter},
-        tests::using_test_db,
-        Result,
-    };
     use github_scbot_ghapi::adapter::DummyAPIAdapter;
     use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
@@ -452,62 +450,63 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_validate_user_rights_on_command() -> Result<()> {
-        using_test_db("test_logic_commands", |_config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(pool);
-            let creator = "me";
+        // using_test_db("test_logic_commands", |_config, pool| async move {
+        //     let db_adapter = DatabaseAdapter::new(pool);
+        //     let creator = "me";
 
-            AccountModel::builder("non-admin")
-                .admin(false)
-                .create_or_update(db_adapter.account())
-                .await
-                .unwrap();
+        //     AccountModel::builder("non-admin")
+        //         .admin(false)
+        //         .create_or_update(db_adapter.account())
+        //         .await
+        //         .unwrap();
 
-            AccountModel::builder("admin")
-                .admin(true)
-                .create_or_update(db_adapter.account())
-                .await
-                .unwrap();
+        //     AccountModel::builder("admin")
+        //         .admin(true)
+        //         .create_or_update(db_adapter.account())
+        //         .await
+        //         .unwrap();
 
-            // PR creator should be valid
-            assert!(CommandExecutor::validate_user_rights_on_command(
-                &db_adapter,
-                creator,
-                GhUserPermission::Write,
-                &Command::User(UserCommand::Merge(None))
-            )
-            .await
-            .unwrap());
-            // Non-admin without write permission should be invalid
-            assert!(!CommandExecutor::validate_user_rights_on_command(
-                &db_adapter,
-                "non-admin",
-                GhUserPermission::Read,
-                &Command::User(UserCommand::Merge(None))
-            )
-            .await
-            .unwrap());
-            // Non-admin with write permission should be valid
-            assert!(CommandExecutor::validate_user_rights_on_command(
-                &db_adapter,
-                "non-admin",
-                GhUserPermission::Write,
-                &Command::User(UserCommand::Merge(None))
-            )
-            .await
-            .unwrap());
-            // Admin should be valid
-            assert!(CommandExecutor::validate_user_rights_on_command(
-                &db_adapter,
-                "admin",
-                GhUserPermission::Write,
-                &Command::User(UserCommand::Merge(None))
-            )
-            .await
-            .unwrap());
+        //     // PR creator should be valid
+        //     assert!(CommandExecutor::validate_user_rights_on_command(
+        //         &db_adapter,
+        //         creator,
+        //         GhUserPermission::Write,
+        //         &Command::User(UserCommand::Merge(None))
+        //     )
+        //     .await
+        //     .unwrap());
+        //     // Non-admin without write permission should be invalid
+        //     assert!(!CommandExecutor::validate_user_rights_on_command(
+        //         &db_adapter,
+        //         "non-admin",
+        //         GhUserPermission::Read,
+        //         &Command::User(UserCommand::Merge(None))
+        //     )
+        //     .await
+        //     .unwrap());
+        //     // Non-admin with write permission should be valid
+        //     assert!(CommandExecutor::validate_user_rights_on_command(
+        //         &db_adapter,
+        //         "non-admin",
+        //         GhUserPermission::Write,
+        //         &Command::User(UserCommand::Merge(None))
+        //     )
+        //     .await
+        //     .unwrap());
+        //     // Admin should be valid
+        //     assert!(CommandExecutor::validate_user_rights_on_command(
+        //         &db_adapter,
+        //         "admin",
+        //         GhUserPermission::Write,
+        //         &Command::User(UserCommand::Merge(None))
+        //     )
+        //     .await
+        //     .unwrap());
 
-            Ok::<_, LogicError>(())
-        })
-        .await
+        //     Ok::<_, LogicError>(())
+        // })
+        // .await
+        todo!()
     }
 
     #[test]
@@ -564,76 +563,77 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_issue_78() {
-        let mut config = Config::from_env();
-        config.bot_username = "test-bot".into();
-        let mut api_adapter = DummyAPIAdapter::new();
-        let db_adapter = DummyDatabaseAdapter::new();
-        let redis_adapter = DummyRedisAdapter::new();
-        let mut repo = RepositoryModel::builder(&config, "me", "repo")
-            .build()
-            .into();
-        let mut pr = PullRequestModel::builder(&repo, 1, "me").build().into();
+        // let mut config = Config::from_env();
+        // config.bot_username = "test-bot".into();
+        // let mut api_adapter = DummyAPIAdapter::new();
+        // let db_adapter = DummyDatabaseAdapter::new();
+        // let redis_adapter = DummyRedisAdapter::new();
+        // let mut repo = RepositoryModel::builder(&config, "me", "repo")
+        //     .build()
+        //     .into();
+        // let mut pr = PullRequestModel::builder(&repo, 1, "me").build().into();
 
-        api_adapter
-            .user_permissions_get_response
-            .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
+        // api_adapter
+        //     .user_permissions_get_response
+        //     .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
 
-        let commands = CommandParser::parse_commands(
-            &config,
-            "test-bot req+ @user\ntest-bot noqa+\ntest-bot automerge+",
-        );
+        // let commands = CommandParser::parse_commands(
+        //     &config,
+        //     "test-bot req+ @user\ntest-bot noqa+\ntest-bot automerge+",
+        // );
 
-        assert_eq!(
-            commands,
-            vec![
-                Ok(Command::User(UserCommand::AssignRequiredReviewers(vec![
-                    "user".into()
-                ]))),
-                Ok(Command::User(UserCommand::SkipQaStatus(true))),
-                Ok(Command::User(UserCommand::Automerge(true))),
-            ]
-        );
+        // assert_eq!(
+        //     commands,
+        //     vec![
+        //         Ok(Command::User(UserCommand::AssignRequiredReviewers(vec![
+        //             "user".into()
+        //         ]))),
+        //         Ok(Command::User(UserCommand::SkipQaStatus(true))),
+        //         Ok(Command::User(UserCommand::Automerge(true))),
+        //     ]
+        // );
 
-        let result = CommandExecutor::execute_commands(
-            &config,
-            &api_adapter,
-            &db_adapter,
-            &redis_adapter,
-            &mut repo,
-            &mut pr,
-            0,
-            "me",
-            commands,
-        )
-        .await
-        .unwrap();
-        assert_eq!(
-            result,
-            CommandExecutionResult {
-                should_update_status: true,
-                handling_status: CommandHandlingStatus::Handled,
-                result_actions: vec![
-                    ResultAction::AddReaction(GhReactionType::Eyes),
-                    ResultAction::PostComment(
-                        "> test-bot req+ user\n\
-                        \n\
-                        **user** is now a required reviewer on this PR.\n\
-                        \n\
-                        ---\n\
-                        \n\
-                        > test-bot noqa+\n\
-                        \n\
-                        QA is marked as skipped by **me**.\n\
-                        \n\
-                        ---\n\
-                        \n\
-                        > test-bot automerge+\n\
-                        \n\
-                        Automerge enabled by **me**"
-                            .into()
-                    )
-                ]
-            }
-        );
+        // let result = CommandExecutor::execute_commands(
+        //     &config,
+        //     &api_adapter,
+        //     &db_adapter,
+        //     &redis_adapter,
+        //     &mut repo,
+        //     &mut pr,
+        //     0,
+        //     "me",
+        //     commands,
+        // )
+        // .await
+        // .unwrap();
+        // assert_eq!(
+        //     result,
+        //     CommandExecutionResult {
+        //         should_update_status: true,
+        //         handling_status: CommandHandlingStatus::Handled,
+        //         result_actions: vec![
+        //             ResultAction::AddReaction(GhReactionType::Eyes),
+        //             ResultAction::PostComment(
+        //                 "> test-bot req+ user\n\
+        //                 \n\
+        //                 **user** is now a required reviewer on this PR.\n\
+        //                 \n\
+        //                 ---\n\
+        //                 \n\
+        //                 > test-bot noqa+\n\
+        //                 \n\
+        //                 QA is marked as skipped by **me**.\n\
+        //                 \n\
+        //                 ---\n\
+        //                 \n\
+        //                 > test-bot automerge+\n\
+        //                 \n\
+        //                 Automerge enabled by **me**"
+        //                     .into()
+        //             )
+        //         ]
+        //     }
+        // );
+        todo!()
     }
 }

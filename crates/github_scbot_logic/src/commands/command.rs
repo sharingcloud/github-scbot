@@ -78,8 +78,6 @@ pub enum AdminCommand {
     Help,
     /// Synchronize status.
     Synchronize,
-    /// Reset reviews.
-    ResetReviews,
     /// Enable bot on pull request (used with manual interaction).
     Enable,
     /// Disable bot on pull request (used with manual interaction).
@@ -87,7 +85,7 @@ pub enum AdminCommand {
     /// Reset summary comment.
     ResetSummary,
     /// Set default needed reviewers count.
-    SetDefaultNeededReviewers(u32),
+    SetDefaultNeededReviewers(u64),
     /// Set default merge strategy.
     SetDefaultMergeStrategy(GhMergeStrategy),
     /// Set default PR title validation regex.
@@ -99,7 +97,7 @@ pub enum AdminCommand {
     /// Set default checks status.
     SetDefaultChecksStatus(bool),
     /// Set needed reviewers count.
-    SetNeededReviewers(u32),
+    SetNeededReviewers(u64),
 }
 
 /// Command.
@@ -230,12 +228,11 @@ impl Command {
             // Admin commands
             "admin-help" => Self::Admin(AdminCommand::Help),
             "admin-sync" => Self::Admin(AdminCommand::Synchronize),
-            "admin-reset-reviews" => Self::Admin(AdminCommand::ResetReviews),
             "admin-reset-summary" => Self::Admin(AdminCommand::ResetSummary),
             "admin-enable" => Self::Admin(AdminCommand::Enable),
             "admin-disable" => Self::Admin(AdminCommand::Disable),
             "admin-set-default-needed-reviewers" => Self::Admin(
-                AdminCommand::SetDefaultNeededReviewers(Self::parse_u32(args)?),
+                AdminCommand::SetDefaultNeededReviewers(Self::parse_u64(args)?),
             ),
             "admin-set-default-merge-strategy" => Self::Admin(
                 AdminCommand::SetDefaultMergeStrategy(Self::parse_merge_strategy(args)?),
@@ -254,7 +251,7 @@ impl Command {
             "admin-set-default-automerge+" => Self::Admin(AdminCommand::SetDefaultAutomerge(true)),
             "admin-set-default-automerge-" => Self::Admin(AdminCommand::SetDefaultAutomerge(false)),
             "admin-set-needed-reviewers" => {
-                Self::Admin(AdminCommand::SetNeededReviewers(Self::parse_u32(args)?))
+                Self::Admin(AdminCommand::SetNeededReviewers(Self::parse_u64(args)?))
             }
             // Unknown command
             unknown => return Err(CommandError::UnknownCommand(unknown.into())),
@@ -308,7 +305,6 @@ impl Command {
                     format!("admin-set-default-automerge{}", Self::plus_minus(*status))
                 }
                 AdminCommand::Synchronize => "admin-sync".into(),
-                AdminCommand::ResetReviews => "admin-reset-reviews".into(),
                 AdminCommand::ResetSummary => "admin-reset-summary".into(),
             },
             Self::User(cmd) => match cmd {
@@ -356,7 +352,7 @@ impl Command {
         }
     }
 
-    fn parse_u32(args: &[&str]) -> CommandResult<u32> {
+    fn parse_u64(args: &[&str]) -> CommandResult<u64> {
         args.join(" ")
             .parse()
             .map_err(|_e| CommandError::ArgumentParsingError)
@@ -433,13 +429,13 @@ mod tests {
 
     #[test]
     fn test_parse_u32() {
-        assert!(matches!(Command::parse_u32(&["123"]), Ok(123)));
+        assert!(matches!(Command::parse_u64(&["123"]), Ok(123)));
         assert!(matches!(
-            Command::parse_u32(&["123", "456"]),
+            Command::parse_u64(&["123", "456"]),
             Err(CommandError::ArgumentParsingError)
         ));
         assert!(matches!(
-            Command::parse_u32(&["toto"]),
+            Command::parse_u64(&["toto"]),
             Err(CommandError::ArgumentParsingError)
         ));
     }

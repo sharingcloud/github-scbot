@@ -1,6 +1,6 @@
 //! Authentication logic module.
 
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 use github_scbot_types::common::GhUserPermission;
 
 use crate::Result;
@@ -11,14 +11,14 @@ pub struct AuthLogic;
 impl AuthLogic {
     /// List known admin usernames.
     pub async fn list_known_admin_usernames(
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
     ) -> Result<Vec<String>> {
         Ok(db_adapter
-            .account()
-            .list_admin_accounts()
+            .accounts()
+            .list_admins()
             .await?
             .iter()
-            .map(|acc| acc.username.clone())
+            .map(|acc| acc.username().into())
             .collect())
     }
 

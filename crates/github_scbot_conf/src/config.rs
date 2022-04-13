@@ -45,8 +45,6 @@ pub struct Config {
     pub server_workers_count: Option<u16>,
     /// Disable webhook signature verification.
     pub server_disable_webhook_signature: bool,
-    /// Enable history tracking.
-    pub server_enable_history_tracking: bool,
     /// Enable welcome coments.
     pub server_enable_welcome_comments: bool,
     /// Telemetry URL.
@@ -85,10 +83,6 @@ impl Config {
             server_workers_count: env_to_optional_u16("BOT_SERVER_WORKERS_COUNT", None),
             server_disable_webhook_signature: env_to_bool(
                 "BOT_SERVER_DISABLE_WEBHOOK_SIGNATURE",
-                false,
-            ),
-            server_enable_history_tracking: env_to_bool(
-                "BOT_SERVER_ENABLE_HISTORY_TRACKING",
                 false,
             ),
             server_enable_welcome_comments: env_to_bool(

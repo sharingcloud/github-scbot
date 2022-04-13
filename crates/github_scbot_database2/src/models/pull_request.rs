@@ -1,17 +1,17 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
-use github_scbot_types::{pulls::GhMergeStrategy, status::QaStatus};
+use github_scbot_types::{pulls::{GhMergeStrategy, GhPullRequest}, status::QaStatus};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
     errors::Result,
     fields::{GhMergeStrategyDecode, QaStatusDecode},
-    DatabaseError,
+    DatabaseError, Repository,
 };
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct PullRequest {
     #[get]
     id: u64,
@@ -42,6 +42,20 @@ impl PullRequest {
 
     pub fn set_repository_id(&mut self, id: u64) {
         self.repository_id = id;
+    }
+}
+
+impl PullRequestBuilder {
+    pub fn from_repository(&mut self, repository: &Repository) -> &mut Self {
+        self.automerge = Some(repository.default_automerge());
+        self.checks_enabled = Some(repository.default_enable_checks());
+        self.needed_reviewers_count = Some(repository.default_needed_reviewers_count());
+        self.qa_status = if repository.default_enable_qa() {
+            None
+        } else {
+            Some(QaStatus::Skipped)
+        };
+        self
     }
 }
 
@@ -735,7 +749,7 @@ mod tests {
                     .create(
                         PullRequest::builder()
                             .repository_id(repo.id())
-                            .number(10)
+                            .number(10u64)
                             .build()?,
                     )
                     .await?;

@@ -17,7 +17,7 @@ pub struct ExternalJwtClaims {
 }
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct ExternalAccount {
     #[get_deref]
     username: String,
@@ -312,9 +312,9 @@ mod tests {
                 let _account = db
                     .create(
                         ExternalAccount::builder()
-                            .username("me".into())
-                            .public_key("sample".into())
-                            .private_key("sample".into())
+                            .username("me")
+                            .public_key("sample")
+                            .private_key("sample")
                             .build()?,
                     )
                     .await?;

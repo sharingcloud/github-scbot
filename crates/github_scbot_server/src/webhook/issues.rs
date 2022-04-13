@@ -31,7 +31,6 @@ pub(crate) async fn issue_comment_event(
         message = "Issue comment event",
     );
 
-    todo!();
-    // handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+    handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

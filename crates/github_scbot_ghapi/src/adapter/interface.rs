@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::Result;
 
 /// Review state (API version)
-#[derive(Deserialize, Serialize, Clone, Copy)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GhReviewStateApi {
     /// Approved.
@@ -41,7 +41,7 @@ impl From<GhReviewStateApi> for GhReviewState {
 }
 
 /// Review (API version)
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct GhReviewApi {
     /// User.
     pub user: GhUser,

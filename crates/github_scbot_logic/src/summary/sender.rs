@@ -1,5 +1,6 @@
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
+use github_scbot_database2::{DbService, Repository, PullRequest};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
+use github_scbot_types::pulls::GhPullRequest;
 use tracing::warn;
 
 use super::SummaryTextGenerator;
@@ -19,12 +20,13 @@ impl SummaryCommentSender {
     pub async fn create(
         &self,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        db_adapter: &dyn DbService,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
         let pull_request_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
         self.post_github_comment(
             api_adapter,
@@ -41,19 +43,20 @@ impl SummaryCommentSender {
     pub async fn update(
         &self,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        db_adapter: &dyn DbService,
+        repo_model: &Repository,
+        pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
         let pull_request_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
+            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
 
-        // Re-fetch comment ID
-        let comment_id = db_adapter
-            .pull_request()
-            .fetch_status_comment_id(pr_model.id())
-            .await? as u64;
+        let owner = repo_model.owner();
+        let name = repo_model.name();
+        let number = pr_model.number();
+
+        let comment_id = Self::get_status_comment_id(db_adapter, owner, name, number).await?;
         if comment_id > 0 {
             if let Ok(comment_id) = CommentApi::update_comment(
                 api_adapter,
@@ -92,16 +95,13 @@ impl SummaryCommentSender {
     pub async fn delete(
         &self,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
-        pull_request_id: i32,
+        number: u64,
     ) -> Result<()> {
         // Re-fetch comment ID
-        let comment_id = db_adapter
-            .pull_request()
-            .fetch_status_comment_id(pull_request_id)
-            .await? as u64;
+        let comment_id = Self::get_status_comment_id(db_adapter, repo_owner, repo_name, number).await?;
 
         if comment_id > 0 {
             api_adapter
@@ -112,6 +112,12 @@ impl SummaryCommentSender {
         Ok(())
     }
 
+    async fn get_status_comment_id(db_adapter: &dyn DbService, owner: &str, name: &str, number: u64) -> Result<u64> {
+        Ok(db_adapter.pull_requests().get(owner, name, number).await?
+            .map(|pr| pr.status_comment_id())
+            .unwrap_or(0))
+    }
+
     fn generate_comment(pull_request_status: &PullRequestStatus) -> Result<String> {
         SummaryTextGenerator::generate(pull_request_status)
     }
@@ -119,7 +125,7 @@ impl SummaryCommentSender {
     async fn post_github_comment(
         &self,
         api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
+        db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         issue_number: u64,
@@ -130,7 +136,7 @@ impl SummaryCommentSender {
                 .await?;
 
         db_adapter
-            .pull_request()
+            .pull_requests()
             .set_status_comment_id(repo_owner, repo_name, issue_number, comment_id)
             .await?;
 

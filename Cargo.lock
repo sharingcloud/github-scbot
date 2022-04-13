@@ -1386,7 +1386,7 @@ dependencies = [
  "actix-rt",
  "chrono",
  "github-scbot-conf",
- "github-scbot-database",
+ "github-scbot-database2",
  "github-scbot-ghapi",
  "github-scbot-redis",
  "github-scbot-types",

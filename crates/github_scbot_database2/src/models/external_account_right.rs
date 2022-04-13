@@ -6,7 +6,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 use crate::{errors::Result, DatabaseError};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct ExternalAccountRight {
     #[get_deref]
     username: String,
@@ -303,7 +303,7 @@ mod tests {
 
                 let account = {
                     let mut db = ExternalAccountDBImpl::new(&mut conn);
-                    db.create(ExternalAccount::builder().username("me".into()).build()?)
+                    db.create(ExternalAccount::builder().username("me").build()?)
                         .await?
                 };
 
@@ -311,7 +311,7 @@ mod tests {
                 let _right = db
                     .create(
                         ExternalAccountRight::builder()
-                            .username(account.username().into())
+                            .username(account.username())
                             .repository_id(repo.id())
                             .build()?,
                     )

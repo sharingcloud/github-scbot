@@ -1,11 +1,12 @@
 //! External status handlers.
 
-use std::sync::Arc;
+use std::{sync::Arc, str::FromStr};
 
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
 use github_scbot_sentry::{sentry, WrapEyre};
+use github_scbot_types::repository::RepositoryPath;
 use serde::{Deserialize, Serialize};
 
 use crate::{external::validator::extract_account_from_auth, server::AppContext, ServerError};
@@ -34,20 +35,22 @@ pub(crate) async fn set_qa_status(
         }));
     });
 
-    todo!();
-    // set_qa_status_for_pull_requests(
-    //     ctx.api_adapter.as_ref(),
-    //     ctx.db_adapter.as_ref(),
-    //     ctx.redis_adapter.as_ref(),
-    //     &target_account,
-    //     &data.repository_path,
-    //     &data.pull_request_numbers,
-    //     &data.author,
-    //     data.status,
-    // )
-    // .await
-    // .map_err(ServerError::from)
-    // .map_err(WrapEyre::to_http_error)?;
+    // TODO: CAN EXPLODE
+    let repo_path = RepositoryPath::from_str(&data.repository_path).unwrap();
+
+    set_qa_status_for_pull_requests(
+        ctx.api_adapter.as_ref(),
+        ctx.db_adapter.as_ref(),
+        ctx.redis_adapter.as_ref(),
+        &target_account,
+        repo_path,
+        &data.pull_request_numbers,
+        &data.author,
+        data.status,
+    )
+    .await
+    .map_err(ServerError::from)
+    .map_err(WrapEyre::to_http_error)?;
 
     Ok(HttpResponse::Ok().body("Set QA status."))
 }

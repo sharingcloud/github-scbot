@@ -17,7 +17,6 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 }
 
 pub(crate) async fn review_event(
-    config: &Config,
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
@@ -31,7 +30,6 @@ pub(crate) async fn review_event(
         message = "Pull request review event",
     );
 
-    todo!();
-    // handle_review_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+    handle_review_event(api_adapter, db_adapter, redis_adapter, event).await?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }

@@ -23,8 +23,7 @@ pub(crate) async fn check_suite_event(
     redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {
-    todo!();
-    // handle_check_suite_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+    handle_check_suite_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
 
     Ok(HttpResponse::Ok().body("Check suite."))
 }

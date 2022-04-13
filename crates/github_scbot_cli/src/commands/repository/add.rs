@@ -21,8 +21,9 @@ impl Command for RepositoryAddCommand {
         let (owner, name) = self.repository_path.components();
 
         let repo = Repository::builder()
-            .owner(owner.into())
-            .name(name.into())
+            .owner(owner)
+            .name(name)
+            .with_config(&ctx.config)
             .build()?;
 
         ctx.db_adapter.repositories().create(repo).await?;

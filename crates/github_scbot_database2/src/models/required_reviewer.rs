@@ -6,7 +6,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 use crate::{errors::Result, DatabaseError};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
-#[builder(default)]
+#[builder(default, setter(into))]
 pub struct RequiredReviewer {
     #[get]
     pull_request_id: u64,
@@ -358,16 +358,16 @@ mod tests {
                 let _reviewer = db
                     .create(
                         RequiredReviewer::builder()
-                            .pull_request_id(1)
-                            .username("test".into())
+                            .pull_request_id(1u64)
+                            .username("test")
                             .build()?,
                     )
                     .await?;
                 let _reviewer = db
                     .create(
                         RequiredReviewer::builder()
-                            .pull_request_id(1)
-                            .username("test2".into())
+                            .pull_request_id(1u64)
+                            .username("test2")
                             .build()?,
                     )
                     .await?;
