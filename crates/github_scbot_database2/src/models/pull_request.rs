@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
-use github_scbot_types::{pulls::{GhMergeStrategy, GhPullRequest}, status::QaStatus};
+use github_scbot_types::{pulls::GhMergeStrategy, status::QaStatus};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 

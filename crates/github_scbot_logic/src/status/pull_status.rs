@@ -1,5 +1,5 @@
-use github_scbot_database2::{DbService, Repository, PullRequest, RequiredReviewer};
-use github_scbot_ghapi::adapter::{IAPIAdapter, GhReviewApi, GhReviewStateApi};
+use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
+use github_scbot_ghapi::adapter::{GhReviewApi, GhReviewStateApi, IAPIAdapter};
 use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
@@ -60,7 +60,10 @@ impl PullRequestStatus {
         let upstream_reviews = api_adapter
             .pull_reviews_list(repo_owner, repo_name, pr_number)
             .await?;
-        let required_reviewers = db_adapter.required_reviewers().list(repo_owner, repo_name, pr_number).await?;
+        let required_reviewers = db_adapter
+            .required_reviewers()
+            .list(repo_owner, repo_name, pr_number)
+            .await?;
         let checks_status = PullRequestLogic::get_checks_status_from_github(
             api_adapter,
             repo_owner,
@@ -75,10 +78,26 @@ impl PullRequestStatus {
         } else {
             let base_branch = &upstream_pr.base.reference;
             let head_branch = &upstream_pr.head.reference;
-            Self::get_strategy_from_branches(db_adapter, repo_owner, repo_name, base_branch, head_branch, repo_model.default_strategy()).await?
+            Self::get_strategy_from_branches(
+                db_adapter,
+                repo_owner,
+                repo_name,
+                base_branch,
+                head_branch,
+                repo_model.default_strategy(),
+            )
+            .await?
         };
 
-        Self::from_pull_request(repo_model, pr_model, strategy, required_reviewers, checks_status, upstream_reviews, upstream_pr)
+        Self::from_pull_request(
+            repo_model,
+            pr_model,
+            strategy,
+            required_reviewers,
+            checks_status,
+            upstream_reviews,
+            upstream_pr,
+        )
     }
 
     /// Create status from pull request.
@@ -118,7 +137,11 @@ impl PullRequestStatus {
             approved_reviewers: approved_reviews,
             automerge: pr_model.automerge(),
             checks_status,
-            checks_url: Self::get_checks_url(repo_model.owner(), repo_model.name(), pr_model.number()),
+            checks_url: Self::get_checks_url(
+                repo_model.owner(),
+                repo_model.name(),
+                pr_model.number(),
+            ),
             pull_request_title_regex: repo_model.pr_title_validation_regex().into(),
             needed_reviewers_count: needed_reviews,
             qa_status: *pr_model.qa_status(),
@@ -136,21 +159,31 @@ impl PullRequestStatus {
     }
 
     pub fn get_checks_url(owner: &str, name: &str, number: u64) -> String {
-        format!(
-            "https://github.com/{owner}/{name}/pull/{number}/checks"
-        )
+        format!("https://github.com/{owner}/{name}/pull/{number}/checks")
     }
 
     pub fn is_required_reviewer(required_reviewers: &[RequiredReviewer], username: &str) -> bool {
-        required_reviewers.iter()
+        required_reviewers
+            .iter()
             .find(|&r| r.username() == username)
             .is_some()
     }
 
-    pub async fn get_strategy_from_branches(db_adapter: &dyn DbService, owner: &str, name: &str, base_branch: &str, head_branch: &str, default_strategy: GhMergeStrategy) -> Result<GhMergeStrategy> {
-        match db_adapter.merge_rules().get(owner, name, base_branch.into(), head_branch.into()).await? {
+    pub async fn get_strategy_from_branches(
+        db_adapter: &dyn DbService,
+        owner: &str,
+        name: &str,
+        base_branch: &str,
+        head_branch: &str,
+        default_strategy: GhMergeStrategy,
+    ) -> Result<GhMergeStrategy> {
+        match db_adapter
+            .merge_rules()
+            .get(owner, name, base_branch.into(), head_branch.into())
+            .await?
+        {
             Some(r) => Ok(r.strategy()),
-            None => Ok(default_strategy)
+            None => Ok(default_strategy),
         }
     }
 

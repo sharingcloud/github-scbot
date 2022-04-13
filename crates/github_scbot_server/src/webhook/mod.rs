@@ -42,7 +42,6 @@ async fn parse_event(
     match event_type {
         EventType::CheckSuite => {
             checks::check_suite_event(
-                config,
                 api_adapter,
                 db_adapter,
                 redis_adapter,

@@ -29,7 +29,10 @@ pub async fn handle_auto_merge_command(
     comment_author: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.pull_requests().set_automerge(repo_owner, repo_name, pr_number, status).await?;
+    db_adapter
+        .pull_requests()
+        .set_automerge(repo_owner, repo_name, pr_number, status)
+        .await?;
 
     let status_text = if status { "enabled" } else { "disabled" };
     let comment = format!("Automerge {} by **{}**", status_text, comment_author);
@@ -56,8 +59,14 @@ pub async fn handle_merge_command(
     let upstream_pr = api_adapter.pulls_get(owner, name, number).await?;
 
     // Use step to determine merge possibility
-    let pr_status =
-        PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, &upstream_pr).await?;
+    let pr_status = PullRequestStatus::from_database(
+        api_adapter,
+        db_adapter,
+        repo_model,
+        pr_model,
+        &upstream_pr,
+    )
+    .await?;
     let step = StatusLogic::determine_automatic_step(&pr_status)?;
     let commit_title = PullRequestLogic::get_merge_commit_title(&upstream_pr);
     let mut actions = vec![];
@@ -149,7 +158,9 @@ pub async fn handle_admin_reset_summary_command(
     repo_model: &Repository,
     pr_model: &PullRequest,
 ) -> Result<CommandExecutionResult> {
-    let upstream_pr = api_adapter.pulls_get(repo_model.owner(), repo_model.name(), pr_model.number()).await?;
+    let upstream_pr = api_adapter
+        .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+        .await?;
 
     let sender = SummaryCommentSender::new();
     sender
@@ -177,7 +188,10 @@ pub async fn handle_skip_qa_command(
         QaStatus::Waiting
     };
 
-    db_adapter.pull_requests().set_qa_status(repo_owner, repo_name, pr_number, qa_status).await?;
+    db_adapter
+        .pull_requests()
+        .set_qa_status(repo_owner, repo_name, pr_number, qa_status)
+        .await?;
     let comment = format!("QA is marked as skipped by **{}**.", comment_author);
 
     Ok(CommandExecutionResult::builder()
@@ -202,9 +216,15 @@ pub async fn handle_skip_checks_command(
         CheckStatus::Waiting
     };
 
-    db_adapter.pull_requests().set_checks_enabled(repo_owner, repo_name, pr_number, status).await?;
+    db_adapter
+        .pull_requests()
+        .set_checks_enabled(repo_owner, repo_name, pr_number, status)
+        .await?;
 
-    let comment = format!("Checks are marked as {:?} by **{}**.", check_status, comment_author);
+    let comment = format!(
+        "Checks are marked as {:?} by **{}**.",
+        check_status, comment_author
+    );
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
@@ -228,7 +248,10 @@ pub async fn handle_qa_command(
         None => (QaStatus::Waiting, "marked as waiting"),
     };
 
-    db_adapter.pull_requests().set_qa_status(repo_owner, repo_name, pr_number, status).await?;
+    db_adapter
+        .pull_requests()
+        .set_qa_status(repo_owner, repo_name, pr_number, status)
+        .await?;
 
     let comment = format!("QA is {} by **{}**.", status_text, comment_author);
     Ok(CommandExecutionResult::builder()
@@ -268,7 +291,10 @@ pub async fn handle_set_merge_strategy(
     pr_number: u64,
     strategy: GhMergeStrategy,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.pull_requests().set_strategy_override(repo_owner, repo_name, pr_number, Some(strategy)).await?;
+    db_adapter
+        .pull_requests()
+        .set_strategy_override(repo_owner, repo_name, pr_number, Some(strategy))
+        .await?;
 
     let comment = format!(
         "Merge strategy override set to '{}' for this pull request.",
@@ -285,9 +311,12 @@ pub async fn handle_unset_merge_strategy(
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
-    pr_number: u64
+    pr_number: u64,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.pull_requests().set_strategy_override(repo_owner, repo_name, pr_number, None).await?;
+    db_adapter
+        .pull_requests()
+        .set_strategy_override(repo_owner, repo_name, pr_number, None)
+        .await?;
 
     let comment = "Merge strategy override removed for this pull request.".into();
     Ok(CommandExecutionResult::builder()
@@ -305,12 +334,7 @@ pub async fn handle_set_labels(
     labels: &[String],
 ) -> Result<CommandExecutionResult> {
     api_adapter
-        .issue_labels_add(
-            repo_owner,
-            repo_name,
-            pr_number,
-            labels,
-        )
+        .issue_labels_add(repo_owner, repo_name, pr_number, labels)
         .await?;
 
     Ok(CommandExecutionResult::builder()
@@ -326,12 +350,7 @@ pub async fn handle_unset_labels(
     labels: &[String],
 ) -> Result<CommandExecutionResult> {
     api_adapter
-        .issue_labels_remove(
-            repo_owner,
-            repo_name,
-            pr_number,
-            labels,
-        )
+        .issue_labels_remove(repo_owner, repo_name, pr_number, labels)
         .await?;
 
     Ok(CommandExecutionResult::builder()
@@ -348,7 +367,11 @@ pub async fn handle_assign_required_reviewers_command(
     pr_number: u64,
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
-    let pr_model = db_adapter.pull_requests().get(repo_owner, repo_name, pr_number).await?.unwrap();
+    let pr_model = db_adapter
+        .pull_requests()
+        .get(repo_owner, repo_name, pr_number)
+        .await?
+        .unwrap();
 
     info!(
         pull_request_number = pr_number,
@@ -368,16 +391,23 @@ pub async fn handle_assign_required_reviewers_command(
         if permission {
             approved_reviewers.push(reviewer.clone());
 
-            match db_adapter.required_reviewers().get(repo_owner, repo_name, pr_number, reviewer).await? {
-                Some(s) => (),
+            match db_adapter
+                .required_reviewers()
+                .get(repo_owner, repo_name, pr_number, reviewer)
+                .await?
+            {
+                Some(_s) => (),
                 None => {
-                    db_adapter.required_reviewers().create(
-                        RequiredReviewer::builder()
-                            .pull_request_id(pr_model.id())
-                            .username(reviewer)
-                            .build()
-                            .unwrap()
-                    ).await?;
+                    db_adapter
+                        .required_reviewers()
+                        .create(
+                            RequiredReviewer::builder()
+                                .pull_request_id(pr_model.id())
+                                .username(reviewer)
+                                .build()
+                                .unwrap(),
+                        )
+                        .await?;
                 }
             }
         } else {
@@ -391,12 +421,7 @@ pub async fn handle_assign_required_reviewers_command(
     if approved_len > 0 {
         // Communicate to GitHub
         api_adapter
-            .pull_reviewer_requests_add(
-                repo_owner,
-                repo_name,
-                pr_number,
-                &approved_reviewers,
-            )
+            .pull_reviewer_requests_add(repo_owner, repo_name, pr_number, &approved_reviewers)
             .await?;
     }
 
@@ -453,16 +478,14 @@ pub async fn handle_unassign_required_reviewers_command(
     );
 
     api_adapter
-        .pull_reviewer_requests_remove(
-            repo_owner,
-            repo_name,
-            pr_number,
-            &reviewers,
-        )
+        .pull_reviewer_requests_remove(repo_owner, repo_name, pr_number, &reviewers)
         .await?;
 
     for reviewer in &reviewers {
-        db_adapter.required_reviewers().delete(repo_owner, repo_name, pr_number, reviewer).await?;
+        db_adapter
+            .required_reviewers()
+            .delete(repo_owner, repo_name, pr_number, reviewer)
+            .await?;
     }
 
     let comment = if reviewers.len() == 1 {
@@ -495,7 +518,10 @@ pub async fn handle_lock_command(
     reason: Option<String>,
 ) -> Result<CommandExecutionResult> {
     let status_text = if status { "locked" } else { "unlocked" };
-    db_adapter.pull_requests().set_locked(repo_owner, repo_name, pr_number, status).await?;
+    db_adapter
+        .pull_requests()
+        .set_locked(repo_owner, repo_name, pr_number, status)
+        .await?;
 
     let mut comment = format!("Pull request {} by **{}**.", status_text, comment_author);
     if let Some(reason) = reason {
@@ -516,7 +542,10 @@ pub async fn handle_set_default_needed_reviewers_command(
     repo_name: &str,
     count: u64,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_default_needed_reviewers_count(repo_owner, repo_name, count).await?;
+    db_adapter
+        .repositories()
+        .set_default_needed_reviewers_count(repo_owner, repo_name, count)
+        .await?;
 
     let comment = format!(
         "Needed reviewers count set to **{}** for this repository.",
@@ -536,7 +565,10 @@ pub async fn handle_set_default_merge_strategy_command(
     repo_name: &str,
     strategy: GhMergeStrategy,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_default_strategy(repo_owner, repo_name, strategy).await?;
+    db_adapter
+        .repositories()
+        .set_default_strategy(repo_owner, repo_name, strategy)
+        .await?;
 
     let comment = format!(
         "Merge strategy set to **{}** for this repository.",
@@ -556,7 +588,10 @@ pub async fn handle_set_default_pr_title_regex_command(
     repo_name: &str,
     pr_title_regex: String,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_pr_title_validation_regex(repo_owner, repo_name, &pr_title_regex).await?;
+    db_adapter
+        .repositories()
+        .set_pr_title_validation_regex(repo_owner, repo_name, &pr_title_regex)
+        .await?;
 
     let comment = if pr_title_regex.is_empty() {
         "PR title regex unset for this repository.".into()
@@ -579,7 +614,10 @@ pub async fn handle_set_default_qa_status_command(
     repo_name: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_default_enable_qa(repo_owner, repo_name, status).await?;
+    db_adapter
+        .repositories()
+        .set_default_enable_qa(repo_owner, repo_name, status)
+        .await?;
 
     let comment = if status {
         "QA disabled for this repository."
@@ -599,7 +637,10 @@ pub async fn handle_set_default_checks_status_command(
     repo_name: &str,
     status: bool,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_default_enable_checks(repo_owner, repo_name, status).await?;
+    db_adapter
+        .repositories()
+        .set_default_enable_checks(repo_owner, repo_name, status)
+        .await?;
 
     let comment = if status {
         "Checks disabled for this repository."
@@ -621,7 +662,10 @@ pub async fn handle_set_needed_reviewers_command(
     pr_number: u64,
     count: u64,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.pull_requests().set_needed_reviewers_count(repo_owner, repo_name, pr_number, count).await?;
+    db_adapter
+        .pull_requests()
+        .set_needed_reviewers_count(repo_owner, repo_name, pr_number, count)
+        .await?;
 
     let comment = format!("Needed reviewers count set to **{}** for this PR.", count);
     Ok(CommandExecutionResult::builder()
@@ -637,7 +681,10 @@ pub async fn handle_set_default_automerge_command(
     repo_name: &str,
     value: bool,
 ) -> Result<CommandExecutionResult> {
-    db_adapter.repositories().set_default_automerge(repo_owner, repo_name, value).await?;
+    db_adapter
+        .repositories()
+        .set_default_automerge(repo_owner, repo_name, value)
+        .await?;
 
     let comment = format!(
         "Default automerge status set to **{}** for this repository.",
@@ -655,13 +702,26 @@ pub async fn handle_admin_disable_command(
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
-    pr_number: u64
+    pr_number: u64,
 ) -> Result<CommandExecutionResult> {
-    let repo_model = db_adapter.repositories().get(repo_owner, repo_name).await?.unwrap();
+    let repo_model = db_adapter
+        .repositories()
+        .get(repo_owner, repo_name)
+        .await?
+        .unwrap();
     if repo_model.manual_interaction() {
-        StatusLogic::disable_validation_status(api_adapter, db_adapter, repo_owner, repo_name, pr_number)
+        StatusLogic::disable_validation_status(
+            api_adapter,
+            db_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+        )
+        .await?;
+        db_adapter
+            .pull_requests()
+            .delete(repo_owner, repo_name, pr_number)
             .await?;
-        db_adapter.pull_requests().delete(repo_owner, repo_name, pr_number).await?;
 
         let comment = "Bot disabled on this PR. Bye!";
         Ok(CommandExecutionResult::builder()

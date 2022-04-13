@@ -1,13 +1,10 @@
 //! Comments logic.
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, Repository, PullRequest};
+use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::{
-    events::EventType,
-    issues::{GhIssueCommentAction, GhIssueCommentEvent},
-};
+use github_scbot_types::issues::{GhIssueCommentAction, GhIssueCommentEvent};
 use tracing::info;
 
 use crate::{
@@ -33,9 +30,17 @@ pub async fn handle_issue_comment_event(
 
         let commands = CommandParser::parse_commands(config, &event.comment.body);
 
-        match db_adapter.pull_requests().get(repo_owner, repo_name, pr_number).await? {
+        match db_adapter
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
+        {
             Some(p) => {
-                let repo = db_adapter.repositories().get(repo_owner, repo_name).await?.unwrap();
+                let repo = db_adapter
+                    .repositories()
+                    .get(repo_owner, repo_name)
+                    .await?
+                    .unwrap();
                 handle_comment_creation(
                     config,
                     api_adapter,
@@ -47,15 +52,18 @@ pub async fn handle_issue_comment_event(
                     commands,
                 )
                 .await?
-            },
+            }
             None => {
-                let repo_model = PullRequestLogic::get_or_create_repository(config, db_adapter, repo_owner, repo_name).await?;
+                let repo_model = PullRequestLogic::get_or_create_repository(
+                    config, db_adapter, repo_owner, repo_name,
+                )
+                .await?;
 
                 // Parse admin enable
                 let mut handled = false;
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
-                        let (pr, sha) = PullRequestLogic::synchronize_pull_request(
+                        let (pr, _sha) = PullRequestLogic::synchronize_pull_request(
                             config,
                             api_adapter,
                             db_adapter,
@@ -71,7 +79,9 @@ pub async fn handle_issue_comment_event(
                             message = "Manual activation on pull request",
                         );
 
-                        let upstream_pr = api_adapter.pulls_get(repo_owner, repo_name, pr_number).await?;
+                        let upstream_pr = api_adapter
+                            .pulls_get(repo_owner, repo_name, pr_number)
+                            .await?;
 
                         StatusLogic::update_pull_request_status(
                             api_adapter,
@@ -79,7 +89,7 @@ pub async fn handle_issue_comment_event(
                             redis_adapter,
                             &repo_model,
                             &pr,
-                            &upstream_pr
+                            &upstream_pr,
                         )
                         .await?;
 

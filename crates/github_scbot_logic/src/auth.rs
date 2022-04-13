@@ -10,9 +10,7 @@ pub struct AuthLogic;
 
 impl AuthLogic {
     /// List known admin usernames.
-    pub async fn list_known_admin_usernames(
-        db_adapter: &dyn DbService,
-    ) -> Result<Vec<String>> {
+    pub async fn list_known_admin_usernames(db_adapter: &dyn DbService) -> Result<Vec<String>> {
         Ok(db_adapter
             .accounts()
             .list_admins()

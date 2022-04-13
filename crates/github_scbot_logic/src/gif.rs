@@ -19,14 +19,7 @@ impl GifPoster {
         search_terms: &str,
     ) -> Result<()> {
         let body = Self::generate_random_gif_comment(config, api_adapter, search_terms).await?;
-        CommentApi::post_comment(
-            api_adapter,
-            owner,
-            name,
-            number,
-            &body,
-        )
-        .await?;
+        CommentApi::post_comment(api_adapter, owner, name, number, &body).await?;
 
         Ok(())
     }

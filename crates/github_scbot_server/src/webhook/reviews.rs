@@ -1,7 +1,6 @@
 //! Review webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_logic::reviews::handle_review_event;

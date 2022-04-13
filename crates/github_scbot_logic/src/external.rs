@@ -27,14 +27,13 @@ pub async fn set_qa_status_for_pull_requests(
     if let Some(_) = db_adapter
         .external_account_rights()
         .get(owner, name, account.username())
-        .await? {
+        .await?
+    {
         for pr_num in pull_request_numbers {
-            if let Some(pr) = db_adapter
-                .pull_requests()
-                .get(owner, name, *pr_num)
-                .await? {
-                    let repo = db_adapter.repositories().get(owner, name).await?.unwrap();
-                let result = handle_qa_command(db_adapter, owner, name, *pr_num, author, status).await?;
+            if let Some(pr) = db_adapter.pull_requests().get(owner, name, *pr_num).await? {
+                let repo = db_adapter.repositories().get(owner, name).await?.unwrap();
+                let result =
+                    handle_qa_command(db_adapter, owner, name, *pr_num, author, status).await?;
                 CommandExecutor::process_command_result(
                     api_adapter,
                     db_adapter,

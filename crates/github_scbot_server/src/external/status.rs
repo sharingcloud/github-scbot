@@ -1,6 +1,6 @@
 //! External status handlers.
 
-use std::{sync::Arc, str::FromStr};
+use std::{str::FromStr, sync::Arc};
 
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;

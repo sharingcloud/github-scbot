@@ -3,16 +3,14 @@
 use std::collections::{hash_map::Entry, HashMap};
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, Repository, PullRequest};
+use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
-    common::GhUser,
-    events::EventType,
-    pulls::{GhPullRequestAction, GhPullRequestEvent, GhPullRequest},
-    reviews::GhReviewState,
-    status::CheckStatus, labels::StepLabel,
+    labels::StepLabel,
+    pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
+    status::CheckStatus,
 };
 use tracing::{debug, info};
 
@@ -46,10 +44,11 @@ pub async fn handle_pull_request_opened(
     let name = &event.repository.name;
     let number = event.pull_request.number;
 
-    let repo_model = PullRequestLogic::get_or_create_repository(config, db_adapter, owner, name).await?;
+    let repo_model =
+        PullRequestLogic::get_or_create_repository(config, db_adapter, owner, name).await?;
 
     match db_adapter.pull_requests().get(owner, name, number).await? {
-        Some(p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
+        Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
         None => {
             if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
                 let key = format!(
@@ -58,7 +57,8 @@ pub async fn handle_pull_request_opened(
                     repo_model.name(),
                     event.pull_request.number
                 );
-                if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await?
+                if let LockStatus::SuccessfullyLocked(l) =
+                    redis_adapter.try_lock_resource(&key).await?
                 {
                     let pr = PullRequest::builder()
                         .from_repository(&repo_model)
@@ -98,7 +98,7 @@ pub async fn handle_pull_request_opened(
                         &repo_model,
                         &pr_model,
                         &event.pull_request.head.sha,
-                        &upstream_pr
+                        &upstream_pr,
                     )
                     .await?;
 
@@ -145,7 +145,6 @@ pub async fn handle_pull_request_opened(
 
 /// Handle GitHub pull request event.
 pub async fn handle_pull_request_event(
-    config: &Config,
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
@@ -154,9 +153,13 @@ pub async fn handle_pull_request_event(
     let owner = &event.repository.owner.login;
     let name = &event.repository.name;
 
-    let pr_model = match db_adapter.pull_requests().get(owner, name, event.pull_request.number).await? {
+    let pr_model = match db_adapter
+        .pull_requests()
+        .get(owner, name, event.pull_request.number)
+        .await?
+    {
         Some(pr) => pr,
-        None => return Ok(())
+        None => return Ok(()),
     };
 
     let repo_model = db_adapter.repositories().get(owner, name).await?.unwrap();
@@ -189,7 +192,9 @@ pub async fn handle_pull_request_event(
     }
 
     if status_changed {
-        let upstream_pr = api_adapter.pulls_get(owner, name, pr_model.number()).await?;
+        let upstream_pr = api_adapter
+            .pulls_get(owner, name, pr_model.number())
+            .await?;
 
         StatusLogic::update_pull_request_status(
             api_adapter,
@@ -197,7 +202,7 @@ pub async fn handle_pull_request_event(
             redis_adapter,
             &repo_model,
             &pr_model,
-            &upstream_pr
+            &upstream_pr,
         )
         .await?;
     }
@@ -284,17 +289,24 @@ impl PullRequestLogic {
         repo_owner: &str,
         repo_name: &str,
     ) -> Result<Repository> {
-        Ok(match db_adapter.repositories().get(repo_owner, repo_name).await? {
-            Some(r) => r,
-            None => db_adapter.repositories().create(
-                Repository::builder()
-                    .owner(repo_owner)
-                    .name(repo_name)
-                    .with_config(config)
-                    .build()
-                    .unwrap()
-            ).await?
-        })
+        Ok(
+            match db_adapter.repositories().get(repo_owner, repo_name).await? {
+                Some(r) => r,
+                None => {
+                    db_adapter
+                        .repositories()
+                        .create(
+                            Repository::builder()
+                                .owner(repo_owner)
+                                .name(repo_name)
+                                .with_config(config)
+                                .build()
+                                .unwrap(),
+                        )
+                        .await?
+                }
+            },
+        )
     }
 
     /// Filter and merge check suites.
@@ -360,24 +372,33 @@ impl PullRequestLogic {
             .pulls_get(repository_owner, repository_name, pr_number)
             .await?;
 
-        let repo = Self::get_or_create_repository(config, db_adapter, repository_owner, repository_name).await?;
-        let pr = match db_adapter.pull_requests().get(repository_owner, repository_name, pr_number).await? {
+        let repo =
+            Self::get_or_create_repository(config, db_adapter, repository_owner, repository_name)
+                .await?;
+        let pr = match db_adapter
+            .pull_requests()
+            .get(repository_owner, repository_name, pr_number)
+            .await?
+        {
             Some(pr) => pr,
-            None => db_adapter.pull_requests().create(
-                PullRequest::builder()
-                    .from_repository(&repo)
-                    .number(pr_number)
-                    .build()
-                    .unwrap()
-            ).await?
+            None => {
+                db_adapter
+                    .pull_requests()
+                    .create(
+                        PullRequest::builder()
+                            .from_repository(&repo)
+                            .number(pr_number)
+                            .build()
+                            .unwrap(),
+                    )
+                    .await?
+            }
         };
 
         Ok((pr, upstream_pr.head.sha))
     }
 
-    pub fn get_merge_commit_title(
-        upstream_pr: &GhPullRequest
-    ) -> String {
+    pub fn get_merge_commit_title(upstream_pr: &GhPullRequest) -> String {
         format!("{} (#{})", upstream_pr.title, upstream_pr.number)
     }
 
@@ -388,7 +409,7 @@ impl PullRequestLogic {
         db_adapter: &dyn DbService,
         repo_model: &Repository,
         pr_model: &PullRequest,
-        upstream_pr: &GhPullRequest
+        upstream_pr: &GhPullRequest,
     ) -> Result<bool> {
         let commit_title = Self::get_merge_commit_title(upstream_pr);
         let strategy = if let Some(s) = pr_model.strategy_override() {
@@ -400,7 +421,7 @@ impl PullRequestLogic {
                 repo_model.name(),
                 &upstream_pr.base.reference,
                 &upstream_pr.head.reference,
-                repo_model.default_strategy()
+                repo_model.default_strategy(),
             )
             .await?
         };
@@ -451,17 +472,11 @@ impl PullRequestLogic {
         owner: &str,
         name: &str,
         number: u64,
-        step: Option<StepLabel>
+        step: Option<StepLabel>,
     ) -> Result<()> {
-        LabelApi::set_step_label(
-            api_adapter,
-            owner,
-            name,
-            number,
-            step,
-        )
-        .await
-        .map_err(Into::into)
+        LabelApi::set_step_label(api_adapter, owner, name, number, step)
+            .await
+            .map_err(Into::into)
     }
 
     /// Post welcome comment on a pull request.
@@ -485,10 +500,6 @@ impl PullRequestLogic {
         .await?;
 
         Ok(())
-    }
-
-    fn extract_usernames(users: &[GhUser]) -> Vec<&str> {
-        users.iter().map(|r| &r.login[..]).collect()
     }
 }
 

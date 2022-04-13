@@ -5,7 +5,7 @@ mod handlers;
 mod parser;
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, Repository, PullRequest};
+use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType};
@@ -104,7 +104,7 @@ impl CommandExecutor {
                 redis_adapter,
                 repo_model,
                 pr_model,
-                &upstream_pr
+                &upstream_pr,
             )
             .await?;
         }
@@ -233,8 +233,15 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::SkipQaStatus(s) => {
-                        handlers::handle_skip_qa_command(db_adapter, repo_owner, repo_name, pr_number, comment_author, *s)
-                            .await?
+                        handlers::handle_skip_qa_command(
+                            db_adapter,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            comment_author,
+                            *s,
+                        )
+                        .await?
                     }
                     UserCommand::SkipChecksStatus(s) => {
                         handlers::handle_skip_checks_command(
@@ -248,8 +255,15 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::QaStatus(s) => {
-                        handlers::handle_qa_command(db_adapter, repo_owner, repo_name, pr_number, comment_author, *s)
-                            .await?
+                        handlers::handle_qa_command(
+                            db_adapter,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            comment_author,
+                            *s,
+                        )
+                        .await?
                     }
                     UserCommand::Lock(s, reason) => {
                         handlers::handle_lock_command(
@@ -287,18 +301,36 @@ impl CommandExecutor {
                         .await?
                     }
                     UserCommand::SetMergeStrategy(strategy) => {
-                        handlers::handle_set_merge_strategy(db_adapter, repo_owner, repo_name, pr_number, *strategy).await?
+                        handlers::handle_set_merge_strategy(
+                            db_adapter, repo_owner, repo_name, pr_number, *strategy,
+                        )
+                        .await?
                     }
                     UserCommand::UnsetMergeStrategy => {
-                        handlers::handle_unset_merge_strategy(db_adapter, repo_owner, repo_name, pr_number).await?
+                        handlers::handle_unset_merge_strategy(
+                            db_adapter, repo_owner, repo_name, pr_number,
+                        )
+                        .await?
                     }
                     UserCommand::SetLabels(labels) => {
-                        handlers::handle_set_labels(api_adapter, repo_owner, repo_name, pr_number, labels)
-                            .await?
+                        handlers::handle_set_labels(
+                            api_adapter,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            labels,
+                        )
+                        .await?
                     }
                     UserCommand::UnsetLabels(labels) => {
-                        handlers::handle_unset_labels(api_adapter, repo_owner, repo_name, pr_number, labels)
-                            .await?
+                        handlers::handle_unset_labels(
+                            api_adapter,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            labels,
+                        )
+                        .await?
                     }
                     UserCommand::UnassignRequiredReviewers(reviewers) => {
                         handlers::handle_unassign_required_reviewers_command(
@@ -330,7 +362,7 @@ impl CommandExecutor {
                             db_adapter,
                             repo_owner,
                             repo_name,
-                            pr_number
+                            pr_number,
                         )
                         .await?
                     }
@@ -341,7 +373,7 @@ impl CommandExecutor {
                             db_adapter,
                             repo_owner,
                             repo_name,
-                            pr_number
+                            pr_number,
                         )
                         .await?
                     }
@@ -394,8 +426,10 @@ impl CommandExecutor {
                         .await?
                     }
                     AdminCommand::SetNeededReviewers(count) => {
-                        handlers::handle_set_needed_reviewers_command(db_adapter, repo_owner, repo_name, pr_number, *count)
-                            .await?
+                        handlers::handle_set_needed_reviewers_command(
+                            db_adapter, repo_owner, repo_name, pr_number, *count,
+                        )
+                        .await?
                     }
                 },
             };

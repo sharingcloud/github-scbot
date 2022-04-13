@@ -1,20 +1,14 @@
 //! Checks logic.
 
-use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::{
-    checks::{GhCheckConclusion, GhCheckSuiteAction, GhCheckSuiteEvent},
-    events::EventType,
-    status::CheckStatus,
-};
+use github_scbot_types::checks::GhCheckSuiteEvent;
 
-use crate::{pulls::PullRequestLogic, status::StatusLogic, Result};
+use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub check syite event.
 pub async fn handle_check_suite_event(
-    config: &Config,
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
@@ -47,7 +41,9 @@ pub async fn handle_check_suite_event(
 
             // Unwrap: Repo should exist.
             let repo_model = db_adapter.repositories().get(owner, name).await?.unwrap();
-            let upstream_pr = api_adapter.pulls_get(owner, name, pr_model.number()).await?;
+            let upstream_pr = api_adapter
+                .pulls_get(owner, name, pr_model.number())
+                .await?;
 
             // Update status
             StatusLogic::update_pull_request_status(
@@ -56,7 +52,7 @@ pub async fn handle_check_suite_event(
                 redis_adapter,
                 &repo_model,
                 &pr_model,
-                &upstream_pr
+                &upstream_pr,
             )
             .await?;
         }

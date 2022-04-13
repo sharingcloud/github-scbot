@@ -1,4 +1,4 @@
-use github_scbot_database2::{DbService, Repository, PullRequest};
+use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_types::pulls::GhPullRequest;
 use tracing::warn;
@@ -25,8 +25,14 @@ impl SummaryCommentSender {
         pr_model: &PullRequest,
         upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
-        let pull_request_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
+        let pull_request_status = PullRequestStatus::from_database(
+            api_adapter,
+            db_adapter,
+            repo_model,
+            pr_model,
+            upstream_pr,
+        )
+        .await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
         self.post_github_comment(
             api_adapter,
@@ -48,8 +54,14 @@ impl SummaryCommentSender {
         pr_model: &PullRequest,
         upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
-        let pull_request_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
+        let pull_request_status = PullRequestStatus::from_database(
+            api_adapter,
+            db_adapter,
+            repo_model,
+            pr_model,
+            upstream_pr,
+        )
+        .await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
 
         let owner = repo_model.owner();
@@ -101,7 +113,8 @@ impl SummaryCommentSender {
         number: u64,
     ) -> Result<()> {
         // Re-fetch comment ID
-        let comment_id = Self::get_status_comment_id(db_adapter, repo_owner, repo_name, number).await?;
+        let comment_id =
+            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, number).await?;
 
         if comment_id > 0 {
             api_adapter
@@ -112,8 +125,16 @@ impl SummaryCommentSender {
         Ok(())
     }
 
-    async fn get_status_comment_id(db_adapter: &dyn DbService, owner: &str, name: &str, number: u64) -> Result<u64> {
-        Ok(db_adapter.pull_requests().get(owner, name, number).await?
+    async fn get_status_comment_id(
+        db_adapter: &dyn DbService,
+        owner: &str,
+        name: &str,
+        number: u64,
+    ) -> Result<u64> {
+        Ok(db_adapter
+            .pull_requests()
+            .get(owner, name, number)
+            .await?
             .map(|pr| pr.status_comment_id())
             .unwrap_or(0))
     }

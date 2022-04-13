@@ -7,7 +7,8 @@ use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     labels::StepLabel,
-    status::{CheckStatus, QaStatus, StatusState}, pulls::GhPullRequest,
+    pulls::GhPullRequest,
+    status::{CheckStatus, QaStatus, StatusState},
 };
 pub use pull_status::PullRequestStatus;
 use tracing::debug;
@@ -65,14 +66,27 @@ impl StatusLogic {
         repo_model: &Repository,
         pr_model: &PullRequest,
         commit_sha: &str,
-        upstream_pr: &GhPullRequest
+        upstream_pr: &GhPullRequest,
     ) -> Result<()> {
-        let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
+        let pr_status = PullRequestStatus::from_database(
+            api_adapter,
+            db_adapter,
+            repo_model,
+            pr_model,
+            upstream_pr,
+        )
+        .await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model.owner(), repo_model.name(), pr_model.number(), Some(step_label)).await?;
+        PullRequestLogic::apply_pull_request_step(
+            api_adapter,
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
+            Some(step_label),
+        )
+        .await?;
 
         // Create status comment
         SummaryCommentSender::new()
@@ -104,15 +118,28 @@ impl StatusLogic {
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &Repository,
         pr_model: &PullRequest,
-        upstream_pr: &GhPullRequest
+        upstream_pr: &GhPullRequest,
     ) -> Result<()> {
         let commit_sha = &upstream_pr.head.sha;
-        let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model, upstream_pr).await?;
+        let pr_status = PullRequestStatus::from_database(
+            api_adapter,
+            db_adapter,
+            repo_model,
+            pr_model,
+            upstream_pr,
+        )
+        .await?;
 
         // Update step label.
         let step_label = Self::determine_automatic_step(&pr_status)?;
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model.owner(), repo_model.name(), pr_model.number(), Some(step_label)).await?;
+        PullRequestLogic::apply_pull_request_step(
+            api_adapter,
+            repo_model.owner(),
+            repo_model.name(),
+            pr_model.number(),
+            Some(step_label),
+        )
+        .await?;
 
         // Post status.
         SummaryCommentSender::new()
@@ -152,11 +179,19 @@ impl StatusLogic {
                     db_adapter,
                     repo_model,
                     pr_model,
-                    &upstream_pr
+                    &upstream_pr,
                 )
                 .await?;
                 if !result {
-                    let pr_model = db_adapter.pull_requests().set_automerge(repo_model.owner(), repo_model.name(), pr_model.number(), false).await?;
+                    let pr_model = db_adapter
+                        .pull_requests()
+                        .set_automerge(
+                            repo_model.owner(),
+                            repo_model.name(),
+                            pr_model.number(),
+                            false,
+                        )
+                        .await?;
 
                     // Update status
                     SummaryCommentSender::new()
@@ -272,13 +307,7 @@ impl StatusLogic {
             .await?;
 
         SummaryCommentSender::new()
-            .delete(
-                api_adapter,
-                db_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
-            )
+            .delete(api_adapter, db_adapter, repo_owner, repo_name, pr_number)
             .await
     }
 }

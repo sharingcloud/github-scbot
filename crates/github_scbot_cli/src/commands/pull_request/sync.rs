@@ -49,7 +49,7 @@ impl Command for PullRequestSyncCommand {
             ctx.redis_adapter.as_ref(),
             &repo,
             &pr,
-            &upstream_pr
+            &upstream_pr,
         )
         .await?;
 

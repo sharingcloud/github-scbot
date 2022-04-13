@@ -10,7 +10,7 @@ pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
-    ExternalJwtClaims
+    ExternalJwtClaims,
 };
 pub use models::external_account_right::{
     ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl,

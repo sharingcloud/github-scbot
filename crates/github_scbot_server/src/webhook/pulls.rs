@@ -37,7 +37,7 @@ pub(crate) async fn pull_request_event(
     if matches!(event.action, GhPullRequestAction::Opened) {
         handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event).await?;
     } else {
-        handle_pull_request_event(config, api_adapter, db_adapter, redis_adapter, event).await?;
+        handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event).await?;
     }
 
     Ok(HttpResponse::Ok().body("Pull request."))

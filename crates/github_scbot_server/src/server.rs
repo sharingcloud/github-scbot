@@ -12,7 +12,7 @@ use actix_web::{
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, DbPool, DbServiceImplPool, MockDbService};
+use github_scbot_database2::{DbPool, DbService, DbServiceImplPool, MockDbService};
 use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
