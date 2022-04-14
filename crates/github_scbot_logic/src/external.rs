@@ -34,12 +34,15 @@ pub async fn set_qa_status_for_pull_requests(
                 let repo = db_adapter.repositories().get(owner, name).await?.unwrap();
                 let result =
                     handle_qa_command(db_adapter, owner, name, *pr_num, author, status).await?;
+                let upstream_pr = api_adapter.pulls_get(owner, name, *pr_num).await?;
+
                 CommandExecutor::process_command_result(
                     api_adapter,
                     db_adapter,
                     redis_adapter,
                     &repo,
                     &pr,
+                    &upstream_pr,
                     0,
                     &result,
                 )

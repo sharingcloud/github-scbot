@@ -4,7 +4,7 @@ use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::issues::{GhIssueCommentAction, GhIssueCommentEvent};
+use github_scbot_types::{issues::{GhIssueCommentAction, GhIssueCommentEvent}, pulls::GhPullRequest};
 use tracing::info;
 
 use crate::{
@@ -29,6 +29,9 @@ pub async fn handle_issue_comment_event(
         let pr_number = event.issue.number;
 
         let commands = CommandParser::parse_commands(config, &event.comment.body);
+        let upstream_pr = api_adapter
+            .pulls_get(repo_owner, repo_name, pr_number)
+            .await?;
 
         match db_adapter
             .pull_requests()
@@ -41,6 +44,7 @@ pub async fn handle_issue_comment_event(
                     .get(repo_owner, repo_name)
                     .await?
                     .unwrap();
+
                 handle_comment_creation(
                     config,
                     api_adapter,
@@ -48,6 +52,7 @@ pub async fn handle_issue_comment_event(
                     redis_adapter,
                     &repo,
                     &p,
+                    &upstream_pr,
                     &event,
                     commands,
                 )
@@ -78,10 +83,6 @@ pub async fn handle_issue_comment_event(
                             repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
-
-                        let upstream_pr = api_adapter
-                            .pulls_get(repo_owner, repo_name, pr_number)
-                            .await?;
 
                         StatusLogic::update_pull_request_status(
                             api_adapter,
@@ -127,6 +128,7 @@ pub async fn handle_comment_creation(
     redis_adapter: &dyn IRedisAdapter,
     repo_model: &Repository,
     pr_model: &PullRequest,
+    upstream_pr: &GhPullRequest,
     event: &GhIssueCommentEvent,
     commands: Vec<CommandResult<Command>>,
 ) -> Result<()> {
@@ -147,6 +149,7 @@ pub async fn handle_comment_creation(
         redis_adapter,
         repo_model,
         pr_model,
+        upstream_pr,
         comment_id,
         comment_author,
         commands,

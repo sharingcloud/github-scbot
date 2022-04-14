@@ -8,7 +8,7 @@ use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::{common::GhUserPermission, issues::GhReactionType};
+use github_scbot_types::{common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest};
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
 use tracing::info;
@@ -33,6 +33,7 @@ impl CommandExecutor {
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &Repository,
         pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest,
         comment_id: u64,
         comment_author: &str,
         commands: Vec<CommandResult<Command>>,
@@ -49,6 +50,7 @@ impl CommandExecutor {
                             db_adapter,
                             repo_model,
                             pr_model,
+                            upstream_pr,
                             comment_author,
                             command,
                         )
@@ -76,6 +78,7 @@ impl CommandExecutor {
             redis_adapter,
             repo_model,
             pr_model,
+            upstream_pr,
             comment_id,
             &command_result,
         )
@@ -91,13 +94,11 @@ impl CommandExecutor {
         redis_adapter: &dyn IRedisAdapter,
         repo_model: &Repository,
         pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest,
         comment_id: u64,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
-            let upstream_pr = api_adapter
-                .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
-                .await?;
             StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
@@ -196,6 +197,7 @@ impl CommandExecutor {
         db_adapter: &dyn DbService,
         repo_model: &Repository,
         pr_model: &PullRequest,
+        upstream_pr: &GhPullRequest,
         comment_author: &str,
         command: Command,
     ) -> Result<CommandExecutionResult> {
@@ -284,6 +286,7 @@ impl CommandExecutor {
                             db_adapter,
                             repo_model,
                             pr_model,
+                            upstream_pr,
                             comment_author,
                             *strategy,
                         )
@@ -383,6 +386,7 @@ impl CommandExecutor {
                             db_adapter,
                             repo_model,
                             pr_model,
+                            upstream_pr
                         )
                         .await?
                     }

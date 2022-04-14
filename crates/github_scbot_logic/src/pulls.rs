@@ -126,6 +126,7 @@ pub async fn handle_pull_request_opened(
                         redis_adapter,
                         &repo_model,
                         &pr_model,
+                        &upstream_pr,
                         0,
                         &event.pull_request.user.login,
                         commands,

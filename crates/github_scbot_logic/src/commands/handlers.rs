@@ -4,7 +4,7 @@ use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_types::{
     issues::GhReactionType,
     labels::StepLabel,
-    pulls::GhMergeStrategy,
+    pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
 use tracing::info;
@@ -49,14 +49,13 @@ pub async fn handle_merge_command(
     db_adapter: &dyn DbService,
     repo_model: &Repository,
     pr_model: &PullRequest,
+    upstream_pr: &GhPullRequest,
     comment_author: &str,
     merge_strategy: Option<GhMergeStrategy>,
 ) -> Result<CommandExecutionResult> {
     let owner = repo_model.owner();
     let name = repo_model.name();
     let number = pr_model.number();
-
-    let upstream_pr = api_adapter.pulls_get(owner, name, number).await?;
 
     // Use step to determine merge possibility
     let pr_status = PullRequestStatus::from_database(
@@ -157,11 +156,8 @@ pub async fn handle_admin_reset_summary_command(
     db_adapter: &dyn DbService,
     repo_model: &Repository,
     pr_model: &PullRequest,
+    upstream_pr: &GhPullRequest,
 ) -> Result<CommandExecutionResult> {
-    let upstream_pr = api_adapter
-        .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
-        .await?;
-
     let sender = SummaryCommentSender::new();
     sender
         .create(api_adapter, db_adapter, repo_model, pr_model, &upstream_pr)
