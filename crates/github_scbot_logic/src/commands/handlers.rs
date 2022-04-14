@@ -1,6 +1,6 @@
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, RequiredReviewer};
-use github_scbot_ghapi::adapter::IAPIAdapter;
+use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_types::{
     issues::GhReactionType,
     labels::StepLabel,
@@ -45,7 +45,7 @@ pub async fn handle_auto_merge_command(
 
 /// Handle `Merge` command.
 pub async fn handle_merge_command(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
@@ -142,7 +142,7 @@ pub async fn handle_admin_sync_command(
 }
 
 pub async fn handle_admin_reset_summary_command(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
@@ -267,7 +267,7 @@ pub fn handle_ping_command(comment_author: &str) -> Result<CommandExecutionResul
 /// Handle `Gif` command.
 pub async fn handle_gif_command(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     search_terms: &str,
 ) -> Result<CommandExecutionResult> {
     Ok(CommandExecutionResult::builder()
@@ -321,7 +321,7 @@ pub async fn handle_unset_merge_strategy(
 }
 
 pub async fn handle_set_labels(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     repo_owner: &str,
     repo_name: &str,
     pr_number: u64,
@@ -337,7 +337,7 @@ pub async fn handle_set_labels(
 }
 
 pub async fn handle_unset_labels(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     repo_owner: &str,
     repo_name: &str,
     pr_number: u64,
@@ -354,7 +354,7 @@ pub async fn handle_unset_labels(
 
 /// Handle `AssignRequiredReviewers` command.
 pub async fn handle_assign_required_reviewers_command(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
@@ -458,7 +458,7 @@ pub async fn handle_assign_required_reviewers_command(
 
 /// Handle `UnassignRequiredReviewers` command.
 pub async fn handle_unassign_required_reviewers_command(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
@@ -692,7 +692,7 @@ pub async fn handle_set_default_automerge_command(
 }
 
 pub async fn handle_admin_disable_command(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
@@ -814,11 +814,7 @@ pub fn handle_admin_help_command(
 mod tests {
     use futures_util::FutureExt;
     use github_scbot_database2::{MockDbService, MockPullRequestDB, PullRequest};
-    use github_scbot_ghapi::{
-        adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
-        ApiError,
-    };
-    use github_scbot_types::{common::GhUserPermission, pulls::GhPullRequest};
+    use github_scbot_ghapi::{adapter::{MockApiService, GifResponse, GifObject, MediaObject, GifFormat}};
     use maplit::hashmap;
     use mockall::predicate;
 
@@ -1110,10 +1106,11 @@ mod tests {
     #[actix_rt::test]
     async fn test_handle_gif_command() -> Result<()> {
         let config = Config::from_env();
-        let mut api_adapter = DummyAPIAdapter::new();
-
-        api_adapter.gif_search_response.set_callback(Box::new(|_| {
-            Ok(GifResponse {
+        let mut api_adapter = MockApiService::new();
+        api_adapter
+            .expect_gif_search()
+            .times(1)
+            .returning(|_, _| Ok(GifResponse {
                 results: vec![GifObject {
                     media: vec![hashmap!(
                         GifFormat::Gif => MediaObject {
@@ -1122,8 +1119,7 @@ mod tests {
                         }
                     )],
                 }],
-            })
-        }));
+            }));
 
         // Valid GIF
         let result = handle_gif_command(&config, &api_adapter, "what").await?;
@@ -1138,9 +1134,13 @@ mod tests {
             ]
         );
 
+        let mut api_adapter = MockApiService::new();
         api_adapter
-            .gif_search_response
-            .set_callback(Box::new(|_| Ok(GifResponse { results: vec![] })));
+            .expect_gif_search()
+            .times(1)
+            .returning(|_, _| Ok(GifResponse {
+                results: vec![]
+            }));
 
         // No GIFs
         let result = handle_gif_command(&config, &api_adapter, "what").await?;

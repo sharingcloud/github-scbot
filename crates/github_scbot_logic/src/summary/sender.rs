@@ -1,5 +1,5 @@
 use github_scbot_database2::DbService;
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_types::pulls::GhPullRequest;
 use tracing::warn;
 
@@ -19,7 +19,7 @@ impl SummaryCommentSender {
     /// Creates comment.
     pub async fn create(
         &self,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
@@ -50,7 +50,7 @@ impl SummaryCommentSender {
     /// Update comment.
     pub async fn update(
         &self,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
@@ -107,7 +107,7 @@ impl SummaryCommentSender {
     /// Delete comment.
     pub async fn delete(
         &self,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
@@ -146,7 +146,7 @@ impl SummaryCommentSender {
 
     async fn post_github_comment(
         &self,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,

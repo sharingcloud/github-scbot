@@ -3,7 +3,7 @@
 use actix_web::HttpResponse;
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
-use github_scbot_ghapi::adapter::IAPIAdapter;
+use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_logic::pulls::{handle_pull_request_event, handle_pull_request_opened};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
@@ -21,7 +21,7 @@ pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent>
 
 pub(crate) async fn pull_request_event(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,

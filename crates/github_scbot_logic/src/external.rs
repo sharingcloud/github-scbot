@@ -1,7 +1,7 @@
 //! External module.
 
 use github_scbot_database2::{DbService, ExternalAccount};
-use github_scbot_ghapi::adapter::IAPIAdapter;
+use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::repository::RepositoryPath;
 
@@ -14,7 +14,7 @@ use crate::{
 #[allow(clippy::too_many_arguments)]
 #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter, account))]
 pub async fn set_qa_status_for_pull_requests(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     account: &ExternalAccount,

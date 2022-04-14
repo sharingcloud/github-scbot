@@ -12,9 +12,9 @@ use actix_web::{
 use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbPool, DbService, DbServiceImplPool, MockDbService};
-use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
-use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
+use github_scbot_database2::{DbPool, DbService, DbServiceImplPool};
+use github_scbot_ghapi::adapter::{GithubAPIAdapter, ApiService};
+use github_scbot_redis::{IRedisAdapter, RedisAdapter};
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -34,7 +34,7 @@ pub struct AppContext {
     /// Database pool.
     pub db_adapter: Box<dyn DbService>,
     /// API adapter
-    pub api_adapter: Box<dyn IAPIAdapter>,
+    pub api_adapter: Box<dyn ApiService>,
     /// Redis adapter
     pub redis_adapter: Box<dyn IRedisAdapter>,
 }
@@ -54,7 +54,7 @@ impl AppContext {
     pub fn new_with_adapters(
         config: Config,
         db_adapter: Box<dyn DbService>,
-        api_adapter: Box<dyn IAPIAdapter>,
+        api_adapter: Box<dyn ApiService>,
         redis_adapter: Box<dyn IRedisAdapter>,
     ) -> Self {
         Self {
@@ -62,16 +62,6 @@ impl AppContext {
             db_adapter,
             api_adapter,
             redis_adapter,
-        }
-    }
-
-    /// Create new dummy app context.
-    pub fn new_dummy(config: Config) -> Self {
-        Self {
-            config,
-            db_adapter: Box::new(MockDbService::new()),
-            api_adapter: Box::new(DummyAPIAdapter::new()),
-            redis_adapter: Box::new(DummyRedisAdapter::new()),
         }
     }
 }

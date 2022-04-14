@@ -4,7 +4,7 @@ use github_scbot_conf::Config;
 use rand::prelude::*;
 
 use crate::{
-    adapter::{GifFormat, GifResponse, IAPIAdapter},
+    adapter::{ApiService, GifFormat, GifResponse},
     Result,
 };
 
@@ -24,7 +24,7 @@ impl GifApi {
     /// Get random GIF from query.
     pub async fn random_gif_from_query(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         search: &str,
     ) -> Result<Option<String>> {
         Ok(Self::random_gif_from_response(

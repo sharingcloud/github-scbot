@@ -4,7 +4,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, labels::LabelApi};
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::{IRedisAdapter, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
@@ -34,7 +34,7 @@ pub enum PullRequestOpenedStatus {
 /// Handle pull request Opened event.
 pub async fn handle_pull_request_opened(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,
@@ -153,7 +153,7 @@ pub async fn handle_pull_request_opened(
 
 /// Handle GitHub pull request event.
 pub async fn handle_pull_request_event(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,
@@ -248,7 +248,7 @@ impl PullRequestLogic {
     /// Get checks status from GitHub.
     #[tracing::instrument(skip(api_adapter))]
     pub async fn get_checks_status_from_github(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         sha: &str,
@@ -409,7 +409,7 @@ impl PullRequestLogic {
     /// Try automerge pull request.
     #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn try_automerge_pull_request(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
@@ -484,7 +484,7 @@ impl PullRequestLogic {
     /// Apply pull request step.
     #[tracing::instrument(skip(api_adapter))]
     pub async fn apply_pull_request_step(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         owner: &str,
         name: &str,
         number: u64,
@@ -497,7 +497,7 @@ impl PullRequestLogic {
 
     /// Post welcome comment on a pull request.
     pub async fn post_welcome_comment(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,

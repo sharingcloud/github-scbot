@@ -1,7 +1,7 @@
 //! Checks logic.
 
 use github_scbot_database2::DbService;
-use github_scbot_ghapi::adapter::IAPIAdapter;
+use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::checks::GhCheckSuiteEvent;
 
@@ -9,7 +9,7 @@ use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub check syite event.
 pub async fn handle_check_suite_event(
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,

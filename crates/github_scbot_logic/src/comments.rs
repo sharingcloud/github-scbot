@@ -2,7 +2,7 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
-use github_scbot_ghapi::adapter::IAPIAdapter;
+use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
@@ -21,7 +21,7 @@ use crate::{
 /// Handle an issue comment event.
 pub async fn handle_issue_comment_event(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     event: GhIssueCommentEvent,
@@ -123,7 +123,7 @@ pub async fn handle_issue_comment_event(
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_comment_creation(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
     repo_owner: &str,

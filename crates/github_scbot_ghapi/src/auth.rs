@@ -9,7 +9,7 @@ use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
 
-use crate::{adapter::IAPIAdapter, ApiError, Result};
+use crate::{adapter::ApiService, ApiError, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -27,7 +27,7 @@ struct InstallationTokenResponse {
 /// Get an authenticated GitHub client builder.
 pub async fn get_authenticated_client_builder(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
 ) -> Result<ClientBuilder> {
     let builder = get_anonymous_client_builder(config)?;
     let token = get_authentication_credentials(config, api_adapter).await?;
@@ -68,7 +68,7 @@ pub fn build_github_url<T: Into<String>>(config: &Config, path: T) -> String {
 
 async fn get_authentication_credentials(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
 ) -> Result<String> {
     if config.github_api_token.is_empty() {
         create_installation_access_token(config, api_adapter).await
@@ -97,7 +97,7 @@ fn create_app_token(config: &Config) -> Result<String> {
 
 async fn create_installation_access_token(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
+    api_adapter: &dyn ApiService,
 ) -> Result<String> {
     let auth_token = create_app_token(config)?;
     api_adapter
@@ -109,8 +109,9 @@ async fn create_installation_access_token(
 mod tests {
     use github_scbot_crypto::{JwtUtils, RsaUtils};
 
+    use crate::adapter::MockApiService;
+
     use super::*;
-    use crate::adapter::DummyAPIAdapter;
 
     fn arrange_config() -> Config {
         let mut config = Config::from_env();
@@ -135,10 +136,12 @@ mod tests {
     #[actix_rt::test]
     async fn test_create_installation_access_token() {
         let config = arrange_config();
-        let mut adapter = DummyAPIAdapter::new();
+
+        let mut adapter = MockApiService::new();
         adapter
-            .installations_create_token_response
-            .set_callback(Box::new(|_| Ok("this-is-a-token".to_string())));
+            .expect_installations_create_token()
+            .times(1)
+            .returning(|_, _| Ok("this-is-a-token".into()));
 
         assert_eq!(
             create_installation_access_token(&config, &adapter)
@@ -146,16 +149,17 @@ mod tests {
                 .unwrap(),
             "this-is-a-token"
         );
-        assert!(adapter.installations_create_token_response.called());
     }
 
     #[actix_rt::test]
     async fn test_get_authentication_credentials() {
         let mut config = arrange_config();
-        let mut adapter = DummyAPIAdapter::new();
+
+        let mut adapter = MockApiService::new();
         adapter
-            .installations_create_token_response
-            .set_callback(Box::new(|_| Ok("token".to_string())));
+            .expect_installations_create_token()
+            .times(0)
+            .returning(|_, _| Ok("token".into()));
 
         // Should use api token
         assert_eq!(
@@ -164,9 +168,14 @@ mod tests {
                 .unwrap(),
             "123456"
         );
-        assert!(!adapter.installations_create_token_response.called());
 
         config.github_api_token = "".into();
+
+        let mut adapter = MockApiService::new();
+        adapter
+            .expect_installations_create_token()
+            .times(1)
+            .returning(|_, _| Ok("token".into()));
 
         // Should create installation access token
         assert_eq!(
@@ -175,19 +184,22 @@ mod tests {
                 .unwrap(),
             "token"
         );
-        assert!(adapter.installations_create_token_response.called());
     }
 
     #[actix_rt::test]
     async fn test_get_authenticated_client_builder() {
         let config = arrange_config();
-        let adapter = DummyAPIAdapter::new();
+
+        let mut adapter = MockApiService::new();
+        adapter
+            .expect_installations_create_token()
+            .times(0)
+            .returning(|_, _| Ok("token".into()));
+
         get_authenticated_client_builder(&config, &adapter)
             .await
             .unwrap()
             .build()
             .unwrap();
-
-        assert!(!adapter.installations_create_token_response.called());
     }
 }

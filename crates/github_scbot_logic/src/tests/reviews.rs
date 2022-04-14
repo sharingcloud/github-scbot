@@ -2,7 +2,6 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database2::Result;
-use github_scbot_ghapi::adapter::{DummyAPIAdapter, IAPIAdapter};
 use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::{GhUser, GhUserPermission},
@@ -39,7 +38,7 @@ use crate::{
 async fn test_review_creation() -> Result<()> {
     // async fn parse_and_execute_command(
     //     config: &Config,
-    //     api_adapter: &dyn IAPIAdapter,
+    //     api_adapter: &dyn ApiService,
     //     db_adapter: &dyn IDatabaseAdapter,
     //     redis_adapter: &dyn IRedisAdapter,
     //     repo: &mut RepositoryModel,

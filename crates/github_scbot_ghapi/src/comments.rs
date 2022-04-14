@@ -2,7 +2,7 @@
 
 use github_scbot_types::issues::GhReactionType;
 
-use crate::{adapter::IAPIAdapter, Result};
+use crate::{adapter::ApiService, Result};
 
 const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 
@@ -12,7 +12,7 @@ pub struct CommentApi;
 impl CommentApi {
     /// Post a comment to a pull request.
     pub async fn post_comment(
-        adapter: &dyn IAPIAdapter,
+        adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,
@@ -26,7 +26,7 @@ impl CommentApi {
 
     /// Update a pull request comment.
     pub async fn update_comment(
-        adapter: &dyn IAPIAdapter,
+        adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         comment_id: u64,
@@ -40,7 +40,7 @@ impl CommentApi {
 
     /// Add reaction emoji to comment.
     pub async fn add_reaction_to_comment(
-        adapter: &dyn IAPIAdapter,
+        adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         comment_id: u64,

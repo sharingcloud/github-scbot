@@ -14,9 +14,6 @@ use self::commands::{Command, CommandContext, SubCommand};
 mod commands;
 pub(crate) mod utils;
 
-#[cfg(test)]
-mod tests;
-
 /// command.
 #[derive(FromArgs)]
 #[argh(description = "SharingCloud PR Bot")]

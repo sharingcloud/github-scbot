@@ -13,7 +13,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    adapter::{GhReviewApi, GifResponse, IAPIAdapter},
+    adapter::{ApiService, GhReviewApi, GifResponse},
     auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
     ApiError, Result,
 };
@@ -46,7 +46,7 @@ impl GithubAPIAdapter {
 }
 
 #[async_trait(?Send)]
-impl IAPIAdapter for GithubAPIAdapter {
+impl ApiService for GithubAPIAdapter {
     #[tracing::instrument(skip(self))]
     async fn issue_labels_list(
         &self,

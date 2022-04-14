@@ -54,14 +54,28 @@ impl Command for AuthAddAccountRightCommand {
 mod tests {
     use std::str::FromStr;
 
+    use github_scbot_conf::Config;
+    use github_scbot_database2::MockDbService;
+    use github_scbot_ghapi::adapter::MockApiService;
+    use github_scbot_redis::DummyRedisAdapter;
     use github_scbot_types::repository::RepositoryPath;
 
     use super::AuthAddAccountRightCommand;
-    use crate::{commands::Command, tests::create_test_context};
+    use crate::commands::{Command, CommandContext};
 
     #[tokio::test]
     async fn test_command() {
-        let context = create_test_context();
+        let api_adapter = Box::new(MockApiService::new());
+        let db_adapter = Box::new(MockDbService::new());
+        let redis_adapter = Box::new(DummyRedisAdapter::new());
+
+        let context = CommandContext {
+            config: Config::from_env(),
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            no_input: true
+        };
 
         let command = AuthAddAccountRightCommand {
             username: "me".into(),

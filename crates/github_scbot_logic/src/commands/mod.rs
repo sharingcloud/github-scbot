@@ -6,7 +6,7 @@ mod parser;
 
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest};
 pub use handlers::handle_qa_command;
@@ -28,7 +28,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_commands(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
         repo_owner: &str,
@@ -92,7 +92,7 @@ impl CommandExecutor {
 
     /// Process command result.
     pub async fn process_command_result(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
         repo_owner: &str,
@@ -198,7 +198,7 @@ impl CommandExecutor {
     #[allow(clippy::too_many_lines)]
     pub async fn execute_command(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
@@ -479,7 +479,6 @@ impl CommandExecutor {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_ghapi::adapter::DummyAPIAdapter;
     use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
 

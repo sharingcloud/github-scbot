@@ -1,5 +1,5 @@
 use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
-use github_scbot_ghapi::adapter::{GhReviewApi, GhReviewStateApi, IAPIAdapter};
+use github_scbot_ghapi::adapter::{GhReviewApi, GhReviewStateApi, ApiService};
 use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
@@ -47,7 +47,7 @@ impl PullRequestStatus {
     /// Create status from pull request and database.
     #[tracing::instrument(skip(api_adapter, db_adapter))]
     pub async fn from_database(
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,

@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use github_scbot_types::labels::StepLabel;
 
-use crate::{adapter::IAPIAdapter, Result};
+use crate::{adapter::ApiService, Result};
 
 /// Label API.
 pub struct LabelApi;
@@ -30,7 +30,7 @@ impl LabelApi {
 
     /// Apply or remove a step label on a pull request.
     pub async fn set_step_label(
-        adapter: &dyn IAPIAdapter,
+        adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,
@@ -58,7 +58,7 @@ mod tests {
     use github_scbot_types::labels::StepLabel;
 
     use super::*;
-    use crate::{adapter::DummyAPIAdapter, Result};
+    use crate::{adapter::MockApiService, Result};
 
     #[test]
     fn test_add_step_in_existing_labels() {
@@ -95,7 +95,15 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_set_step_label() -> Result<()> {
-        let adapter = DummyAPIAdapter::new();
+        let mut adapter = MockApiService::new();
+        adapter
+            .expect_issue_labels_list()
+            .times(1)
+            .returning(|_, _, _| Ok(vec![]));
+        adapter
+            .expect_issue_labels_replace_all()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
 
         LabelApi::set_step_label(&adapter, "owner", "name", 1, None).await?;
 

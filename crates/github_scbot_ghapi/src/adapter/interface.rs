@@ -106,8 +106,9 @@ pub struct GifResponse {
 }
 
 /// GitHub API Adapter interface
+#[mockall::automock]
 #[async_trait(?Send)]
-pub trait IAPIAdapter: Send + Sync {
+pub trait ApiService: Send + Sync {
     /// List labels from a target issue.
     async fn issue_labels_list(
         &self,

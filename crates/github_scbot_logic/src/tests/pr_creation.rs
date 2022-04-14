@@ -1,4 +1,3 @@
-use github_scbot_ghapi::adapter::DummyAPIAdapter;
 use github_scbot_redis::{DummyRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::{GhRepository, GhUser},

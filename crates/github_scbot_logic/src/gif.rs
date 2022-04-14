@@ -1,7 +1,7 @@
 //! Gif logic module.
 
 use github_scbot_conf::Config;
-use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi, gif::GifApi};
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, gif::GifApi};
 
 use crate::Result;
 
@@ -12,7 +12,7 @@ impl GifPoster {
     /// Post random GIF comment.
     pub async fn post_random_gif_comment(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         owner: &str,
         name: &str,
         number: u64,
@@ -27,7 +27,7 @@ impl GifPoster {
     /// Generate random GIF comment.
     pub async fn generate_random_gif_comment(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
+        api_adapter: &dyn ApiService,
         search_terms: &str,
     ) -> Result<String> {
         let random_gif = GifApi::random_gif_from_query(config, api_adapter, search_terms).await?;
