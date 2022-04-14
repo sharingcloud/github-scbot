@@ -1,4 +1,4 @@
-use github_scbot_database2::{DbService, PullRequest, Repository};
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_types::pulls::GhPullRequest;
 use tracing::warn;
@@ -21,15 +21,17 @@ impl SummaryCommentSender {
         &self,
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
         let pull_request_status = PullRequestStatus::from_database(
             api_adapter,
             db_adapter,
-            repo_model,
-            pr_model,
+            repo_owner,
+            repo_name,
+            pr_number,
             upstream_pr,
         )
         .await?;
@@ -37,9 +39,9 @@ impl SummaryCommentSender {
         self.post_github_comment(
             api_adapter,
             db_adapter,
-            repo_model.owner(),
-            repo_model.name(),
-            pr_model.number(),
+            repo_owner,
+            repo_name,
+            pr_number,
             &status_comment,
         )
         .await
@@ -50,30 +52,29 @@ impl SummaryCommentSender {
         &self,
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<u64> {
         let pull_request_status = PullRequestStatus::from_database(
             api_adapter,
             db_adapter,
-            repo_model,
-            pr_model,
+            repo_owner,
+            repo_name,
+            pr_number,
             upstream_pr,
         )
         .await?;
         let status_comment = Self::generate_comment(&pull_request_status)?;
 
-        let owner = repo_model.owner();
-        let name = repo_model.name();
-        let number = pr_model.number();
-
-        let comment_id = Self::get_status_comment_id(db_adapter, owner, name, number).await?;
+        let comment_id =
+            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
         if comment_id > 0 {
             if let Ok(comment_id) = CommentApi::update_comment(
                 api_adapter,
-                repo_model.owner(),
-                repo_model.name(),
+                repo_owner,
+                repo_name,
                 comment_id,
                 &status_comment,
             )
@@ -85,9 +86,9 @@ impl SummaryCommentSender {
                 self.post_github_comment(
                     api_adapter,
                     db_adapter,
-                    repo_model.owner(),
-                    repo_model.name(),
-                    pr_model.number(),
+                    repo_owner,
+                    repo_name,
+                    pr_number,
                     &status_comment,
                 )
                 .await
@@ -110,11 +111,11 @@ impl SummaryCommentSender {
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
-        number: u64,
+        pr_number: u64,
     ) -> Result<()> {
         // Re-fetch comment ID
         let comment_id =
-            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, number).await?;
+            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
 
         if comment_id > 0 {
             api_adapter
@@ -127,13 +128,13 @@ impl SummaryCommentSender {
 
     async fn get_status_comment_id(
         db_adapter: &dyn DbService,
-        owner: &str,
-        name: &str,
-        number: u64,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
     ) -> Result<u64> {
         Ok(db_adapter
             .pull_requests()
-            .get(owner, name, number)
+            .get(repo_owner, repo_name, pr_number)
             .await?
             .map(|pr| pr.status_comment_id())
             .unwrap_or(0))

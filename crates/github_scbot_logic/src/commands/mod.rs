@@ -5,7 +5,7 @@ mod handlers;
 mod parser;
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, PullRequest, Repository};
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::{adapter::IAPIAdapter, comments::CommentApi};
 use github_scbot_redis::IRedisAdapter;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest};
@@ -31,8 +31,9 @@ impl CommandExecutor {
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
         comment_id: u64,
         comment_author: &str,
@@ -48,8 +49,9 @@ impl CommandExecutor {
                             config,
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             upstream_pr,
                             comment_author,
                             command,
@@ -76,8 +78,9 @@ impl CommandExecutor {
             api_adapter,
             db_adapter,
             redis_adapter,
-            repo_model,
-            pr_model,
+            repo_owner,
+            repo_name,
+            pr_number,
             upstream_pr,
             comment_id,
             &command_result,
@@ -92,8 +95,9 @@ impl CommandExecutor {
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
         redis_adapter: &dyn IRedisAdapter,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
         comment_id: u64,
         command_result: &CommandExecutionResult,
@@ -103,8 +107,9 @@ impl CommandExecutor {
                 api_adapter,
                 db_adapter,
                 redis_adapter,
-                repo_model,
-                pr_model,
+                repo_owner,
+                repo_name,
+                pr_number,
                 &upstream_pr,
             )
             .await?;
@@ -115,8 +120,8 @@ impl CommandExecutor {
                 ResultAction::AddReaction(reaction) => {
                     CommentApi::add_reaction_to_comment(
                         api_adapter,
-                        repo_model.owner(),
-                        repo_model.name(),
+                        repo_owner,
+                        repo_name,
                         comment_id,
                         *reaction,
                     )
@@ -125,9 +130,9 @@ impl CommandExecutor {
                 ResultAction::PostComment(comment) => {
                     CommentApi::post_comment(
                         api_adapter,
-                        repo_model.owner(),
-                        repo_model.name(),
-                        pr_model.number(),
+                        repo_owner,
+                        repo_name,
+                        pr_number,
                         comment,
                     )
                     .await?;
@@ -195,21 +200,19 @@ impl CommandExecutor {
         config: &Config,
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
         comment_author: &str,
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
-        let repo_owner = repo_model.owner();
-        let repo_name = repo_model.name();
-        let pr_number = pr_model.number();
 
         info!(
             command = ?command,
             comment_author = comment_author,
-            repository_path = %repo_model.path(),
+            repository_path = %format!("{repo_owner}/{repo_name}"),
             pull_request_number = pr_number,
             message = "Interpreting command"
         );
@@ -284,8 +287,9 @@ impl CommandExecutor {
                         handlers::handle_merge_command(
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             upstream_pr,
                             comment_author,
                             *strategy,
@@ -384,9 +388,10 @@ impl CommandExecutor {
                         handlers::handle_admin_reset_summary_command(
                             api_adapter,
                             db_adapter,
-                            repo_model,
-                            pr_model,
-                            upstream_pr
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            upstream_pr,
                         )
                         .await?
                     }

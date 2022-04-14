@@ -40,14 +40,19 @@ pub async fn handle_pull_request_opened(
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
     // Get or create repository
-    let owner = &event.repository.owner.login;
-    let name = &event.repository.name;
-    let number = event.pull_request.number;
+    let repo_owner = &event.repository.owner.login;
+    let repo_name = &event.repository.name;
+    let pr_number = event.pull_request.number;
 
     let repo_model =
-        PullRequestLogic::get_or_create_repository(config, db_adapter, owner, name).await?;
+        PullRequestLogic::get_or_create_repository(config, db_adapter, repo_owner, repo_name)
+            .await?;
 
-    match db_adapter.pull_requests().get(owner, name, number).await? {
+    match db_adapter
+        .pull_requests()
+        .get(repo_owner, repo_name, pr_number)
+        .await?
+    {
         Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
         None => {
             if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
@@ -75,8 +80,8 @@ pub async fn handle_pull_request_opened(
                     let check_status = if repo_model.default_enable_checks() {
                         PullRequestLogic::get_checks_status_from_github(
                             api_adapter,
-                            repo_model.owner(),
-                            repo_model.name(),
+                            repo_owner,
+                            repo_name,
                             &upstream_pr.head.sha,
                             &[],
                         )
@@ -95,9 +100,9 @@ pub async fn handle_pull_request_opened(
                     StatusLogic::create_initial_pull_request_status(
                         api_adapter,
                         db_adapter,
-                        &repo_model,
-                        &pr_model,
-                        &event.pull_request.head.sha,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
                         &upstream_pr,
                     )
                     .await?;
@@ -105,8 +110,9 @@ pub async fn handle_pull_request_opened(
                     if config.server_enable_welcome_comments {
                         PullRequestLogic::post_welcome_comment(
                             api_adapter,
-                            &repo_model,
-                            &pr_model,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             &event.pull_request.user.login,
                         )
                         .await?;
@@ -124,8 +130,9 @@ pub async fn handle_pull_request_opened(
                         api_adapter,
                         db_adapter,
                         redis_adapter,
-                        &repo_model,
-                        &pr_model,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
                         &upstream_pr,
                         0,
                         &event.pull_request.user.login,
@@ -151,19 +158,19 @@ pub async fn handle_pull_request_event(
     redis_adapter: &dyn IRedisAdapter,
     event: GhPullRequestEvent,
 ) -> Result<()> {
-    let owner = &event.repository.owner.login;
-    let name = &event.repository.name;
+    let repo_owner = &event.repository.owner.login;
+    let repo_name = &event.repository.name;
 
     let pr_model = match db_adapter
         .pull_requests()
-        .get(owner, name, event.pull_request.number)
+        .get(repo_owner, repo_name, event.pull_request.number)
         .await?
     {
         Some(pr) => pr,
         None => return Ok(()),
     };
 
-    let repo_model = db_adapter.repositories().get(owner, name).await?.unwrap();
+    let pr_number = pr_model.number();
     let mut status_changed = false;
 
     // Status update
@@ -194,15 +201,16 @@ pub async fn handle_pull_request_event(
 
     if status_changed {
         let upstream_pr = api_adapter
-            .pulls_get(owner, name, pr_model.number())
+            .pulls_get(repo_owner, repo_name, pr_number)
             .await?;
 
         StatusLogic::update_pull_request_status(
             api_adapter,
             db_adapter,
             redis_adapter,
-            &repo_model,
-            &pr_model,
+            repo_owner,
+            repo_name,
+            pr_number,
             &upstream_pr,
         )
         .await?;
@@ -284,6 +292,7 @@ impl PullRequestLogic {
         }
     }
 
+    /// Get or create repository.
     pub async fn get_or_create_repository(
         config: &Config,
         db_adapter: &dyn DbService,
@@ -399,6 +408,7 @@ impl PullRequestLogic {
         Ok((pr, upstream_pr.head.sha))
     }
 
+    /// Get merge commit title.
     pub fn get_merge_commit_title(upstream_pr: &GhPullRequest) -> String {
         format!("{} (#{})", upstream_pr.title, upstream_pr.number)
     }
@@ -408,30 +418,42 @@ impl PullRequestLogic {
     pub async fn try_automerge_pull_request(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<bool> {
+        let repository = db_adapter
+            .repositories()
+            .get(repo_owner, repo_name)
+            .await?
+            .unwrap();
+        let pull_request = db_adapter
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
+            .unwrap();
+
         let commit_title = Self::get_merge_commit_title(upstream_pr);
-        let strategy = if let Some(s) = pr_model.strategy_override() {
+        let strategy = if let Some(s) = pull_request.strategy_override() {
             *s
         } else {
             PullRequestStatus::get_strategy_from_branches(
                 db_adapter,
-                repo_model.owner(),
-                repo_model.name(),
+                repo_owner,
+                repo_name,
                 &upstream_pr.base.reference,
                 &upstream_pr.head.reference,
-                repo_model.default_strategy(),
+                repository.default_strategy(),
             )
             .await?
         };
 
         if let Err(e) = api_adapter
             .pulls_merge(
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.number(),
+                repo_owner,
+                repo_name,
+                pr_number,
                 &commit_title,
                 "",
                 strategy,
@@ -440,9 +462,9 @@ impl PullRequestLogic {
         {
             CommentApi::post_comment(
                 api_adapter,
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.number(),
+                repo_owner,
+                repo_name,
+                pr_number,
                 &format!(
                     "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
                     e
@@ -453,9 +475,9 @@ impl PullRequestLogic {
         } else {
             CommentApi::post_comment(
                 api_adapter,
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.number(),
+                repo_owner,
+                repo_name,
+                pr_number,
                 &format!(
                     "Pull request successfully auto-merged! (strategy: '{}')",
                     strategy.to_string()
@@ -483,15 +505,16 @@ impl PullRequestLogic {
     /// Post welcome comment on a pull request.
     pub async fn post_welcome_comment(
         api_adapter: &dyn IAPIAdapter,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         pr_author: &str,
     ) -> Result<()> {
         CommentApi::post_comment(
             api_adapter,
-            repo_model.owner(),
-            repo_model.name(),
-            pr_model.number(),
+            repo_owner,
+            repo_name,
+            pr_number,
             &format!(
                 ":tada: Welcome, _{}_ ! :tada:\n\
             Thanks for your pull request, it will be reviewed soon. :clock2:",

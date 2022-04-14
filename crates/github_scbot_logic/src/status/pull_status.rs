@@ -49,13 +49,21 @@ impl PullRequestStatus {
     pub async fn from_database(
         api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
-        repo_model: &Repository,
-        pr_model: &PullRequest,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
-        let repo_owner = repo_model.owner();
-        let repo_name = repo_model.name();
-        let pr_number = upstream_pr.number;
+        let repo_model = db_adapter
+            .repositories()
+            .get(repo_owner, repo_name)
+            .await?
+            .unwrap();
+        let pr_model = db_adapter
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
+            .unwrap();
 
         let upstream_reviews = api_adapter
             .pull_reviews_list(repo_owner, repo_name, pr_number)
@@ -90,8 +98,8 @@ impl PullRequestStatus {
         };
 
         Self::from_pull_request(
-            repo_model,
-            pr_model,
+            &repo_model,
+            &pr_model,
             strategy,
             required_reviewers,
             checks_status,
@@ -102,7 +110,7 @@ impl PullRequestStatus {
 
     /// Create status from pull request.
     #[tracing::instrument]
-    pub fn from_pull_request(
+    fn from_pull_request(
         repo_model: &Repository,
         pr_model: &PullRequest,
         strategy: GhMergeStrategy,
@@ -158,10 +166,12 @@ impl PullRequestStatus {
         })
     }
 
+    /// Get checks url.
     pub fn get_checks_url(owner: &str, name: &str, number: u64) -> String {
         format!("https://github.com/{owner}/{name}/pull/{number}/checks")
     }
 
+    /// Check if a reviewer is required.
     pub fn is_required_reviewer(required_reviewers: &[RequiredReviewer], username: &str) -> bool {
         required_reviewers
             .iter()
@@ -169,6 +179,7 @@ impl PullRequestStatus {
             .is_some()
     }
 
+    /// Get merge strategy for base and head branches.
     pub async fn get_strategy_from_branches(
         db_adapter: &dyn DbService,
         owner: &str,

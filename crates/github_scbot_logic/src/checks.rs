@@ -14,14 +14,16 @@ pub async fn handle_check_suite_event(
     redis_adapter: &dyn IRedisAdapter,
     event: GhCheckSuiteEvent,
 ) -> Result<()> {
-    let owner = &event.repository.owner.login;
-    let name = &event.repository.name;
+    let repo_owner = &event.repository.owner.login;
+    let repo_name = &event.repository.name;
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
+        let pr_number = gh_pr.number;
+
         if let Some(pr_model) = db_adapter
             .pull_requests()
-            .get(owner, name, gh_pr.number)
+            .get(repo_owner, repo_name, pr_number)
             .await?
         {
             // Skip non Github Actions checks
@@ -39,10 +41,8 @@ pub async fn handle_check_suite_event(
                 return Ok(());
             }
 
-            // Unwrap: Repo should exist.
-            let repo_model = db_adapter.repositories().get(owner, name).await?.unwrap();
             let upstream_pr = api_adapter
-                .pulls_get(owner, name, pr_model.number())
+                .pulls_get(repo_owner, repo_name, pr_number)
                 .await?;
 
             // Update status
@@ -50,8 +50,9 @@ pub async fn handle_check_suite_event(
                 api_adapter,
                 db_adapter,
                 redis_adapter,
-                &repo_model,
-                &pr_model,
+                repo_owner,
+                repo_name,
+                pr_number,
                 &upstream_pr,
             )
             .await?;

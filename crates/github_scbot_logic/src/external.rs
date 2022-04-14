@@ -23,25 +23,33 @@ pub async fn set_qa_status_for_pull_requests(
     author: &str,
     status: Option<bool>,
 ) -> Result<()> {
-    let (owner, name) = repository_path.components();
+    let (repo_owner, repo_name) = repository_path.components();
     if let Some(_) = db_adapter
         .external_account_rights()
-        .get(owner, name, account.username())
+        .get(repo_owner, repo_name, account.username())
         .await?
     {
-        for pr_num in pull_request_numbers {
-            if let Some(pr) = db_adapter.pull_requests().get(owner, name, *pr_num).await? {
-                let repo = db_adapter.repositories().get(owner, name).await?.unwrap();
-                let result =
-                    handle_qa_command(db_adapter, owner, name, *pr_num, author, status).await?;
-                let upstream_pr = api_adapter.pulls_get(owner, name, *pr_num).await?;
+        for pr_number in pull_request_numbers {
+            if let Some(_) = db_adapter
+                .pull_requests()
+                .get(repo_owner, repo_name, *pr_number)
+                .await?
+            {
+                let result = handle_qa_command(
+                    db_adapter, repo_owner, repo_name, *pr_number, author, status,
+                )
+                .await?;
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_owner, repo_name, *pr_number)
+                    .await?;
 
                 CommandExecutor::process_command_result(
                     api_adapter,
                     db_adapter,
                     redis_adapter,
-                    &repo,
-                    &pr,
+                    repo_owner,
+                    repo_name,
+                    *pr_number,
                     &upstream_pr,
                     0,
                     &result,

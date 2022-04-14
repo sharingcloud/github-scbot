@@ -1,5 +1,5 @@
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
+use github_scbot_database2::{DbService, RequiredReviewer};
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_types::{
     issues::GhReactionType,
@@ -47,22 +47,20 @@ pub async fn handle_auto_merge_command(
 pub async fn handle_merge_command(
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
-    repo_model: &Repository,
-    pr_model: &PullRequest,
+    repo_owner: &str,
+    repo_name: &str,
+    pr_number: u64,
     upstream_pr: &GhPullRequest,
     comment_author: &str,
     merge_strategy: Option<GhMergeStrategy>,
 ) -> Result<CommandExecutionResult> {
-    let owner = repo_model.owner();
-    let name = repo_model.name();
-    let number = pr_model.number();
-
     // Use step to determine merge possibility
     let pr_status = PullRequestStatus::from_database(
         api_adapter,
         db_adapter,
-        repo_model,
-        pr_model,
+        repo_owner,
+        repo_name,
+        pr_number,
         &upstream_pr,
     )
     .await?;
@@ -73,9 +71,9 @@ pub async fn handle_merge_command(
     if step == StepLabel::AwaitingMerge {
         if let Err(e) = api_adapter
             .pulls_merge(
-                owner,
-                name,
-                pr_model.number(),
+                repo_owner,
+                repo_name,
+                pr_number,
                 &commit_title,
                 "",
                 merge_strategy.unwrap_or(pr_status.merge_strategy),
@@ -154,13 +152,21 @@ pub async fn handle_admin_sync_command(
 pub async fn handle_admin_reset_summary_command(
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
-    repo_model: &Repository,
-    pr_model: &PullRequest,
+    repo_owner: &str,
+    repo_name: &str,
+    pr_number: u64,
     upstream_pr: &GhPullRequest,
 ) -> Result<CommandExecutionResult> {
     let sender = SummaryCommentSender::new();
     sender
-        .create(api_adapter, db_adapter, repo_model, pr_model, &upstream_pr)
+        .create(
+            api_adapter,
+            db_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            &upstream_pr,
+        )
         .await?;
 
     Ok(CommandExecutionResult::builder()

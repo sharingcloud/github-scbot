@@ -14,31 +14,27 @@ pub async fn handle_review_event(
     redis_adapter: &dyn IRedisAdapter,
     event: GhReviewEvent,
 ) -> Result<()> {
+    let repo_owner = &event.repository.owner.login;
+    let repo_name = &event.repository.name;
+    let pr_number = event.pull_request.number;
+
     // Detect required reviews
-    if let Some(pr) = db_adapter
+    if let Some(_) = db_adapter
         .pull_requests()
-        .get(
-            &event.repository.owner.login,
-            &event.repository.name,
-            event.pull_request.number,
-        )
+        .get(repo_owner, repo_name, pr_number)
         .await?
     {
-        let repo = db_adapter
-            .repositories()
-            .get(&event.repository.owner.login, &event.repository.name)
-            .await?
-            .unwrap();
         let upstream_pr = api_adapter
-            .pulls_get(repo.owner(), repo.name(), pr.number())
+            .pulls_get(repo_owner, repo_name, pr_number)
             .await?;
 
         StatusLogic::update_pull_request_status(
             api_adapter,
             db_adapter,
             redis_adapter,
-            &repo,
-            &pr,
+            repo_owner,
+            repo_name,
+            pr_number,
             &upstream_pr,
         )
         .await?;

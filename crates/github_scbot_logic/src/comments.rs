@@ -1,10 +1,13 @@
 //! Comments logic.
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{DbService, PullRequest, Repository};
+use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::IAPIAdapter;
 use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::{issues::{GhIssueCommentAction, GhIssueCommentEvent}, pulls::GhPullRequest};
+use github_scbot_types::{
+    issues::{GhIssueCommentAction, GhIssueCommentEvent},
+    pulls::GhPullRequest,
+};
 use tracing::info;
 
 use crate::{
@@ -38,20 +41,15 @@ pub async fn handle_issue_comment_event(
             .get(repo_owner, repo_name, pr_number)
             .await?
         {
-            Some(p) => {
-                let repo = db_adapter
-                    .repositories()
-                    .get(repo_owner, repo_name)
-                    .await?
-                    .unwrap();
-
+            Some(_) => {
                 handle_comment_creation(
                     config,
                     api_adapter,
                     db_adapter,
                     redis_adapter,
-                    &repo,
-                    &p,
+                    repo_owner,
+                    repo_name,
+                    pr_number,
                     &upstream_pr,
                     &event,
                     commands,
@@ -59,21 +57,16 @@ pub async fn handle_issue_comment_event(
                 .await?
             }
             None => {
-                let repo_model = PullRequestLogic::get_or_create_repository(
-                    config, db_adapter, repo_owner, repo_name,
-                )
-                .await?;
-
                 // Parse admin enable
                 let mut handled = false;
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
-                        let (pr, _sha) = PullRequestLogic::synchronize_pull_request(
+                        PullRequestLogic::synchronize_pull_request(
                             config,
                             api_adapter,
                             db_adapter,
-                            &repo_owner,
-                            &repo_name,
+                            repo_owner,
+                            repo_name,
                             pr_number,
                         )
                         .await?;
@@ -88,15 +81,23 @@ pub async fn handle_issue_comment_event(
                             api_adapter,
                             db_adapter,
                             redis_adapter,
-                            &repo_model,
-                            &pr,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
                             &upstream_pr,
                         )
                         .await?;
 
                         // Create status comment
                         SummaryCommentSender::new()
-                            .create(api_adapter, db_adapter, &repo_model, &pr, &upstream_pr)
+                            .create(
+                                api_adapter,
+                                db_adapter,
+                                repo_owner,
+                                repo_name,
+                                pr_number,
+                                &upstream_pr,
+                            )
                             .await?;
 
                         handled = true;
@@ -126,8 +127,9 @@ pub async fn handle_comment_creation(
     api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn IRedisAdapter,
-    repo_model: &Repository,
-    pr_model: &PullRequest,
+    repo_owner: &str,
+    repo_name: &str,
+    pr_number: u64,
     upstream_pr: &GhPullRequest,
     event: &GhIssueCommentEvent,
     commands: Vec<CommandResult<Command>>,
@@ -137,8 +139,8 @@ pub async fn handle_comment_creation(
 
     info!(
         commands = ?commands,
-        repository_path = %repo_model.path(),
-        pull_request_number = pr_model.number(),
+        repository_path = %format!("{repo_owner}/{repo_name}"),
+        pull_request_number = pr_number,
         message = "Will execute commands",
     );
 
@@ -147,8 +149,9 @@ pub async fn handle_comment_creation(
         api_adapter,
         db_adapter,
         redis_adapter,
-        repo_model,
-        pr_model,
+        repo_owner,
+        repo_name,
+        pr_number,
         upstream_pr,
         comment_id,
         comment_author,

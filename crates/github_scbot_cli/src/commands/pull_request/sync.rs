@@ -22,33 +22,31 @@ pub(crate) struct PullRequestSyncCommand {
 #[async_trait(?Send)]
 impl Command for PullRequestSyncCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let (owner, name) = self.repository_path.components();
+        let (repo_owner, repo_name) = self.repository_path.components();
+        let pr_number = self.number;
 
-        let (pr, _sha) = PullRequestLogic::synchronize_pull_request(
+        PullRequestLogic::synchronize_pull_request(
             &ctx.config,
             ctx.api_adapter.as_ref(),
             ctx.db_adapter.as_ref(),
-            owner,
-            name,
-            self.number,
+            repo_owner,
+            repo_name,
+            pr_number,
         )
         .await?;
 
-        let upstream_pr = ctx.api_adapter.pulls_get(owner, name, self.number).await?;
-
-        let repo = ctx
-            .db_adapter
-            .repositories()
-            .get(owner, name)
-            .await?
-            .unwrap();
+        let upstream_pr = ctx
+            .api_adapter
+            .pulls_get(repo_owner, repo_name, pr_number)
+            .await?;
 
         StatusLogic::update_pull_request_status(
             ctx.api_adapter.as_ref(),
             ctx.db_adapter.as_ref(),
             ctx.redis_adapter.as_ref(),
-            &repo,
-            &pr,
+            repo_owner,
+            repo_name,
+            pr_number,
             &upstream_pr,
         )
         .await?;
