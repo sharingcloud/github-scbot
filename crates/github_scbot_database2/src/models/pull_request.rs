@@ -79,7 +79,7 @@ impl<'r> FromRow<'r, PgRow> for PullRequest {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait PullRequestDB {
     async fn create(&mut self, instance: PullRequest) -> Result<PullRequest>;
     async fn update(&mut self, instance: PullRequest) -> Result<PullRequest>;

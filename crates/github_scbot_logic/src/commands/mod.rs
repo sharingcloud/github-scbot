@@ -375,12 +375,7 @@ impl CommandExecutor {
                     }
                     AdminCommand::Synchronize => {
                         handlers::handle_admin_sync_command(
-                            config,
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
+                            config, db_adapter, repo_owner, repo_name, pr_number,
                         )
                         .await?
                     }

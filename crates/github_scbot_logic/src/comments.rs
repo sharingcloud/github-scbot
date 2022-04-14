@@ -32,16 +32,16 @@ pub async fn handle_issue_comment_event(
         let pr_number = event.issue.number;
 
         let commands = CommandParser::parse_commands(config, &event.comment.body);
-        let upstream_pr = api_adapter
-            .pulls_get(repo_owner, repo_name, pr_number)
-            .await?;
-
         match db_adapter
             .pull_requests()
             .get(repo_owner, repo_name, pr_number)
             .await?
         {
             Some(_) => {
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_owner, repo_name, pr_number)
+                    .await?;
+
                 handle_comment_creation(
                     config,
                     api_adapter,
@@ -61,13 +61,12 @@ pub async fn handle_issue_comment_event(
                 let mut handled = false;
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
+                        let upstream_pr = api_adapter
+                            .pulls_get(repo_owner, repo_name, pr_number)
+                            .await?;
+
                         PullRequestLogic::synchronize_pull_request(
-                            config,
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
+                            config, db_adapter, repo_owner, repo_name, pr_number,
                         )
                         .await?;
 

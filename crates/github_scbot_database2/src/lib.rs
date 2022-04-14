@@ -18,7 +18,7 @@ pub use models::external_account_right::{
 };
 pub use models::merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
 pub use models::pull_request::{
-    PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
+    MockPullRequestDB, PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
 };
 pub use models::repository::{Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool};
 pub use models::required_reviewer::{

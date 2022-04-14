@@ -27,7 +27,6 @@ impl Command for PullRequestSyncCommand {
 
         PullRequestLogic::synchronize_pull_request(
             &ctx.config,
-            ctx.api_adapter.as_ref(),
             ctx.db_adapter.as_ref(),
             repo_owner,
             repo_name,

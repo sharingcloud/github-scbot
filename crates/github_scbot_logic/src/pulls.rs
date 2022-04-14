@@ -367,45 +367,38 @@ impl PullRequestLogic {
             })
     }
 
-    /// Synchronize pull request from upstream.
-    #[tracing::instrument(skip(config, api_adapter, db_adapter))]
+    /// Ensure repository & pull request creation.
+    #[tracing::instrument(skip(config, db_adapter))]
     pub async fn synchronize_pull_request(
         config: &Config,
-        api_adapter: &dyn IAPIAdapter,
         db_adapter: &dyn DbService,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,
-    ) -> Result<(PullRequest, String)> {
-        // Get upstream pull request
-        let upstream_pr = api_adapter
-            .pulls_get(repository_owner, repository_name, pr_number)
-            .await?;
-
+    ) -> Result<()> {
         let repo =
             Self::get_or_create_repository(config, db_adapter, repository_owner, repository_name)
                 .await?;
-        let pr = match db_adapter
+
+        if db_adapter
             .pull_requests()
             .get(repository_owner, repository_name, pr_number)
             .await?
+            .is_none()
         {
-            Some(pr) => pr,
-            None => {
-                db_adapter
-                    .pull_requests()
-                    .create(
-                        PullRequest::builder()
-                            .from_repository(&repo)
-                            .number(pr_number)
-                            .build()
-                            .unwrap(),
-                    )
-                    .await?
-            }
-        };
+            db_adapter
+                .pull_requests()
+                .create(
+                    PullRequest::builder()
+                        .from_repository(&repo)
+                        .number(pr_number)
+                        .build()
+                        .unwrap(),
+                )
+                .await?;
+        }
 
-        Ok((pr, upstream_pr.head.sha))
+        Ok(())
     }
 
     /// Get merge commit title.

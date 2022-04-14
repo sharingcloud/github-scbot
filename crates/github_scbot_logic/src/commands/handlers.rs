@@ -127,21 +127,13 @@ pub async fn handle_is_admin_command(
 /// Handle `AdminSync` command.
 pub async fn handle_admin_sync_command(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
     db_adapter: &dyn DbService,
     repo_owner: &str,
     repo_name: &str,
     number: u64,
 ) -> Result<CommandExecutionResult> {
-    let _ = PullRequestLogic::synchronize_pull_request(
-        config,
-        api_adapter,
-        db_adapter,
-        repo_owner,
-        repo_name,
-        number,
-    )
-    .await?;
+    PullRequestLogic::synchronize_pull_request(config, db_adapter, repo_owner, repo_name, number)
+        .await?;
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
@@ -820,36 +812,62 @@ pub fn handle_admin_help_command(
 
 #[cfg(test)]
 mod tests {
+    use futures_util::FutureExt;
+    use github_scbot_database2::{MockDbService, MockPullRequestDB, PullRequest};
     use github_scbot_ghapi::{
         adapter::{DummyAPIAdapter, GifFormat, GifObject, GifResponse, MediaObject},
         ApiError,
     };
     use github_scbot_types::{common::GhUserPermission, pulls::GhPullRequest};
     use maplit::hashmap;
+    use mockall::predicate;
 
     use super::*;
     use crate::commands::command::CommandHandlingStatus;
 
     #[actix_rt::test]
     async fn test_handle_auto_merge_command() -> Result<()> {
-        // let adapter = DummyDatabaseAdapter::new();
-        // let mut pr_model = PullRequestModel::default();
-        // let update = pr_model.create_update().automerge(false).build_update();
-        // adapter.pull_request().update(&mut pr_model, update).await?;
+        let mut mock = Box::new(MockDbService::new());
+        mock.expect_pull_requests().times(1).returning(move || {
+            let mut pr = Box::new(MockPullRequestDB::new());
+            pr.expect_set_automerge()
+                .times(1)
+                .with(
+                    predicate::eq("me"),
+                    predicate::eq("me"),
+                    predicate::eq(1),
+                    predicate::eq(true),
+                )
+                .returning(|_, _, _, _| async { Ok(PullRequest::default()) }.boxed());
+            pr
+        });
 
-        // // Automerge should be enabled
-        // let result = handle_auto_merge_command(&adapter, &mut pr_model, "me", true).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
-        // assert!(pr_model.automerge());
+        // Automerge should be enabled
+        let result = handle_auto_merge_command(mock.as_ref(), "me", "me", 1, "me", true).await?;
+        assert!(result.should_update_status);
+        assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
 
-        // // Automerge should be disabled
-        // handle_auto_merge_command(&adapter, &mut pr_model, "me", false).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
-        // assert!(!pr_model.automerge());
-        // Ok(())
-        todo!()
+        let mut mock = Box::new(MockDbService::new());
+        mock.expect_pull_requests().times(1).returning(move || {
+            let mut pr = Box::new(MockPullRequestDB::new());
+            pr.expect_set_automerge()
+                .times(1)
+                .with(
+                    predicate::eq("me"),
+                    predicate::eq("me"),
+                    predicate::eq(1),
+                    predicate::eq(false),
+                )
+                .returning(|_, _, _, _| async { Ok(PullRequest::default()) }.boxed());
+            pr
+        });
+
+        // Automerge should be disabled
+        let result = handle_auto_merge_command(mock.as_ref(), "me", "me", 1, "me", false).await?;
+        assert!(result.should_update_status);
+        assert_eq!(result.handling_status, CommandHandlingStatus::Handled);
+
+        Ok(())
     }
 
     #[actix_rt::test]
