@@ -3,7 +3,7 @@
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_types::{
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
     pulls::GhPullRequest,
@@ -23,7 +23,7 @@ pub async fn handle_issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     event: GhIssueCommentEvent,
 ) -> Result<()> {
     if let GhIssueCommentAction::Created = event.action {
@@ -125,7 +125,7 @@ pub async fn handle_comment_creation(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     repo_owner: &str,
     repo_name: &str,
     pr_number: u64,

@@ -5,7 +5,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
-use github_scbot_redis::{IRedisAdapter, LockStatus};
+use github_scbot_redis::{RedisService, LockStatus};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
     labels::StepLabel,
@@ -36,7 +36,7 @@ pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
     // Get or create repository
@@ -155,7 +155,7 @@ pub async fn handle_pull_request_opened(
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<()> {
     let repo_owner = &event.repository.owner.login;

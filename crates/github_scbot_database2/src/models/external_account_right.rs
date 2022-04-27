@@ -34,7 +34,7 @@ impl<'r> FromRow<'r, PgRow> for ExternalAccountRight {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait ExternalAccountRightDB {
     async fn create(&mut self, instance: ExternalAccountRight) -> Result<ExternalAccountRight>;
     async fn get(

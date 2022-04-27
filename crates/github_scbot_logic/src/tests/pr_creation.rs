@@ -1,4 +1,3 @@
-use github_scbot_redis::{DummyRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::{GhRepository, GhUser},
     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
@@ -157,7 +156,7 @@ async fn test_qa_disabled_repository() -> Result<()> {
     // using_test_db("test_qa_disabled_repository", |config, pool| async move {
     //     let db_adapter = DatabaseAdapter::new(pool);
     //     let api_adapter = DummyAPIAdapter::new();
-    //     let mut redis_adapter = DummyRedisAdapter::new();
+    //     let mut redis_adapter = DummyRedisServiceImpl::new();
 
     //     // Arrange
     //     redis_adapter

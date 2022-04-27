@@ -23,11 +23,11 @@ const GIF_API_URL: &str = "https://g.tenor.com/v1";
 
 /// GitHub API adapter implementation.
 #[derive(Clone)]
-pub struct GithubAPIAdapter {
+pub struct GithubApiService {
     config: Config,
 }
 
-impl GithubAPIAdapter {
+impl GithubApiService {
     /// Creates new GitHub API adapter.
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -46,7 +46,7 @@ impl GithubAPIAdapter {
 }
 
 #[async_trait(?Send)]
-impl ApiService for GithubAPIAdapter {
+impl ApiService for GithubApiService {
     #[tracing::instrument(skip(self))]
     async fn issue_labels_list(
         &self,

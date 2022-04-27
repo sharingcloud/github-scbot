@@ -66,7 +66,7 @@ impl ExternalAccountBuilder {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait ExternalAccountDB {
     async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
     async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;

@@ -1411,6 +1411,7 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "github-scbot-utils",
+ "mockall",
  "redis-async",
  "thiserror",
  "tracing",

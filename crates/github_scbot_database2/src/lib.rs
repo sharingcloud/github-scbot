@@ -7,22 +7,22 @@ pub(crate) mod utils;
 use std::ops::Deref;
 
 pub use exchange::Exchanger;
-pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool};
+pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool, MockAccountDB};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
-    ExternalJwtClaims,
+    ExternalJwtClaims, MockExternalAccountDB
 };
 pub use models::external_account_right::{
     ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl,
-    ExternalAccountRightDBImplPool,
+    ExternalAccountRightDBImplPool, MockExternalAccountRightDB
 };
-pub use models::merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
+pub use models::merge_rule::{MockMergeRuleDB, MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
 pub use models::pull_request::{
     MockPullRequestDB, PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
 };
-pub use models::repository::{Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool};
+pub use models::repository::{MockRepositoryDB, Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool};
 pub use models::required_reviewer::{
-    RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl, RequiredReviewerDBImplPool,
+    MockRequiredReviewerDB, RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl, RequiredReviewerDBImplPool,
 };
 
 pub use errors::{DatabaseError, Result};

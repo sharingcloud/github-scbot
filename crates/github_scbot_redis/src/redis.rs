@@ -3,13 +3,13 @@ use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
 
-use crate::interface::{IRedisAdapter, LockInstance, LockStatus, RedisError};
+use crate::interface::{RedisService, LockInstance, LockStatus, RedisError};
 
 /// Redis adapter.
 #[derive(Clone)]
-pub struct RedisAdapter(Addr<RedisActor>);
+pub struct RedisServiceImpl(Addr<RedisActor>);
 
-impl RedisAdapter {
+impl RedisServiceImpl {
     /// Creates a new redis adapter.
     pub fn new<T: Into<String>>(addr: T) -> Self {
         Self(RedisActor::start(addr))
@@ -26,7 +26,7 @@ impl RedisAdapter {
 }
 
 #[async_trait]
-impl IRedisAdapter for RedisAdapter {
+impl RedisService for RedisServiceImpl {
     #[tracing::instrument(skip(self))]
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError> {
         let response = self
@@ -71,13 +71,13 @@ mod tests {
     use std::error::Error;
 
     use crate::{
-        interface::{IRedisAdapter, LockStatus},
-        redis::RedisAdapter,
+        interface::{RedisService, LockStatus},
+        redis::RedisServiceImpl,
     };
 
     #[actix_rt::test]
     async fn test_redis() -> Result<(), Box<dyn Error>> {
-        let lock_mgr = RedisAdapter::new("127.0.0.1:6379");
+        let lock_mgr = RedisServiceImpl::new("127.0.0.1:6379");
         let key = "this-is-a-test";
 
         lock_mgr.del_resource(key).await?;

@@ -813,8 +813,8 @@ pub fn handle_admin_help_command(
 #[cfg(test)]
 mod tests {
     use futures_util::FutureExt;
-    use github_scbot_database2::{MockDbService, MockPullRequestDB, PullRequest};
-    use github_scbot_ghapi::{adapter::{MockApiService, GifResponse, GifObject, MediaObject, GifFormat}};
+    use github_scbot_database2::{MockDbService, MockPullRequestDB, PullRequest, Repository, MockRepositoryDB, MockRequiredReviewerDB, MockMergeRuleDB, MockAccountDB, Account};
+    use github_scbot_ghapi::{adapter::{MockApiService, GifResponse, GifObject, MediaObject, GifFormat}, ApiError};
     use maplit::hashmap;
     use mockall::predicate;
 
@@ -868,134 +868,212 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_merge_command() -> Result<()> {
-        // let mut api_adapter = DummyAPIAdapter::new();
-        // let db_adapter = DummyDatabaseAdapter::new();
-        // let repo_model = RepositoryModel::default();
-        // let mut pr_model = PullRequestModel::default();
+        let mut api_adapter = MockApiService::new();
+        api_adapter.expect_pulls_merge()
+            .times(0)
+            .returning(|_,_,_,_,_,_| Ok(()));
+        api_adapter.expect_pull_reviews_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
+        api_adapter.expect_check_suites_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
 
-        // // Prepare a mergeable response in API
-        // api_adapter.pulls_get_response.set_callback(Box::new(|_| {
-        //     Ok(GhPullRequest {
-        //         mergeable: Some(true),
-        //         ..Default::default()
-        //     })
-        // }));
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests()
+            .times(3)
+            .returning(|| {
+                let mut mock = MockPullRequestDB::new();
+                mock.expect_get()
+                    .returning(|_,_,_| {
+                        async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+                    });
 
-        // // Set WIP to lock the pull request
-        // let update = pr_model.create_update().wip(true).build_update();
-        // db_adapter
-        //     .pull_request()
-        //     .update(&mut pr_model, update)
-        //     .await?;
+                Box::new(mock)
+            });
+        db_adapter.expect_repositories()
+            .times(3)
+            .returning(|| {
+                let mut mock = MockRepositoryDB::new();
+                mock.expect_get()
+                    .returning(|_,_| {
+                        async { Ok(Some(Repository::builder().build().unwrap())) }.boxed()
+                    });
 
-        // // Merge should fail (wip)
-        // let result = handle_merge_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     "me",
-        //     None,
-        // )
-        // .await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(
-        //     result.result_actions,
-        //     vec![
-        //         ResultAction::AddReaction(GhReactionType::MinusOne),
-        //         ResultAction::PostComment("Pull request is not ready to merge.".into())
-        //     ]
-        // );
-        // assert!(!api_adapter.pulls_merge_response.called());
+                Box::new(mock)
+            });
+        db_adapter.expect_required_reviewers()
+            .times(3)
+            .returning(|| {
+                let mut mock = MockRequiredReviewerDB::new();
+                mock.expect_list()
+                    .returning(|_,_,_| {
+                        async { Ok(vec![]) }.boxed()
+                    });
 
-        // // Merge should fail (GitHub error)
-        // let update = pr_model.create_update().wip(false).build_update();
-        // db_adapter
-        //     .pull_request()
-        //     .update(&mut pr_model, update)
-        //     .await?;
+                Box::new(mock)
+            });
+        db_adapter.expect_merge_rules()
+            .times(3)
+            .returning(|| {
+                let mut mock = MockMergeRuleDB::new();
+                mock.expect_get()
+                    .returning(|_,_,_,_| {
+                        async { Ok(None) }.boxed()
+                    });
 
-        // api_adapter
-        //     .pulls_merge_response
-        //     .set_callback(Box::new(|_| Err(ApiError::HTTPError("Nope.".into()))));
-        // let result = handle_merge_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     "me",
-        //     None,
-        // )
-        // .await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(
-        //     result.result_actions,
-        //     vec![
-        //         ResultAction::AddReaction(GhReactionType::MinusOne),
-        //         ResultAction::PostComment(
-        //             "Could not merge this pull request: _HTTP error: Nope._".into()
-        //         )
-        //     ]
-        // );
-        // assert_eq!(api_adapter.pulls_merge_response.call_count(), 1);
+                Box::new(mock)
+            });
 
-        // // Merge should now work
-        // api_adapter
-        //     .pulls_merge_response
-        //     .set_callback(Box::new(|_| Ok(())));
-        // let result = handle_merge_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     "me",
-        //     None,
-        // )
-        // .await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(
-        //     result.result_actions,
-        //     vec![
-        //         ResultAction::AddReaction(GhReactionType::PlusOne),
-        //         ResultAction::PostComment(
-        //             "Pull request successfully merged by me! (strategy: 'merge')".into()
-        //         )
-        //     ]
-        // );
-        // assert_eq!(api_adapter.pulls_merge_response.call_count(), 2);
+        // Merge should fail (wip)
+        let upstream_pr = GhPullRequest {
+            mergeable: Some(true),
+            // Work in progress
+            draft: true,
+            ..Default::default()
+        };
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            "me",
+            "me",
+            1,
+            &upstream_pr,
+            "me",
+            None,
+        )
+        .await?;
 
-        // Ok(())
-        todo!()
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::MinusOne),
+                ResultAction::PostComment("Pull request is not ready to merge.".into())
+            ]
+        );
+
+        // Merge should fail (GitHub error)
+        let upstream_pr = GhPullRequest {
+            mergeable: Some(true),
+            ..Default::default()
+        };
+
+        let mut api_adapter = MockApiService::new();
+        api_adapter.expect_pulls_merge()
+            .times(1)
+            .returning(|_,_,_,_,_,_| Err(ApiError::HTTPError("Nope.".into())));
+        api_adapter.expect_pull_reviews_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
+        api_adapter.expect_check_suites_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
+
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            "me",
+            "me",
+            1,
+            &upstream_pr,
+            "me",
+            None
+        )
+        .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::MinusOne),
+                ResultAction::PostComment(
+                    "Could not merge this pull request: _HTTP error: Nope._".into()
+                )
+            ]
+        );
+
+        // Merge should now work
+        let mut api_adapter = MockApiService::new();
+        api_adapter.expect_pulls_merge()
+            .times(1)
+            .returning(|_,_,_,_,_,_| Ok(()));
+        api_adapter.expect_pull_reviews_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
+        api_adapter.expect_check_suites_list()
+            .times(1)
+            .returning(|_,_,_| Ok(vec![]));
+
+        let result = handle_merge_command(
+            &api_adapter,
+            &db_adapter,
+            "me",
+            "me",
+            1,
+            &upstream_pr,
+            "me",
+            None,
+        )
+        .await?;
+        assert!(result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![
+                ResultAction::AddReaction(GhReactionType::PlusOne),
+                ResultAction::PostComment(
+                    "Pull request successfully merged by me! (strategy: 'merge')".into()
+                )
+            ]
+        );
+
+        Ok(())
     }
 
     #[actix_rt::test]
     async fn test_handle_is_admin_command() -> Result<()> {
-        // let mut db_adapter = DummyDatabaseAdapter::new();
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_accounts()
+            .times(1)
+            .returning(|| {
+                let mut mock = MockAccountDB::new();
+                mock.expect_list_admins()
+                    .returning(|| {
+                        async { Ok(vec![]) }.boxed()
+                    });
 
-        // // Should not be admin
-        // let result = handle_is_admin_command(&db_adapter, "me").await?;
-        // assert!(!result.should_update_status);
-        // assert_eq!(
-        //     result.result_actions,
-        //     vec![ResultAction::AddReaction(GhReactionType::MinusOne)]
-        // );
+                Box::new(mock)
+            });
 
-        // // Should now be admin
-        // db_adapter
-        //     .account_adapter
-        //     .list_admin_accounts_response
-        //     .set_callback(Box::new(|_| {
-        //         Ok(vec![AccountModel::builder("me").admin(true).build()])
-        //     }));
-        // let result = handle_is_admin_command(&db_adapter, "me").await?;
-        // assert!(!result.should_update_status);
-        // assert_eq!(
-        //     result.result_actions,
-        //     vec![ResultAction::AddReaction(GhReactionType::PlusOne)]
-        // );
 
-        // Ok(())
-        todo!()
+        // Should not be admin
+        let result = handle_is_admin_command(&db_adapter, "me").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![ResultAction::AddReaction(GhReactionType::MinusOne)]
+        );
+
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_accounts()
+            .times(1)
+            .returning(|| {
+                let mut mock = MockAccountDB::new();
+                mock.expect_list_admins()
+                    .returning(|| {
+                        async { Ok(vec![Account::builder().username("me").is_admin(true).build().unwrap()]) }.boxed()
+                    });
+
+                Box::new(mock)
+            });
+
+        let result = handle_is_admin_command(&db_adapter, "me").await?;
+        assert!(!result.should_update_status);
+        assert_eq!(
+            result.result_actions,
+            vec![ResultAction::AddReaction(GhReactionType::PlusOne)]
+        );
+
+        Ok(())
     }
 
     #[actix_rt::test]

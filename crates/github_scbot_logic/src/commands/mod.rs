@@ -7,7 +7,7 @@ mod parser;
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest};
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
@@ -30,7 +30,7 @@ impl CommandExecutor {
         config: &Config,
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
-        redis_adapter: &dyn IRedisAdapter,
+        redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -94,7 +94,7 @@ impl CommandExecutor {
     pub async fn process_command_result(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
-        redis_adapter: &dyn IRedisAdapter,
+        redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -479,7 +479,6 @@ impl CommandExecutor {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_redis::DummyRedisAdapter;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -604,7 +603,7 @@ mod tests {
         // config.bot_username = "test-bot".into();
         // let mut api_adapter = DummyAPIAdapter::new();
         // let db_adapter = DummyDatabaseAdapter::new();
-        // let redis_adapter = DummyRedisAdapter::new();
+        // let redis_adapter = DummyRedisServiceImpl::new();
         // let mut repo = RepositoryModel::builder(&config, "me", "repo")
         //     .build()
         //     .into();

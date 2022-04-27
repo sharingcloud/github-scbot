@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_logic::reviews::handle_review_event;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_types::{events::EventType, reviews::GhReviewEvent};
 use tracing::info;
 
@@ -18,7 +18,7 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 pub(crate) async fn review_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
     info!(

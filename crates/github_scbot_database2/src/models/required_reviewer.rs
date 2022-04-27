@@ -34,7 +34,7 @@ impl<'r> FromRow<'r, PgRow> for RequiredReviewer {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait RequiredReviewerDB {
     async fn create(&mut self, instance: RequiredReviewer) -> Result<RequiredReviewer>;
     async fn list(&mut self, owner: &str, name: &str, number: u64)

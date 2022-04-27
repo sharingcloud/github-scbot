@@ -2,7 +2,6 @@
 
 use github_scbot_conf::Config;
 use github_scbot_database2::Result;
-use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, LockInstance, LockStatus};
 use github_scbot_types::{
     common::{GhUser, GhUserPermission},
     reviews::{GhReview, GhReviewState},
@@ -40,7 +39,7 @@ async fn test_review_creation() -> Result<()> {
     //     config: &Config,
     //     api_adapter: &dyn ApiService,
     //     db_adapter: &dyn IDatabaseAdapter,
-    //     redis_adapter: &dyn IRedisAdapter,
+    //     redis_adapter: &dyn RedisService,
     //     repo: &mut RepositoryModel,
     //     pr: &mut PullRequestModel,
     //     command_str: &str,
@@ -66,7 +65,7 @@ async fn test_review_creation() -> Result<()> {
     // using_test_db("test_logic_reviews", |config, pool| async move {
     //     let db_adapter = DatabaseAdapter::new(pool);
     //     let mut api_adapter = DummyAPIAdapter::new();
-    //     let mut redis_adapter = DummyRedisAdapter::new();
+    //     let mut redis_adapter = DummyRedisServiceImpl::new();
     //     api_adapter
     //         .user_permissions_get_response
     //         .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));

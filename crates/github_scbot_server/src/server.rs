@@ -13,8 +13,8 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbPool, DbService, DbServiceImplPool};
-use github_scbot_ghapi::adapter::{GithubAPIAdapter, ApiService};
-use github_scbot_redis::{IRedisAdapter, RedisAdapter};
+use github_scbot_ghapi::adapter::{GithubApiService, ApiService};
+use github_scbot_redis::{RedisService, RedisServiceImpl};
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -36,7 +36,7 @@ pub struct AppContext {
     /// API adapter
     pub api_adapter: Box<dyn ApiService>,
     /// Redis adapter
-    pub redis_adapter: Box<dyn IRedisAdapter>,
+    pub redis_adapter: Box<dyn RedisService>,
 }
 
 impl AppContext {
@@ -45,8 +45,8 @@ impl AppContext {
         Self {
             config: config.clone(),
             db_adapter: Box::new(DbServiceImplPool::new(pool)),
-            api_adapter: Box::new(GithubAPIAdapter::new(config.clone())),
-            redis_adapter: Box::new(RedisAdapter::new(&config.redis_address)),
+            api_adapter: Box::new(GithubApiService::new(config.clone())),
+            redis_adapter: Box::new(RedisServiceImpl::new(&config.redis_address)),
         }
     }
 
@@ -55,7 +55,7 @@ impl AppContext {
         config: Config,
         db_adapter: Box<dyn DbService>,
         api_adapter: Box<dyn ApiService>,
-        redis_adapter: Box<dyn IRedisAdapter>,
+        redis_adapter: Box<dyn RedisService>,
     ) -> Self {
         Self {
             config,

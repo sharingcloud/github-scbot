@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_sentry::eyre::Result;
 
 use self::{
@@ -26,7 +26,7 @@ pub(crate) struct CommandContext {
     pub config: Config,
     pub db_adapter: Box<dyn DbService>,
     pub api_adapter: Box<dyn ApiService>,
-    pub redis_adapter: Box<dyn IRedisAdapter>,
+    pub redis_adapter: Box<dyn RedisService>,
     pub no_input: bool,
 }
 

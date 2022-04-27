@@ -45,7 +45,7 @@ impl<'r> FromRow<'r, PgRow> for MergeRule {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait MergeRuleDB {
     async fn create(&mut self, instance: MergeRule) -> Result<MergeRule>;
     async fn update(&mut self, instance: MergeRule) -> Result<MergeRule>;

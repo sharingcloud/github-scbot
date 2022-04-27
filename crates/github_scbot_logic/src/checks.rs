@@ -2,7 +2,7 @@
 
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_types::checks::GhCheckSuiteEvent;
 
 use crate::{status::StatusLogic, Result};
@@ -11,7 +11,7 @@ use crate::{status::StatusLogic, Result};
 pub async fn handle_check_suite_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     event: GhCheckSuiteEvent,
 ) -> Result<()> {
     let repo_owner = &event.repository.owner.login;

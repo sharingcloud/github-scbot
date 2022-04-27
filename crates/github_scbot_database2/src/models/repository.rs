@@ -88,7 +88,7 @@ impl<'r> FromRow<'r, PgRow> for Repository {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait RepositoryDB {
     async fn create(&mut self, instance: Repository) -> Result<Repository>;
     async fn update(&mut self, instance: Repository) -> Result<Repository>;

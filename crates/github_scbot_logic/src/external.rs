@@ -2,7 +2,7 @@
 
 use github_scbot_database2::{DbService, ExternalAccount};
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_redis::RedisService;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 pub async fn set_qa_status_for_pull_requests(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
-    redis_adapter: &dyn IRedisAdapter,
+    redis_adapter: &dyn RedisService,
     account: &ExternalAccount,
     repository_path: RepositoryPath,
     pull_request_numbers: &[u64],

@@ -30,7 +30,7 @@ impl<'r> FromRow<'r, PgRow> for Account {
 }
 
 #[async_trait]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 pub trait AccountDB {
     async fn create(&mut self, instance: Account) -> Result<Account>;
     async fn update(&mut self, instance: Account) -> Result<Account>;
