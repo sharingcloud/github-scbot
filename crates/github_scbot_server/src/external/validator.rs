@@ -61,7 +61,7 @@ async fn jwt_auth_validator_inner(
 
     // Validate token with ISS
     let tok = credentials.token();
-    let _claims: ExternalJwtClaims = JwtUtils::verify_jwt(tok, &target_account.public_key())
+    let _claims: ExternalJwtClaims = JwtUtils::verify_jwt(tok, target_account.public_key())
         .map_err(|e| ValidationError::token_error(tok, e))?;
 
     Ok(req)
@@ -84,5 +84,5 @@ pub async fn extract_account_from_token(
     exa_db
         .get(&claims.iss)
         .await?
-        .ok_or_else(|| ValidationError::UnknownAccount)
+        .ok_or(ValidationError::UnknownAccount)
 }

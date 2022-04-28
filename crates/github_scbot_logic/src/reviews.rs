@@ -19,10 +19,11 @@ pub async fn handle_review_event(
     let pr_number = event.pull_request.number;
 
     // Detect required reviews
-    if let Some(_) = db_adapter
+    if db_adapter
         .pull_requests()
         .get(repo_owner, repo_name, pr_number)
         .await?
+        .is_some()
     {
         let upstream_pr = api_adapter
             .pulls_get(repo_owner, repo_name, pr_number)

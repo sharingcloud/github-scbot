@@ -44,6 +44,7 @@ pub async fn handle_auto_merge_command(
 }
 
 /// Handle `Merge` command.
+#[allow(clippy::too_many_arguments)]
 pub async fn handle_merge_command(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
@@ -61,11 +62,11 @@ pub async fn handle_merge_command(
         repo_owner,
         repo_name,
         pr_number,
-        &upstream_pr,
+        upstream_pr,
     )
     .await?;
     let step = StatusLogic::determine_automatic_step(&pr_status)?;
-    let commit_title = PullRequestLogic::get_merge_commit_title(&upstream_pr);
+    let commit_title = PullRequestLogic::get_merge_commit_title(upstream_pr);
     let mut actions = vec![];
 
     if step == StepLabel::AwaitingMerge {
@@ -89,8 +90,7 @@ pub async fn handle_merge_command(
             actions.push(ResultAction::AddReaction(GhReactionType::PlusOne));
             actions.push(ResultAction::PostComment(format!(
                 "Pull request successfully merged by {}! (strategy: '{}')",
-                comment_author,
-                pr_status.merge_strategy.to_string()
+                comment_author, pr_status.merge_strategy
             )));
         }
     } else {
@@ -157,7 +157,7 @@ pub async fn handle_admin_reset_summary_command(
             repo_owner,
             repo_name,
             pr_number,
-            &upstream_pr,
+            upstream_pr,
         )
         .await?;
 
@@ -361,6 +361,8 @@ pub async fn handle_assign_required_reviewers_command(
     pr_number: u64,
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
+    assert!(!reviewers.is_empty());
+
     let pr_model = db_adapter
         .pull_requests()
         .get(repo_owner, repo_name, pr_number)
@@ -465,6 +467,8 @@ pub async fn handle_unassign_required_reviewers_command(
     pr_number: u64,
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
+    assert!(!reviewers.is_empty());
+
     info!(
         pull_request_number = pr_number,
         reviewers = ?reviewers,
@@ -566,7 +570,7 @@ pub async fn handle_set_default_merge_strategy_command(
 
     let comment = format!(
         "Merge strategy set to **{}** for this repository.",
-        strategy.to_string()
+        strategy
     );
     Ok(CommandExecutionResult::builder()
         .with_status_update(false)
@@ -813,8 +817,15 @@ pub fn handle_admin_help_command(
 #[cfg(test)]
 mod tests {
     use futures_util::FutureExt;
-    use github_scbot_database2::{MockDbService, MockPullRequestDB, PullRequest, Repository, MockRepositoryDB, MockRequiredReviewerDB, MockMergeRuleDB, MockAccountDB, Account};
-    use github_scbot_ghapi::{adapter::{MockApiService, GifResponse, GifObject, MediaObject, GifFormat}, ApiError};
+    use github_scbot_database2::{
+        Account, MockAccountDB, MockDbService, MockMergeRuleDB, MockPullRequestDB,
+        MockRepositoryDB, MockRequiredReviewerDB, PullRequest, Repository,
+    };
+    use github_scbot_ghapi::{
+        adapter::{GifFormat, GifObject, GifResponse, MediaObject, MockApiService},
+        ApiError,
+    };
+    use github_scbot_types::common::GhUserPermission;
     use maplit::hashmap;
     use mockall::predicate;
 
@@ -869,61 +880,53 @@ mod tests {
     #[actix_rt::test]
     async fn test_handle_merge_command() -> Result<()> {
         let mut api_adapter = MockApiService::new();
-        api_adapter.expect_pulls_merge()
+        api_adapter
+            .expect_pulls_merge()
             .times(0)
-            .returning(|_,_,_,_,_,_| Ok(()));
-        api_adapter.expect_pull_reviews_list()
+            .returning(|_, _, _, _, _, _| Ok(()));
+        api_adapter
+            .expect_pull_reviews_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
-        api_adapter.expect_check_suites_list()
+            .returning(|_, _, _| Ok(vec![]));
+        api_adapter
+            .expect_check_suites_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
+            .returning(|_, _, _| Ok(vec![]));
 
         let mut db_adapter = MockDbService::new();
-        db_adapter.expect_pull_requests()
-            .times(3)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_get()
-                    .returning(|_,_,_| {
-                        async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
-                    });
-
-                Box::new(mock)
+        db_adapter.expect_pull_requests().times(3).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get().returning(|_, _, _| {
+                async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
             });
-        db_adapter.expect_repositories()
-            .times(3)
-            .returning(|| {
-                let mut mock = MockRepositoryDB::new();
-                mock.expect_get()
-                    .returning(|_,_| {
-                        async { Ok(Some(Repository::builder().build().unwrap())) }.boxed()
-                    });
 
-                Box::new(mock)
+            Box::new(mock)
+        });
+        db_adapter.expect_repositories().times(3).returning(|| {
+            let mut mock = MockRepositoryDB::new();
+            mock.expect_get().returning(|_, _| {
+                async { Ok(Some(Repository::builder().build().unwrap())) }.boxed()
             });
-        db_adapter.expect_required_reviewers()
+
+            Box::new(mock)
+        });
+        db_adapter
+            .expect_required_reviewers()
             .times(3)
             .returning(|| {
                 let mut mock = MockRequiredReviewerDB::new();
                 mock.expect_list()
-                    .returning(|_,_,_| {
-                        async { Ok(vec![]) }.boxed()
-                    });
+                    .returning(|_, _, _| async { Ok(vec![]) }.boxed());
 
                 Box::new(mock)
             });
-        db_adapter.expect_merge_rules()
-            .times(3)
-            .returning(|| {
-                let mut mock = MockMergeRuleDB::new();
-                mock.expect_get()
-                    .returning(|_,_,_,_| {
-                        async { Ok(None) }.boxed()
-                    });
+        db_adapter.expect_merge_rules().times(3).returning(|| {
+            let mut mock = MockMergeRuleDB::new();
+            mock.expect_get()
+                .returning(|_, _, _, _| async { Ok(None) }.boxed());
 
-                Box::new(mock)
-            });
+            Box::new(mock)
+        });
 
         // Merge should fail (wip)
         let upstream_pr = GhPullRequest {
@@ -960,15 +963,18 @@ mod tests {
         };
 
         let mut api_adapter = MockApiService::new();
-        api_adapter.expect_pulls_merge()
+        api_adapter
+            .expect_pulls_merge()
             .times(1)
-            .returning(|_,_,_,_,_,_| Err(ApiError::HTTPError("Nope.".into())));
-        api_adapter.expect_pull_reviews_list()
+            .returning(|_, _, _, _, _, _| Err(ApiError::HTTPError("Nope.".into())));
+        api_adapter
+            .expect_pull_reviews_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
-        api_adapter.expect_check_suites_list()
+            .returning(|_, _, _| Ok(vec![]));
+        api_adapter
+            .expect_check_suites_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
+            .returning(|_, _, _| Ok(vec![]));
 
         let result = handle_merge_command(
             &api_adapter,
@@ -978,7 +984,7 @@ mod tests {
             1,
             &upstream_pr,
             "me",
-            None
+            None,
         )
         .await?;
         assert!(result.should_update_status);
@@ -994,15 +1000,18 @@ mod tests {
 
         // Merge should now work
         let mut api_adapter = MockApiService::new();
-        api_adapter.expect_pulls_merge()
+        api_adapter
+            .expect_pulls_merge()
             .times(1)
-            .returning(|_,_,_,_,_,_| Ok(()));
-        api_adapter.expect_pull_reviews_list()
+            .returning(|_, _, _, _, _, _| Ok(()));
+        api_adapter
+            .expect_pull_reviews_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
-        api_adapter.expect_check_suites_list()
+            .returning(|_, _, _| Ok(vec![]));
+        api_adapter
+            .expect_check_suites_list()
             .times(1)
-            .returning(|_,_,_| Ok(vec![]));
+            .returning(|_, _, _| Ok(vec![]));
 
         let result = handle_merge_command(
             &api_adapter,
@@ -1032,18 +1041,13 @@ mod tests {
     #[actix_rt::test]
     async fn test_handle_is_admin_command() -> Result<()> {
         let mut db_adapter = MockDbService::new();
-        db_adapter.expect_accounts()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockAccountDB::new();
-                mock.expect_list_admins()
-                    .returning(|| {
-                        async { Ok(vec![]) }.boxed()
-                    });
+        db_adapter.expect_accounts().times(1).returning(|| {
+            let mut mock = MockAccountDB::new();
+            mock.expect_list_admins()
+                .returning(|| async { Ok(vec![]) }.boxed());
 
-                Box::new(mock)
-            });
-
+            Box::new(mock)
+        });
 
         // Should not be admin
         let result = handle_is_admin_command(&db_adapter, "me").await?;
@@ -1054,17 +1058,21 @@ mod tests {
         );
 
         let mut db_adapter = MockDbService::new();
-        db_adapter.expect_accounts()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockAccountDB::new();
-                mock.expect_list_admins()
-                    .returning(|| {
-                        async { Ok(vec![Account::builder().username("me").is_admin(true).build().unwrap()]) }.boxed()
-                    });
-
-                Box::new(mock)
+        db_adapter.expect_accounts().times(1).returning(|| {
+            let mut mock = MockAccountDB::new();
+            mock.expect_list_admins().returning(|| {
+                async {
+                    Ok(vec![Account::builder()
+                        .username("me")
+                        .is_admin(true)
+                        .build()
+                        .unwrap()])
+                }
+                .boxed()
             });
+
+            Box::new(mock)
+        });
 
         let result = handle_is_admin_command(&db_adapter, "me").await?;
         assert!(!result.should_update_status);
@@ -1078,92 +1086,142 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_admin_sync_command() -> Result<()> {
-        // let db_adapter = DummyDatabaseAdapter::new();
-        // let mut api_adapter = DummyAPIAdapter::new();
+        let config = Config::from_env();
 
-        // let repo_model = RepositoryModel::default();
-        // let mut pr_model = PullRequestModel::default();
-        // let config = Config::from_env();
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_repositories().times(2).returning(|| {
+            let mut mock = MockRepositoryDB::new();
+            mock.expect_get()
+                .returning(|_, _| async { Ok(None) }.boxed());
+            mock.expect_create()
+                .returning(|_| async { Ok(Repository::builder().build().unwrap()) }.boxed());
 
-        // api_adapter.pulls_get_response.set_callback(Box::new(|_| {
-        //     Ok(GhPullRequest {
-        //         title: "Hello.".into(),
-        //         ..GhPullRequest::default()
-        //     })
-        // }));
+            Box::new(mock)
+        });
+        db_adapter.expect_pull_requests().times(2).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get()
+                .returning(|_, _, _| async { Ok(None) }.boxed());
+            mock.expect_create()
+                .returning(|_| async { Ok(PullRequest::builder().build().unwrap()) }.boxed());
 
-        // let result = handle_admin_sync_command(
-        //     &config,
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        // )
-        // .await?;
-        // assert_eq!(pr_model.name(), "Hello.");
-        // assert!(result.should_update_status);
+            Box::new(mock)
+        });
 
-        // Ok(())
-        todo!()
+        let result = handle_admin_sync_command(&config, &db_adapter, "owner", "name", 1).await?;
+        assert!(result.should_update_status);
+
+        Ok(())
     }
 
     #[actix_rt::test]
     async fn test_handle_skip_qa_command() -> Result<()> {
-        // let db_adapter = DummyDatabaseAdapter::new();
-        // let mut pr_model = PullRequestModel::default();
-        // let update = pr_model
-        //     .create_update()
-        //     .qa_status(QaStatus::Fail)
-        //     .build_update();
-        // db_adapter
-        //     .pull_request()
-        //     .update(&mut pr_model, update)
-        //     .await?;
+        // Skip.
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_set_qa_status()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(QaStatus::Skipped),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+            Box::new(mock)
+        });
 
-        // // Skip.
-        // let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", true).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(pr_model.qa_status(), QaStatus::Skipped);
+        let result = handle_skip_qa_command(&db_adapter, "owner", "name", 1, "me", true).await?;
+        assert!(result.should_update_status);
 
-        // // Reset.
-        // let result = handle_skip_qa_command(&db_adapter, &mut pr_model, "me", false).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(pr_model.qa_status(), QaStatus::Waiting);
+        // Reset.
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_set_qa_status()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(QaStatus::Waiting),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+            Box::new(mock)
+        });
 
-        // Ok(())
-        todo!()
+        let result = handle_skip_qa_command(&db_adapter, "owner", "name", 1, "me", false).await?;
+        assert!(result.should_update_status);
+
+        Ok(())
     }
 
     #[actix_rt::test]
     async fn test_handle_qa_command() -> Result<()> {
-        // let db_adapter = DummyDatabaseAdapter::new();
-        // let mut pr_model = PullRequestModel::default();
-        // let update = pr_model
-        //     .create_update()
-        //     .qa_status(QaStatus::Fail)
-        //     .build_update();
-        // db_adapter
-        //     .pull_request()
-        //     .update(&mut pr_model, update)
-        //     .await?;
+        // Approve.
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_set_qa_status()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(QaStatus::Pass),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+            Box::new(mock)
+        });
 
-        // // Approve.
-        // let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(true)).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(pr_model.qa_status(), QaStatus::Pass);
+        let result = handle_qa_command(&db_adapter, "owner", "name", 1, "me", Some(true)).await?;
+        assert!(result.should_update_status);
 
-        // // Unapprove.
-        // let result = handle_qa_command(&db_adapter, &mut pr_model, "me", Some(false)).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(pr_model.qa_status(), QaStatus::Fail);
+        // Unapprove.
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_set_qa_status()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(QaStatus::Fail),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+            Box::new(mock)
+        });
 
-        // // Reset.
-        // let result = handle_qa_command(&db_adapter, &mut pr_model, "me", None).await?;
-        // assert!(result.should_update_status);
-        // assert_eq!(pr_model.qa_status(), QaStatus::Waiting);
+        let result = handle_qa_command(&db_adapter, "owner", "name", 1, "me", Some(false)).await?;
+        assert!(result.should_update_status);
 
-        // Ok(())
-        todo!()
+        // Reset.
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_set_qa_status()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(QaStatus::Waiting),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+            Box::new(mock)
+        });
+
+        let result = handle_qa_command(&db_adapter, "owner", "name", 1, "me", None).await?;
+        assert!(result.should_update_status);
+
+        Ok(())
     }
 
     #[test]
@@ -1185,10 +1243,8 @@ mod tests {
     async fn test_handle_gif_command() -> Result<()> {
         let config = Config::from_env();
         let mut api_adapter = MockApiService::new();
-        api_adapter
-            .expect_gif_search()
-            .times(1)
-            .returning(|_, _| Ok(GifResponse {
+        api_adapter.expect_gif_search().times(1).returning(|_, _| {
+            Ok(GifResponse {
                 results: vec![GifObject {
                     media: vec![hashmap!(
                         GifFormat::Gif => MediaObject {
@@ -1197,7 +1253,8 @@ mod tests {
                         }
                     )],
                 }],
-            }));
+            })
+        });
 
         // Valid GIF
         let result = handle_gif_command(&config, &api_adapter, "what").await?;
@@ -1216,9 +1273,7 @@ mod tests {
         api_adapter
             .expect_gif_search()
             .times(1)
-            .returning(|_, _| Ok(GifResponse {
-                results: vec![]
-            }));
+            .returning(|_, _| Ok(GifResponse { results: vec![] }));
 
         // No GIFs
         let result = handle_gif_command(&config, &api_adapter, "what").await?;
@@ -1236,118 +1291,89 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_handle_assign_required_reviewers_command() -> Result<()> {
-        // let mut api_adapter = DummyAPIAdapter::new();
-        // let mut db_adapter = DummyDatabaseAdapter::new();
-        // db_adapter
-        //     .review_adapter
-        //     .get_from_pull_request_and_username_response
-        //     .set_callback(Box::new(|_| {
-        //         Err(DatabaseError::UnknownReviewState(
-        //             "me".into(),
-        //             "repo".into(),
-        //             1,
-        //         ))
-        //     }));
+        let mut api_adapter = MockApiService::new();
+        let mut db_adapter = MockDbService::new();
+        db_adapter.expect_pull_requests().times(1).returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get().times(1).returning(|_, _, _| {
+                async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+            });
 
-        // api_adapter
-        //     .user_permissions_get_response
-        //     .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
+            Box::new(mock)
+        });
 
-        // let repo_model = RepositoryModel::default();
-        // let mut pr_model = PullRequestModel::default();
-        // let reviewers = Vec::new();
+        db_adapter
+            .expect_required_reviewers()
+            .times(4)
+            .returning(|| {
+                let mut mock = MockRequiredReviewerDB::new();
+                mock.expect_get()
+                    .returning(|_, _, _, _| async { Ok(None) }.boxed());
+                mock.expect_create().returning(|_| {
+                    async { Ok(RequiredReviewer::builder().build().unwrap()) }.boxed()
+                });
 
-        // let result = handle_assign_required_reviewers_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     reviewers,
-        // )
-        // .await?;
-        // assert_eq!(
-        //     api_adapter.pull_reviewer_requests_add_response.call_count(),
-        //     0
-        // );
-        // assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
-        // assert!(!result.should_update_status);
+                Box::new(mock)
+            });
 
-        // let reviewers = vec!["one".into(), "two".into()];
-        // let result = handle_assign_required_reviewers_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     reviewers,
-        // )
-        // .await?;
-        // assert_eq!(
-        //     api_adapter.pull_reviewer_requests_add_response.call_count(),
-        //     1
-        // );
-        // assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
-        // assert!(result.should_update_status);
+        api_adapter
+            .expect_user_permissions_get()
+            .times(2)
+            .returning(|_, _, _| Ok(GhUserPermission::Write));
+        api_adapter
+            .expect_pull_reviewer_requests_add()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
 
-        // Ok(())
-        todo!()
+        let reviewers = vec!["one".into(), "two".into()];
+        let result = handle_assign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            "owner",
+            "name",
+            1,
+            reviewers,
+        )
+        .await?;
+        assert!(result.should_update_status);
+
+        Ok(())
     }
 
     #[actix_rt::test]
     async fn test_handle_unassign_required_reviewers_command() -> Result<()> {
-        // let api_adapter = DummyAPIAdapter::new();
-        // let mut db_adapter = DummyDatabaseAdapter::new();
-        // db_adapter
-        //     .review_adapter
-        //     .get_from_pull_request_and_username_response
-        //     .set_callback(Box::new(|_| {
-        //         Err(DatabaseError::UnknownReviewState(
-        //             "me".into(),
-        //             "repo".into(),
-        //             1,
-        //         ))
-        //     }));
+        let mut api_adapter = MockApiService::new();
+        let mut db_adapter = MockDbService::new();
+        db_adapter
+            .expect_required_reviewers()
+            .times(2)
+            .returning(|| {
+                let mut mock = MockRequiredReviewerDB::new();
+                mock.expect_delete()
+                    .times(1)
+                    .returning(|_, _, _, _| async { Ok(true) }.boxed());
 
-        // let repo_model = RepositoryModel::default();
-        // let mut pr_model = PullRequestModel::default();
-        // let reviewers = Vec::new();
+                Box::new(mock)
+            });
 
-        // let result = handle_unassign_required_reviewers_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     reviewers,
-        // )
-        // .await?;
-        // assert_eq!(
-        //     api_adapter
-        //         .pull_reviewer_requests_remove_response
-        //         .call_count(),
-        //     1
-        // );
-        // assert_eq!(db_adapter.review_adapter.create_response.call_count(), 0);
-        // assert!(result.should_update_status);
+        api_adapter
+            .expect_pull_reviewer_requests_remove()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
 
-        // let reviewers = vec!["one".into(), "two".into()];
-        // let result = handle_unassign_required_reviewers_command(
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &repo_model,
-        //     &mut pr_model,
-        //     reviewers,
-        // )
-        // .await?;
-        // assert_eq!(
-        //     api_adapter
-        //         .pull_reviewer_requests_remove_response
-        //         .call_count(),
-        //     2
-        // );
-        // assert_eq!(db_adapter.review_adapter.create_response.call_count(), 2);
-        // assert!(result.should_update_status);
+        let reviewers = vec!["one".into(), "two".into()];
+        let result = handle_unassign_required_reviewers_command(
+            &api_adapter,
+            &db_adapter,
+            "owner",
+            "name",
+            1,
+            reviewers,
+        )
+        .await?;
+        assert!(result.should_update_status);
 
-        // Ok(())
-        todo!()
+        Ok(())
     }
 
     #[actix_rt::test]

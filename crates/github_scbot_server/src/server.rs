@@ -10,11 +10,10 @@ use actix_web::{
     App, HttpResponse, HttpServer,
 };
 use actix_web_httpauth::middleware::HttpAuthentication;
-use actix_web_prom::PrometheusMetricsBuilder;
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbPool, DbService, DbServiceImplPool};
-use github_scbot_ghapi::adapter::{GithubApiService, ApiService};
-use github_scbot_redis::{RedisService, RedisServiceImpl};
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -22,7 +21,11 @@ use tracing_actix_web::TracingLogger;
 use crate::{
     debug::configure_debug_handlers,
     external::{status::set_qa_status, validator::jwt_auth_validator},
+    ghapi::MetricsApiService,
+    health::health_check_route,
+    metrics::build_metrics_handler,
     middlewares::VerifySignature,
+    redis::MetricsRedisService,
     webhook::configure_webhook_handlers,
     Result, ServerError,
 };
@@ -45,8 +48,8 @@ impl AppContext {
         Self {
             config: config.clone(),
             db_adapter: Box::new(DbServiceImplPool::new(pool)),
-            api_adapter: Box::new(GithubApiService::new(config.clone())),
-            redis_adapter: Box::new(RedisServiceImpl::new(&config.redis_address)),
+            api_adapter: Box::new(MetricsApiService::new(config.clone())),
+            redis_adapter: Box::new(MetricsRedisService::new(&config.redis_address)),
         }
     }
 
@@ -89,10 +92,7 @@ fn get_bind_address(config: &Config) -> String {
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
     let context = Data::new(Arc::new(context));
     let cloned_context = context.clone();
-    let prometheus = PrometheusMetricsBuilder::new("api")
-        .endpoint("/metrics")
-        .build()
-        .unwrap();
+    let prometheus = build_metrics_handler();
 
     let mut server = HttpServer::new(move || {
         let mut app = App::new()
@@ -112,11 +112,7 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
                     .wrap(VerifySignature::new(&context.config))
                     .configure(configure_webhook_handlers),
             )
-            .route(
-                "/health-check",
-                web::get()
-                    .to(|| async { HttpResponse::Ok().json(serde_json::json!({"message": "Ok"})) }),
-            )
+            .route("/health", web::get().to(health_check_route))
             .route(
                 "/",
                 web::get().to(|| async {

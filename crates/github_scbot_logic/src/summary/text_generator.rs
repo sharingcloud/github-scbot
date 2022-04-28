@@ -61,7 +61,7 @@ impl SummaryTextGenerator {
             > - :twisted_rightwards_arrows: **Merge strategy**: _{strategy}_\n",
             status = title_validation_status,
             rule = validation_regex,
-            strategy = strategy.to_string()
+            strategy = strategy
         )
     }
 

@@ -1,5 +1,5 @@
 use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
-use github_scbot_ghapi::adapter::{GhReviewApi, GhReviewStateApi, ApiService};
+use github_scbot_ghapi::adapter::{ApiService, GhReviewApi, GhReviewStateApi};
 use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
@@ -173,10 +173,7 @@ impl PullRequestStatus {
 
     /// Check if a reviewer is required.
     pub fn is_required_reviewer(required_reviewers: &[RequiredReviewer], username: &str) -> bool {
-        required_reviewers
-            .iter()
-            .find(|&r| r.username() == username)
-            .is_some()
+        required_reviewers.iter().any(|r| r.username() == username)
     }
 
     /// Get merge strategy for base and head branches.

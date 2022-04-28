@@ -140,7 +140,7 @@ where
             "> Importing merge rule '{}' (base) <- '{}' (head), strategy '{}' for repository ID {}",
             merge_rule.base_branch(),
             merge_rule.head_branch(),
-            merge_rule.strategy().to_string(),
+            merge_rule.strategy(),
             merge_rule.repository_id()
         );
 

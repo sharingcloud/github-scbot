@@ -4,7 +4,7 @@ mod pull_status;
 
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::{RedisService, LockStatus};
+use github_scbot_redis::{LockStatus, RedisService};
 use github_scbot_types::{
     labels::StepLabel,
     pulls::GhPullRequest,
@@ -199,7 +199,7 @@ impl StatusLogic {
                     repo_owner,
                     repo_name,
                     pr_number,
-                    &upstream_pr,
+                    upstream_pr,
                 )
                 .await?;
                 if !result {
@@ -216,7 +216,7 @@ impl StatusLogic {
                             repo_owner,
                             repo_name,
                             pr_number,
-                            &upstream_pr,
+                            upstream_pr,
                         )
                         .await?;
                 }

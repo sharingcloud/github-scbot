@@ -10,19 +10,25 @@ pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool, MockAccountDB};
 pub use models::external_account::{
     ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl, ExternalAccountDBImplPool,
-    ExternalJwtClaims, MockExternalAccountDB
+    ExternalJwtClaims, MockExternalAccountDB,
 };
 pub use models::external_account_right::{
     ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl,
-    ExternalAccountRightDBImplPool, MockExternalAccountRightDB
+    ExternalAccountRightDBImplPool, MockExternalAccountRightDB,
 };
-pub use models::merge_rule::{MockMergeRuleDB, MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool};
+pub use models::health::{HealthDB, HealthDBImpl, HealthDBImplPool, MockHealthDB};
+pub use models::merge_rule::{
+    MergeRule, MergeRuleDB, MergeRuleDBImpl, MergeRuleDBImplPool, MockMergeRuleDB,
+};
 pub use models::pull_request::{
     MockPullRequestDB, PullRequest, PullRequestDB, PullRequestDBImpl, PullRequestDBImplPool,
 };
-pub use models::repository::{MockRepositoryDB, Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool};
+pub use models::repository::{
+    MockRepositoryDB, Repository, RepositoryDB, RepositoryDBImpl, RepositoryDBImplPool,
+};
 pub use models::required_reviewer::{
-    MockRequiredReviewerDB, RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl, RequiredReviewerDBImplPool,
+    MockRequiredReviewerDB, RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl,
+    RequiredReviewerDBImplPool,
 };
 
 pub use errors::{DatabaseError, Result};
@@ -62,6 +68,7 @@ pub trait DbService: Send + Sync {
     fn pull_requests(&self) -> Box<dyn PullRequestDB>;
     fn repositories(&self) -> Box<dyn RepositoryDB>;
     fn required_reviewers(&self) -> Box<dyn RequiredReviewerDB>;
+    fn health(&self) -> Box<dyn HealthDB>;
 }
 
 pub struct DbServiceImplPool {
@@ -101,6 +108,10 @@ impl DbService for DbServiceImplPool {
 
     fn required_reviewers(&self) -> Box<dyn RequiredReviewerDB> {
         Box::new(RequiredReviewerDBImplPool::new(self.pool.clone()))
+    }
+
+    fn health(&self) -> Box<dyn HealthDB> {
+        Box::new(HealthDBImplPool::new(self.pool.clone()))
     }
 }
 

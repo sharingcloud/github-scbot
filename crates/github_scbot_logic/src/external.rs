@@ -24,16 +24,18 @@ pub async fn set_qa_status_for_pull_requests(
     status: Option<bool>,
 ) -> Result<()> {
     let (repo_owner, repo_name) = repository_path.components();
-    if let Some(_) = db_adapter
+    if db_adapter
         .external_account_rights()
         .get(repo_owner, repo_name, account.username())
         .await?
+        .is_some()
     {
         for pr_number in pull_request_numbers {
-            if let Some(_) = db_adapter
+            if db_adapter
                 .pull_requests()
                 .get(repo_owner, repo_name, *pr_number)
                 .await?
+                .is_some()
             {
                 let result = handle_qa_command(
                     db_adapter, repo_owner, repo_name, *pr_number, author, status,

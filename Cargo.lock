@@ -1436,6 +1436,7 @@ dependencies = [
  "actix-web",
  "actix-web-httpauth",
  "actix-web-prom",
+ "async-trait",
  "chrono",
  "futures",
  "github-scbot-conf",
@@ -1447,7 +1448,9 @@ dependencies = [
  "github-scbot-sentry",
  "github-scbot-types",
  "hex",
+ "lazy_static",
  "pretty_assertions 0.7.2",
+ "prometheus",
  "regex",
  "rust-crypto",
  "serde",
@@ -2411,6 +2414,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "procfs"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95e344cafeaeefe487300c361654bcfc85db3ac53619eeccced29f5ea18c4c70"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "flate2",
+ "hex",
+ "lazy_static",
+ "libc",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2419,10 +2436,19 @@ dependencies = [
  "cfg-if",
  "fnv",
  "lazy_static",
+ "libc",
  "memchr",
  "parking_lot 0.11.2",
+ "procfs",
+ "protobuf",
  "thiserror",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf7e6d18738ecd0902d30d1ad232c9125985a3422929b16c65517b38adc14f96"
 
 [[package]]
 name = "quote"

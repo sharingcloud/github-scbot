@@ -6,5 +6,5 @@
 mod interface;
 mod redis;
 
-pub use interface::{RedisService, MockRedisService, LockInstance, LockStatus, RedisError};
+pub use interface::{LockInstance, LockStatus, MockRedisService, RedisError, RedisService};
 pub use redis::RedisServiceImpl;

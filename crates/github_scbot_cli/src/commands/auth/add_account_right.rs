@@ -74,7 +74,7 @@ mod tests {
             api_adapter,
             db_adapter,
             redis_adapter,
-            no_input: true
+            no_input: true,
         };
 
         let command = AuthAddAccountRightCommand {

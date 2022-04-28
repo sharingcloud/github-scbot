@@ -91,6 +91,7 @@ impl CommandExecutor {
     }
 
     /// Process command result.
+    #[allow(clippy::too_many_arguments)]
     pub async fn process_command_result(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
@@ -110,7 +111,7 @@ impl CommandExecutor {
                 repo_owner,
                 repo_name,
                 pr_number,
-                &upstream_pr,
+                upstream_pr,
             )
             .await?;
         }

@@ -3,7 +3,7 @@ use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
 
-use crate::interface::{RedisService, LockInstance, LockStatus, RedisError};
+use crate::interface::{LockInstance, LockStatus, RedisError, RedisService};
 
 /// Redis adapter.
 #[derive(Clone)]
@@ -64,6 +64,12 @@ impl RedisService for RedisServiceImpl {
         self.execute_command(resp_array!["DEL", name]).await?;
         Ok(())
     }
+
+    async fn health_check(&self) -> Result<(), RedisError> {
+        self.execute_command(resp_array!["INCR", "health"]).await?;
+        self.execute_command(resp_array!["DECR", "health"]).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -71,7 +77,7 @@ mod tests {
     use std::error::Error;
 
     use crate::{
-        interface::{RedisService, LockStatus},
+        interface::{LockStatus, RedisService},
         redis::RedisServiceImpl,
     };
 

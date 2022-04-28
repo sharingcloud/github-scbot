@@ -46,7 +46,7 @@ impl PullRequest {
 }
 
 impl PullRequestBuilder {
-    pub fn from_repository(&mut self, repository: &Repository) -> &mut Self {
+    pub fn with_repository(&mut self, repository: &Repository) -> &mut Self {
         self.automerge = Some(repository.default_automerge());
         self.checks_enabled = Some(repository.default_enable_checks());
         self.needed_reviewers_count = Some(repository.default_needed_reviewers_count());

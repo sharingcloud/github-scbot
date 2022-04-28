@@ -281,7 +281,7 @@ impl Command {
                 AdminCommand::Disable => "admin-disable".into(),
                 AdminCommand::Help => "admin-help".into(),
                 AdminCommand::SetDefaultMergeStrategy(strategy) => {
-                    format!("admin-set-default-merge-strategy {}", strategy.to_string())
+                    format!("admin-set-default-merge-strategy {}", strategy)
                 }
                 AdminCommand::SetDefaultNeededReviewers(count) => {
                     format!("admin-set-default-needed-reviewers {}", count)
@@ -326,13 +326,13 @@ impl Command {
                 }
                 UserCommand::Merge(strategy) => {
                     if let Some(strategy) = strategy {
-                        format!("merge {}", strategy.to_string())
+                        format!("merge {}", strategy)
                     } else {
                         "merge".into()
                     }
                 }
                 UserCommand::SetMergeStrategy(strategy) => {
-                    format!("strategy+ {}", strategy.to_string())
+                    format!("strategy+ {}", strategy)
                 }
                 UserCommand::UnsetMergeStrategy => "strategy-".into(),
                 UserCommand::SetLabels(labels) => format!("labels+ {}", labels.join(" ")),

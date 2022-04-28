@@ -35,7 +35,7 @@ impl Command for RepositoryListMergeRulesCommand {
                 "- '{}' (base) <- '{}' (head): '{}'",
                 rule.base_branch(),
                 rule.head_branch(),
-                rule.strategy().to_string()
+                rule.strategy()
             );
         }
 

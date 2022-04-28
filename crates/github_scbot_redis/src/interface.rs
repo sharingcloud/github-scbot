@@ -107,4 +107,6 @@ pub trait RedisService: Send + Sync {
             }
         }
     }
+    /// Health check
+    async fn health_check(&self) -> Result<(), RedisError>;
 }

@@ -5,7 +5,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
-use github_scbot_redis::{RedisService, LockStatus};
+use github_scbot_redis::{LockStatus, RedisService};
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
     labels::StepLabel,
@@ -66,7 +66,7 @@ pub async fn handle_pull_request_opened(
                     redis_adapter.try_lock_resource(&key).await?
                 {
                     let pr = PullRequest::builder()
-                        .from_repository(&repo_model)
+                        .with_repository(&repo_model)
                         .number(event.pull_request.number)
                         .build()
                         .unwrap();
@@ -390,7 +390,7 @@ impl PullRequestLogic {
                 .pull_requests()
                 .create(
                     PullRequest::builder()
-                        .from_repository(&repo)
+                        .with_repository(&repo)
                         .number(pr_number)
                         .build()
                         .unwrap(),
@@ -473,7 +473,7 @@ impl PullRequestLogic {
                 pr_number,
                 &format!(
                     "Pull request successfully auto-merged! (strategy: '{}')",
-                    strategy.to_string()
+                    strategy
                 ),
             )
             .await?;
