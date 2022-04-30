@@ -6,7 +6,7 @@ pub enum DatabaseError {
     ConnectionError(#[source] sqlx::Error),
 
     #[error("Migration error.")]
-    MigrationError,
+    MigrationError(#[source] sqlx::migrate::MigrateError),
 
     #[error("SQL error.")]
     SqlError(#[source] sqlx::Error),

@@ -47,7 +47,7 @@ where
     sqlx::migrate!("./migrations")
         .run(migrator)
         .await
-        .map_err(|_| DatabaseError::MigrationError)?;
+        .map_err(DatabaseError::MigrationError)?;
 
     Ok(())
 }

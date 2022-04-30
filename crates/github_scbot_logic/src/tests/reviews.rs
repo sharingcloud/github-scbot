@@ -1,12 +1,15 @@
 //! Review tests
 
 use github_scbot_conf::Config;
-use github_scbot_database2::{Result, DbService, Repository, PullRequest, use_temporary_db, DbServiceImplPool, };
+use github_scbot_database2::{
+    use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository, Result,
+};
 use github_scbot_ghapi::adapter::{ApiService, GithubApiService};
-use github_scbot_redis::{RedisService, RedisServiceImpl, MockRedisService};
+use github_scbot_redis::{MockRedisService, RedisService, RedisServiceImpl};
 use github_scbot_types::{
     common::{GhUser, GhUserPermission},
-    reviews::{GhReview, GhReviewState}, pulls::GhPullRequest,
+    pulls::GhPullRequest,
+    reviews::{GhReview, GhReviewState},
 };
 
 use crate::{
@@ -16,22 +19,20 @@ use crate::{
     LogicError, Result as LogicResult,
 };
 
-async fn arrange(
-    conf: &Config,
-    db_adapter: &dyn DbService,
-) -> (Repository, PullRequest) {
+async fn arrange(conf: &Config, db_adapter: &dyn DbService) -> (Repository, PullRequest) {
     // Create a repository and a pull request
-    let repo = Repository::builder()
-        .with_config(conf)
-        .build()
-        .unwrap();
+    let repo = Repository::builder().with_config(conf).build().unwrap();
 
     let pr = PullRequest::builder()
         .with_repository(&repo)
         .build()
         .unwrap();
 
-    db_adapter.repositories().create(repo.clone()).await.unwrap();
+    db_adapter
+        .repositories()
+        .create(repo.clone())
+        .await
+        .unwrap();
     db_adapter.pull_requests().create(pr.clone()).await.unwrap();
 
     (repo, pr)
