@@ -32,6 +32,7 @@ pub use models::required_reviewer::{
 };
 
 pub use errors::{DatabaseError, Result};
+pub use utils::use_temporary_db;
 pub type DbPool = sqlx::postgres::PgPool;
 
 use github_scbot_conf::Config;

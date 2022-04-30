@@ -1,10 +1,12 @@
 //! Review tests
 
 use github_scbot_conf::Config;
-use github_scbot_database2::Result;
+use github_scbot_database2::{Result, DbService, Repository, PullRequest, use_temporary_db, DbServiceImplPool, };
+use github_scbot_ghapi::adapter::{ApiService, GithubApiService};
+use github_scbot_redis::{RedisService, RedisServiceImpl, MockRedisService};
 use github_scbot_types::{
     common::{GhUser, GhUserPermission},
-    reviews::{GhReview, GhReviewState},
+    reviews::{GhReview, GhReviewState}, pulls::GhPullRequest,
 };
 
 use crate::{
@@ -14,53 +16,83 @@ use crate::{
     LogicError, Result as LogicResult,
 };
 
-// async fn arrange(
-//     conf: &Config,
-//     db_adapter: &dyn IDatabaseAdapter,
-// ) -> (RepositoryModel, PullRequestModel) {
-//     // Create a repository and a pull request
-//     let repo = RepositoryModel::builder(conf, "me", "TestRepo")
-//         .create_or_update(db_adapter.repository())
-//         .await
-//         .unwrap();
+async fn arrange(
+    conf: &Config,
+    db_adapter: &dyn DbService,
+) -> (Repository, PullRequest) {
+    // Create a repository and a pull request
+    let repo = Repository::builder()
+        .with_config(conf)
+        .build()
+        .unwrap();
 
-//     let pr = PullRequestModel::builder(&repo, 1, "me")
-//         .name("PR 1")
-//         .create_or_update(db_adapter.pull_request())
-//         .await
-//         .unwrap();
+    let pr = PullRequest::builder()
+        .with_repository(&repo)
+        .build()
+        .unwrap();
 
-//     (repo, pr)
-// }
+    db_adapter.repositories().create(repo.clone()).await.unwrap();
+    db_adapter.pull_requests().create(pr.clone()).await.unwrap();
+
+    (repo, pr)
+}
 
 #[actix_rt::test]
 async fn test_review_creation() -> Result<()> {
-    // async fn parse_and_execute_command(
-    //     config: &Config,
-    //     api_adapter: &dyn ApiService,
-    //     db_adapter: &dyn IDatabaseAdapter,
-    //     redis_adapter: &dyn RedisService,
-    //     repo: &mut RepositoryModel,
-    //     pr: &mut PullRequestModel,
-    //     command_str: &str,
-    // ) -> LogicResult<()> {
-    //     // Parse comment
-    //     let commands = CommandParser::parse_commands(config, command_str);
-    //     CommandExecutor::execute_commands(
-    //         config,
-    //         api_adapter,
-    //         db_adapter,
-    //         redis_adapter,
-    //         repo,
-    //         pr,
-    //         0,
-    //         "me",
-    //         commands,
-    //     )
-    //     .await?;
+    async fn parse_and_execute_command(
+        config: &Config,
+        api_adapter: &dyn ApiService,
+        db_adapter: &dyn DbService,
+        redis_adapter: &dyn RedisService,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
+        upstream_pr: &GhPullRequest,
+        command_str: &str,
+    ) -> LogicResult<()> {
+        // Parse comment
+        let commands = CommandParser::parse_commands(config, command_str);
+        CommandExecutor::execute_commands(
+            config,
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            upstream_pr,
+            0,
+            "me",
+            commands,
+        )
+        .await?;
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
+
+    let config = Config::from_env();
+
+    use_temporary_db(config, "test_reviews_creation", |config, pool| async {
+        let db_adapter = DbServiceImplPool::new(pool);
+        let api_adapter = GithubApiService::new(config);
+        let redis_adapter = MockRedisService::new();
+
+        let (repo, pr) = arrange(&config, &db_adapter).await;
+
+        parse_and_execute_command(
+            &config,
+            &api_adapter,
+            &db_adapter,
+            &redis_adapter,
+            repo.owner(),
+            &mut pr,
+            "test-bot req+ @him",
+        )
+        .await?;
+
+        Ok(())
+    })
+    .await;
 
     // using_test_db("test_logic_reviews", |config, pool| async move {
     //     let db_adapter = DatabaseAdapter::new(pool);
@@ -175,5 +207,5 @@ async fn test_review_creation() -> Result<()> {
     //     Ok::<_, LogicError>(())
     // })
     // .await
-    todo!()
+    Ok(())
 }
