@@ -14,7 +14,6 @@ use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},
     pulls::PullRequestLogic,
     status::StatusLogic,
-    summary::SummaryCommentSender,
     Result,
 };
 
@@ -86,18 +85,6 @@ pub async fn handle_issue_comment_event(
                             &upstream_pr,
                         )
                         .await?;
-
-                        // Create status comment
-                        SummaryCommentSender::new()
-                            .create(
-                                api_adapter,
-                                db_adapter,
-                                repo_owner,
-                                repo_name,
-                                pr_number,
-                                &upstream_pr,
-                            )
-                            .await?;
 
                         handled = true;
                         break;

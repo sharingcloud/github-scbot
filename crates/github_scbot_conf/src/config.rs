@@ -47,8 +47,6 @@ pub struct Config {
     pub server_disable_webhook_signature: bool,
     /// Enable welcome coments.
     pub server_enable_welcome_comments: bool,
-    /// Telemetry URL.
-    pub telemetry_url: String,
     /// Tenor API key.
     pub tenor_api_key: String,
     /// Test debug mode
@@ -89,7 +87,6 @@ impl Config {
                 "BOT_SERVER_ENABLE_WELCOME_COMMENTS",
                 false,
             ),
-            telemetry_url: env_to_str("BOT_TELEMETRY_URL", ""),
             tenor_api_key: env_to_str("BOT_TENOR_API_KEY", ""),
             test_debug_mode: env_to_bool("BOT_TEST_DEBUG_MODE", false),
         }

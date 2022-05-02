@@ -27,7 +27,7 @@ impl RedisServiceImpl {
 
 #[async_trait]
 impl RedisService for RedisServiceImpl {
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError> {
         let response = self
             .execute_command(resp_array!["SET", name, "1", "NX", "PX", "30000"])
@@ -66,8 +66,7 @@ impl RedisService for RedisServiceImpl {
     }
 
     async fn health_check(&self) -> Result<(), RedisError> {
-        self.execute_command(resp_array!["INCR", "health"]).await?;
-        self.execute_command(resp_array!["DECR", "health"]).await?;
+        self.execute_command(resp_array!["PING"]).await?;
         Ok(())
     }
 }

@@ -3,7 +3,6 @@ members = [
     "crates/github_scbot_cli",
     "crates/github_scbot_conf",
     "crates/github_scbot_crypto",
-    "crates/github_scbot_database",
     "crates/github_scbot_database_macros",
     "crates/github_scbot_database2",
     "crates/github_scbot_ghapi",

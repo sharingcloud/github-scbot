@@ -1,3 +1,5 @@
+//! GitHub Api wrappers.
+
 use async_trait::async_trait;
 use github_scbot_conf::Config;
 use github_scbot_ghapi::{
@@ -14,11 +16,13 @@ use github_scbot_types::{
 
 use crate::metrics::{GITHUB_API_CALLS, TENOR_API_CALLS};
 
+/// GitHub Api Service with metrics.
 pub struct MetricsApiService {
     inner: GithubApiService,
 }
 
 impl MetricsApiService {
+    /// Creates a new service.
     pub fn new(config: Config) -> Self {
         Self {
             inner: GithubApiService::new(config),

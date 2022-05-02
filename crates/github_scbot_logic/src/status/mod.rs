@@ -11,7 +11,6 @@ use github_scbot_types::{
     status::{CheckStatus, QaStatus, StatusState},
 };
 pub use pull_status::PullRequestStatus;
-use tracing::debug;
 
 use crate::{errors::Result, pulls::PullRequestLogic, summary::SummaryCommentSender};
 
@@ -22,9 +21,9 @@ pub struct StatusLogic;
 
 impl StatusLogic {
     /// Determine automatic step for a pull request.
-    #[tracing::instrument]
-    pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> Result<StepLabel> {
-        Ok(if pull_request_status.wip {
+    #[tracing::instrument(ret)]
+    pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> StepLabel {
+        if pull_request_status.wip {
             StepLabel::Wip
         } else if pull_request_status.valid_pr_title {
             match pull_request_status.checks_status {
@@ -56,67 +55,7 @@ impl StatusLogic {
             }
         } else {
             StepLabel::AwaitingChanges
-        })
-    }
-
-    /// Create initial pull request status.
-    pub async fn create_initial_pull_request_status(
-        api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        upstream_pr: &GhPullRequest,
-    ) -> Result<()> {
-        let commit_sha = &upstream_pr.head.sha;
-        let pr_status = PullRequestStatus::from_database(
-            api_adapter,
-            db_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            upstream_pr,
-        )
-        .await?;
-
-        // Update step label.
-        let step_label = Self::determine_automatic_step(&pr_status)?;
-        PullRequestLogic::apply_pull_request_step(
-            api_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            Some(step_label),
-        )
-        .await?;
-
-        // Create status comment
-        SummaryCommentSender::new()
-            .create(
-                api_adapter,
-                db_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
-                upstream_pr,
-            )
-            .await?;
-
-        // Create or update status.
-        let (status_state, status_title, status_message) =
-            Self::generate_pr_status_message(&pr_status)?;
-        api_adapter
-            .commit_statuses_update(
-                repo_owner,
-                repo_name,
-                commit_sha,
-                status_state,
-                status_title,
-                &status_message,
-            )
-            .await?;
-
-        Ok(())
+        }
     }
 
     /// Update pull request status.
@@ -142,7 +81,7 @@ impl StatusLogic {
         .await?;
 
         // Update step label.
-        let step_label = Self::determine_automatic_step(&pr_status)?;
+        let step_label = Self::determine_automatic_step(&pr_status);
         PullRequestLogic::apply_pull_request_step(
             api_adapter,
             repo_owner,
@@ -153,16 +92,16 @@ impl StatusLogic {
         .await?;
 
         // Post status.
-        SummaryCommentSender::new()
-            .update(
-                api_adapter,
-                db_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
-                upstream_pr,
-            )
-            .await?;
+        SummaryCommentSender::create_or_update(
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            &pr_status,
+        )
+        .await?;
 
         // Create or update status.
         let (status_state, status_title, status_message) =
@@ -209,16 +148,16 @@ impl StatusLogic {
                         .await?;
 
                     // Update status
-                    SummaryCommentSender::new()
-                        .update(
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            upstream_pr,
-                        )
-                        .await?;
+                    SummaryCommentSender::create_or_update(
+                        api_adapter,
+                        db_adapter,
+                        redis_adapter,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
+                        &pr_status,
+                    )
+                    .await?;
                 }
 
                 l.release().await?;
@@ -235,11 +174,6 @@ impl StatusLogic {
         let status_title = VALIDATION_STATUS_MESSAGE;
         let mut status_state = StatusState::Success;
         let mut status_message = "All good.".to_string();
-
-        debug!(
-            pull_request_status = ?pull_request_status,
-            message = "Generated pull request status"
-        );
 
         if pull_request_status.wip {
             status_message = "PR is still in WIP".to_string();
@@ -328,8 +262,7 @@ impl StatusLogic {
             )
             .await?;
 
-        SummaryCommentSender::new()
-            .delete(api_adapter, db_adapter, repo_owner, repo_name, pr_number)
+        SummaryCommentSender::delete(api_adapter, db_adapter, repo_owner, repo_name, pr_number)
             .await
     }
 }

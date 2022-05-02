@@ -37,7 +37,7 @@ pub(crate) fn build_metrics_handler() -> PrometheusMetrics {
 fn setup_process_metrics(metrics: &PrometheusMetrics) {
     use prometheus::process_collector::ProcessCollector;
 
-    prometheus
+    metrics
         .registry
         .register(Box::new(ProcessCollector::for_self()))
         .unwrap();

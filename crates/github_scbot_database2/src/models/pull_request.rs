@@ -47,6 +47,7 @@ impl PullRequest {
 
 impl PullRequestBuilder {
     pub fn with_repository(&mut self, repository: &Repository) -> &mut Self {
+        self.repository_id = Some(repository.id());
         self.automerge = Some(repository.default_automerge());
         self.checks_enabled = Some(repository.default_enable_checks());
         self.needed_reviewers_count = Some(repository.default_needed_reviewers_count());
@@ -106,7 +107,7 @@ pub trait PullRequestDB {
         owner: &str,
         name: &str,
         number: u64,
-        count: u64,
+        id: u64,
     ) -> Result<PullRequest>;
     async fn set_checks_enabled(
         &mut self,
@@ -275,11 +276,11 @@ impl PullRequestDB for PullRequestDBImplPool {
         owner: &str,
         name: &str,
         number: u64,
-        count: u64,
+        id: u64,
     ) -> Result<PullRequest> {
         let mut transaction = self.begin().await?;
         let data = PullRequestDBImpl::new(&mut *transaction)
-            .set_status_comment_id(owner, name, number, count)
+            .set_status_comment_id(owner, name, number, id)
             .await?;
         self.commit(transaction).await?;
         Ok(data)
@@ -348,7 +349,7 @@ impl PullRequestDB for PullRequestDBImplPool {
 
 #[async_trait]
 impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: PullRequest) -> Result<PullRequest> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -429,7 +430,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn get(&mut self, owner: &str, name: &str, number: u64) -> Result<Option<PullRequest>> {
         sqlx::query_as::<_, PullRequest>(
             r#"
@@ -565,7 +566,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         owner: &str,
         name: &str,
         number: u64,
-        count: u64,
+        id: u64,
     ) -> Result<PullRequest> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -579,7 +580,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
             RETURNING pull_request.id;
             "#,
         )
-        .bind(count as i32)
+        .bind(id as i32)
         .bind(owner)
         .bind(name)
         .bind(number as i32)

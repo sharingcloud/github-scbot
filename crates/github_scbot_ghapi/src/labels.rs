@@ -40,6 +40,7 @@ impl LabelApi {
             .issue_labels_list(repository_owner, repository_name, pr_number)
             .await?;
         let existing_labels = Self::add_step_in_existing_labels(&existing_labels, label);
+        println!("Will set labels {existing_labels:?}");
         adapter
             .issue_labels_replace_all(
                 repository_owner,

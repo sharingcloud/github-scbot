@@ -5,10 +5,8 @@ WORKDIR /usr/src/app
 RUN rustup toolchain install 1.60.0
 
 COPY ./crates /usr/src/app/crates
-COPY ./migrations /usr/src/app/migrations
 COPY Cargo.lock /usr/src/app
 COPY Cargo.toml /usr/src/app
-COPY diesel.toml /usr/src/app
 
 RUN cargo build --release
 

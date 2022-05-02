@@ -47,7 +47,7 @@ impl GithubApiService {
 
 #[async_trait(?Send)]
 impl ApiService for GithubApiService {
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn issue_labels_list(
         &self,
         owner: &str,
@@ -127,7 +127,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn user_permissions_get(
         &self,
         owner: &str,
@@ -154,7 +154,7 @@ impl ApiService for GithubApiService {
         Ok(response.permission)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn check_suites_list(
         &self,
         owner: &str,
@@ -181,7 +181,7 @@ impl ApiService for GithubApiService {
         Ok(response.check_suites)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn comments_post(
         &self,
         owner: &str,
@@ -214,7 +214,7 @@ impl ApiService for GithubApiService {
             .id)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn comments_update(
         &self,
         owner: &str,
@@ -289,7 +289,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
         Ok(self
             .get_client()
@@ -391,7 +391,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn pull_reviews_list(
         &self,
         owner: &str,
@@ -446,7 +446,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
         let client = reqwest::Client::new();
         client

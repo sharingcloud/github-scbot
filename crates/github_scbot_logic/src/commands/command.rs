@@ -5,6 +5,8 @@ use github_scbot_types::{issues::GhReactionType, pulls::GhMergeStrategy};
 use smart_default::SmartDefault;
 use thiserror::Error;
 
+const MAX_REVIEWERS_PER_COMMAND: usize = 16;
+
 /// Command error.
 #[derive(Debug, Error, PartialEq)]
 pub enum CommandError {
@@ -17,6 +19,9 @@ pub enum CommandError {
     /// Incomplete command.
     #[error("Incomplete command.")]
     IncompleteCommand,
+    /// Invalid usage.
+    #[error("Invalid usage: {0}")]
+    InvalidUsage(String),
 }
 
 /// Command result.
@@ -408,6 +413,10 @@ impl Command {
 
         if reviewers.is_empty() {
             Err(CommandError::IncompleteCommand)
+        } else if reviewers.len() > MAX_REVIEWERS_PER_COMMAND {
+            Err(CommandError::InvalidUsage(format!(
+                "You can only specify up to {MAX_REVIEWERS_PER_COMMAND} reviewers on one command."
+            )))
         } else {
             Ok(reviewers)
         }

@@ -1,42 +1,98 @@
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_types::pulls::GhPullRequest;
+use github_scbot_redis::{LockStatus, RedisService};
 use tracing::warn;
 
 use super::SummaryTextGenerator;
 use crate::{status::PullRequestStatus, Result};
 
 /// Summary comment sender.
-#[derive(Default)]
 pub struct SummaryCommentSender;
 
 impl SummaryCommentSender {
-    /// Creates new summary comment sender.
-    pub fn new() -> Self {
-        Self::default()
+    /// Creates or updates summary.
+    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter), ret)]
+    pub async fn create_or_update(
+        api_adapter: &dyn ApiService,
+        db_adapter: &dyn DbService,
+        redis_adapter: &dyn RedisService,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
+        pull_request_status: &PullRequestStatus,
+    ) -> Result<u64> {
+        // This function can be accessed at the same time in multiple process, we need to make sure only one will create the summary if it's absent.
+        let comment_id =
+            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
+        if comment_id > 0 {
+            Self::update(
+                api_adapter,
+                db_adapter,
+                repo_owner,
+                repo_name,
+                pr_number,
+                pull_request_status,
+                comment_id,
+            )
+            .await
+        } else {
+            // Not the smartest strategy, let's lock for 1 second
+            let lock_name = format!("summary-{repo_owner}-{repo_name}-{pr_number}");
+            match redis_adapter.wait_lock_resource(&lock_name, 1_000).await? {
+                LockStatus::SuccessfullyLocked(l) => {
+                    let result = Self::create(
+                        api_adapter,
+                        db_adapter,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
+                        pull_request_status,
+                    )
+                    .await;
+                    l.release().await?;
+                    result
+                }
+                LockStatus::AlreadyLocked => {
+                    // Well, try again
+                    let comment_id =
+                        Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number)
+                            .await?;
+                    if comment_id == 0 {
+                        // Abort summary creation
+                        warn!(
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            message = "Could not create summary on second attempt. Ignoring."
+                        );
+                        Ok(0)
+                    } else {
+                        Self::update(
+                            api_adapter,
+                            db_adapter,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            pull_request_status,
+                            comment_id,
+                        )
+                        .await
+                    }
+                }
+            }
+        }
     }
 
-    /// Creates comment.
-    pub async fn create(
-        &self,
+    async fn create(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
-        upstream_pr: &GhPullRequest,
+        pull_request_status: &PullRequestStatus,
     ) -> Result<u64> {
-        let pull_request_status = PullRequestStatus::from_database(
-            api_adapter,
-            db_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            upstream_pr,
-        )
-        .await?;
-        let status_comment = Self::generate_comment(&pull_request_status)?;
-        self.post_github_comment(
+        let status_comment = Self::generate_comment(pull_request_status)?;
+        Self::post_github_comment(
             api_adapter,
             db_adapter,
             repo_owner,
@@ -47,66 +103,43 @@ impl SummaryCommentSender {
         .await
     }
 
-    /// Update comment.
-    pub async fn update(
-        &self,
+    async fn update(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
-        upstream_pr: &GhPullRequest,
+        pull_request_status: &PullRequestStatus,
+        comment_id: u64,
     ) -> Result<u64> {
-        let pull_request_status = PullRequestStatus::from_database(
+        let status_comment = Self::generate_comment(pull_request_status)?;
+
+        if let Ok(comment_id) = CommentApi::update_comment(
             api_adapter,
-            db_adapter,
             repo_owner,
             repo_name,
-            pr_number,
-            upstream_pr,
+            comment_id,
+            &status_comment,
         )
-        .await?;
-        let status_comment = Self::generate_comment(&pull_request_status)?;
-
-        let comment_id =
-            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
-        if comment_id > 0 {
-            if let Ok(comment_id) = CommentApi::update_comment(
+        .await
+        {
+            Ok(comment_id)
+        } else {
+            // Comment ID is no more used on GitHub, recreate a new status
+            Self::post_github_comment(
                 api_adapter,
+                db_adapter,
                 repo_owner,
                 repo_name,
-                comment_id,
+                pr_number,
                 &status_comment,
             )
             .await
-            {
-                Ok(comment_id)
-            } else {
-                // Comment ID is no more used on GitHub, recreate a new status
-                self.post_github_comment(
-                    api_adapter,
-                    db_adapter,
-                    repo_owner,
-                    repo_name,
-                    pr_number,
-                    &status_comment,
-                )
-                .await
-            }
-        } else {
-            // Too early, do not update the status comment
-            warn!(
-                status = ?pull_request_status,
-                message = "Could not update summary, comment ID is 0"
-            );
-
-            Ok(0)
         }
     }
 
     /// Delete comment.
     pub async fn delete(
-        &self,
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,
@@ -145,7 +178,6 @@ impl SummaryCommentSender {
     }
 
     async fn post_github_comment(
-        &self,
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
         repo_owner: &str,

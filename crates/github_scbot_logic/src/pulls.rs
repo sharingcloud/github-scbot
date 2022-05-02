@@ -5,7 +5,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
-use github_scbot_redis::{LockStatus, RedisService};
+use github_scbot_redis::RedisService;
 use github_scbot_types::{
     checks::{GhCheckConclusion, GhCheckSuite},
     labels::StepLabel,
@@ -56,94 +56,82 @@ pub async fn handle_pull_request_opened(
         Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
         None => {
             if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
-                let key = format!(
-                    "pr-creation_{}-{}_{}",
-                    repo_model.owner(),
-                    repo_model.name(),
-                    event.pull_request.number
-                );
-                if let LockStatus::SuccessfullyLocked(l) =
-                    redis_adapter.try_lock_resource(&key).await?
-                {
-                    let pr = PullRequest::builder()
-                        .with_repository(&repo_model)
-                        .number(event.pull_request.number)
-                        .build()
-                        .unwrap();
-                    let pr_model = db_adapter.pull_requests().create(pr).await?;
+                let pr = PullRequest::builder()
+                    .with_repository(&repo_model)
+                    .number(event.pull_request.number)
+                    .build()
+                    .unwrap();
+                let pr_model = db_adapter.pull_requests().create(pr).await?;
 
-                    // Get upstream pull request
-                    let upstream_pr = api_adapter
-                        .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
-                        .await?;
-
-                    let check_status = if repo_model.default_enable_checks() {
-                        PullRequestLogic::get_checks_status_from_github(
-                            api_adapter,
-                            repo_owner,
-                            repo_name,
-                            &upstream_pr.head.sha,
-                            &[],
-                        )
-                        .await?
-                    } else {
-                        CheckStatus::Skipped
-                    };
-
-                    info!(
-                        repository_path = %repo_model.path(),
-                        pr_model = ?pr_model,
-                        check_status = ?check_status,
-                        message = "Creating pull request",
-                    );
-
-                    StatusLogic::create_initial_pull_request_status(
-                        api_adapter,
-                        db_adapter,
-                        repo_owner,
-                        repo_name,
-                        pr_number,
-                        &upstream_pr,
-                    )
+                // Get upstream pull request
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
                     .await?;
 
-                    if config.server_enable_welcome_comments {
-                        PullRequestLogic::post_welcome_comment(
-                            api_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            &event.pull_request.user.login,
-                        )
-                        .await?;
-                    }
-
-                    l.release().await?;
-
-                    // Now, handle commands from body.
-                    let commands = CommandParser::parse_commands(
-                        config,
-                        &event.pull_request.body.unwrap_or_default(),
-                    );
-                    CommandExecutor::execute_commands(
-                        config,
+                let check_status = if repo_model.default_enable_checks() {
+                    PullRequestLogic::get_checks_status_from_github(
                         api_adapter,
-                        db_adapter,
-                        redis_adapter,
                         repo_owner,
                         repo_name,
-                        pr_number,
-                        &upstream_pr,
-                        0,
-                        &event.pull_request.user.login,
-                        commands,
+                        &upstream_pr.head.sha,
+                        pr_model.checks_enabled(),
+                        &[],
                     )
-                    .await?;
-
-                    Ok(PullRequestOpenedStatus::Created)
+                    .await?
                 } else {
-                    Ok(PullRequestOpenedStatus::AlreadyCreated)
+                    CheckStatus::Skipped
+                };
+
+                info!(
+                    repository_path = %repo_model.path(),
+                    pr_model = ?pr_model,
+                    check_status = ?check_status,
+                    message = "Creating pull request",
+                );
+
+                StatusLogic::update_pull_request_status(
+                    api_adapter,
+                    db_adapter,
+                    redis_adapter,
+                    repo_owner,
+                    repo_name,
+                    pr_number,
+                    &upstream_pr,
+                )
+                .await?;
+
+                if config.server_enable_welcome_comments {
+                    PullRequestLogic::post_welcome_comment(
+                        api_adapter,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
+                        &event.pull_request.user.login,
+                    )
+                    .await?;
                 }
+
+                // Now, handle commands from body.
+                let commands = CommandParser::parse_commands(
+                    config,
+                    &event.pull_request.body.unwrap_or_default(),
+                );
+                CommandExecutor::execute_commands(
+                    config,
+                    api_adapter,
+                    db_adapter,
+                    redis_adapter,
+                    repo_owner,
+                    repo_name,
+                    pr_number,
+                    &upstream_pr,
+                    0,
+                    &event.pull_request.user.login,
+                    commands,
+                )
+                .await?;
+
+                Ok(PullRequestOpenedStatus::Created)
             } else {
                 Ok(PullRequestOpenedStatus::Ignored)
             }
@@ -246,12 +234,13 @@ impl PullRequestLogic {
     }
 
     /// Get checks status from GitHub.
-    #[tracing::instrument(skip(api_adapter))]
+    #[tracing::instrument(skip(api_adapter), ret)]
     pub async fn get_checks_status_from_github(
         api_adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         sha: &str,
+        wait_for_initial_checks: bool,
         exclude_check_suite_ids: &[u64],
     ) -> Result<CheckStatus> {
         // Get upstream checks
@@ -261,25 +250,19 @@ impl PullRequestLogic {
 
         let repository_path = format!("{}/{}", repository_owner, repository_name);
 
-        debug!(
-            repository_path = %repository_path,
-            sha = %sha,
-            check_suites = ?check_suites,
-            message = "Check suites status from GitHub"
-        );
-
         // Extract status
         if check_suites.is_empty() {
-            debug!(
-                repository_path = %repository_path,
-                sha = %sha,
-                message = "No check suite found from GitHub"
-            );
-
-            Ok(CheckStatus::Skipped)
+            if wait_for_initial_checks {
+                Ok(CheckStatus::Waiting)
+            } else {
+                Ok(CheckStatus::Skipped)
+            }
         } else {
-            let filtered =
-                Self::filter_and_merge_check_suites(check_suites, exclude_check_suite_ids);
+            let filtered = Self::filter_and_merge_check_suites(
+                check_suites,
+                wait_for_initial_checks,
+                exclude_check_suite_ids,
+            );
 
             debug!(
                 repository_path = %repository_path,
@@ -322,10 +305,11 @@ impl PullRequestLogic {
     /// Filter and merge check suites.
     pub fn filter_and_merge_check_suites(
         check_suites: Vec<GhCheckSuite>,
+        wait_for_initial_checks: bool,
         exclude_ids: &[u64],
     ) -> CheckStatus {
         let filtered = Self::filter_last_check_suites(check_suites, exclude_ids);
-        Self::merge_check_suite_statuses(&filtered)
+        Self::merge_check_suite_statuses(&filtered, wait_for_initial_checks)
     }
 
     /// Filter last check suites.
@@ -353,18 +337,34 @@ impl PullRequestLogic {
     }
 
     /// Merge check suite statuses.
-    #[tracing::instrument]
-    fn merge_check_suite_statuses(check_suites: &[GhCheckSuite]) -> CheckStatus {
+    #[tracing::instrument(ret)]
+    fn merge_check_suite_statuses(
+        check_suites: &[GhCheckSuite],
+        wait_for_initial_checks: bool,
+    ) -> CheckStatus {
+        let initial = if wait_for_initial_checks {
+            CheckStatus::Waiting
+        } else {
+            CheckStatus::Skipped
+        };
+
         check_suites
             .iter()
-            .fold(CheckStatus::Skipped, |acc, s| match (&acc, &s.conclusion) {
-                (CheckStatus::Fail, _) | (_, Some(GhCheckConclusion::Failure)) => CheckStatus::Fail,
-                (CheckStatus::Skipped | CheckStatus::Pass, Some(GhCheckConclusion::Success)) => {
-                    CheckStatus::Pass
+            .fold(None, |acc, s| match (&acc, &s.conclusion) {
+                // Already failed, or current check suite is failing
+                (Some(CheckStatus::Fail), _) | (_, Some(GhCheckConclusion::Failure)) => {
+                    Some(CheckStatus::Fail)
                 }
-                (_, None) => CheckStatus::Waiting,
+                // No status or checks already pass, and current check suite pass
+                (None | Some(CheckStatus::Pass), Some(GhCheckConclusion::Success)) => {
+                    Some(CheckStatus::Pass)
+                }
+                // No conclusion for current check suite
+                (_, None) => Some(CheckStatus::Waiting),
+                // Keep same status
                 (_, _) => acc,
             })
+            .unwrap_or(initial)
     }
 
     /// Ensure repository & pull request creation.
@@ -407,7 +407,7 @@ impl PullRequestLogic {
     }
 
     /// Try automerge pull request.
-    #[tracing::instrument(skip(api_adapter, db_adapter))]
+    #[tracing::instrument(skip(api_adapter, db_adapter), ret)]
     pub async fn try_automerge_pull_request(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
@@ -536,8 +536,14 @@ mod tests {
     pub fn test_merge_check_suite_statuses() {
         // No check suite, no need to wait
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[]),
+            PullRequestLogic::merge_check_suite_statuses(&[], false),
             CheckStatus::Skipped
+        );
+
+        // No check suite, but with initial checks wait
+        assert_eq!(
+            PullRequestLogic::merge_check_suite_statuses(&[], true),
+            CheckStatus::Waiting
         );
 
         let base_suite = GhCheckSuite {
@@ -550,11 +556,14 @@ mod tests {
 
         // Should wait on queued status
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[GhCheckSuite {
-                status: GhCheckStatus::Queued,
-                conclusion: None,
-                ..base_suite.clone()
-            }]),
+            PullRequestLogic::merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    status: GhCheckStatus::Queued,
+                    conclusion: None,
+                    ..base_suite.clone()
+                }],
+                false
+            ),
             CheckStatus::Waiting
         );
 
@@ -567,6 +576,7 @@ mod tests {
                     conclusion: None,
                     ..base_suite.clone()
                 }],
+                false,
                 &[1]
             ),
             CheckStatus::Skipped
@@ -583,6 +593,7 @@ mod tests {
                     },
                     ..GhCheckSuite::default()
                 }],
+                false,
                 &[]
             ),
             CheckStatus::Skipped
@@ -590,64 +601,76 @@ mod tests {
 
         // Success
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[GhCheckSuite {
-                status: GhCheckStatus::Completed,
-                conclusion: Some(GhCheckConclusion::Success),
-                ..base_suite.clone()
-            }]),
+            PullRequestLogic::merge_check_suite_statuses(
+                &[GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    ..base_suite.clone()
+                }],
+                false
+            ),
             CheckStatus::Pass
         );
 
         // Success with skipped
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[
-                GhCheckSuite {
-                    id: 1,
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Success),
-                    ..base_suite.clone()
-                },
-                GhCheckSuite {
-                    id: 2,
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Skipped),
-                    ..base_suite.clone()
-                }
-            ]),
+            PullRequestLogic::merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        id: 1,
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        id: 2,
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Skipped),
+                        ..base_suite.clone()
+                    }
+                ],
+                false
+            ),
             CheckStatus::Pass
         );
 
         // Success with queued
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[
-                GhCheckSuite {
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Success),
-                    ..base_suite.clone()
-                },
-                GhCheckSuite {
-                    status: GhCheckStatus::Queued,
-                    conclusion: None,
-                    ..base_suite.clone()
-                }
-            ]),
+            PullRequestLogic::merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        status: GhCheckStatus::Queued,
+                        conclusion: None,
+                        ..base_suite.clone()
+                    }
+                ],
+                false
+            ),
             CheckStatus::Waiting
         );
 
         // One failing check make the status fail
         assert_eq!(
-            PullRequestLogic::merge_check_suite_statuses(&[
-                GhCheckSuite {
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Failure),
-                    ..base_suite.clone()
-                },
-                GhCheckSuite {
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Success),
-                    ..base_suite.clone()
-                }
-            ]),
+            PullRequestLogic::merge_check_suite_statuses(
+                &[
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Failure),
+                        ..base_suite.clone()
+                    },
+                    GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        ..base_suite.clone()
+                    }
+                ],
+                false
+            ),
             CheckStatus::Fail
         );
 
@@ -677,6 +700,7 @@ mod tests {
                         ..base_suite
                     }
                 ],
+                false,
                 &[]
             ),
             CheckStatus::Pass

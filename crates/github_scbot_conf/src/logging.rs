@@ -12,8 +12,9 @@ use tracing_tree::HierarchicalLayer;
 
 use crate::Config;
 
-const DEFAULT_ENV_CONFIG: &str = "info,github_scbot=debug";
+const DEFAULT_ENV_CONFIG: &str = "info,sqlx=error,github_scbot=debug";
 
+/// Configre logging.
 pub fn configure_logging(config: &Config) -> Result<()> {
     LogTracer::init().expect("Unable to setup log tracer.");
 
@@ -39,25 +40,13 @@ pub fn configure_logging(config: &Config) -> Result<()> {
             None
         }
     };
-    let telemetry_layer = {
-        if !config.telemetry_url.is_empty() {
-            let tracer = opentelemetry_jaeger::new_pipeline()
-                .with_agent_endpoint(config.telemetry_url.as_str())
-                .install_batch(opentelemetry::runtime::Tokio)?;
-            let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-            Some(telemetry)
-        } else {
-            None
-        }
-    };
 
     let subscriber = tracing_subscriber::registry()
         .with(error_layer)
         .with(hierarchical_layer)
         .with(filter_layer)
         .with(json_storage_layer)
-        .with(bunyan_layer)
-        .with(telemetry_layer);
+        .with(bunyan_layer);
 
     tracing::subscriber::set_global_default(subscriber)?;
 

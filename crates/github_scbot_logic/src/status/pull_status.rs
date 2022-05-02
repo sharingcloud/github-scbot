@@ -1,7 +1,8 @@
 use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
-use github_scbot_ghapi::adapter::{ApiService, GhReviewApi, GhReviewStateApi};
+use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
+    reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
 use regex::Regex;
@@ -45,7 +46,7 @@ pub struct PullRequestStatus {
 
 impl PullRequestStatus {
     /// Create status from pull request and database.
-    #[tracing::instrument(skip(api_adapter, db_adapter))]
+    #[tracing::instrument(skip(api_adapter, db_adapter), ret)]
     pub async fn from_database(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
@@ -65,9 +66,9 @@ impl PullRequestStatus {
             .await?
             .unwrap();
 
-        let upstream_reviews = api_adapter
-            .pull_reviews_list(repo_owner, repo_name, pr_number)
-            .await?;
+        let upstream_reviews =
+            ReviewApi::list_reviews_for_pull_request(api_adapter, repo_owner, repo_name, pr_number)
+                .await?;
         let required_reviewers = db_adapter
             .required_reviewers()
             .list(repo_owner, repo_name, pr_number)
@@ -77,6 +78,7 @@ impl PullRequestStatus {
             repo_owner,
             repo_name,
             &upstream_pr.head.sha,
+            pr_model.checks_enabled(),
             &[],
         )
         .await?;
@@ -108,15 +110,13 @@ impl PullRequestStatus {
         )
     }
 
-    /// Create status from pull request.
-    #[tracing::instrument]
     fn from_pull_request(
         repo_model: &Repository,
         pr_model: &PullRequest,
         strategy: GhMergeStrategy,
         required_reviewers: Vec<RequiredReviewer>,
         checks_status: CheckStatus,
-        upstream_reviews: Vec<GhReviewApi>,
+        upstream_reviews: Vec<GhReview>,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
         // Validate reviews
@@ -129,9 +129,9 @@ impl PullRequestStatus {
             let username = review.user.login;
             let required = Self::is_required_reviewer(&required_reviewers, &username);
             let state = review.state;
-            let approved = state == GhReviewStateApi::Approved;
+            let approved = state == GhReviewState::Approved;
 
-            if state == GhReviewStateApi::ChangesRequested {
+            if state == GhReviewState::ChangesRequested {
                 changes_required_reviews.push(username);
             } else if required && !approved {
                 required_reviews.push(username);
@@ -160,7 +160,7 @@ impl PullRequestStatus {
             )?,
             locked: pr_model.locked(),
             wip: upstream_pr.draft,
-            mergeable: upstream_pr.mergeable.unwrap_or(false),
+            mergeable: upstream_pr.mergeable.unwrap_or(true),
             merged: upstream_pr.merged.unwrap_or(false),
             merge_strategy: strategy,
         })

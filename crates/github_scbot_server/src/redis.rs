@@ -1,13 +1,17 @@
+//! Redis wrappers.
+
 use async_trait::async_trait;
 use github_scbot_redis::{LockStatus, RedisError, RedisService, RedisServiceImpl};
 
 use crate::metrics::REDIS_CALLS;
 
+/// Redis service with metrics.
 pub struct MetricsRedisService {
     inner: RedisServiceImpl,
 }
 
 impl MetricsRedisService {
+    /// Creates a new service.
     pub fn new<T: Into<String>>(addr: T) -> Self {
         Self {
             inner: RedisServiceImpl::new(addr),

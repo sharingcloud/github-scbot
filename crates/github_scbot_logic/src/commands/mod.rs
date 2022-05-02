@@ -49,6 +49,7 @@ impl CommandExecutor {
                             config,
                             api_adapter,
                             db_adapter,
+                            redis_adapter,
                             repo_owner,
                             repo_name,
                             pr_number,
@@ -196,11 +197,12 @@ impl CommandExecutor {
     }
 
     /// Execute command.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
     pub async fn execute_command(
         config: &Config,
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
+        redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -384,6 +386,7 @@ impl CommandExecutor {
                         handlers::handle_admin_reset_summary_command(
                             api_adapter,
                             db_adapter,
+                            redis_adapter,
                             repo_owner,
                             repo_name,
                             pr_number,
@@ -483,68 +486,6 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::LogicError;
-
-    #[actix_rt::test]
-    async fn test_validate_user_rights_on_command() -> Result<()> {
-        // using_test_db("test_logic_commands", |_config, pool| async move {
-        //     let db_adapter = DatabaseAdapter::new(pool);
-        //     let creator = "me";
-
-        //     AccountModel::builder("non-admin")
-        //         .admin(false)
-        //         .create_or_update(db_adapter.account())
-        //         .await
-        //         .unwrap();
-
-        //     AccountModel::builder("admin")
-        //         .admin(true)
-        //         .create_or_update(db_adapter.account())
-        //         .await
-        //         .unwrap();
-
-        //     // PR creator should be valid
-        //     assert!(CommandExecutor::validate_user_rights_on_command(
-        //         &db_adapter,
-        //         creator,
-        //         GhUserPermission::Write,
-        //         &Command::User(UserCommand::Merge(None))
-        //     )
-        //     .await
-        //     .unwrap());
-        //     // Non-admin without write permission should be invalid
-        //     assert!(!CommandExecutor::validate_user_rights_on_command(
-        //         &db_adapter,
-        //         "non-admin",
-        //         GhUserPermission::Read,
-        //         &Command::User(UserCommand::Merge(None))
-        //     )
-        //     .await
-        //     .unwrap());
-        //     // Non-admin with write permission should be valid
-        //     assert!(CommandExecutor::validate_user_rights_on_command(
-        //         &db_adapter,
-        //         "non-admin",
-        //         GhUserPermission::Write,
-        //         &Command::User(UserCommand::Merge(None))
-        //     )
-        //     .await
-        //     .unwrap());
-        //     // Admin should be valid
-        //     assert!(CommandExecutor::validate_user_rights_on_command(
-        //         &db_adapter,
-        //         "admin",
-        //         GhUserPermission::Write,
-        //         &Command::User(UserCommand::Merge(None))
-        //     )
-        //     .await
-        //     .unwrap());
-
-        //     Ok::<_, LogicError>(())
-        // })
-        // .await
-        todo!()
-    }
 
     #[test]
     fn test_merge_command_results() {
@@ -596,81 +537,5 @@ mod tests {
                 should_update_status: false
             }
         );
-    }
-
-    #[actix_rt::test]
-    async fn test_issue_78() {
-        // let mut config = Config::from_env();
-        // config.bot_username = "test-bot".into();
-        // let mut api_adapter = DummyAPIAdapter::new();
-        // let db_adapter = DummyDatabaseAdapter::new();
-        // let redis_adapter = DummyRedisServiceImpl::new();
-        // let mut repo = RepositoryModel::builder(&config, "me", "repo")
-        //     .build()
-        //     .into();
-        // let mut pr = PullRequestModel::builder(&repo, 1, "me").build().into();
-
-        // api_adapter
-        //     .user_permissions_get_response
-        //     .set_callback(Box::new(|_| Ok(GhUserPermission::Write)));
-
-        // let commands = CommandParser::parse_commands(
-        //     &config,
-        //     "test-bot req+ @user\ntest-bot noqa+\ntest-bot automerge+",
-        // );
-
-        // assert_eq!(
-        //     commands,
-        //     vec![
-        //         Ok(Command::User(UserCommand::AssignRequiredReviewers(vec![
-        //             "user".into()
-        //         ]))),
-        //         Ok(Command::User(UserCommand::SkipQaStatus(true))),
-        //         Ok(Command::User(UserCommand::Automerge(true))),
-        //     ]
-        // );
-
-        // let result = CommandExecutor::execute_commands(
-        //     &config,
-        //     &api_adapter,
-        //     &db_adapter,
-        //     &redis_adapter,
-        //     &mut repo,
-        //     &mut pr,
-        //     0,
-        //     "me",
-        //     commands,
-        // )
-        // .await
-        // .unwrap();
-        // assert_eq!(
-        //     result,
-        //     CommandExecutionResult {
-        //         should_update_status: true,
-        //         handling_status: CommandHandlingStatus::Handled,
-        //         result_actions: vec![
-        //             ResultAction::AddReaction(GhReactionType::Eyes),
-        //             ResultAction::PostComment(
-        //                 "> test-bot req+ user\n\
-        //                 \n\
-        //                 **user** is now a required reviewer on this PR.\n\
-        //                 \n\
-        //                 ---\n\
-        //                 \n\
-        //                 > test-bot noqa+\n\
-        //                 \n\
-        //                 QA is marked as skipped by **me**.\n\
-        //                 \n\
-        //                 ---\n\
-        //                 \n\
-        //                 > test-bot automerge+\n\
-        //                 \n\
-        //                 Automerge enabled by **me**"
-        //                     .into()
-        //             )
-        //         ]
-        //     }
-        // );
-        todo!()
     }
 }

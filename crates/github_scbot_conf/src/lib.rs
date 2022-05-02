@@ -15,6 +15,8 @@ pub use crate::{
 
 use github_scbot_sentry::eyre;
 
+pub use crate::logging::configure_logging;
+
 /// Configure application startup.
 pub fn configure_startup() -> eyre::Result<Config> {
     dotenv::dotenv().ok();

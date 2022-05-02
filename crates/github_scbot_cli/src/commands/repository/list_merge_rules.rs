@@ -29,7 +29,7 @@ impl Command for RepositoryListMergeRulesCommand {
         let rules = ctx.db_adapter.merge_rules().list(owner, name).await?;
 
         println!("Merge rules for repository {}:", self.repository_path);
-        println!("- Default: '{}'", default_strategy.to_string());
+        println!("- Default: '{}'", default_strategy);
         for rule in rules {
             println!(
                 "- '{}' (base) <- '{}' (head): '{}'",

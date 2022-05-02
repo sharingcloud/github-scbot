@@ -1,6 +1,7 @@
 use github_scbot_conf::Config;
 use github_scbot_database2::{DbService, RequiredReviewer};
 use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
 use github_scbot_types::{
     issues::GhReactionType,
     labels::StepLabel,
@@ -65,7 +66,7 @@ pub async fn handle_merge_command(
         upstream_pr,
     )
     .await?;
-    let step = StatusLogic::determine_automatic_step(&pr_status)?;
+    let step = StatusLogic::determine_automatic_step(&pr_status);
     let commit_title = PullRequestLogic::get_merge_commit_title(upstream_pr);
     let mut actions = vec![];
 
@@ -144,22 +145,38 @@ pub async fn handle_admin_sync_command(
 pub async fn handle_admin_reset_summary_command(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
+    redis_adapter: &dyn RedisService,
     repo_owner: &str,
     repo_name: &str,
     pr_number: u64,
     upstream_pr: &GhPullRequest,
 ) -> Result<CommandExecutionResult> {
-    let sender = SummaryCommentSender::new();
-    sender
-        .create(
-            api_adapter,
-            db_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            upstream_pr,
-        )
+    let status = PullRequestStatus::from_database(
+        api_adapter,
+        db_adapter,
+        repo_owner,
+        repo_name,
+        pr_number,
+        upstream_pr,
+    )
+    .await?;
+
+    // Reset comment ID
+    db_adapter
+        .pull_requests()
+        .set_status_comment_id(repo_owner, repo_name, pr_number, 0)
         .await?;
+
+    SummaryCommentSender::create_or_update(
+        api_adapter,
+        db_adapter,
+        redis_adapter,
+        repo_owner,
+        repo_name,
+        pr_number,
+        &status,
+    )
+    .await?;
 
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)
