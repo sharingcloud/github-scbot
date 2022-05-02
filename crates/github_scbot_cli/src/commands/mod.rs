@@ -27,7 +27,6 @@ pub(crate) struct CommandContext {
     pub db_adapter: Box<dyn DbService>,
     pub api_adapter: Box<dyn ApiService>,
     pub redis_adapter: Box<dyn RedisService>,
-    pub no_input: bool,
 }
 
 #[async_trait(?Send)]

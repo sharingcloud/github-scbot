@@ -1,4 +1,4 @@
-use github_scbot_conf::{configure_logging, Config};
+use github_scbot_conf::Config;
 use github_scbot_ghapi::adapter::MockApiService;
 use github_scbot_redis::{LockInstance, LockStatus, MockRedisService};
 use github_scbot_types::{
@@ -153,8 +153,6 @@ async fn test_should_create_pull_request_automatic() -> Result<()> {
 #[actix_rt::test]
 async fn test_qa_disabled_repository() -> Result<()> {
     let config = Config::from_env();
-    configure_logging(&config).unwrap();
-
     use_temporary_db(
         config,
         "test_qa_disabled_repository",

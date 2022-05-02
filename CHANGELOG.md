@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Health check will try to access the database and Redis
+- Update to actix-web 4
+- Update to Sentry 0.25
 
 ### Removed
 

@@ -1,6 +1,6 @@
 use crate::{DatabaseError, Result};
 use async_trait::async_trait;
-use sqlx::{PgConnection, PgPool, Postgres, Transaction};
+use sqlx::{PgConnection, PgPool};
 
 #[async_trait]
 #[mockall::automock]
@@ -31,7 +31,11 @@ impl HealthDBImplPool {
 #[async_trait]
 impl HealthDB for HealthDBImplPool {
     async fn health_check(&mut self) -> Result<()> {
-        let mut conn = self.pool.acquire().await.map_err(DatabaseError::ConnectionError)?;
+        let mut conn = self
+            .pool
+            .acquire()
+            .await
+            .map_err(DatabaseError::ConnectionError)?;
         let data = HealthDBImpl::new(&mut *conn).health_check().await?;
         Ok(data)
     }

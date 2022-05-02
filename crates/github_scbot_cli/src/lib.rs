@@ -34,7 +34,7 @@ pub fn initialize_command_line() -> eyre::Result<()> {
     // Prepare startup
     let config = configure_startup()?;
 
-    async fn sync(config: Config, cmd: SubCommand, no_input: bool) -> eyre::Result<()> {
+    async fn sync(config: Config, cmd: SubCommand, _no_input: bool) -> eyre::Result<()> {
         let pool = establish_pool_connection(&config).await?;
         run_migrations(&pool).await?;
 
@@ -46,7 +46,6 @@ pub fn initialize_command_line() -> eyre::Result<()> {
             db_adapter: Box::new(db_adapter),
             api_adapter: Box::new(api_adapter),
             redis_adapter: Box::new(redis_adapter),
-            no_input,
         };
 
         cmd.execute(ctx).await
