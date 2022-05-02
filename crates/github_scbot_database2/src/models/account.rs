@@ -137,6 +137,7 @@ impl AccountDB for AccountDBImplPool {
 
 #[async_trait]
 impl<'a> AccountDB for AccountDBImpl<'a> {
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
@@ -164,6 +165,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn update(&mut self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
@@ -183,6 +185,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get(&mut self, username: &str) -> Result<Option<Account>> {
         sqlx::query_as::<_, Account>(
             r#"
@@ -197,6 +200,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<Account>> {
         sqlx::query_as::<_, Account>(
             r#"
@@ -209,6 +213,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&mut self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
@@ -223,6 +228,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn list_admins(&mut self) -> Result<Vec<Account>> {
         sqlx::query_as::<_, Account>(
             r#"
@@ -237,10 +243,11 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_is_admin(&mut self, username: &str, value: bool) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
-            UPDATE repository
+            UPDATE account
             SET is_admin = $1
             WHERE username = $2
             RETURNING username

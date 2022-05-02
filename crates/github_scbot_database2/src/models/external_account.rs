@@ -177,6 +177,7 @@ impl ExternalAccountDB for ExternalAccountDBImplPool {
 
 #[async_trait]
 impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
         let username: String = sqlx::query(
             r#"
@@ -204,6 +205,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
         let username: String = sqlx::query(
             r#"
@@ -225,6 +227,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         self.get(&username).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
         sqlx::query_as::<_, ExternalAccount>(
             r#"
@@ -239,6 +242,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&mut self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
@@ -253,6 +257,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<ExternalAccount>> {
         sqlx::query_as::<_, ExternalAccount>(
             r#"
@@ -265,6 +270,7 @@ impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_keys(
         &mut self,
         username: &str,

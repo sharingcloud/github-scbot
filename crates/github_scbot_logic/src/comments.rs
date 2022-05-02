@@ -18,6 +18,7 @@ use crate::{
 };
 
 /// Handle an issue comment event.
+#[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter))]
 pub async fn handle_issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,
@@ -122,13 +123,6 @@ pub async fn handle_comment_creation(
 ) -> Result<()> {
     let comment_author = &event.comment.user.login;
     let comment_id = event.comment.id;
-
-    info!(
-        commands = ?commands,
-        repository_path = %format!("{repo_owner}/{repo_name}"),
-        pull_request_number = pr_number,
-        message = "Will execute commands",
-    );
 
     CommandExecutor::execute_commands(
         config,

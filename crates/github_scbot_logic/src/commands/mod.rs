@@ -11,7 +11,6 @@ use github_scbot_redis::RedisService;
 use github_scbot_types::{common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest};
 pub use handlers::handle_qa_command;
 pub use parser::CommandParser;
-use tracing::info;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::StatusLogic};
@@ -26,6 +25,7 @@ pub struct CommandExecutor;
 impl CommandExecutor {
     /// Execute multiple commands.
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter, upstream_pr))]
     pub async fn execute_commands(
         config: &Config,
         api_adapter: &dyn ApiService,
@@ -82,7 +82,6 @@ impl CommandExecutor {
             repo_owner,
             repo_name,
             pr_number,
-            upstream_pr,
             comment_id,
             &command_result,
         )
@@ -93,6 +92,7 @@ impl CommandExecutor {
 
     /// Process command result.
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn process_command_result(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
@@ -100,11 +100,15 @@ impl CommandExecutor {
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
-        upstream_pr: &GhPullRequest,
         comment_id: u64,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
+            // Make sure the upstream is up to date
+            let upstream_pr = api_adapter
+                .pulls_get(repo_owner, repo_name, pr_number)
+                .await?;
+
             StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
@@ -112,7 +116,7 @@ impl CommandExecutor {
                 repo_owner,
                 repo_name,
                 pr_number,
-                upstream_pr,
+                &upstream_pr,
             )
             .await?;
         }
@@ -198,6 +202,7 @@ impl CommandExecutor {
 
     /// Execute command.
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+    #[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter, upstream_pr))]
     pub async fn execute_command(
         config: &Config,
         api_adapter: &dyn ApiService,
@@ -211,14 +216,6 @@ impl CommandExecutor {
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
-
-        info!(
-            command = ?command,
-            comment_author = comment_author,
-            repository_path = %format!("{repo_owner}/{repo_name}"),
-            pull_request_number = pr_number,
-            message = "Interpreting command"
-        );
 
         let permission = api_adapter
             .user_permissions_get(repo_owner, repo_name, comment_author)

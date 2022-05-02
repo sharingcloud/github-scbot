@@ -10,7 +10,6 @@ use github_scbot_types::{
     events::EventType,
     pulls::{GhPullRequestAction, GhPullRequestEvent},
 };
-use tracing::info;
 
 use super::parse_event_type;
 use crate::errors::Result;
@@ -26,14 +25,6 @@ pub(crate) async fn pull_request_event(
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
-    info!(
-        repository_path = %event.repository.full_name,
-        pull_request_number = event.pull_request.number,
-        action = ?event.action,
-        author = %event.pull_request.user.login,
-        message = "Pull request event",
-    );
-
     if matches!(event.action, GhPullRequestAction::Opened) {
         handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event).await?;
     } else {

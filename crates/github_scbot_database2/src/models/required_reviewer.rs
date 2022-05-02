@@ -175,6 +175,7 @@ impl RequiredReviewerDB for RequiredReviewerDBImplPool {
 
 #[async_trait]
 impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: RequiredReviewer) -> Result<RequiredReviewer> {
         sqlx::query(
             r#"
@@ -201,6 +202,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
             .map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn get(
         &mut self,
         owner: &str,
@@ -210,7 +212,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
     ) -> Result<Option<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
             r#"
-                SELECT *
+                SELECT required_reviewer.*
                 FROM required_reviewer
                 INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
                 INNER JOIN pull_request ON (pull_request.repository_id = repository.id AND pull_request.number = $3 AND required_reviewer.pull_request_id = pull_request.id)
@@ -226,6 +228,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn delete(
         &mut self,
         owner: &str,
@@ -255,6 +258,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn list(
         &mut self,
         owner: &str,
@@ -263,7 +267,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
     ) -> Result<Vec<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
             r#"
-                SELECT *
+                SELECT required_reviewer.*
                 FROM required_reviewer
                 INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
                 INNER JOIN pull_request ON (pull_request.repository_id = repository.id AND pull_request.number = $3 AND required_reviewer.pull_request_id = pull_request.id)
@@ -277,6 +281,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<RequiredReviewer>> {
         sqlx::query_as::<_, RequiredReviewer>(
             r#"

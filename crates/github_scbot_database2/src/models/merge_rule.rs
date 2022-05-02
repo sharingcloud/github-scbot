@@ -184,6 +184,7 @@ impl MergeRuleDB for MergeRuleDBImplPool {
 
 #[async_trait]
 impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: MergeRule) -> Result<MergeRule> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -217,6 +218,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         self.get_from_id(new_id).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn update(&mut self, instance: MergeRule) -> Result<MergeRule> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -240,6 +242,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         self.get_from_id(new_id).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get(
         &mut self,
         owner: &str,
@@ -249,7 +252,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
     ) -> Result<Option<MergeRule>> {
         sqlx::query_as::<_, MergeRule>(
             r#"
-            SELECT *
+            SELECT merge_rule.*
             FROM merge_rule
             INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
             WHERE base_branch = $3
@@ -265,6 +268,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(
         &mut self,
         owner: &str,
@@ -293,10 +297,11 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
         sqlx::query_as::<_, MergeRule>(
             r#"
-            SELECT *
+            SELECT merge_rule.*
             FROM merge_rule
             INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
         "#,
@@ -308,6 +313,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<MergeRule>> {
         sqlx::query_as::<_, MergeRule>(
             r#"

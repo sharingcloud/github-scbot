@@ -8,7 +8,6 @@ use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
-use tracing::info;
 
 use super::command::CommandExecutionResult;
 use crate::{
@@ -386,12 +385,6 @@ pub async fn handle_assign_required_reviewers_command(
         .await?
         .unwrap();
 
-    info!(
-        pull_request_number = pr_number,
-        reviewers = ?reviewers,
-        message = "Request required reviewers",
-    );
-
     let mut approved_reviewers = vec![];
     let mut rejected_reviewers = vec![];
 
@@ -485,12 +478,6 @@ pub async fn handle_unassign_required_reviewers_command(
     reviewers: Vec<String>,
 ) -> Result<CommandExecutionResult> {
     assert!(!reviewers.is_empty());
-
-    info!(
-        pull_request_number = pr_number,
-        reviewers = ?reviewers,
-        message = "Remove required reviewers",
-    );
 
     api_adapter
         .pull_reviewer_requests_remove(repo_owner, repo_name, pr_number, &reviewers)

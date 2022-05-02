@@ -167,6 +167,7 @@ impl ExternalAccountRightDB for ExternalAccountRightDBImplPool {
 
 #[async_trait]
 impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: ExternalAccountRight) -> Result<ExternalAccountRight> {
         sqlx::query(
             r#"
@@ -192,6 +193,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
             .map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get(
         &mut self,
         owner: &str,
@@ -200,7 +202,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
     ) -> Result<Option<ExternalAccountRight>> {
         sqlx::query_as::<_, ExternalAccountRight>(
             r#"
-                SELECT *
+                SELECT external_account_right.*
                 FROM external_account_right
                 INNER JOIN repository ON (repository.id = repository_id)
                 WHERE repository.owner = $1
@@ -216,6 +218,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
@@ -236,6 +239,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete_all(&mut self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
@@ -250,6 +254,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>> {
         sqlx::query_as::<_, ExternalAccountRight>(
             r#"
@@ -264,6 +269,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<ExternalAccountRight>> {
         sqlx::query_as::<_, ExternalAccountRight>(
             r#"

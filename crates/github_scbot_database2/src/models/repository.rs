@@ -329,6 +329,7 @@ impl RepositoryDB for RepositoryDBImplPool {
 
 #[async_trait]
 impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
+    #[tracing::instrument(skip(self), ret)]
     async fn create(&mut self, instance: Repository) -> Result<Repository> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -377,6 +378,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn update(&mut self, instance: Repository) -> Result<Repository> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -411,6 +413,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<Repository>> {
         sqlx::query_as::<_, Repository>(
             r#"
@@ -423,6 +426,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
         sqlx::query_as::<_, Repository>(
             r#"
@@ -437,6 +441,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>> {
         sqlx::query_as::<_, Repository>(
             r#"
@@ -453,6 +458,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete(&mut self, owner: &str, name: &str) -> Result<bool> {
         sqlx::query(
             r#"
@@ -468,6 +474,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_manual_interaction(
         &mut self,
         owner: &str,
@@ -494,6 +501,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_pr_title_validation_regex(
         &mut self,
         owner: &str,
@@ -520,6 +528,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_default_strategy(
         &mut self,
         owner: &str,
@@ -546,6 +555,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_default_needed_reviewers_count(
         &mut self,
         owner: &str,
@@ -572,6 +582,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_default_automerge(
         &mut self,
         owner: &str,
@@ -598,6 +609,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_default_enable_qa(
         &mut self,
         owner: &str,
@@ -624,6 +636,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_default_enable_checks(
         &mut self,
         owner: &str,

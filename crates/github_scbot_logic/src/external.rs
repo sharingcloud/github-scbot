@@ -41,9 +41,6 @@ pub async fn set_qa_status_for_pull_requests(
                     db_adapter, repo_owner, repo_name, *pr_number, author, status,
                 )
                 .await?;
-                let upstream_pr = api_adapter
-                    .pulls_get(repo_owner, repo_name, *pr_number)
-                    .await?;
 
                 CommandExecutor::process_command_result(
                     api_adapter,
@@ -52,7 +49,6 @@ pub async fn set_qa_status_for_pull_requests(
                     repo_owner,
                     repo_name,
                     *pr_number,
-                    &upstream_pr,
                     0,
                     &result,
                 )

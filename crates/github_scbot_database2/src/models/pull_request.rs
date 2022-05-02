@@ -397,6 +397,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn update(&mut self, instance: PullRequest) -> Result<PullRequest> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -434,7 +435,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
     async fn get(&mut self, owner: &str, name: &str, number: u64) -> Result<Option<PullRequest>> {
         sqlx::query_as::<_, PullRequest>(
             r#"
-            SELECT *
+            SELECT pull_request.*
             FROM pull_request
             INNER JOIN repository ON (repository_id = repository.id)
             WHERE repository.owner = $1
@@ -450,6 +451,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn delete(&mut self, owner: &str, name: &str, number: u64) -> Result<bool> {
         sqlx::query(
             r#"
@@ -470,10 +472,11 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
         sqlx::query_as::<_, PullRequest>(
             r#"
-            SELECT *
+            SELECT pull_request.*
             FROM pull_request
             INNER JOIN repository ON (repository_id = repository.id)
             WHERE repository.owner = $1
@@ -487,6 +490,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn all(&mut self) -> Result<Vec<PullRequest>> {
         sqlx::query_as::<_, PullRequest>(
             r#"
@@ -499,6 +503,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_qa_status(
         &mut self,
         owner: &str,
@@ -519,8 +524,8 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
             "#,
         )
         .bind(status.to_string())
-        .bind(name)
         .bind(owner)
+        .bind(name)
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
@@ -530,6 +535,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_needed_reviewers_count(
         &mut self,
         owner: &str,
@@ -561,6 +567,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_status_comment_id(
         &mut self,
         owner: &str,
@@ -592,6 +599,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_checks_enabled(
         &mut self,
         owner: &str,
@@ -623,6 +631,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_automerge(
         &mut self,
         owner: &str,
@@ -654,6 +663,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_locked(
         &mut self,
         owner: &str,
@@ -685,6 +695,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn set_strategy_override(
         &mut self,
         owner: &str,

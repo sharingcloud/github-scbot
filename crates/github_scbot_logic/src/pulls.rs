@@ -12,7 +12,6 @@ use github_scbot_types::{
     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
     status::CheckStatus,
 };
-use tracing::{debug, info};
 
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
@@ -32,6 +31,7 @@ pub enum PullRequestOpenedStatus {
 }
 
 /// Handle pull request Opened event.
+#[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter))]
 pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
@@ -67,27 +67,6 @@ pub async fn handle_pull_request_opened(
                 let upstream_pr = api_adapter
                     .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
                     .await?;
-
-                let check_status = if repo_model.default_enable_checks() {
-                    PullRequestLogic::get_checks_status_from_github(
-                        api_adapter,
-                        repo_owner,
-                        repo_name,
-                        &upstream_pr.head.sha,
-                        pr_model.checks_enabled(),
-                        &[],
-                    )
-                    .await?
-                } else {
-                    CheckStatus::Skipped
-                };
-
-                info!(
-                    repository_path = %repo_model.path(),
-                    pr_model = ?pr_model,
-                    check_status = ?check_status,
-                    message = "Creating pull request",
-                );
 
                 StatusLogic::update_pull_request_status(
                     api_adapter,
@@ -140,6 +119,7 @@ pub async fn handle_pull_request_opened(
 }
 
 /// Handle GitHub pull request event.
+#[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
@@ -248,8 +228,6 @@ impl PullRequestLogic {
             .check_suites_list(repository_owner, repository_name, sha)
             .await?;
 
-        let repository_path = format!("{}/{}", repository_owner, repository_name);
-
         // Extract status
         if check_suites.is_empty() {
             if wait_for_initial_checks {
@@ -262,13 +240,6 @@ impl PullRequestLogic {
                 check_suites,
                 wait_for_initial_checks,
                 exclude_check_suite_ids,
-            );
-
-            debug!(
-                repository_path = %repository_path,
-                sha = %sha,
-                filtered = ?filtered,
-                message = "Filtered check suites"
             );
 
             Ok(filtered)

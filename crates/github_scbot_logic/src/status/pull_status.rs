@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
 use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use github_scbot_types::{
@@ -125,11 +127,15 @@ impl PullRequestStatus {
         let mut required_reviews = vec![];
         let mut changes_required_reviews = vec![];
 
+        // Required reviewers may not be in upstream reviews,
+        // we need to make sure they are parsed as well.
+        let mut seen_reviewers = HashSet::new();
         for review in upstream_reviews {
             let username = review.user.login;
             let required = Self::is_required_reviewer(&required_reviewers, &username);
             let state = review.state;
             let approved = state == GhReviewState::Approved;
+            seen_reviewers.insert(username.clone());
 
             if state == GhReviewState::ChangesRequested {
                 changes_required_reviews.push(username);
@@ -137,6 +143,12 @@ impl PullRequestStatus {
                 required_reviews.push(username);
             } else if approved {
                 approved_reviews.push(username);
+            }
+        }
+
+        for required_reviewer in required_reviewers {
+            if !seen_reviewers.contains(required_reviewer.username()) {
+                required_reviews.push(required_reviewer.username().to_string());
             }
         }
 
