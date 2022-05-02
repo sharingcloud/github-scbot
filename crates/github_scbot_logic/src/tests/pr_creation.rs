@@ -209,7 +209,7 @@ async fn test_qa_disabled_repository() -> Result<()> {
 
             api_adapter
                 .expect_check_suites_list()
-                .times(2)
+                .times(1)
                 .return_const(Ok(vec![GhCheckSuite {
                     status: GhCheckStatus::Completed,
                     conclusion: Some(GhCheckConclusion::Success),

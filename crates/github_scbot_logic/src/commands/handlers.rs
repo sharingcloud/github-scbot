@@ -408,7 +408,7 @@ pub async fn handle_assign_required_reviewers_command(
                         .required_reviewers()
                         .create(
                             RequiredReviewer::builder()
-                                .pull_request_id(pr_model.id())
+                                .with_pull_request(&pr_model)
                                 .username(reviewer)
                                 .build()
                                 .unwrap(),

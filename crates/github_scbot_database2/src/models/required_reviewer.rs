@@ -3,7 +3,7 @@ use github_scbot_database_macros::SCGetter;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, DatabaseError};
+use crate::{errors::Result, DatabaseError, PullRequest};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default, setter(into))]
@@ -21,6 +21,13 @@ impl RequiredReviewer {
 
     pub fn set_pull_request_id(&mut self, id: u64) {
         self.pull_request_id = id;
+    }
+}
+
+impl RequiredReviewerBuilder {
+    pub fn with_pull_request(&mut self, pull_request: &PullRequest) -> &mut Self {
+        self.pull_request_id = Some(pull_request.id());
+        self
     }
 }
 
@@ -302,7 +309,7 @@ mod tests {
     use crate::{
         models::repository::{Repository, RepositoryDB},
         utils::use_temporary_db,
-        RepositoryDBImpl,
+        PullRequest, PullRequestDB, PullRequestDBImpl, RepositoryDBImpl,
     };
 
     use super::{RequiredReviewer, RequiredReviewerDB, RequiredReviewerDBImpl};
@@ -312,58 +319,25 @@ mod tests {
         use_temporary_db(
             Config::from_env(),
             "required-reviewer-test-db",
-            |_config, conn| async move {
+            |config, conn| async move {
                 let mut conn = conn.acquire().await?;
                 let repo = {
                     let mut db = RepositoryDBImpl::new(&mut conn);
-                    db.create(Repository::builder().build()?).await?
+                    db.create(Repository::builder().with_config(&config).build()?)
+                        .await?
+                };
+                let pr = {
+                    let mut db = PullRequestDBImpl::new(&mut conn);
+                    db.create(PullRequest::builder().with_repository(&repo).build()?)
+                        .await?
                 };
 
-                sqlx::query(
-                    r#"
-                INSERT INTO pull_request
-                (
-                    repository_id,
-                    number,
-                    qa_status,
-                    needed_reviewers_count,
-                    status_comment_id,
-                    checks_enabled,
-                    automerge,
-                    locked,
-                    strategy_override
-                )
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    $6,
-                    $7,
-                    $8,
-                    $9
-                )
-            "#,
-                )
-                .bind(repo.id() as i32)
-                .bind(1i32)
-                .bind("skipped")
-                .bind(0i32)
-                .bind(0i32)
-                .bind(false)
-                .bind(false)
-                .bind(false)
-                .bind("")
-                .execute(&mut conn)
-                .await?;
-
+                // Create
                 let mut db = RequiredReviewerDBImpl::new(&mut conn);
                 let _reviewer = db
                     .create(
                         RequiredReviewer::builder()
-                            .pull_request_id(1u64)
+                            .with_pull_request(&pr)
                             .username("test")
                             .build()?,
                     )
@@ -371,28 +345,50 @@ mod tests {
                 let _reviewer = db
                     .create(
                         RequiredReviewer::builder()
-                            .pull_request_id(1u64)
+                            .with_pull_request(&pr)
                             .username("test2")
                             .build()?,
                     )
                     .await?;
 
                 assert!(
-                    db.get("", "", 1, "nope").await?.is_none(),
+                    db.get(repo.owner(), repo.name(), pr.number(), "nope")
+                        .await?
+                        .is_none(),
                     "the 'nope' user is not a required reviewer"
                 );
                 assert!(
-                    db.get("", "", 1, "test").await?.is_some(),
+                    db.get(repo.owner(), repo.name(), pr.number(), "test")
+                        .await?
+                        .is_some(),
                     "the 'test' user is a required reviewer"
                 );
+
+                // List
                 assert_eq!(
-                    db.list("", "", 1).await?.len(),
+                    db.list(repo.owner(), repo.name(), pr.number()).await?.len(),
                     2,
                     "there should be two required reviewers"
                 );
+
+                // All
+                assert_eq!(
+                    db.all().await?.len(),
+                    2,
+                    "there should be two required reviewers in total"
+                );
+
+                // Delete
                 assert!(
-                    db.delete("", "", 1, "test").await?,
+                    db.delete(repo.owner(), repo.name(), pr.number(), "test")
+                        .await?,
                     "the 'test' user deletion should work"
+                );
+
+                assert!(
+                    !db.delete(repo.owner(), repo.name(), pr.number(), "test")
+                        .await?,
+                    "the 'random' user deletion should work, returning false"
                 );
 
                 Ok(())

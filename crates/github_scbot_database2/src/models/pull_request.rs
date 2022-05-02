@@ -749,50 +749,86 @@ mod tests {
         use_temporary_db(
             Config::from_env(),
             "pull-request-test-db",
-            |_config, conn| async move {
+            |config, conn| async move {
                 let mut conn = conn.acquire().await?;
+                let mut repo_db = RepositoryDBImpl::new(&mut conn);
+
                 let repo = {
-                    let mut db = RepositoryDBImpl::new(&mut conn);
-                    db.create(Repository::builder().build()?).await?
+                    repo_db
+                        .create(Repository::builder().with_config(&config).build()?)
+                        .await?
                 };
 
                 let mut db = PullRequestDBImpl::new(&mut conn);
+
+                // Create
                 let _pr = db
                     .create(
                         PullRequest::builder()
-                            .repository_id(repo.id())
+                            .with_repository(&repo)
                             .number(10u64)
                             .build()?,
                     )
                     .await?;
 
+                // Update
+                let _pr = db
+                    .update(
+                        PullRequest::builder()
+                            .with_repository(&repo)
+                            .number(10u64)
+                            .automerge(true)
+                            .build()?,
+                    )
+                    .await?;
+
+                // Get
                 assert!(db.get("", "", 10).await?.is_some());
+
+                // List
                 assert_eq!(db.list("", "").await?.len(), 1);
+
+                // All
+                assert_eq!(db.all().await?.len(), 1);
+
+                // Automerge
                 assert!(db.set_automerge("", "", 10, true).await?.automerge);
+
+                // Checks enabled
                 assert!(
                     db.set_checks_enabled("", "", 10, true)
                         .await?
                         .checks_enabled
                 );
+
+                // Status comment ID
                 assert_eq!(
                     db.set_status_comment_id("", "", 10, 1234)
                         .await?
                         .status_comment_id,
                     1234
                 );
+
+                // Reviewers count
                 assert_eq!(
                     db.set_needed_reviewers_count("", "", 10, 10)
                         .await?
                         .needed_reviewers_count,
                     10
                 );
+
+                // QA status
                 assert_eq!(
                     db.set_qa_status("", "", 10, QaStatus::Waiting)
                         .await?
                         .qa_status,
                     QaStatus::Waiting
                 );
+
+                // Locked
                 assert!(db.set_locked("", "", 10, true).await?.locked);
+
+                // Strategy override
                 assert_eq!(
                     db.set_strategy_override("", "", 10, Some(GhMergeStrategy::Squash))
                         .await?
@@ -805,6 +841,8 @@ mod tests {
                         .strategy_override,
                     None
                 );
+
+                // Delete
                 assert!(db.delete("", "", 10).await?, "PR should exist");
 
                 Ok(())

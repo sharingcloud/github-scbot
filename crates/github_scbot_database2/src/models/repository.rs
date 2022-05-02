@@ -7,7 +7,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 
 use crate::{errors::Result, fields::GhMergeStrategyDecode, DatabaseError};
 
-#[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize)]
+#[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize, PartialEq)]
 #[builder(default, setter(into))]
 pub struct Repository {
     #[get]
@@ -707,58 +707,90 @@ mod tests {
         use_temporary_db(
             Config::from_env(),
             "repository-test-db",
-            |_config, conn| async move {
+            |config, conn| async move {
                 let mut transaction = conn.begin().await?;
 
-                // Create repository
-                {
-                    let mut repo_db = RepositoryDBImpl::new(&mut transaction);
+                // Create
+                let repo = {
+                    let mut db = RepositoryDBImpl::new(&mut transaction);
                     let repo = RepositoryBuilder::default()
+                        .with_config(&config)
                         .owner("me")
                         .name("me")
                         .default_strategy(GhMergeStrategy::Squash)
                         .build()?;
-                    repo_db.create(repo).await?;
-                }
+                    db.create(repo).await?
+                };
 
-                // Creating another repository with same name should error
+                // Creating another repository with same name and owner should error
                 {
                     let mut inner_transaction = transaction.begin().await?;
-                    let mut repo_db = RepositoryDBImpl::new(&mut inner_transaction);
+                    let mut db = RepositoryDBImpl::new(&mut inner_transaction);
                     let repo = RepositoryBuilder::default()
                         .owner("me")
                         .name("me")
                         .build()?;
+
                     assert!(
-                        repo_db.create(repo).await.is_err(),
-                        "same name should error"
+                        db.create(repo).await.is_err(),
+                        "same repo name and owner should error"
                     );
                 }
 
-                // Retrieve repository
-                let mut repo_db = RepositoryDBImpl::new(&mut transaction);
-                let repo = repo_db.get("me", "me").await?.unwrap();
-                assert_eq!(repo.default_strategy, GhMergeStrategy::Squash);
-                assert!(!repo.manual_interaction);
+                let mut db = RepositoryDBImpl::new(&mut transaction);
 
-                // Update manual_interaction
-                let repo = repo_db.set_manual_interaction("me", "me", true).await?;
-                assert!(repo.manual_interaction);
+                // Get
+                let repo2 = db.get(repo.owner(), repo.name()).await?.unwrap();
+                assert_eq!(repo2.default_strategy, GhMergeStrategy::Squash);
+                assert!(!repo2.manual_interaction);
 
-                // Disable checks
-                let repo = repo_db.set_default_enable_checks("me", "me", false).await?;
-                assert!(!repo.default_enable_checks);
+                // Get from ID
+                let repo3 = db.get_from_id(repo.id()).await?.unwrap();
+                assert_eq!(repo3, repo2);
 
-                // Try to get unknown repository
+                // Get unknown
                 assert!(
-                    repo_db.get("unknown", "unknown").await?.is_none(),
+                    db.get("unknown", "unknown").await?.is_none(),
                     "'unknown' repo should not exist"
                 );
 
+                // All
+                assert_eq!(db.all().await?.len(), 1);
+
+                // Update manual_interaction
+                let repo2 = db.set_manual_interaction("me", "me", true).await?;
+                assert!(repo2.manual_interaction);
+
+                // Title validation regex
+                let repo2 = db.set_pr_title_validation_regex("me", "me", "test").await?;
+                assert_eq!(repo2.pr_title_validation_regex, "test");
+
+                // Default strategy
+                let repo2 = db
+                    .set_default_strategy("me", "me", GhMergeStrategy::Rebase)
+                    .await?;
+                assert_eq!(repo2.default_strategy, GhMergeStrategy::Rebase);
+
+                // Reviewers count
+                let repo2 = db.set_default_needed_reviewers_count("me", "me", 1).await?;
+                assert_eq!(repo2.default_needed_reviewers_count, 1);
+
+                // Automerge
+                let repo2 = db.set_default_automerge("me", "me", true).await?;
+                assert!(repo2.default_automerge);
+
+                // QA
+                let repo2 = db.set_default_enable_qa("me", "me", true).await?;
+                assert!(repo2.default_enable_qa);
+
+                // Disable checks
+                let repo2 = db.set_default_enable_checks("me", "me", false).await?;
+                assert!(!repo2.default_enable_checks);
+
                 // Delete repository
-                assert!(repo_db.delete("me", "me").await?);
+                assert!(db.delete("me", "me").await?);
                 assert!(
-                    repo_db.get("me", "me").await?.is_none(),
+                    db.get("me", "me").await?.is_none(),
                     "'me' repo should not exist anymore"
                 );
 

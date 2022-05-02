@@ -85,6 +85,14 @@ async fn test_review_creation() -> Result<()> {
         let mut api_adapter = MockApiService::new();
         let redis_adapter = MockRedisService::new();
 
+        // One call to get PR
+        api_adapter
+            .expect_pulls_get()
+            .times(1)
+            .return_const(Ok(GhPullRequest {
+                ..Default::default()
+            }));
+
         // One call for command sender, one for target reviewer
         api_adapter
             .expect_user_permissions_get()
@@ -180,6 +188,14 @@ async fn test_review_creation() -> Result<()> {
         );
 
         let mut api_adapter = MockApiService::new();
+
+        // One call to get PR
+        api_adapter
+            .expect_pulls_get()
+            .times(1)
+            .return_const(Ok(GhPullRequest {
+                ..Default::default()
+            }));
 
         // One call for command sender
         api_adapter
