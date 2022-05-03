@@ -254,7 +254,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
             r#"
             SELECT merge_rule.*
             FROM merge_rule
-            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
+            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2 AND repository.id = repository_id)
             WHERE base_branch = $3
             AND head_branch = $4;
         "#,
@@ -283,6 +283,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
             USING repository
             WHERE repository.owner = $1
             AND repository.name = $2
+            AND repository.id = repository_id
             AND base_branch = $3
             AND head_branch = $4;
         "#,
@@ -303,7 +304,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
             r#"
             SELECT merge_rule.*
             FROM merge_rule
-            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2)
+            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2 AND repository.id = repository_id)
         "#,
         )
         .bind(owner)
