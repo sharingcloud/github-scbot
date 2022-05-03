@@ -120,6 +120,14 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-reset-summary`: _Create a new summary message (maintenance-type command)_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 
+## Exposed URLs
+
+- `GET /`: Index route, display a welcome message  
+- `POST /webhook`: Entrypoint for GitHub webhooks
+- `POST /external/set-qa-status`: Update QA status from external source (e.g. JIRA), needs a JWT
+- `GET /health`: Health check, with a field for PostgreSQL and another for Redis
+- `GET /metrics`: A set of Prometheus metrics
+
 ## Building and developing
 
 This project is written in the [Rust programming language](https://www.rust-lang.org/), so to build you have to [install the Rust tools](https://www.rust-lang.org/tools/install).
