@@ -13,9 +13,9 @@ use std::{convert::TryFrom, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_conf::Config;
-use github_scbot_database::models::IDatabaseAdapter;
-use github_scbot_ghapi::adapter::IAPIAdapter;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_database2::DbService;
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
 use github_scbot_sentry::{sentry, WrapEyre};
 use github_scbot_types::events::EventType;
 use serde::Deserialize;
@@ -33,16 +33,15 @@ use crate::{
 
 async fn parse_event(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
+    api_adapter: &dyn ApiService,
+    db_adapter: &dyn DbService,
+    redis_adapter: &dyn RedisService,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckSuite => {
             checks::check_suite_event(
-                config,
                 api_adapter,
                 db_adapter,
                 redis_adapter,
@@ -73,7 +72,6 @@ async fn parse_event(
         }
         EventType::PullRequestReview => {
             reviews::review_event(
-                config,
                 api_adapter,
                 db_adapter,
                 redis_adapter,

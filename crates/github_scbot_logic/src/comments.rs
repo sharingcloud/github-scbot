@@ -1,15 +1,12 @@
 //! Comments logic.
 
 use github_scbot_conf::Config;
-use github_scbot_database::{
-    models::{HistoryWebhookModel, IDatabaseAdapter, PullRequestModel, RepositoryModel},
-    DatabaseError,
-};
-use github_scbot_ghapi::adapter::IAPIAdapter;
-use github_scbot_redis::IRedisAdapter;
+use github_scbot_database2::DbService;
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
 use github_scbot_types::{
-    events::EventType,
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
+    pulls::GhPullRequest,
 };
 use tracing::info;
 
@@ -17,51 +14,59 @@ use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},
     pulls::PullRequestLogic,
     status::StatusLogic,
-    summary::SummaryCommentSender,
     Result,
 };
 
 /// Handle an issue comment event.
+#[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter))]
 pub async fn handle_issue_comment_event(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
+    api_adapter: &dyn ApiService,
+    db_adapter: &dyn DbService,
+    redis_adapter: &dyn RedisService,
     event: GhIssueCommentEvent,
 ) -> Result<()> {
     if let GhIssueCommentAction::Created = event.action {
-        let commands = CommandParser::parse_commands(config, &event.comment.body);
+        let repo_owner = &event.repository.owner.login;
+        let repo_name = &event.repository.name;
+        let pr_number = event.issue.number;
 
+        let commands = CommandParser::parse_commands(config, &event.comment.body);
         match db_adapter
-            .pull_request()
-            .get_from_repository_path_and_number(&event.repository.full_name, event.issue.number)
-            .await
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
         {
-            Ok((mut pr_model, mut repo_model)) => {
+            Some(_) => {
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_owner, repo_name, pr_number)
+                    .await?;
+
                 handle_comment_creation(
                     config,
                     api_adapter,
                     db_adapter,
                     redis_adapter,
-                    &mut repo_model,
-                    &mut pr_model,
+                    repo_owner,
+                    repo_name,
+                    pr_number,
+                    &upstream_pr,
                     &event,
                     commands,
                 )
                 .await?
             }
-            Err(DatabaseError::UnknownPullRequest(_, _)) => {
+            None => {
                 // Parse admin enable
                 let mut handled = false;
                 for command in commands.iter().flatten() {
                     if let Command::Admin(AdminCommand::Enable) = command {
-                        let (mut pr, sha) = PullRequestLogic::synchronize_pull_request(
-                            config,
-                            api_adapter,
-                            db_adapter,
-                            &event.repository.owner.login,
-                            &event.repository.name,
-                            event.issue.number,
+                        let upstream_pr = api_adapter
+                            .pulls_get(repo_owner, repo_name, pr_number)
+                            .await?;
+
+                        PullRequestLogic::synchronize_pull_request(
+                            config, db_adapter, repo_owner, repo_name, pr_number,
                         )
                         .await?;
 
@@ -70,21 +75,17 @@ pub async fn handle_issue_comment_event(
                             repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
-                        let repo = pr.repository(db_adapter.repository()).await?;
+
                         StatusLogic::update_pull_request_status(
                             api_adapter,
                             db_adapter,
                             redis_adapter,
-                            &repo,
-                            &mut pr,
-                            &sha,
+                            repo_owner,
+                            repo_name,
+                            pr_number,
+                            &upstream_pr,
                         )
                         .await?;
-
-                        // Create status comment
-                        SummaryCommentSender::new()
-                            .create(api_adapter, db_adapter, &repo, &mut pr)
-                            .await?;
 
                         handled = true;
                         break;
@@ -100,8 +101,7 @@ pub async fn handle_issue_comment_event(
                     );
                 }
             }
-            Err(e) => return Err(e.into()),
-        }
+        };
     }
 
     Ok(())
@@ -111,40 +111,28 @@ pub async fn handle_issue_comment_event(
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_comment_creation(
     config: &Config,
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
-    repo_model: &mut RepositoryModel,
-    pr_model: &mut PullRequestModel,
+    api_adapter: &dyn ApiService,
+    db_adapter: &dyn DbService,
+    redis_adapter: &dyn RedisService,
+    repo_owner: &str,
+    repo_name: &str,
+    pr_number: u64,
+    upstream_pr: &GhPullRequest,
     event: &GhIssueCommentEvent,
     commands: Vec<CommandResult<Command>>,
 ) -> Result<()> {
     let comment_author = &event.comment.user.login;
     let comment_id = event.comment.id;
 
-    if config.server_enable_history_tracking {
-        HistoryWebhookModel::builder(repo_model, pr_model)
-            .username(comment_author)
-            .event_key(EventType::IssueComment)
-            .payload(event)
-            .create(db_adapter.history_webhook())
-            .await?;
-    }
-
-    info!(
-        commands = ?commands,
-        repository_path = %repo_model.path(),
-        pull_request_number = pr_model.number(),
-        message = "Will execute commands",
-    );
-
     CommandExecutor::execute_commands(
         config,
         api_adapter,
         db_adapter,
         redis_adapter,
-        repo_model,
-        pr_model,
+        repo_owner,
+        repo_name,
+        pr_number,
+        upstream_pr,
         comment_id,
         comment_author,
         commands,

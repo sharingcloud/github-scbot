@@ -12,13 +12,13 @@ pub(crate) struct AuthListAdminAccountsCommand {}
 #[async_trait(?Send)]
 impl Command for AuthListAdminAccountsCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let accounts = ctx.db_adapter.account().list_admin_accounts().await?;
+        let accounts = ctx.db_adapter.accounts().list_admins().await?;
         if accounts.is_empty() {
             println!("No admin account found.");
         } else {
             println!("Admin accounts:");
             for account in accounts {
-                println!("- {}", account.username);
+                println!("- {}", account.username());
             }
         }
 

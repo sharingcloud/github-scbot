@@ -13,7 +13,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    adapter::{GhReviewApi, GifResponse, IAPIAdapter},
+    adapter::{ApiService, GhReviewApi, GifResponse},
     auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
     ApiError, Result,
 };
@@ -23,11 +23,11 @@ const GIF_API_URL: &str = "https://g.tenor.com/v1";
 
 /// GitHub API adapter implementation.
 #[derive(Clone)]
-pub struct GithubAPIAdapter {
+pub struct GithubApiService {
     config: Config,
 }
 
-impl GithubAPIAdapter {
+impl GithubApiService {
     /// Creates new GitHub API adapter.
     pub fn new(config: Config) -> Self {
         Self { config }
@@ -46,8 +46,8 @@ impl GithubAPIAdapter {
 }
 
 #[async_trait(?Send)]
-impl IAPIAdapter for GithubAPIAdapter {
-    #[tracing::instrument(skip(self))]
+impl ApiService for GithubApiService {
+    #[tracing::instrument(skip(self), ret)]
     async fn issue_labels_list(
         &self,
         owner: &str,
@@ -127,7 +127,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn user_permissions_get(
         &self,
         owner: &str,
@@ -154,7 +154,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(response.permission)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn check_suites_list(
         &self,
         owner: &str,
@@ -181,7 +181,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(response.check_suites)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn comments_post(
         &self,
         owner: &str,
@@ -214,7 +214,7 @@ impl IAPIAdapter for GithubAPIAdapter {
             .id)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn comments_update(
         &self,
         owner: &str,
@@ -289,7 +289,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
         Ok(self
             .get_client()
@@ -391,7 +391,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn pull_reviews_list(
         &self,
         owner: &str,
@@ -446,7 +446,7 @@ impl IAPIAdapter for GithubAPIAdapter {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), ret)]
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
         let client = reqwest::Client::new();
         client

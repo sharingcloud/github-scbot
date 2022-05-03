@@ -3,11 +3,10 @@
 use std::fmt;
 
 use actix_web::{
-    dev::HttpResponseBuilder,
     http::{header, StatusCode},
-    Error, HttpResponse, ResponseError,
+    Error, HttpResponse, HttpResponseBuilder, ResponseError,
 };
-use stable_eyre::eyre;
+use sentry_eyre::eyre;
 
 /// Eyre Report wrapper.
 pub struct WrapEyre {
@@ -58,8 +57,11 @@ impl ResponseError for WrapEyre {
     fn error_response(&self) -> HttpResponse {
         HttpResponseBuilder::new(self.status_code())
             .set_header(header::CONTENT_TYPE, "application/json; charset=utf-8")
-            .body(serde_json::json!({
-                "error": self.report.to_string()
-            }))
+            .body(
+                serde_json::json!({
+                    "error": self.report.to_string()
+                })
+                .to_string(),
+            )
     }
 }

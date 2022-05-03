@@ -1,0 +1,27 @@
+[package]
+name = "github-scbot-database2"
+version = "0.19.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1.53"
+derive_builder = "0.11.1"
+futures = "0.3.21"
+futures-util = "0.3.21"
+github-scbot-conf = { path = "../github_scbot_conf" }
+github-scbot-crypto = { path = "../github_scbot_crypto" }
+github-scbot-database-macros = { path = "../github_scbot_database_macros" }
+github-scbot-types = { path = "../github_scbot_types" }
+github-scbot-utils = { path = "../github_scbot_utils" }
+mockall = "0.11.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.5.11", features = ["runtime-actix-native-tls", "postgres"] }
+thiserror = "1.0.30"
+tracing = "0.1"
+
+[dev-dependencies]
+pretty_assertions = "0.6"
+actix-rt = "2"

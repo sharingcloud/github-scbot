@@ -2,12 +2,12 @@
 name = "github-scbot-logic"
 version = "0.19.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 github-scbot-ghapi = { path = "../github_scbot_ghapi" }
 github-scbot-conf = { path = "../github_scbot_conf" }
-github-scbot-database = { path = "../github_scbot_database" }
+github-scbot-database2 = { path = "../github_scbot_database2" }
 github-scbot-types = { path = "../github_scbot_types" }
 github-scbot-redis = { path = "../github_scbot_redis" }
 
@@ -17,7 +17,9 @@ thiserror = "1.0"
 tracing = "0.1"
 
 [dev-dependencies]
-actix-rt = "1"
+actix-rt = "2"
 chrono = { version = "0.4.19", features = ["serde"] }
+futures-util = "0.3.21"
 maplit = "1.0.2"
+mockall = "0.11.0"
 pretty_assertions = "0.7.2"

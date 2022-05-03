@@ -1,8 +1,12 @@
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
+use github_scbot_types::repository::RepositoryPath;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    utils::CliDbExt,
+};
 
 /// show pull request info.
 #[derive(FromArgs)]
@@ -10,7 +14,7 @@ use crate::commands::{Command, CommandContext};
 pub(crate) struct PullRequestShowCommand {
     /// repository path (e.g. 'MyOrganization/my-project')
     #[argh(positional)]
-    repository_path: String,
+    repository_path: RepositoryPath,
 
     /// pull request number.
     #[argh(positional)]
@@ -20,11 +24,15 @@ pub(crate) struct PullRequestShowCommand {
 #[async_trait(?Send)]
 impl Command for PullRequestShowCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let (pr, _repo) = ctx
-            .db_adapter
-            .pull_request()
-            .get_from_repository_path_and_number(&self.repository_path, self.number)
-            .await?;
+        let (owner, name) = self.repository_path.components();
+        let pr = CliDbExt::get_existing_pull_request(
+            &mut *ctx.db_adapter.pull_requests(),
+            owner,
+            name,
+            self.number,
+        )
+        .await?;
+
         println!(
             "Accessing pull request #{} on repository {}",
             self.number, self.repository_path

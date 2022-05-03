@@ -1,8 +1,6 @@
 //! Webhook errors.
 
-use std::fmt;
-
-use actix_http::{error::BlockingError, http::StatusCode};
+use actix_http::StatusCode;
 use github_scbot_sentry::WrapEyre;
 use github_scbot_types::events::EventType;
 use thiserror::Error;
@@ -30,9 +28,9 @@ pub enum ServerError {
     #[error("Error while compiling regex.")]
     RegexError(#[from] regex::Error),
 
-    /// Wraps [`github_scbot_database::DatabaseError`].
+    /// Wraps [`github_scbot_database2::DatabaseError`].
     #[error("Database error.")]
-    DatabaseError(#[from] github_scbot_database::DatabaseError),
+    DatabaseError(#[from] github_scbot_database2::DatabaseError),
 
     /// Wraps [`github_scbot_logic::LogicError`].
     #[error("Logic error.")]
@@ -60,15 +58,6 @@ impl From<ServerError> for WrapEyre {
         };
 
         Self::new(e.into(), status_code)
-    }
-}
-
-impl<E: Into<ServerError> + fmt::Debug + Sync + 'static> From<BlockingError<E>> for ServerError {
-    fn from(err: BlockingError<E>) -> Self {
-        match err {
-            BlockingError::Canceled => Self::ThreadpoolError,
-            BlockingError::Error(e) => e.into(),
-        }
     }
 }
 

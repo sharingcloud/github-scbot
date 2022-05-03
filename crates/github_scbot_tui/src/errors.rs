@@ -17,9 +17,9 @@ pub enum UiError {
     #[error("Channel communication error.")]
     Recv(#[from] std::sync::mpsc::RecvError),
 
-    /// Wraps [`github_scbot_database::DatabaseError`].
+    /// Wraps [`github_scbot_database2::DatabaseError`].
     #[error(transparent)]
-    Database(#[from] github_scbot_database::DatabaseError),
+    Database(#[from] github_scbot_database2::DatabaseError),
 }
 
 /// Result alias for `UiError`.

@@ -2,20 +2,16 @@
 
 use std::{ffi::OsStr, path::Path};
 
-use actix_rt::System;
 use argh::FromArgs;
 use github_scbot_conf::{configure_startup, Config};
-use github_scbot_database::{establish_pool_connection, models::DatabaseAdapter, run_migrations};
-use github_scbot_ghapi::adapter::GithubAPIAdapter;
-use github_scbot_redis::RedisAdapter;
+use github_scbot_database2::{establish_pool_connection, run_migrations, DbServiceImplPool};
 use github_scbot_sentry::eyre::{self, eyre::eyre};
+use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
 
 use self::commands::{Command, CommandContext, SubCommand};
 
 mod commands;
-
-#[cfg(test)]
-mod tests;
+pub(crate) mod utils;
 
 /// command.
 #[derive(FromArgs)]
@@ -38,19 +34,18 @@ pub fn initialize_command_line() -> eyre::Result<()> {
     // Prepare startup
     let config = configure_startup()?;
 
-    async fn sync(config: Config, cmd: SubCommand, no_input: bool) -> eyre::Result<()> {
-        let pool = establish_pool_connection(&config)?;
-        run_migrations(&pool)?;
+    async fn sync(config: Config, cmd: SubCommand, _no_input: bool) -> eyre::Result<()> {
+        let pool = establish_pool_connection(&config).await?;
+        run_migrations(&pool).await?;
 
-        let db_adapter = DatabaseAdapter::new(pool);
-        let api_adapter = GithubAPIAdapter::new(config.clone());
-        let redis_adapter = RedisAdapter::new(&config.redis_address);
+        let db_adapter = DbServiceImplPool::new(pool);
+        let api_adapter = MetricsApiService::new(config.clone());
+        let redis_adapter = MetricsRedisService::new(&config.redis_address);
         let ctx = CommandContext {
             config,
             db_adapter: Box::new(db_adapter),
             api_adapter: Box::new(api_adapter),
             redis_adapter: Box::new(redis_adapter),
-            no_input,
         };
 
         cmd.execute(ctx).await
@@ -69,8 +64,13 @@ pub fn initialize_command_line() -> eyre::Result<()> {
         let version = env!("CARGO_PKG_VERSION");
         println!("{} {}", exec_name, version)
     } else if let Some(cmd) = args.cmd {
-        let mut sys = System::new("app");
-        sys.block_on(sync(config, cmd, args.no_input))?;
+        actix_rt::System::with_tokio_rt(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+        })
+        .block_on(sync(config, cmd, args.no_input))?;
     } else {
         return Err(eyre!("Missing subcommand. Use --help for more info."));
     }

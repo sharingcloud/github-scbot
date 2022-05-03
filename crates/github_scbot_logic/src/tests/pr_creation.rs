@@ -1,47 +1,34 @@
-use github_scbot_database::{
-    models::{DatabaseAdapter, IDatabaseAdapter, RepositoryModel},
-    tests::using_test_db,
-    Result as DatabaseResult,
-};
-use github_scbot_ghapi::adapter::DummyAPIAdapter;
-use github_scbot_redis::{DummyRedisAdapter, LockInstance, LockStatus};
+use github_scbot_conf::Config;
+use github_scbot_ghapi::adapter::MockApiService;
+use github_scbot_redis::{LockInstance, LockStatus, MockRedisService};
 use github_scbot_types::{
-    common::{GhRepository, GhUser},
-    pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
-    status::{CheckStatus, QaStatus},
+    checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
+    common::{GhApplication, GhRepository, GhUser},
+    pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent, GhPullRequestShort},
 };
 
-use crate::{
-    pulls::{handle_pull_request_opened, PullRequestLogic, PullRequestOpenedStatus},
-    status::PullRequestStatus,
-    LogicError,
-};
+use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool, Repository, Result};
 
-fn fake_gh_repo() -> GhRepository {
-    GhRepository {
-        name: "name".to_string(),
-        owner: GhUser {
-            login: "owner".to_string(),
-        },
-        full_name: "owner/name".to_string(),
-    }
-}
-
-fn fake_gh_pr() -> GhPullRequest {
-    GhPullRequest {
-        number: 1,
-        ..Default::default()
-    }
-}
+use crate::pulls::{handle_pull_request_opened, PullRequestLogic, PullRequestOpenedStatus};
 
 #[actix_rt::test]
-async fn test_should_create_pull_request_manual_no_activation() -> DatabaseResult<()> {
-    using_test_db(
-        "test_db_pr_creation_no_activation",
+async fn test_should_create_pull_request_manual_no_activation() -> Result<()> {
+    let config = Config::from_env();
+    use_temporary_db(
+        config,
+        "test_should_create_pull_request_manual_no_activation",
         |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(pool);
+            let db_adapter = DbServiceImplPool::new(pool);
+            let repository = Repository::builder()
+                .with_config(&config)
+                .name("name")
+                .owner("owner")
+                .manual_interaction(true)
+                .build()
+                .unwrap();
+            let repository = db_adapter.repositories().create(repository).await?;
 
-            let creation_event = GhPullRequestEvent {
+            let event = GhPullRequestEvent {
                 action: GhPullRequestAction::Opened,
                 repository: GhRepository {
                     name: "name".to_string(),
@@ -57,32 +44,37 @@ async fn test_should_create_pull_request_manual_no_activation() -> DatabaseResul
                 ..GhPullRequestEvent::default()
             };
 
-            let repository =
-                RepositoryModel::builder_from_github(&config, &creation_event.repository)
-                    .manual_interaction(true)
-                    .create_or_update(db_adapter.repository())
-                    .await?;
+            assert!(
+                !PullRequestLogic::should_create_pull_request(&config, &repository, &event),
+                "it should not be possible to create a pull request on PR event"
+            );
 
-            // Manual interaction without activation
-            assert!(!PullRequestLogic::should_create_pull_request(
-                &config,
-                &repository,
-                &creation_event
-            ));
-
-            Ok::<_, LogicError>(())
+            Ok(())
         },
     )
-    .await
+    .await;
+
+    Ok(())
 }
 
 #[actix_rt::test]
-async fn test_should_create_pull_request_manual_with_activation() -> DatabaseResult<()> {
-    using_test_db(
-        "test_db_pr_creation_activation",
+async fn test_should_create_pull_request_manual_with_activation() -> Result<()> {
+    let config = Config::from_env();
+    use_temporary_db(
+        config,
+        "test_should_create_pull_request_manual_with_activation",
         |config, pool| async move {
-            let db_adapter = DatabaseAdapter::new(pool);
-            let creation_event = GhPullRequestEvent {
+            let db_adapter = DbServiceImplPool::new(pool);
+            let repository = Repository::builder()
+                .with_config(&config)
+                .name("name")
+                .owner("owner")
+                .manual_interaction(true)
+                .build()
+                .unwrap();
+            let repository = db_adapter.repositories().create(repository).await?;
+
+            let event = GhPullRequestEvent {
                 action: GhPullRequestAction::Opened,
                 repository: GhRepository {
                     name: "name".to_string(),
@@ -93,114 +85,185 @@ async fn test_should_create_pull_request_manual_with_activation() -> DatabaseRes
                 },
                 pull_request: GhPullRequest {
                     number: 1,
-                    body: Some("Hello.\ntest-bot admin-enable".to_string()),
+                    body: Some("Hello.\nbot admin-enable".to_string()),
                     ..GhPullRequest::default()
                 },
                 ..GhPullRequestEvent::default()
             };
 
-            let repository =
-                RepositoryModel::builder_from_github(&config, &creation_event.repository)
-                    .manual_interaction(true)
-                    .create_or_update(db_adapter.repository())
-                    .await?;
+            assert!(
+                PullRequestLogic::should_create_pull_request(&config, &repository, &event),
+                "it should be possible to create a pull request on PR event"
+            );
 
-            // Manual interaction with activation
-            assert!(PullRequestLogic::should_create_pull_request(
-                &config,
-                &repository,
-                &creation_event
-            ));
-            Ok::<_, LogicError>(())
+            Ok(())
         },
     )
-    .await
+    .await;
+
+    Ok(())
 }
 
 #[actix_rt::test]
-async fn test_should_create_pull_request_automatic() -> DatabaseResult<()> {
-    using_test_db("test_db_pr_creation_automatic", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(pool);
-        let creation_event = GhPullRequestEvent {
-            action: GhPullRequestAction::Opened,
-            repository: GhRepository {
-                name: "name".to_string(),
-                owner: GhUser {
-                    login: "owner".to_string(),
+async fn test_should_create_pull_request_automatic() -> Result<()> {
+    let config = Config::from_env();
+    use_temporary_db(
+        config,
+        "test_should_create_pull_request_automatic",
+        |config, pool| async move {
+            let db_adapter = DbServiceImplPool::new(pool);
+            let repository = Repository::builder()
+                .with_config(&config)
+                .name("name")
+                .owner("owner")
+                .manual_interaction(false)
+                .build()
+                .unwrap();
+            let repository = db_adapter.repositories().create(repository).await?;
+
+            let event = GhPullRequestEvent {
+                action: GhPullRequestAction::Opened,
+                repository: GhRepository {
+                    name: "name".to_string(),
+                    owner: GhUser {
+                        login: "owner".to_string(),
+                    },
+                    full_name: "owner/name".to_string(),
                 },
-                full_name: "owner/name".to_string(),
-            },
-            pull_request: GhPullRequest {
-                number: 1,
-                ..GhPullRequest::default()
-            },
-            ..GhPullRequestEvent::default()
-        };
+                pull_request: GhPullRequest {
+                    number: 1,
+                    ..GhPullRequest::default()
+                },
+                ..GhPullRequestEvent::default()
+            };
 
-        let repository = RepositoryModel::builder_from_github(&config, &creation_event.repository)
-            .manual_interaction(false)
-            .create_or_update(db_adapter.repository())
-            .await?;
+            assert!(
+                PullRequestLogic::should_create_pull_request(&config, &repository, &event),
+                "it should be possible to create a pull request on PR event"
+            );
 
-        // Automatic
-        assert!(PullRequestLogic::should_create_pull_request(
-            &config,
-            &repository,
-            &creation_event
-        ));
-        Ok::<_, LogicError>(())
-    })
-    .await
+            Ok(())
+        },
+    )
+    .await;
+
+    Ok(())
 }
 
 #[actix_rt::test]
-async fn test_qa_disabled_repository() -> DatabaseResult<()> {
-    using_test_db("test_qa_disabled_repository", |config, pool| async move {
-        let db_adapter = DatabaseAdapter::new(pool);
-        let api_adapter = DummyAPIAdapter::new();
-        let mut redis_adapter = DummyRedisAdapter::new();
+async fn test_qa_disabled_repository() -> Result<()> {
+    let config = Config::from_env();
+    use_temporary_db(
+        config,
+        "test_qa_disabled_repository",
+        |config, pool| async move {
+            let db_adapter = DbServiceImplPool::new(pool);
+            let repository = Repository::builder()
+                .with_config(&config)
+                .name("name")
+                .owner("owner")
+                .manual_interaction(false)
+                .default_enable_qa(false)
+                .default_enable_checks(true)
+                .build()
+                .unwrap();
+            db_adapter.repositories().create(repository).await?;
 
-        // Arrange
-        redis_adapter
-            .try_lock_resource_response
-            .set_callback(Box::new(|key| {
-                let inst = LockInstance::new_dummy(key);
-                Ok(LockStatus::SuccessfullyLocked(inst))
-            }));
+            let event = GhPullRequestEvent {
+                action: GhPullRequestAction::Opened,
+                repository: GhRepository {
+                    name: "name".to_string(),
+                    owner: GhUser {
+                        login: "owner".to_string(),
+                    },
+                    full_name: "owner/name".to_string(),
+                },
+                pull_request: GhPullRequest {
+                    number: 1,
+                    ..GhPullRequest::default()
+                },
+                ..GhPullRequestEvent::default()
+            };
 
-        let creation_event = GhPullRequestEvent {
-            action: GhPullRequestAction::Opened,
-            repository: fake_gh_repo(),
-            pull_request: fake_gh_pr(),
-            ..Default::default()
-        };
+            let mut api_adapter = MockApiService::new();
+            let mut redis_adapter = MockRedisService::new();
+            redis_adapter
+                .expect_wait_lock_resource()
+                .times(1)
+                .return_const(Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "pouet",
+                ))));
 
-        let repo = RepositoryModel::builder_from_github(&config, &creation_event.repository)
-            .default_enable_qa(false)
-            .default_enable_checks(false)
-            .create_or_update(db_adapter.repository())
+            api_adapter
+                .expect_pulls_get()
+                .times(1)
+                .return_const(Ok(GhPullRequest {
+                    mergeable: Some(true),
+                    ..Default::default()
+                }));
+
+            api_adapter
+                .expect_pull_reviews_list()
+                .times(1)
+                .return_const(Ok(vec![]));
+
+            api_adapter
+                .expect_check_suites_list()
+                .times(1)
+                .return_const(Ok(vec![GhCheckSuite {
+                    status: GhCheckStatus::Completed,
+                    conclusion: Some(GhCheckConclusion::Success),
+                    pull_requests: vec![GhPullRequestShort {
+                        number: 1,
+                        ..Default::default()
+                    }],
+                    app: GhApplication {
+                        slug: "github-actions".into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }]));
+
+            api_adapter
+                .expect_issue_labels_list()
+                .times(1)
+                .return_const(Ok(vec![]));
+
+            api_adapter
+                .expect_issue_labels_replace_all()
+                .withf(|owner, name, pr_number, labels| {
+                    owner == "owner"
+                        && name == "name"
+                        && *pr_number == 1u64
+                        && labels == ["step/awaiting-review"]
+                })
+                .times(1)
+                .return_const(Ok(()));
+
+            api_adapter
+                .expect_comments_post()
+                .times(1)
+                .return_const(Ok(1));
+
+            api_adapter
+                .expect_commit_statuses_update()
+                .times(1)
+                .return_const(Ok(()));
+
+            let result = handle_pull_request_opened(
+                &config,
+                &api_adapter,
+                &db_adapter,
+                &redis_adapter,
+                event,
+            )
             .await?;
+            assert_eq!(result, PullRequestOpenedStatus::Created);
 
-        let result = handle_pull_request_opened(
-            &config,
-            &api_adapter,
-            &db_adapter,
-            &redis_adapter,
-            creation_event,
-        )
-        .await?;
-        assert_eq!(result, PullRequestOpenedStatus::Created);
+            Ok(())
+        },
+    )
+    .await;
 
-        let pr = db_adapter
-            .pull_request()
-            .get_from_repository_and_number(&repo, 1)
-            .await?;
-        let status =
-            PullRequestStatus::from_database(&api_adapter, &db_adapter, &repo, &pr).await?;
-        assert_eq!(status.qa_status, QaStatus::Skipped);
-        assert_eq!(status.checks_status, CheckStatus::Skipped);
-
-        Ok::<_, LogicError>(())
-    })
-    .await
+    Ok(())
 }

@@ -9,7 +9,6 @@ use super::{Command, CommandContext};
 mod add;
 mod list;
 mod list_merge_rules;
-mod purge;
 mod remove_merge_rule;
 mod set_automerge;
 mod set_checks_status;
@@ -22,7 +21,7 @@ mod show;
 
 use self::{
     add::RepositoryAddCommand, list::RepositoryListCommand,
-    list_merge_rules::RepositoryListMergeRulesCommand, purge::RepositoryPurgeCommand,
+    list_merge_rules::RepositoryListMergeRulesCommand,
     remove_merge_rule::RepositoryRemoveMergeRuleCommand,
     set_automerge::RepositorySetAutomergeCommand,
     set_checks_status::RepositorySetChecksStatusCommand,
@@ -61,7 +60,6 @@ enum RepositorySubCommand {
     SetAutomerge(RepositorySetAutomergeCommand),
     RemoveMergeRule(RepositoryRemoveMergeRuleCommand),
     ListMergeRules(RepositoryListMergeRulesCommand),
-    Purge(RepositoryPurgeCommand),
     List(RepositoryListCommand),
 }
 
@@ -80,7 +78,6 @@ impl Command for RepositorySubCommand {
             Self::SetAutomerge(sub) => sub.execute(ctx).await,
             Self::RemoveMergeRule(sub) => sub.execute(ctx).await,
             Self::ListMergeRules(sub) => sub.execute(ctx).await,
-            Self::Purge(sub) => sub.execute(ctx).await,
             Self::List(sub) => sub.execute(ctx).await,
         }
     }

@@ -11,7 +11,9 @@ pub mod issues;
 pub mod labels;
 pub mod ping;
 pub mod pulls;
+pub mod repository;
 pub mod reviews;
+pub mod rule_branch;
 pub mod status;
 
 pub use errors::{Result, TypeError};

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use github_scbot_types::reviews::GhReview;
 
 use crate::{
-    adapter::{GhReviewApi, GhReviewStateApi, IAPIAdapter},
+    adapter::{ApiService, GhReviewApi, GhReviewStateApi},
     Result,
 };
 
@@ -16,7 +16,7 @@ impl ReviewApi {
     /// List reviews for pull request.
     /// Dedupe reviews per reviewer (only last state is kept).
     pub async fn list_reviews_for_pull_request(
-        adapter: &dyn IAPIAdapter,
+        adapter: &dyn ApiService,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,

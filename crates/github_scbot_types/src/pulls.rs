@@ -1,6 +1,6 @@
 //! Pull types.
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, str::FromStr};
 
 use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -22,9 +22,17 @@ pub enum GhMergeStrategy {
     Rebase,
 }
 
-impl ToString for GhMergeStrategy {
-    fn to_string(&self) -> String {
-        serde_plain::to_string(&self).unwrap()
+impl std::fmt::Display for GhMergeStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&serde_plain::to_string(&self).unwrap())
+    }
+}
+
+impl FromStr for GhMergeStrategy {
+    type Err = TypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
     }
 }
 
@@ -42,6 +50,12 @@ impl TryFrom<&String> for GhMergeStrategy {
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         Self::try_from(&value[..])
+    }
+}
+
+impl Default for GhMergeStrategy {
+    fn default() -> Self {
+        Self::Merge
     }
 }
 

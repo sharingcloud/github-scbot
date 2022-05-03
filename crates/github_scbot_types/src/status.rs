@@ -111,6 +111,12 @@ pub enum QaStatus {
     Fail,
 }
 
+impl Default for QaStatus {
+    fn default() -> Self {
+        QaStatus::Skipped
+    }
+}
+
 impl QaStatus {
     /// Convert QA status to static str.
     pub fn to_str(self) -> &'static str {

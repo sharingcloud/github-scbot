@@ -2,15 +2,15 @@
 
 mod pull_status;
 
-use github_scbot_database::models::{IDatabaseAdapter, PullRequestModel, RepositoryModel};
-use github_scbot_ghapi::adapter::IAPIAdapter;
-use github_scbot_redis::{IRedisAdapter, LockStatus};
+use github_scbot_database2::DbService;
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::{LockStatus, RedisService};
 use github_scbot_types::{
     labels::StepLabel,
+    pulls::GhPullRequest,
     status::{CheckStatus, QaStatus, StatusState},
 };
 pub use pull_status::PullRequestStatus;
-use tracing::debug;
 
 use crate::{errors::Result, pulls::PullRequestLogic, summary::SummaryCommentSender};
 
@@ -21,9 +21,9 @@ pub struct StatusLogic;
 
 impl StatusLogic {
     /// Determine automatic step for a pull request.
-    #[tracing::instrument]
-    pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> Result<StepLabel> {
-        Ok(if pull_request_status.wip {
+    #[tracing::instrument(ret)]
+    pub fn determine_automatic_step(pull_request_status: &PullRequestStatus) -> StepLabel {
+        if pull_request_status.wip {
             StepLabel::Wip
         } else if pull_request_status.valid_pr_title {
             match pull_request_status.checks_status {
@@ -55,87 +55,61 @@ impl StatusLogic {
             }
         } else {
             StepLabel::AwaitingChanges
-        })
-    }
-
-    /// Create initial pull request status.
-    pub async fn create_initial_pull_request_status(
-        api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
-        commit_sha: &str,
-    ) -> Result<()> {
-        let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
-
-        // Update step label.
-        let step_label = Self::determine_automatic_step(&pr_status)?;
-        let update = pr_model
-            .create_update()
-            .step(Some(step_label))
-            .build_update();
-        db_adapter.pull_request().update(pr_model, update).await?;
-
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
-
-        // Create status comment
-        SummaryCommentSender::new()
-            .create(api_adapter, db_adapter, repo_model, pr_model)
-            .await?;
-
-        // Create or update status.
-        let (status_state, status_title, status_message) =
-            Self::generate_pr_status_message(&pr_status)?;
-        api_adapter
-            .commit_statuses_update(
-                repo_model.owner(),
-                repo_model.name(),
-                commit_sha,
-                status_state,
-                status_title,
-                &status_message,
-            )
-            .await?;
-
-        Ok(())
+        }
     }
 
     /// Update pull request status.
     #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn update_pull_request_status(
-        api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        redis_adapter: &dyn IRedisAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
-        commit_sha: &str,
+        api_adapter: &dyn ApiService,
+        db_adapter: &dyn DbService,
+        redis_adapter: &dyn RedisService,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
+        upstream_pr: &GhPullRequest,
     ) -> Result<()> {
-        let pr_status =
-            PullRequestStatus::from_database(api_adapter, db_adapter, repo_model, pr_model).await?;
+        let commit_sha = &upstream_pr.head.sha;
+        let pr_status = PullRequestStatus::from_database(
+            api_adapter,
+            db_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            upstream_pr,
+        )
+        .await?;
 
         // Update step label.
-        let step_label = Self::determine_automatic_step(&pr_status)?;
-        let update = pr_model
-            .create_update()
-            .step(Some(step_label))
-            .build_update();
-        db_adapter.pull_request().update(pr_model, update).await?;
-
-        PullRequestLogic::apply_pull_request_step(api_adapter, repo_model, pr_model).await?;
+        let step_label = Self::determine_automatic_step(&pr_status);
+        PullRequestLogic::apply_pull_request_step(
+            api_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            Some(step_label),
+        )
+        .await?;
 
         // Post status.
-        SummaryCommentSender::new()
-            .update(api_adapter, db_adapter, repo_model, pr_model)
-            .await?;
+        SummaryCommentSender::create_or_update(
+            api_adapter,
+            db_adapter,
+            redis_adapter,
+            repo_owner,
+            repo_name,
+            pr_number,
+            &pr_status,
+        )
+        .await?;
 
         // Create or update status.
         let (status_state, status_title, status_message) =
             Self::generate_pr_status_message(&pr_status)?;
         api_adapter
             .commit_statuses_update(
-                repo_model.owner(),
-                repo_model.name(),
+                repo_owner,
+                repo_name,
                 commit_sha,
                 status_state,
                 status_title,
@@ -143,35 +117,47 @@ impl StatusLogic {
             )
             .await?;
 
+        let pr_model = db_adapter
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
+            .unwrap();
+
         // Merge if auto-merge is enabled
         if matches!(step_label, StepLabel::AwaitingMerge)
-            && !pr_model.merged()
+            && upstream_pr.merged != Some(true)
             && pr_model.automerge()
         {
             // Use lock
-            let key = format!(
-                "pr-merge_{}-{}_{}",
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.number()
-            );
+            let key = format!("pr-merge_{}-{}_{}", repo_owner, repo_name, pr_number);
             if let LockStatus::SuccessfullyLocked(l) = redis_adapter.try_lock_resource(&key).await?
             {
                 let result = PullRequestLogic::try_automerge_pull_request(
                     api_adapter,
                     db_adapter,
-                    repo_model,
-                    pr_model,
+                    repo_owner,
+                    repo_name,
+                    pr_number,
+                    upstream_pr,
                 )
                 .await?;
                 if !result {
-                    let update = pr_model.create_update().automerge(false).build_update();
-                    db_adapter.pull_request().update(pr_model, update).await?;
+                    db_adapter
+                        .pull_requests()
+                        .set_automerge(repo_owner, repo_name, pr_number, false)
+                        .await?;
 
                     // Update status
-                    SummaryCommentSender::new()
-                        .update(api_adapter, db_adapter, repo_model, pr_model)
-                        .await?;
+                    SummaryCommentSender::create_or_update(
+                        api_adapter,
+                        db_adapter,
+                        redis_adapter,
+                        repo_owner,
+                        repo_name,
+                        pr_number,
+                        &pr_status,
+                    )
+                    .await?;
                 }
 
                 l.release().await?;
@@ -188,11 +174,6 @@ impl StatusLogic {
         let status_title = VALIDATION_STATUS_MESSAGE;
         let mut status_state = StatusState::Success;
         let mut status_message = "All good.".to_string();
-
-        debug!(
-            pull_request_status = ?pull_request_status,
-            message = "Generated pull request status"
-        );
 
         if pull_request_status.wip {
             status_message = "PR is still in WIP".to_string();
@@ -258,21 +239,22 @@ impl StatusLogic {
 
     /// Disable validation status.
     pub async fn disable_validation_status(
-        api_adapter: &dyn IAPIAdapter,
-        db_adapter: &dyn IDatabaseAdapter,
-        repo_model: &RepositoryModel,
-        pr_model: &mut PullRequestModel,
+        api_adapter: &dyn ApiService,
+        db_adapter: &dyn DbService,
+        repo_owner: &str,
+        repo_name: &str,
+        pr_number: u64,
     ) -> Result<()> {
         let sha = api_adapter
-            .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+            .pulls_get(repo_owner, repo_name, pr_number)
             .await?
             .head
             .sha;
 
         api_adapter
             .commit_statuses_update(
-                repo_model.owner(),
-                repo_model.name(),
+                repo_owner,
+                repo_name,
                 &sha,
                 StatusState::Success,
                 VALIDATION_STATUS_MESSAGE,
@@ -280,8 +262,7 @@ impl StatusLogic {
             )
             .await?;
 
-        SummaryCommentSender::new()
-            .delete(api_adapter, db_adapter, repo_model, pr_model)
+        SummaryCommentSender::delete(api_adapter, db_adapter, repo_owner, repo_name, pr_number)
             .await
     }
 }

@@ -21,6 +21,10 @@ pub enum TypeError {
     #[error("Unknown merge strategy: {0}")]
     UnknownMergeStrategy(String),
 
+    /// Invalid repository path.
+    #[error("Invalid repository path: {0}")]
+    InvalidRepositoryPath(String),
+
     /// Unsupported event.
     #[error("Unsupported event: {0}")]
     UnsupportedEvent(String),

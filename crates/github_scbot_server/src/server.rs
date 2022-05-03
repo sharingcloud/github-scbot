@@ -3,16 +3,17 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer};
-use actix_web_httpauth::middleware::HttpAuthentication;
-use actix_web_prom::PrometheusMetrics;
-use github_scbot_conf::Config;
-use github_scbot_database::{
-    models::{DatabaseAdapter, DummyDatabaseAdapter, IDatabaseAdapter},
-    DbPool,
+use actix_web::{
+    error,
+    middleware::Logger,
+    web::{self, Data},
+    App, HttpResponse, HttpServer,
 };
-use github_scbot_ghapi::adapter::{DummyAPIAdapter, GithubAPIAdapter, IAPIAdapter};
-use github_scbot_redis::{DummyRedisAdapter, IRedisAdapter, RedisAdapter};
+use actix_web_httpauth::middleware::HttpAuthentication;
+use github_scbot_conf::Config;
+use github_scbot_database2::{DbPool, DbService, DbServiceImplPool};
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
 use github_scbot_sentry::{actix::Sentry, with_sentry_configuration};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -20,7 +21,11 @@ use tracing_actix_web::TracingLogger;
 use crate::{
     debug::configure_debug_handlers,
     external::{status::set_qa_status, validator::jwt_auth_validator},
+    ghapi::MetricsApiService,
+    health::health_check_route,
+    metrics::build_metrics_handler,
     middlewares::VerifySignature,
+    redis::MetricsRedisService,
     webhook::configure_webhook_handlers,
     Result, ServerError,
 };
@@ -30,11 +35,11 @@ pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_adapter: Box<dyn IDatabaseAdapter>,
+    pub db_adapter: Box<dyn DbService>,
     /// API adapter
-    pub api_adapter: Box<dyn IAPIAdapter>,
+    pub api_adapter: Box<dyn ApiService>,
     /// Redis adapter
-    pub redis_adapter: Box<dyn IRedisAdapter>,
+    pub redis_adapter: Box<dyn RedisService>,
 }
 
 impl AppContext {
@@ -42,18 +47,18 @@ impl AppContext {
     pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
-            db_adapter: Box::new(DatabaseAdapter::new(pool)),
-            api_adapter: Box::new(GithubAPIAdapter::new(config.clone())),
-            redis_adapter: Box::new(RedisAdapter::new(&config.redis_address)),
+            db_adapter: Box::new(DbServiceImplPool::new(pool)),
+            api_adapter: Box::new(MetricsApiService::new(config.clone())),
+            redis_adapter: Box::new(MetricsRedisService::new(&config.redis_address)),
         }
     }
 
     /// Create new app context using adapters.
     pub fn new_with_adapters(
         config: Config,
-        db_adapter: Box<dyn IDatabaseAdapter>,
-        api_adapter: Box<dyn IAPIAdapter>,
-        redis_adapter: Box<dyn IRedisAdapter>,
+        db_adapter: Box<dyn DbService>,
+        api_adapter: Box<dyn ApiService>,
+        redis_adapter: Box<dyn RedisService>,
     ) -> Self {
         Self {
             config,
@@ -62,28 +67,19 @@ impl AppContext {
             redis_adapter,
         }
     }
-
-    /// Create new dummy app context.
-    pub fn new_dummy(config: Config) -> Self {
-        Self {
-            config,
-            db_adapter: Box::new(DummyDatabaseAdapter::new()),
-            api_adapter: Box::new(DummyAPIAdapter::new()),
-            redis_adapter: Box::new(DummyRedisAdapter::new()),
-        }
-    }
 }
 
 /// Run bot server.
 pub async fn run_bot_server(context: AppContext) -> Result<()> {
+    let address = get_bind_address(&context.config);
+
     info!(
         version = env!("CARGO_PKG_VERSION"),
+        address = %address,
         message = "Starting bot server",
     );
 
     with_sentry_configuration(&context.config.sentry_url.clone(), || async {
-        let config = context.config.clone();
-        let address = get_bind_address(&config);
         run_bot_server_internal(address, context).await
     })
     .await
@@ -94,17 +90,17 @@ fn get_bind_address(config: &Config) -> String {
 }
 
 async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> Result<()> {
-    let context = Arc::new(context);
+    let context = Data::new(Arc::new(context));
     let cloned_context = context.clone();
-    let prometheus = PrometheusMetrics::new("api", Some("/metrics"), None);
+    let prometheus = build_metrics_handler();
 
     let mut server = HttpServer::new(move || {
         let mut app = App::new()
-            .data(context.clone())
+            .app_data(context.clone())
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
             .wrap(Logger::default())
-            .wrap(TracingLogger)
+            .wrap(TracingLogger::default())
             .service(
                 web::scope("/external")
                     .wrap(HttpAuthentication::bearer(jwt_auth_validator))
@@ -116,20 +112,12 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
                     .wrap(VerifySignature::new(&context.config))
                     .configure(configure_webhook_handlers),
             )
-            .route(
-                "/health-check",
-                web::get().to(|| async {
-                    HttpResponse::Ok()
-                        .json(serde_json::json!({"message": "Ok"}))
-                        .await
-                }),
-            )
+            .route("/health", web::get().to(health_check_route))
             .route(
                 "/",
                 web::get().to(|| async {
                     HttpResponse::Ok()
                         .json(serde_json::json!({"message": "Welcome on github-scbot !" }))
-                        .await
                 }),
             )
             .app_data(web::JsonConfig::default().error_handler(|err, _req| {

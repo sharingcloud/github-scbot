@@ -1,38 +1,30 @@
 //! Checks logic.
 
-use github_scbot_conf::Config;
-use github_scbot_database::models::{HistoryWebhookModel, IDatabaseAdapter, RepositoryModel};
-use github_scbot_ghapi::adapter::IAPIAdapter;
-use github_scbot_redis::IRedisAdapter;
-use github_scbot_types::{
-    checks::{GhCheckConclusion, GhCheckSuiteAction, GhCheckSuiteEvent},
-    events::EventType,
-    status::CheckStatus,
-};
+use github_scbot_database2::DbService;
+use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_redis::RedisService;
+use github_scbot_types::checks::GhCheckSuiteEvent;
 
-use crate::{pulls::PullRequestLogic, status::StatusLogic, Result};
+use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub check syite event.
 pub async fn handle_check_suite_event(
-    config: &Config,
-    api_adapter: &dyn IAPIAdapter,
-    db_adapter: &dyn IDatabaseAdapter,
-    redis_adapter: &dyn IRedisAdapter,
+    api_adapter: &dyn ApiService,
+    db_adapter: &dyn DbService,
+    redis_adapter: &dyn RedisService,
     event: GhCheckSuiteEvent,
 ) -> Result<()> {
-    let repo_model = RepositoryModel::create_or_update_from_github(
-        config.clone(),
-        db_adapter.repository(),
-        &event.repository,
-    )
-    .await?;
+    let repo_owner = &event.repository.owner.login;
+    let repo_name = &event.repository.name;
 
     // Only look for first PR
     if let Some(gh_pr) = event.check_suite.pull_requests.get(0) {
-        if let Ok(mut pr_model) = db_adapter
-            .pull_request()
-            .get_from_repository_and_number(&repo_model, gh_pr.number)
-            .await
+        let pr_number = gh_pr.number;
+
+        if let Some(pr_model) = db_adapter
+            .pull_requests()
+            .get(repo_owner, repo_name, pr_number)
+            .await?
         {
             // Skip non Github Actions checks
             if event.check_suite.app.slug != "github-actions" {
@@ -44,65 +36,24 @@ pub async fn handle_check_suite_event(
                 return Ok(());
             }
 
-            if config.server_enable_history_tracking {
-                HistoryWebhookModel::builder(&repo_model, &pr_model)
-                    .username(&event.sender.login)
-                    .event_key(EventType::CheckSuite)
-                    .payload(&event)
-                    .create(db_adapter.history_webhook())
-                    .await?;
-            }
-
             // Skip if checks are skipped
-            if pr_model.check_status() == CheckStatus::Skipped {
+            if !pr_model.checks_enabled() {
                 return Ok(());
             }
 
-            if let GhCheckSuiteAction::Completed = event.action {
-                match event.check_suite.conclusion {
-                    Some(GhCheckConclusion::Success) => {
-                        // Check if other checks are still running
-                        let status = PullRequestLogic::get_checks_status_from_github(
-                            api_adapter,
-                            repo_model.owner(),
-                            repo_model.name(),
-                            &gh_pr.head.sha,
-                            &[event.check_suite.id],
-                        )
-                        .await?;
-
-                        // Update check status
-                        let update = pr_model.create_update().check_status(status).build_update();
-
-                        db_adapter
-                            .pull_request()
-                            .update(&mut pr_model, update)
-                            .await?;
-                    }
-                    Some(GhCheckConclusion::Failure) => {
-                        // Update check status
-                        let update = pr_model
-                            .create_update()
-                            .check_status(CheckStatus::Fail)
-                            .build_update();
-
-                        db_adapter
-                            .pull_request()
-                            .update(&mut pr_model, update)
-                            .await?;
-                    }
-                    _ => (),
-                }
-            }
+            let upstream_pr = api_adapter
+                .pulls_get(repo_owner, repo_name, pr_number)
+                .await?;
 
             // Update status
             StatusLogic::update_pull_request_status(
                 api_adapter,
                 db_adapter,
                 redis_adapter,
-                &repo_model,
-                &mut pr_model,
-                &event.check_suite.head_sha,
+                repo_owner,
+                repo_name,
+                pr_number,
+                &upstream_pr,
             )
             .await?;
         }

@@ -2,7 +2,10 @@ use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    utils::CliDbExt,
+};
 
 /// create external token.
 #[derive(FromArgs)]
@@ -16,12 +19,9 @@ pub(crate) struct AuthCreateExternalTokenCommand {
 #[async_trait(?Send)]
 impl Command for AuthCreateExternalTokenCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let account = ctx
-            .db_adapter
-            .external_account()
-            .get_from_username(&self.username)
-            .await?;
-        println!("{}", account.generate_access_token()?);
+        let mut exa_db = ctx.db_adapter.external_accounts();
+        let exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
+        println!("{}", exa.generate_access_token()?);
 
         Ok(())
     }

@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_N/A_
+### Added
+
+- New database crate using `sqlx`.
+- New custom Prometheus metrics
+
+### Changed
+
+- Health check will try to access the database and Redis
+- Update to actix-web 4
+- Update to Sentry 0.25
+
+### Removed
+
+- Removed telemetry support to focus on Prometheus metrics
 
 ## [0.19.0] - 2022-04-08
 

@@ -66,7 +66,7 @@ Process can be followed with labels, which are auto applied depending on the cur
 - Waiting for checks? **step/awaiting-checks**
 - Checks failed? **step/awaiting-changes**
 - Waiting for required reviews? **step/awaiting-required-review**
-- Waiting for reviews? **step/awaiting-reviews**
+- Waiting for reviews? **step/awaiting-review**
 - Waiting for QA? **step/awaiting-qa**
 - QA failed? **step/awaiting-changes**
 - PR is locked? **step/locked**
@@ -131,8 +131,6 @@ On Ubuntu, to build locally, you need the following packages:
 - pkg-config
 - libssl-dev
 - libpq-dev
-
-Then to use the Diesel CLI, use `cargo +stable install diesel_cli --no-default-features --features postgres`
 
 ### Running server locally
 

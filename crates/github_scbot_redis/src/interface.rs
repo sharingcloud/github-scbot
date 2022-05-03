@@ -35,7 +35,7 @@ impl From<actix_redis::Error> for RedisError {
 }
 
 /// Lock status.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LockStatus<'a> {
     /// Already locked.
     AlreadyLocked,
@@ -47,8 +47,16 @@ pub enum LockStatus<'a> {
 #[derive(Clone)]
 #[must_use]
 pub struct LockInstance<'a> {
-    pub(crate) lock: Option<&'a dyn IRedisAdapter>,
+    pub(crate) lock: Option<&'a dyn RedisService>,
     pub(crate) name: String,
+}
+
+impl<'a> std::fmt::Debug for LockInstance<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LockInstance")
+            .field("name", &self.name)
+            .finish()
+    }
 }
 
 impl<'a> LockInstance<'a> {
@@ -73,8 +81,9 @@ impl<'a> LockInstance<'a> {
 }
 
 /// Redis adapter trait.
+#[mockall::automock]
 #[async_trait]
-pub trait IRedisAdapter: Send + Sync {
+pub trait RedisService: Send + Sync {
     /// Tries to lock a resource.
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError>;
     /// Checks if resource exists.
@@ -101,9 +110,11 @@ pub trait IRedisAdapter: Send + Sync {
             if elapsed_time > timeout_ms {
                 return Ok(LockStatus::AlreadyLocked);
             } else {
-                actix::clock::delay_for(duration).await;
+                actix::clock::sleep(duration).await;
                 elapsed_time += millis;
             }
         }
     }
+    /// Health check
+    async fn health_check(&self) -> Result<(), RedisError>;
 }

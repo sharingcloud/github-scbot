@@ -1,20 +1,19 @@
 [package]
 name = "sentry-actix"
-version = "0.23.0"
+version = "0.25.0"
 authors = ["Sentry <hello@sentry.io>"]
 license = "Apache-2.0"
 description = """
-Sentry client extension for actix-web 3.
+Sentry client extension for actix-web 4.
 """
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-actix-web = { version = "3", default-features = false }
+actix-web = { version = "4", default-features = false }
 futures-util = { version = "0.3.5", default-features = false }
-sentry-core = { version = "0.23.0", default-features = false }
+sentry-core = { version = "0.25.0", features = ["client"] }
 sentry-eyre = { path = "../sentry-eyre", optional = true }
-stable-eyre = { version = "0.2", optional = true }
 serde_json = { version = "1", optional = true }
 
 [features]
-eyre = ["stable-eyre", "sentry-eyre", "serde_json"]
+eyre = ["sentry-eyre", "serde_json"]

@@ -2,7 +2,10 @@ use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    utils::CliDbExt,
+};
 
 /// remove all rights from account.
 #[derive(FromArgs)]
@@ -16,16 +19,11 @@ pub(crate) struct AuthRemoveAccountRightsCommand {
 #[async_trait(?Send)]
 impl Command for AuthRemoveAccountRightsCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let account = ctx
-            .db_adapter
-            .external_account()
-            .get_from_username(&self.username)
-            .await?;
+        let mut exa_db = ctx.db_adapter.external_accounts();
+        let mut exr_db = ctx.db_adapter.external_account_rights();
+        let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
 
-        ctx.db_adapter
-            .external_account_right()
-            .remove_rights(&account.username)
-            .await?;
+        exr_db.delete_all(&self.username).await?;
         println!("All rights removed from account '{}'.", self.username);
 
         Ok(())

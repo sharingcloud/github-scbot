@@ -1,11 +1,12 @@
-use std::convert::TryFrom;
-
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
-use github_scbot_types::pulls::GhMergeStrategy;
+use github_scbot_types::{pulls::GhMergeStrategy, repository::RepositoryPath};
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    utils::CliDbExt,
+};
 
 /// list known pull request for a repository.
 #[derive(FromArgs)]
@@ -13,7 +14,7 @@ use crate::commands::{Command, CommandContext};
 pub(crate) struct PullRequestSetMergeStrategyCommand {
     /// repository path (e.g. 'MyOrganization/my-project')
     #[argh(positional)]
-    repository_path: String,
+    repository_path: RepositoryPath,
 
     /// pull request number.
     #[argh(positional)]
@@ -21,34 +22,22 @@ pub(crate) struct PullRequestSetMergeStrategyCommand {
 
     /// merge strategy.
     #[argh(positional)]
-    strategy: Option<String>,
+    strategy: Option<GhMergeStrategy>,
 }
 
 #[async_trait(?Send)]
 impl Command for PullRequestSetMergeStrategyCommand {
     async fn execute(self, ctx: CommandContext) -> Result<()> {
-        let strategy_enum = if let Some(s) = self.strategy {
-            Some(GhMergeStrategy::try_from(&s[..])?)
-        } else {
-            None
-        };
+        let (owner, name) = self.repository_path.components();
 
-        let (mut pr, _repo) = ctx
-            .db_adapter
-            .pull_request()
-            .get_from_repository_path_and_number(&self.repository_path, self.number)
+        let mut pr_db = ctx.db_adapter.pull_requests();
+        let _pr =
+            CliDbExt::get_existing_pull_request(&mut *pr_db, owner, name, self.number).await?;
+        pr_db
+            .set_strategy_override(owner, name, self.number, self.strategy)
             .await?;
 
-        let update = pr
-            .create_update()
-            .strategy_override(strategy_enum)
-            .build_update();
-        ctx.db_adapter
-            .pull_request()
-            .update(&mut pr, update)
-            .await?;
-
-        if let Some(s) = strategy_enum {
+        if let Some(s) = self.strategy {
             println!(
                 "Setting {:?} as a merge strategy override for pull request #{} on repository {}",
                 s, self.number, self.repository_path

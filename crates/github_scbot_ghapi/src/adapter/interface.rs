@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::Result;
 
 /// Review state (API version)
-#[derive(Deserialize, Serialize, Clone, Copy)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GhReviewStateApi {
     /// Approved.
@@ -41,7 +41,7 @@ impl From<GhReviewStateApi> for GhReviewState {
 }
 
 /// Review (API version)
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct GhReviewApi {
     /// User.
     pub user: GhUser,
@@ -51,9 +51,19 @@ pub struct GhReviewApi {
     pub state: GhReviewStateApi,
 }
 
+impl Default for GhReviewApi {
+    fn default() -> Self {
+        Self {
+            user: GhUser::default(),
+            submitted_at: Utc::now(),
+            state: GhReviewStateApi::Pending,
+        }
+    }
+}
+
 /// Gif format.
 #[allow(non_camel_case_types)]
-#[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum GifFormat {
     /// Standard GIF.
@@ -83,7 +93,7 @@ pub enum GifFormat {
 }
 
 /// Media object.
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct MediaObject {
     /// Media URL.
     pub url: String,
@@ -92,22 +102,23 @@ pub struct MediaObject {
 }
 
 /// Gif object.
-#[derive(Deserialize, Clone, Default)]
+#[derive(Deserialize, Clone, Default, Debug)]
 pub struct GifObject {
     /// Media dict.
     pub media: Vec<HashMap<GifFormat, MediaObject>>,
 }
 
 /// Gif response.
-#[derive(Deserialize, Clone, Default)]
+#[derive(Deserialize, Clone, Default, Debug)]
 pub struct GifResponse {
     /// Results.
     pub results: Vec<GifObject>,
 }
 
 /// GitHub API Adapter interface
+#[mockall::automock]
 #[async_trait(?Send)]
-pub trait IAPIAdapter: Send + Sync {
+pub trait ApiService: Send + Sync {
     /// List labels from a target issue.
     async fn issue_labels_list(
         &self,

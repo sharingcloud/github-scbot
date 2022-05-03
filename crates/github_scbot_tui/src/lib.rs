@@ -11,13 +11,13 @@ mod events;
 mod state;
 
 mod errors;
-use github_scbot_database::models::IDatabaseAdapter;
+use github_scbot_database2::DbService;
 
 use self::errors::Result;
 
 /// Run TUI interface.
 #[cfg(windows)]
-pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
+pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
     use self::errors::UiError;
 
     Err(UiError::Unsupported)
@@ -25,7 +25,7 @@ pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
 
 /// Run TUI interface.
 #[cfg(unix)]
-pub async fn run_tui(db_adapter: &dyn IDatabaseAdapter) -> Result<()> {
+pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
     use std::io;
 
     use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
