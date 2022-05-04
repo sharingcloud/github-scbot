@@ -1,4 +1,8 @@
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{
+    fs::File,
+    io::{BufReader, Write},
+    path::PathBuf,
+};
 
 use argh::FromArgs;
 use async_trait::async_trait;
@@ -18,7 +22,7 @@ pub(crate) struct ImportCommand {
 
 #[async_trait(?Send)]
 impl Command for ImportCommand {
-    async fn execute(self, mut ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let file = File::open(&self.input_file)?;
         let reader = BufReader::new(file);
         Exchanger::import_from_json(&mut *ctx.db_adapter, reader).await?;

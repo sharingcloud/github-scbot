@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -12,7 +14,7 @@ pub(crate) struct UiCommand {}
 
 #[async_trait(?Send)]
 impl Command for UiCommand {
-    async fn execute(self, mut ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         run_tui(&mut *ctx.db_adapter).await.map_err(Into::into)
     }
 }

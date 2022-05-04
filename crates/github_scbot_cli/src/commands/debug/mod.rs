@@ -1,5 +1,7 @@
 //! Debug commands.
 
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -20,7 +22,7 @@ pub(crate) struct DebugCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -33,7 +35,7 @@ enum DebugSubCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugSubCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::TestSentry(sub) => sub.execute(ctx).await,
         }

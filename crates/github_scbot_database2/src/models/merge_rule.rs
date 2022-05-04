@@ -7,7 +7,7 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 use crate::{
     errors::Result,
     fields::{GhMergeStrategyDecode, RuleBranchDecode},
-    DatabaseError,
+    DatabaseError, Repository,
 };
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
@@ -30,6 +30,13 @@ impl MergeRule {
 
     pub fn set_repository_id(&mut self, id: u64) {
         self.repository_id = id;
+    }
+}
+
+impl MergeRuleBuilder {
+    pub fn with_repository(&mut self, repository: &Repository) -> &mut Self {
+        self.repository_id = Some(repository.id());
+        self
     }
 }
 

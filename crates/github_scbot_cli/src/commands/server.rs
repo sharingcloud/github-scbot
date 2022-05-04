@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -12,7 +14,7 @@ pub(crate) struct ServerCommand {}
 
 #[async_trait(?Send)]
 impl Command for ServerCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         let context = AppContext::new_with_adapters(
             ctx.config,
             ctx.db_adapter,

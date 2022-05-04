@@ -1,5 +1,7 @@
 //! Auth commands.
 
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -41,7 +43,7 @@ pub(crate) struct AuthCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -64,7 +66,7 @@ enum AuthSubCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthSubCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::CreateExternalAccount(sub) => sub.execute(ctx).await,
             Self::CreateExternalToken(sub) => sub.execute(ctx).await,

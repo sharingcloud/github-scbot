@@ -3,7 +3,7 @@ use github_scbot_database_macros::SCGetter;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, DatabaseError};
+use crate::{errors::Result, DatabaseError, Repository};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default, setter(into))]
@@ -21,6 +21,13 @@ impl ExternalAccountRight {
 
     pub fn set_repository_id(&mut self, id: u64) {
         self.repository_id = id;
+    }
+}
+
+impl ExternalAccountRightBuilder {
+    pub fn with_repository(&mut self, repository: &Repository) -> &mut Self {
+        self.repository_id = Some(repository.id());
+        self
     }
 }
 
