@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -24,7 +26,7 @@ pub(crate) struct PullRequestCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -40,7 +42,7 @@ pub(crate) enum PullRequestSubCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestSubCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::List(sub) => sub.execute(ctx).await,
             Self::Show(sub) => sub.execute(ctx).await,

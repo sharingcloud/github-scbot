@@ -1,5 +1,7 @@
 //! Commands.
 
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_conf::Config;
@@ -22,16 +24,17 @@ mod repository;
 mod server;
 mod ui;
 
-pub(crate) struct CommandContext {
+pub(crate) struct CommandContext<W: Write> {
     pub config: Config,
     pub db_adapter: Box<dyn DbService>,
     pub api_adapter: Box<dyn ApiService>,
     pub redis_adapter: Box<dyn RedisService>,
+    pub writer: W,
 }
 
 #[async_trait(?Send)]
 pub(crate) trait Command {
-    async fn execute(self, ctx: CommandContext) -> Result<()>;
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()>;
 }
 
 /// Command
@@ -50,7 +53,7 @@ pub(crate) enum SubCommand {
 
 #[async_trait(?Send)]
 impl Command for SubCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::Server(sub) => sub.execute(ctx).await,
             Self::Ui(sub) => sub.execute(ctx).await,

@@ -1,7 +1,7 @@
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::{LockStatus, RedisService};
-use tracing::warn;
+use tracing::{error, warn};
 
 use super::SummaryTextGenerator;
 use crate::{status::PullRequestStatus, Result};
@@ -21,7 +21,6 @@ impl SummaryCommentSender {
         pr_number: u64,
         pull_request_status: &PullRequestStatus,
     ) -> Result<u64> {
-        // This function can be accessed at the same time in multiple process, we need to make sure only one will create the summary if it's absent.
         let comment_id =
             Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
         if comment_id > 0 {
@@ -36,36 +35,23 @@ impl SummaryCommentSender {
             )
             .await
         } else {
-            // Not the smartest strategy, let's lock for 1 second
+            // Not the smartest strategy, let's lock with a 10 seconds timeout
             let lock_name = format!("summary-{repo_owner}-{repo_name}-{pr_number}");
-            match redis_adapter.wait_lock_resource(&lock_name, 1_000).await? {
+            match redis_adapter.wait_lock_resource(&lock_name, 10_000).await? {
                 LockStatus::SuccessfullyLocked(l) => {
-                    let result = Self::create(
-                        api_adapter,
-                        db_adapter,
-                        repo_owner,
-                        repo_name,
-                        pr_number,
-                        pull_request_status,
-                    )
-                    .await;
-                    l.release().await?;
-                    result
-                }
-                LockStatus::AlreadyLocked => {
-                    // Well, try again
                     let comment_id =
                         Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number)
                             .await?;
-                    if comment_id == 0 {
-                        // Abort summary creation
-                        warn!(
+                    let result = if comment_id == 0 {
+                        Self::create(
+                            api_adapter,
+                            db_adapter,
                             repo_owner,
                             repo_name,
                             pr_number,
-                            message = "Could not create summary on second attempt. Ignoring."
-                        );
-                        Ok(0)
+                            pull_request_status,
+                        )
+                        .await
                     } else {
                         Self::update(
                             api_adapter,
@@ -77,7 +63,20 @@ impl SummaryCommentSender {
                             comment_id,
                         )
                         .await
-                    }
+                    };
+
+                    l.release().await?;
+                    result
+                }
+                LockStatus::AlreadyLocked => {
+                    // Abort summary creation
+                    warn!(
+                        repo_owner,
+                        repo_name,
+                        pr_number,
+                        message = "Could not create summary after lock timeout. Ignoring."
+                    );
+                    Ok(0)
                 }
             }
         }
@@ -125,6 +124,14 @@ impl SummaryCommentSender {
         {
             Ok(comment_id)
         } else {
+            error!(
+                comment_id = comment_id,
+                repo_owner = repo_owner,
+                repo_name = repo_name,
+                pr_number = pr_number,
+                message = "Comment ID is not valid anymore, will post another status comment"
+            );
+
             // Comment ID is no more used on GitHub, recreate a new status
             Self::post_github_comment(
                 api_adapter,

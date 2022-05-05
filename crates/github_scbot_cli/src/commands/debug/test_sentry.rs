@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::{
@@ -18,7 +20,7 @@ pub(crate) struct DebugTestSentryCommand {
 
 #[async_trait(?Send)]
 impl Command for DebugTestSentryCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         if ctx.config.sentry_url.is_empty() {
             Err(eyre!("Sentry URL is not configured."))
         } else {

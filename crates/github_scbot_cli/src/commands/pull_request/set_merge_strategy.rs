@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -27,7 +29,7 @@ pub(crate) struct PullRequestSetMergeStrategyCommand {
 
 #[async_trait(?Send)]
 impl Command for PullRequestSetMergeStrategyCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
         let mut pr_db = ctx.db_adapter.pull_requests();
@@ -38,17 +40,91 @@ impl Command for PullRequestSetMergeStrategyCommand {
             .await?;
 
         if let Some(s) = self.strategy {
-            println!(
+            writeln!(
+                ctx.writer,
                 "Setting {:?} as a merge strategy override for pull request #{} on repository {}",
                 s, self.number, self.repository_path
-            );
+            )?;
         } else {
-            println!(
+            writeln!(
+                ctx.writer,
                 "Removing merge strategy override for pull request #{} on repository {}",
                 self.number, self.repository_path
-            );
+            )?;
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_conf::Config;
+    use github_scbot_database2::{
+        use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
+    };
+    use github_scbot_ghapi::adapter::MockApiService;
+    use github_scbot_redis::MockRedisService;
+    use github_scbot_types::pulls::GhMergeStrategy;
+
+    use crate::testutils::test_command;
+
+    #[actix_rt::test]
+    async fn test() {
+        let config = Config::from_env();
+        use_temporary_db(
+            config,
+            "test_command_pull_request_set_merge_strategy",
+            |config, pool| async move {
+                let db_adapter = DbServiceImplPool::new(pool.clone());
+                let repo = db_adapter
+                    .repositories()
+                    .create(
+                        Repository::builder()
+                        .owner("owner")
+                        .name("name")
+                        .default_strategy(GhMergeStrategy::Merge)
+                        .build()?
+                    )
+                    .await?;
+
+                let pr = db_adapter
+                    .pull_requests()
+                    .create(PullRequest::builder().with_repository(&repo).number(1u64).build()?)
+                    .await?;
+                assert!(pr.strategy_override().is_none(), "no strategy override should be set");
+
+                let output = test_command(
+                    config.clone(),
+                    Box::new(db_adapter),
+                    Box::new(MockApiService::new()),
+                    Box::new(MockRedisService::new()),
+                    &["pull-requests", "set-merge-strategy", "owner/name", "1", "squash"],
+                )
+                .await?;
+
+                let db_adapter = DbServiceImplPool::new(pool.clone());
+                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
+                assert_eq!(*pr.strategy_override(), Some(GhMergeStrategy::Squash));
+                assert_eq!(output, "Setting Squash as a merge strategy override for pull request #1 on repository owner/name\n");
+
+                let output = test_command(
+                    config,
+                    Box::new(db_adapter),
+                    Box::new(MockApiService::new()),
+                    Box::new(MockRedisService::new()),
+                    &["pull-requests", "set-merge-strategy", "owner/name", "1"],
+                )
+                .await?;
+
+                let db_adapter = DbServiceImplPool::new(pool.clone());
+                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
+                assert_eq!(*pr.strategy_override(), None);
+                assert_eq!(output, "Removing merge strategy override for pull request #1 on repository owner/name\n");
+
+                Ok(())
+            },
+        )
+        .await;
     }
 }

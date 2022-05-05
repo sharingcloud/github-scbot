@@ -1,5 +1,7 @@
 //! Repository commands.
 
+use std::io::Write;
+
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_sentry::eyre::Result;
@@ -41,7 +43,7 @@ pub(crate) struct RepositoryCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositoryCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         self.inner.execute(ctx).await
     }
 }
@@ -65,7 +67,7 @@ enum RepositorySubCommand {
 
 #[async_trait(?Send)]
 impl Command for RepositorySubCommand {
-    async fn execute(self, ctx: CommandContext) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::Add(sub) => sub.execute(ctx).await,
             Self::SetTitleRegex(sub) => sub.execute(ctx).await,
