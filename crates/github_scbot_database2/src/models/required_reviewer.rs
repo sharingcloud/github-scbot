@@ -235,7 +235,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn delete(
         &mut self,
         owner: &str,
@@ -265,7 +265,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn list(
         &mut self,
         owner: &str,

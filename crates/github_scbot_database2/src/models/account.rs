@@ -137,7 +137,7 @@ impl AccountDB for AccountDBImplPool {
 
 #[async_trait]
 impl<'a> AccountDB for AccountDBImpl<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(
             r#"

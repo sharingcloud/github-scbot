@@ -154,7 +154,7 @@ impl ApiService for GithubApiService {
         Ok(response.permission)
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn check_suites_list(
         &self,
         owner: &str,
@@ -289,7 +289,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
         Ok(self
             .get_client()
@@ -391,7 +391,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn pull_reviews_list(
         &self,
         owner: &str,
@@ -446,7 +446,7 @@ impl ApiService for GithubApiService {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
         let client = reqwest::Client::new();
         client

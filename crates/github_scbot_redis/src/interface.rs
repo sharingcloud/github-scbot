@@ -90,7 +90,9 @@ pub trait RedisService: Send + Sync {
     async fn has_resource(&self, name: &str) -> Result<bool, RedisError>;
     /// Deletes a resource if it exists.
     async fn del_resource(&self, name: &str) -> Result<(), RedisError>;
+
     /// Wait for a resource lock, until timeout.
+    #[tracing::instrument(skip(self), ret)]
     async fn wait_lock_resource<'a>(
         &'a self,
         name: &str,

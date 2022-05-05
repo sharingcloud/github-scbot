@@ -191,7 +191,7 @@ impl MergeRuleDB for MergeRuleDBImplPool {
 
 #[async_trait]
 impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: MergeRule) -> Result<MergeRule> {
         let new_id: i32 = sqlx::query(
             r#"

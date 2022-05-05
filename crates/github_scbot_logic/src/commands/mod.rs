@@ -25,7 +25,17 @@ pub struct CommandExecutor;
 impl CommandExecutor {
     /// Execute multiple commands.
     #[allow(clippy::too_many_arguments)]
-    #[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter, upstream_pr))]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %repo_owner,
+            repo_name = %repo_name,
+            pr_number = pr_number,
+            comment_author = %comment_author,
+            commands = ?commands
+        ),
+        ret
+    )]
     pub async fn execute_commands(
         config: &Config,
         api_adapter: &dyn ApiService,
@@ -92,7 +102,6 @@ impl CommandExecutor {
 
     /// Process command result.
     #[allow(clippy::too_many_arguments)]
-    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
     pub async fn process_command_result(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,
@@ -202,7 +211,17 @@ impl CommandExecutor {
 
     /// Execute command.
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    #[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter, upstream_pr))]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %repo_owner,
+            repo_name = %repo_name,
+            pr_number = pr_number,
+            comment_author = %comment_author,
+            command = ?command
+        ),
+        ret
+    )]
     pub async fn execute_command(
         config: &Config,
         api_adapter: &dyn ApiService,

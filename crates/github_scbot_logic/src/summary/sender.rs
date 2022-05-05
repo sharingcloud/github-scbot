@@ -11,7 +11,15 @@ pub struct SummaryCommentSender;
 
 impl SummaryCommentSender {
     /// Creates or updates summary.
-    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter), ret)]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %repo_owner,
+            repo_name = %repo_name,
+            pr_number = pr_number
+        ),
+        ret
+    )]
     pub async fn create_or_update(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,

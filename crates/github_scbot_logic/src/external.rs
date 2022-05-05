@@ -12,7 +12,15 @@ use crate::{
 
 /// Set QA status for multiple pull request numbers.
 #[allow(clippy::too_many_arguments)]
-#[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter, account))]
+#[tracing::instrument(
+    skip_all,
+    fields(
+        repository_path = %repository_path,
+        pr_numbers = ?pull_request_numbers,
+        username = %author,
+        status = ?status
+    )
+)]
 pub async fn set_qa_status_for_pull_requests(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
