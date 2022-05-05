@@ -8,7 +8,15 @@ use github_scbot_types::reviews::GhReviewEvent;
 use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub pull request review event.
-#[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
+#[tracing::instrument(
+    skip_all,
+    fields(
+        repository_path = %event.repository.full_name,
+        pr_number = event.pull_request.number,
+        reviewer = %event.review.user.login,
+        state = ?event.review.state
+    )
+)]
 pub async fn handle_review_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,

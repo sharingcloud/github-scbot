@@ -329,7 +329,7 @@ impl RepositoryDB for RepositoryDBImplPool {
 
 #[async_trait]
 impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: Repository) -> Result<Repository> {
         let new_id: i32 = sqlx::query(
             r#"

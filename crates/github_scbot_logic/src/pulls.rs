@@ -31,7 +31,15 @@ pub enum PullRequestOpenedStatus {
 }
 
 /// Handle pull request Opened event.
-#[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter))]
+#[tracing::instrument(
+    skip_all,
+    fields(
+        action = ?event.action,
+        pr_number = event.number,
+        repository_path = %event.repository.full_name,
+        username = %event.pull_request.user.login
+    )
+)]
 pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
@@ -119,7 +127,15 @@ pub async fn handle_pull_request_opened(
 }
 
 /// Handle GitHub pull request event.
-#[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
+#[tracing::instrument(
+    skip_all,
+    fields(
+        action = ?event.action,
+        pr_number = event.number,
+        repository_path = %event.repository.full_name,
+        username = %event.pull_request.user.login
+    )
+)]
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
@@ -308,7 +324,6 @@ impl PullRequestLogic {
     }
 
     /// Merge check suite statuses.
-    #[tracing::instrument(ret)]
     fn merge_check_suite_statuses(
         check_suites: &[GhCheckSuite],
         wait_for_initial_checks: bool,
@@ -378,7 +393,15 @@ impl PullRequestLogic {
     }
 
     /// Try automerge pull request.
-    #[tracing::instrument(skip(api_adapter, db_adapter), ret)]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %repo_owner,
+            repo_name = %repo_name,
+            pr_number = pr_number
+        ),
+        ret
+    )]
     pub async fn try_automerge_pull_request(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,

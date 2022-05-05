@@ -18,7 +18,6 @@ use crate::{
 };
 
 /// Handle an issue comment event.
-#[tracing::instrument(skip(config, api_adapter, db_adapter, redis_adapter))]
 pub async fn handle_issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,

@@ -349,7 +349,7 @@ impl PullRequestDB for PullRequestDBImplPool {
 
 #[async_trait]
 impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: PullRequest) -> Result<PullRequest> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -397,7 +397,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn update(&mut self, instance: PullRequest) -> Result<PullRequest> {
         let new_id: i32 = sqlx::query(
             r#"
@@ -451,7 +451,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .map_err(DatabaseError::SqlError)
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn delete(&mut self, owner: &str, name: &str, number: u64) -> Result<bool> {
         sqlx::query(
             r#"

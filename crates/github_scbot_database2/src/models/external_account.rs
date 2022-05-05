@@ -177,7 +177,7 @@ impl ExternalAccountDB for ExternalAccountDBImplPool {
 
 #[async_trait]
 impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self))]
     async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
         let username: String = sqlx::query(
             r#"

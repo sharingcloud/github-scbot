@@ -59,7 +59,15 @@ impl StatusLogic {
     }
 
     /// Update pull request status.
-    #[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %repo_owner,
+            repo_name = %repo_name,
+            pr_number = pr_number,
+            head_sha = %upstream_pr.head.sha
+        )
+    )]
     pub async fn update_pull_request_status(
         api_adapter: &dyn ApiService,
         db_adapter: &dyn DbService,

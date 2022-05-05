@@ -8,6 +8,18 @@ use github_scbot_types::checks::GhCheckSuiteEvent;
 use crate::{status::StatusLogic, Result};
 
 /// Handle GitHub check syite event.
+#[tracing::instrument(
+    skip_all,
+    fields(
+        action = ?event.action,
+        repository_path = %event.repository.full_name,
+        head_branch = %event.check_suite.head_branch,
+        head_sha = %event.check_suite.head_sha,
+        app_slug = %event.check_suite.app.slug,
+        status = ?event.check_suite.status,
+        conclusion = ?event.check_suite.conclusion
+    )
+)]
 pub async fn handle_check_suite_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,

@@ -14,7 +14,6 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
     parse_event_type(EventType::CheckSuite, body)
 }
 
-#[tracing::instrument(skip(api_adapter, db_adapter, redis_adapter))]
 pub(crate) async fn check_suite_event(
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
