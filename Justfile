@@ -60,8 +60,8 @@ run-server-watch:
 
 # Build Docker image
 docker-build:
-	docker build --rm -t github-scbot:{{ version }} -f ./docker/Dockerfile .
+	docker build --rm -t github-scbot:v{{ version }} -f ./docker/Dockerfile .
 
 # Push Docker image
 docker-push reg:
-	docker push {{ reg }}/github-scbot:{{ version }}
+	docker push {{ reg }}/github-scbot:v{{ version }}

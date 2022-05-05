@@ -113,7 +113,7 @@ pub enum QaStatus {
 
 impl Default for QaStatus {
     fn default() -> Self {
-        QaStatus::Skipped
+        QaStatus::Waiting
     }
 }
 
