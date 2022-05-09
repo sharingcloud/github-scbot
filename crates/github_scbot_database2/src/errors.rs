@@ -1,24 +1,43 @@
+use github_scbot_crypto::CryptoError;
+use snafu::{prelude::*, Backtrace};
+
 pub type StdError = Box<dyn std::error::Error + Send + Sync>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
 pub enum DatabaseError {
-    #[error("Database connection error.")]
-    ConnectionError(#[source] sqlx::Error),
+    #[snafu(display("Database connection error,\n  caused by: {}", source))]
+    ConnectionError {
+        source: sqlx::Error,
+        backtrace: Backtrace,
+    },
 
-    #[error("Migration error.")]
-    MigrationError(#[source] sqlx::migrate::MigrateError),
+    #[snafu(display("Migration error,\n  caused by: {}", source))]
+    MigrationError {
+        source: sqlx::migrate::MigrateError,
+        backtrace: Backtrace,
+    },
 
-    #[error("SQL error.")]
-    SqlError(#[source] sqlx::Error),
+    #[snafu(display("SQL error,\n  caused by: {}", source))]
+    SqlError {
+        source: sqlx::Error,
+        backtrace: Backtrace,
+    },
 
-    #[error("Transaction error.")]
-    TransactionError(#[source] sqlx::Error),
+    #[snafu(display("Transaction error,\n  caused by: {}", source))]
+    TransactionError {
+        source: sqlx::Error,
+        backtrace: Backtrace,
+    },
 
-    #[error("Import/Export error.")]
-    ExchangeError(#[source] StdError),
+    #[snafu(display("Import/Export JSON error,\n  caused by: {}", source))]
+    ExchangeJsonError {
+        source: serde_json::Error,
+        backtrace: Backtrace,
+    },
 
-    #[error("Unknown error.")]
-    UnknownError(#[from] StdError),
+    #[snafu(display("Crypto error,\ncaused by: {}", source))]
+    CryptoError { source: CryptoError },
 }
 
-pub type Result<T> = core::result::Result<T, DatabaseError>;
+pub type Result<T, E = DatabaseError> = core::result::Result<T, E>;

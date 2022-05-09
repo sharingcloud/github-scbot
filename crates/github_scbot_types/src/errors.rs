@@ -1,33 +1,45 @@
 //! Type errors.
 
-use thiserror::Error;
+use snafu::{prelude::*, Backtrace};
 
 /// Type error.
-#[derive(Debug, Error, Clone)]
+#[allow(missing_docs)]
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
 pub enum TypeError {
     /// Unknown step label.
-    #[error("Unknown step label: {0}")]
-    UnknownStepLabel(String),
+    #[snafu(display("Unknown step label: {}", label))]
+    UnknownStepLabel { label: String, backtrace: Backtrace },
 
     /// Unknown check status.
-    #[error("Unknown check status: {0}")]
-    UnknownCheckStatus(String),
+    #[snafu(display("Unknown check status: {}", status))]
+    UnknownCheckStatus {
+        status: String,
+        backtrace: Backtrace,
+    },
 
     /// Unknown QA status.
-    #[error("Unknown QA status: {0}")]
-    UnknownQaStatus(String),
+    #[snafu(display("Unknown QA status: {}", status))]
+    UnknownQaStatus {
+        status: String,
+        backtrace: Backtrace,
+    },
 
     /// Unknown merge strategy.
-    #[error("Unknown merge strategy: {0}")]
-    UnknownMergeStrategy(String),
+    #[snafu(display("Unknown merge strategy: {}", strategy))]
+    UnknownMergeStrategy {
+        strategy: String,
+        source: serde_plain::Error,
+        backtrace: Backtrace,
+    },
 
     /// Invalid repository path.
-    #[error("Invalid repository path: {0}")]
-    InvalidRepositoryPath(String),
+    #[snafu(display("Invalid repository path: {}", path))]
+    InvalidRepositoryPath { path: String, backtrace: Backtrace },
 
     /// Unsupported event.
-    #[error("Unsupported event: {0}")]
-    UnsupportedEvent(String),
+    #[snafu(display("Unsupported event: {}", event))]
+    UnsupportedEvent { event: String, backtrace: Backtrace },
 }
 
 /// Result alias for `TypeError`.

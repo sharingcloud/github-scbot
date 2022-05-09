@@ -1,11 +1,13 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// list known pull request for a repository.
 #[derive(FromArgs)]
@@ -21,17 +23,23 @@ impl Command for PullRequestListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let prs = ctx.db_adapter.pull_requests().list(owner, name).await?;
+        let prs = ctx
+            .db_adapter
+            .pull_requests()
+            .list(owner, name)
+            .await
+            .context(DatabaseSnafu)?;
 
         if prs.is_empty() {
             writeln!(
                 ctx.writer,
                 "No PR found from repository '{}'.",
                 self.repository_path
-            )?;
+            )
+            .context(IoSnafu)?;
         } else {
             for pr in prs {
-                writeln!(ctx.writer, "- #{}", pr.number())?;
+                writeln!(ctx.writer, "- #{}", pr.number()).context(IoSnafu)?;
             }
         }
 

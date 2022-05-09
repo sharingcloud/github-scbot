@@ -1,9 +1,11 @@
 use std::io::Write;
 
+use crate::errors::IoSnafu;
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
+use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -39,8 +41,9 @@ impl Command for PullRequestShowCommand {
             ctx.writer,
             "Accessing pull request #{} on repository {}",
             self.number, self.repository_path
-        )?;
-        writeln!(ctx.writer, "{:#?}", pr)?;
+        )
+        .context(IoSnafu)?;
+        writeln!(ctx.writer, "{:#?}", pr).context(IoSnafu)?;
 
         Ok(())
     }

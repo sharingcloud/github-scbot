@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, DatabaseError, Repository};
+use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
+use crate::{errors::Result, Repository};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default, setter(into))]
@@ -82,7 +84,7 @@ impl<'a> ExternalAccountRightDBImpl<'a> {
         .bind(repository_id as i32)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 }
 
@@ -96,17 +98,11 @@ impl ExternalAccountRightDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(DatabaseError::ConnectionError)
+        self.pool.begin().await.context(ConnectionSnafu)
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(DatabaseError::TransactionError)
+        transaction.commit().await.context(TransactionSnafu)
     }
 }
 
@@ -193,7 +189,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .bind(instance.repository_id as i32)
         .execute(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?;
+        .context(SqlSnafu)?;
 
         self.get_from_id(&instance.username, instance.repository_id)
             .await
@@ -222,7 +218,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -243,7 +239,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -258,7 +254,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -273,7 +269,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         .bind(username)
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -286,7 +282,7 @@ impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 }
 

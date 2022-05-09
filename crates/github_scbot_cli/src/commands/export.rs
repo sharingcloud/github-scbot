@@ -4,10 +4,12 @@ use std::{
     path::PathBuf,
 };
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::Exchanger;
-use github_scbot_sentry::eyre::Result;
+use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
@@ -24,16 +26,16 @@ pub(crate) struct ExportCommand {
 impl Command for ExportCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         if let Some(file_path) = self.output_file {
-            let file = File::create(file_path.clone())?;
+            let file = File::create(file_path.clone()).context(IoSnafu)?;
             let mut writer = BufWriter::new(file);
             Exchanger::export_to_json(&mut *ctx.db_adapter, &mut writer)
                 .await
-                .map_err(Into::into)
+                .context(DatabaseSnafu)
         } else {
             let mut writer = std::io::stdout();
             Exchanger::export_to_json(&mut *ctx.db_adapter, &mut writer)
                 .await
-                .map_err(Into::into)
+                .context(DatabaseSnafu)
         }
     }
 }

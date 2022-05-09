@@ -1,10 +1,12 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// list admin accounts.
 #[derive(FromArgs)]
@@ -14,13 +16,18 @@ pub(crate) struct AuthListAdminAccountsCommand {}
 #[async_trait(?Send)]
 impl Command for AuthListAdminAccountsCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let accounts = ctx.db_adapter.accounts().list_admins().await?;
+        let accounts = ctx
+            .db_adapter
+            .accounts()
+            .list_admins()
+            .await
+            .context(DatabaseSnafu)?;
         if accounts.is_empty() {
-            writeln!(ctx.writer, "No admin account found.")?;
+            writeln!(ctx.writer, "No admin account found.").context(IoSnafu)?;
         } else {
-            writeln!(ctx.writer, "Admin accounts:")?;
+            writeln!(ctx.writer, "Admin accounts:").context(IoSnafu)?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username())?;
+                writeln!(ctx.writer, "- {}", account.username()).context(IoSnafu)?;
             }
         }
 

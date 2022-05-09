@@ -1,8 +1,10 @@
 use std::io::Write;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
+use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -25,12 +27,16 @@ impl Command for AuthRemoveAccountRightsCommand {
         let mut exr_db = ctx.db_adapter.external_account_rights();
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
 
-        exr_db.delete_all(&self.username).await?;
+        exr_db
+            .delete_all(&self.username)
+            .await
+            .context(DatabaseSnafu)?;
         writeln!(
             ctx.writer,
             "All rights removed from account '{}'.",
             self.username
-        )?;
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

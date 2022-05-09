@@ -4,12 +4,11 @@ use std::io::Write;
 
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
 use super::{Command, CommandContext};
 
+use crate::Result;
 mod test_sentry;
-
 use test_sentry::DebugTestSentryCommand;
 
 /// debug related commands.

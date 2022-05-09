@@ -2,7 +2,7 @@
 
 use std::convert::TryFrom;
 
-use super::errors::TypeError;
+use super::errors::{TypeError, UnsupportedEventSnafu};
 
 /// Event type.
 #[derive(Debug, Clone, Copy)]
@@ -36,7 +36,10 @@ impl TryFrom<&str> for EventType {
             "ping" => Ok(Self::Ping),
             "pull_request" => Ok(Self::PullRequest),
             "pull_request_review" => Ok(Self::PullRequestReview),
-            name => Err(TypeError::UnsupportedEvent(name.to_owned())),
+            name => UnsupportedEventSnafu {
+                event: name.to_owned(),
+            }
+            .fail(),
         }
     }
 }

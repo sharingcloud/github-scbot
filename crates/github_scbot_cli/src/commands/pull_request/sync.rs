@@ -1,10 +1,12 @@
 use std::io::Write;
 
+use crate::errors::{ApiSnafu, IoSnafu, LogicSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_logic::{pulls::PullRequestLogic, status::StatusLogic};
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
+use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
 
@@ -34,12 +36,14 @@ impl Command for PullRequestSyncCommand {
             repo_name,
             pr_number,
         )
-        .await?;
+        .await
+        .context(LogicSnafu)?;
 
         let upstream_pr = ctx
             .api_adapter
             .pulls_get(repo_owner, repo_name, pr_number)
-            .await?;
+            .await
+            .context(ApiSnafu)?;
 
         StatusLogic::update_pull_request_status(
             ctx.api_adapter.as_ref(),
@@ -50,13 +54,15 @@ impl Command for PullRequestSyncCommand {
             pr_number,
             &upstream_pr,
         )
-        .await?;
+        .await
+        .context(LogicSnafu)?;
 
         writeln!(
             ctx.writer,
             "Pull request #{} from {} updated from GitHub.",
             self.number, self.repository_path
-        )?;
+        )
+        .context(IoSnafu)?;
         Ok(())
     }
 }

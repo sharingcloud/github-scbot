@@ -1,10 +1,12 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// list external accounts.
 #[derive(FromArgs)]
@@ -14,13 +16,18 @@ pub(crate) struct AuthListExternalAccountsCommand {}
 #[async_trait(?Send)]
 impl Command for AuthListExternalAccountsCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let accounts = ctx.db_adapter.external_accounts().all().await?;
+        let accounts = ctx
+            .db_adapter
+            .external_accounts()
+            .all()
+            .await
+            .context(DatabaseSnafu)?;
         if accounts.is_empty() {
-            writeln!(ctx.writer, "No external account found.")?;
+            writeln!(ctx.writer, "No external account found.").context(IoSnafu)?;
         } else {
-            writeln!(ctx.writer, "External accounts:")?;
+            writeln!(ctx.writer, "External accounts:").context(IoSnafu)?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username())?;
+                writeln!(ctx.writer, "- {}", account.username()).context(IoSnafu)?;
             }
         }
 

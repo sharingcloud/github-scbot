@@ -4,10 +4,12 @@ use std::{
     path::PathBuf,
 };
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::Exchanger;
-use github_scbot_sentry::eyre::Result;
+use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
@@ -23,9 +25,11 @@ pub(crate) struct ImportCommand {
 #[async_trait(?Send)]
 impl Command for ImportCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let file = File::open(&self.input_file)?;
+        let file = File::open(&self.input_file).context(IoSnafu)?;
         let reader = BufReader::new(file);
-        Exchanger::import_from_json(&mut *ctx.db_adapter, reader).await?;
+        Exchanger::import_from_json(&mut *ctx.db_adapter, reader)
+            .await
+            .context(DatabaseSnafu)?;
 
         Ok(())
     }

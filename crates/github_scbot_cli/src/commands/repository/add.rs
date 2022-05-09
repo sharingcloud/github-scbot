@@ -1,12 +1,14 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::Repository;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// add repository.
 #[derive(FromArgs)]
@@ -26,11 +28,16 @@ impl Command for RepositoryAddCommand {
             .owner(owner)
             .name(name)
             .with_config(&ctx.config)
-            .build()?;
+            .build()
+            .unwrap();
 
-        ctx.db_adapter.repositories().create(repo).await?;
+        ctx.db_adapter
+            .repositories()
+            .create(repo)
+            .await
+            .context(DatabaseSnafu)?;
 
-        writeln!(ctx.writer, "Repository {} created.", self.repository_path)?;
+        writeln!(ctx.writer, "Repository {} created.", self.repository_path).context(IoSnafu)?;
         Ok(())
     }
 }

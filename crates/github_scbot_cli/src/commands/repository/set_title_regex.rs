@@ -1,14 +1,16 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// set PR title regex for a repository.
 #[derive(FromArgs)]
@@ -31,13 +33,15 @@ impl Command for RepositorySetTitleRegexCommand {
 
         pr_repo
             .set_pr_title_validation_regex(owner, name, &self.value)
-            .await?;
+            .await
+            .context(DatabaseSnafu)?;
 
         writeln!(
             ctx.writer,
             "PR title regular expression set to '{}' for repository '{}'.",
             self.value, self.repository_path
-        )?;
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

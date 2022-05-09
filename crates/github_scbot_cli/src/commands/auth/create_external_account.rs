@@ -1,11 +1,13 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::ExternalAccount;
-use github_scbot_sentry::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// create external account.
 #[derive(FromArgs)]
@@ -26,11 +28,13 @@ impl Command for AuthCreateExternalAccountCommand {
                 ExternalAccount::builder()
                     .username(self.username.clone())
                     .generate_keys()
-                    .build()?,
+                    .build()
+                    .unwrap(),
             )
-            .await?;
+            .await
+            .context(DatabaseSnafu)?;
 
-        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
+        writeln!(ctx.writer, "External account '{}' created.", self.username).context(IoSnafu)?;
 
         Ok(())
     }

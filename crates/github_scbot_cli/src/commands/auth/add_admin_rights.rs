@@ -1,11 +1,12 @@
 use std::io::Write;
 
+use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::Account;
-use github_scbot_sentry::eyre::Result;
-
-use crate::commands::{Command, CommandContext};
+use snafu::ResultExt;
 
 /// add admin rights to account.
 #[derive(FromArgs)]
@@ -20,25 +21,29 @@ pub(crate) struct AuthAddAdminRightsCommand {
 impl Command for AuthAddAdminRightsCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut acc_db = ctx.db_adapter.accounts();
-        match acc_db.get(&self.username).await? {
-            Some(_) => acc_db.set_is_admin(&self.username, true).await?,
-            None => {
-                acc_db
-                    .create(
-                        Account::builder()
-                            .username(self.username.clone())
-                            .is_admin(true)
-                            .build()?,
-                    )
-                    .await?
-            }
+        match acc_db.get(&self.username).await.context(DatabaseSnafu)? {
+            Some(_) => acc_db
+                .set_is_admin(&self.username, true)
+                .await
+                .context(DatabaseSnafu)?,
+            None => acc_db
+                .create(
+                    Account::builder()
+                        .username(self.username.clone())
+                        .is_admin(true)
+                        .build()
+                        .unwrap(),
+                )
+                .await
+                .context(DatabaseSnafu)?,
         };
 
         writeln!(
             ctx.writer,
             "Account '{}' added/edited with admin rights.",
             self.username
-        )?;
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

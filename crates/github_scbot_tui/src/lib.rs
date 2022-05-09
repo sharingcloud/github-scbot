@@ -14,6 +14,7 @@ mod errors;
 use github_scbot_database2::DbService;
 
 use self::errors::Result;
+pub use errors::UiError;
 
 /// Run TUI interface.
 #[cfg(windows)]

@@ -1,5 +1,6 @@
 //! Pull types.
 
+use snafu::prelude::*;
 use std::{convert::TryFrom, str::FromStr};
 
 use chrono::{self, DateTime, Utc};
@@ -8,7 +9,7 @@ use serde_plain;
 use smart_default::SmartDefault;
 
 use super::common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser};
-use crate::errors::TypeError;
+use crate::errors::{TypeError, UnknownMergeStrategySnafu};
 
 /// GitHub Merge strategy.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -40,8 +41,9 @@ impl TryFrom<&str> for GhMergeStrategy {
     type Error = TypeError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        serde_plain::from_str(value)
-            .map_err(|_e| TypeError::UnknownMergeStrategy(value.to_string()))
+        serde_plain::from_str(value).context(UnknownMergeStrategySnafu {
+            strategy: value.to_string(),
+        })
     }
 }
 

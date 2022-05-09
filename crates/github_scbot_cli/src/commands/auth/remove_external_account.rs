@@ -1,13 +1,15 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// remove external account.
 #[derive(FromArgs)]
@@ -23,9 +25,9 @@ impl Command for AuthRemoveExternalAccountCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut exa_db = ctx.db_adapter.external_accounts();
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        exa_db.delete(&self.username).await?;
+        exa_db.delete(&self.username).await.context(DatabaseSnafu)?;
 
-        writeln!(ctx.writer, "External account '{}' removed.", self.username)?;
+        writeln!(ctx.writer, "External account '{}' removed.", self.username).context(IoSnafu)?;
 
         Ok(())
     }
