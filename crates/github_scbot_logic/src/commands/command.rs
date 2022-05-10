@@ -3,25 +3,28 @@ use std::convert::TryFrom;
 use github_scbot_conf::Config;
 use github_scbot_types::{issues::GhReactionType, pulls::GhMergeStrategy};
 use smart_default::SmartDefault;
-use thiserror::Error;
+use snafu::{prelude::*, Backtrace};
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;
 
 /// Command error.
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Snafu)]
 pub enum CommandError {
     /// Unknown command.
-    #[error("This command is unknown.")]
-    UnknownCommand(String),
+    #[snafu(display("This command is unknown."))]
+    UnknownCommand {
+        command: String,
+        backtrace: Backtrace,
+    },
     /// Argument parsing error.
-    #[error("Error while parsing command arguments.")]
-    ArgumentParsingError,
+    #[snafu(display("Error while parsing command arguments."))]
+    ArgumentParsingError { backtrace: Backtrace },
     /// Incomplete command.
-    #[error("Incomplete command.")]
-    IncompleteCommand,
+    #[snafu(display("Incomplete command."))]
+    IncompleteCommand { backtrace: Backtrace },
     /// Invalid usage.
-    #[error("Invalid usage: {0}")]
-    InvalidUsage(String),
+    #[snafu(display("Invalid usage: {}", usage))]
+    InvalidUsage { usage: String, backtrace: Backtrace },
 }
 
 /// Command result.
@@ -259,7 +262,12 @@ impl Command {
                 Self::Admin(AdminCommand::SetNeededReviewers(Self::parse_u64(args)?))
             }
             // Unknown command
-            unknown => return Err(CommandError::UnknownCommand(unknown.into())),
+            unknown => {
+                return Err(UnknownCommandSnafu {
+                    command: unknown.to_string(),
+                }
+                .build())
+            }
         }))
     }
 
@@ -360,12 +368,11 @@ impl Command {
     fn parse_u64(args: &[&str]) -> CommandResult<u64> {
         args.join(" ")
             .parse()
-            .map_err(|_e| CommandError::ArgumentParsingError)
+            .map_err(|_e| ArgumentParsingSnafu.build())
     }
 
     fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
-        GhMergeStrategy::try_from(&args.join(" ")[..])
-            .map_err(|_e| CommandError::ArgumentParsingError)
+        GhMergeStrategy::try_from(&args.join(" ")[..]).map_err(|_e| ArgumentParsingSnafu.build())
     }
 
     fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<GhMergeStrategy>> {
@@ -374,8 +381,7 @@ impl Command {
             Ok(None)
         } else {
             Ok(Some(
-                GhMergeStrategy::try_from(&args[..])
-                    .map_err(|_e| CommandError::ArgumentParsingError)?,
+                GhMergeStrategy::try_from(&args[..]).map_err(|_e| ArgumentParsingSnafu.build())?,
             ))
         }
     }
@@ -399,7 +405,7 @@ impl Command {
             .collect::<Vec<_>>();
 
         if labels.is_empty() {
-            Err(CommandError::IncompleteCommand)
+            Err(IncompleteCommandSnafu.build())
         } else {
             Ok(labels)
         }
@@ -412,11 +418,13 @@ impl Command {
             .collect();
 
         if reviewers.is_empty() {
-            Err(CommandError::IncompleteCommand)
+            Err(IncompleteCommandSnafu.build())
         } else if reviewers.len() > MAX_REVIEWERS_PER_COMMAND {
-            Err(CommandError::InvalidUsage(format!(
-                "You can only specify up to {MAX_REVIEWERS_PER_COMMAND} reviewers on one command."
-            )))
+            Err(InvalidUsageSnafu {
+                usage: format!(
+                    "You can only specify up to {MAX_REVIEWERS_PER_COMMAND} reviewers on one command."
+                )
+            }.build())
         } else {
             Ok(reviewers)
         }
@@ -441,11 +449,11 @@ mod tests {
         assert!(matches!(Command::parse_u64(&["123"]), Ok(123)));
         assert!(matches!(
             Command::parse_u64(&["123", "456"]),
-            Err(CommandError::ArgumentParsingError)
+            Err(CommandError::ArgumentParsingError { backtrace: _ })
         ));
         assert!(matches!(
             Command::parse_u64(&["toto"]),
-            Err(CommandError::ArgumentParsingError)
+            Err(CommandError::ArgumentParsingError { backtrace: _ })
         ));
     }
 
@@ -457,11 +465,11 @@ mod tests {
         ));
         assert!(matches!(
             Command::parse_merge_strategy(&["what"]),
-            Err(CommandError::ArgumentParsingError)
+            Err(CommandError::ArgumentParsingError { backtrace: _ })
         ));
         assert!(matches!(
             Command::parse_merge_strategy(&[]),
-            Err(CommandError::ArgumentParsingError)
+            Err(CommandError::ArgumentParsingError { backtrace: _ })
         ));
     }
 
@@ -502,7 +510,7 @@ mod tests {
         );
         assert!(matches!(
             Command::parse_reviewers(&[]),
-            Err(CommandError::IncompleteCommand)
+            Err(CommandError::IncompleteCommand { backtrace: _ })
         ));
     }
 }

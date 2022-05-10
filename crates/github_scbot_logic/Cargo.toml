@@ -14,7 +14,6 @@ github-scbot-redis = { path = "../github_scbot_redis" }
 regex = "1.4"
 smart-default = "0.6.0"
 snafu = "0.7.1"
-thiserror = "1.0"
 tracing = "0.1"
 
 [dev-dependencies]

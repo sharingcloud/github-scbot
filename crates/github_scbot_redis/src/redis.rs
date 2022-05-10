@@ -2,6 +2,9 @@ use actix::Addr;
 use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
+use snafu::ResultExt;
+
+use crate::interface::{ActixSnafu, CommandSnafu, MailboxSnafu};
 
 use crate::interface::{LockInstance, LockStatus, RedisError, RedisService};
 
@@ -16,10 +19,15 @@ impl RedisServiceImpl {
     }
 
     async fn execute_command(&self, value: RespValue) -> Result<RespValue, RedisError> {
-        let response = self.0.send(Command(value)).await??;
+        let response = self
+            .0
+            .send(Command(value))
+            .await
+            .context(MailboxSnafu)?
+            .context(ActixSnafu)?;
 
         match response {
-            RespValue::Error(e) => Err(RedisError::CommandError(e)),
+            RespValue::Error(e) => Err(CommandSnafu { result: e }.build()),
             v => Ok(v),
         }
     }
@@ -41,17 +49,17 @@ impl RedisService for RedisServiceImpl {
                         name: name.to_owned(),
                     }))
                 } else {
-                    Err(RedisError::CommandError(format!(
-                        "Unsupported response: {:?}",
-                        RespValue::SimpleString(s)
-                    )))
+                    Err(CommandSnafu {
+                        result: format!("Unsupported response: {:?}", RespValue::SimpleString(s)),
+                    }
+                    .build())
                 }
             }
             RespValue::Nil => Ok(LockStatus::AlreadyLocked),
-            v => Err(RedisError::CommandError(format!(
-                "Unsupported response: {:?}",
-                v
-            ))),
+            v => Err(CommandSnafu {
+                result: format!("Unsupported response: {:?}", v),
+            }
+            .build()),
         }
     }
 

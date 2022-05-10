@@ -130,9 +130,11 @@ mod tests {
                 redis_adapter
                     .expect_wait_lock_resource()
                     .times(1)
-                    .return_const(Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
-                        "test",
-                    ))));
+                    .returning(|_, _| {
+                        Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                            "test",
+                        )))
+                    });
 
                 let output = test_command(
                     config.clone(),

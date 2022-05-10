@@ -190,9 +190,11 @@ async fn test_qa_disabled_repository() -> Result<()> {
             redis_adapter
                 .expect_wait_lock_resource()
                 .times(1)
-                .return_const(Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
-                    "pouet",
-                ))));
+                .returning(|_, _| {
+                    Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                        "pouet",
+                    )))
+                });
 
             api_adapter
                 .expect_pulls_get()

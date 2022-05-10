@@ -101,49 +101,53 @@ mod tests {
 
     #[test]
     fn test_command_from_comment() {
-        assert_eq!(
+        assert!(matches!(
             Command::from_comment("noqa+", &[]),
             Ok(Some(Command::User(UserCommand::SkipQaStatus(true))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("noqa-", &[]),
             Ok(Some(Command::User(UserCommand::SkipQaStatus(false))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("qa+", &[]),
             Ok(Some(Command::User(UserCommand::QaStatus(Some(true)))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("qa-", &[]),
             Ok(Some(Command::User(UserCommand::QaStatus(Some(false)))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("qa?", &[]),
             Ok(Some(Command::User(UserCommand::QaStatus(None))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("automerge+", &[]),
             Ok(Some(Command::User(UserCommand::Automerge(true))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("automerge-", &[]),
             Ok(Some(Command::User(UserCommand::Automerge(false))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("this-is-a-command", &[]),
-            Err(CommandError::UnknownCommand("this-is-a-command".into()))
-        );
-        assert_eq!(
+            Err(CommandError::UnknownCommand {
+                command: _,
+                backtrace: _
+            })
+        ));
+
+        assert!(matches!(
             Command::from_comment("req+", &[]),
-            Err(CommandError::IncompleteCommand)
-        );
-        assert_eq!(
+            Err(CommandError::IncompleteCommand { backtrace: _ })
+        ));
+        assert!(matches!(
             Command::from_comment("admin-set-needed-reviewers", &["12"]),
             Ok(Some(Command::Admin(AdminCommand::SetNeededReviewers(12))))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Command::from_comment("admin-set-needed-reviewers", &["toto"]),
-            Err(CommandError::ArgumentParsingError)
-        );
+            Err(CommandError::ArgumentParsingError { backtrace: _ })
+        ));
     }
 }

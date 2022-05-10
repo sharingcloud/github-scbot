@@ -1197,7 +1197,6 @@ dependencies = [
  "indoc",
  "owo-colors",
  "snafu",
- "thiserror",
  "tokio",
 ]
 
@@ -1257,7 +1256,6 @@ dependencies = [
  "serde_json",
  "snafu",
  "sqlx",
- "thiserror",
  "tracing",
 ]
 
@@ -1304,7 +1302,6 @@ dependencies = [
  "regex",
  "smart-default",
  "snafu",
- "thiserror",
  "tracing",
 ]
 
@@ -1319,7 +1316,7 @@ dependencies = [
  "github-scbot-utils",
  "mockall",
  "redis-async",
- "thiserror",
+ "snafu",
  "tracing",
 ]
 
@@ -1361,7 +1358,6 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
- "thiserror",
  "tracing",
  "tracing-actix-web",
 ]
@@ -1373,8 +1369,8 @@ dependencies = [
  "github-scbot-conf",
  "github-scbot-database2",
  "github-scbot-types",
+ "snafu",
  "termion",
- "thiserror",
  "tui",
 ]
 
