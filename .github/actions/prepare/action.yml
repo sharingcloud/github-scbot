@@ -17,3 +17,5 @@ runs:
     - uses: extractions/setup-just@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
+    - run: apt install lld -y
+      shell: bash
