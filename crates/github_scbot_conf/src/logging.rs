@@ -2,6 +2,7 @@
 
 use std::str::FromStr;
 
+use snafu::ResultExt;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
@@ -9,18 +10,23 @@ use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 
 use tracing_tree::HierarchicalLayer;
 
+use crate::errors::{
+    EnvFilterConfigurationSnafu, TracingLogTracerSnafu, TracingSetGlobalDefaultSnafu,
+};
 use crate::{Config, Result};
 
 const DEFAULT_ENV_CONFIG: &str = "info,sqlx=error,github_scbot=debug";
 
 /// Configre logging.
 pub fn configure_logging(config: &Config) -> Result<()> {
-    LogTracer::init().expect("Unable to setup log tracer.");
+    LogTracer::init().context(TracingLogTracerSnafu)?;
 
     let log_config = std::env::var("RUST_LOG").unwrap_or_else(|_| DEFAULT_ENV_CONFIG.to_string());
     let app_name = concat!(env!("CARGO_PKG_NAME"), "-", env!("CARGO_PKG_VERSION")).to_string();
 
-    let filter_layer = EnvFilter::from_str(&log_config).expect("wrong log config");
+    let filter_layer = EnvFilter::from_str(&log_config).context(EnvFilterConfigurationSnafu {
+        configuration: log_config,
+    })?;
     let hierarchical_layer = HierarchicalLayer::new(2)
         .with_targets(true)
         .with_bracketed_fields(true);
@@ -47,8 +53,7 @@ pub fn configure_logging(config: &Config) -> Result<()> {
         .with(json_storage_layer)
         .with(bunyan_layer);
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("could not install tracing subscriber");
+    tracing::subscriber::set_global_default(subscriber).context(TracingSetGlobalDefaultSnafu)?;
 
     Ok(())
 }

@@ -37,7 +37,10 @@ pub enum DatabaseError {
     },
 
     #[snafu(display("Crypto error,\ncaused by: {}", source))]
-    CryptoError { source: CryptoError },
+    CryptoError {
+        #[snafu(backtrace)]
+        source: CryptoError,
+    },
 }
 
 pub type Result<T, E = DatabaseError> = core::result::Result<T, E>;

@@ -89,40 +89,42 @@ mod tests {
                 api_adapter
                     .expect_pulls_get()
                     .times(1)
-                    .return_const(Ok(GhPullRequest {
-                        number: 1,
-                        ..Default::default()
-                    }));
+                    .return_once(|_, _, _| {
+                        Ok(GhPullRequest {
+                            number: 1,
+                            ..Default::default()
+                        })
+                    });
 
                 api_adapter
                     .expect_pull_reviews_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_check_suites_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_issue_labels_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_issue_labels_replace_all()
                     .times(1)
-                    .return_const(Ok(()));
+                    .return_once(|_, _, _, _| Ok(()));
 
                 api_adapter
                     .expect_comments_post()
                     .times(1)
-                    .return_const(Ok(1));
+                    .return_once(|_, _, _, _| Ok(1));
 
                 api_adapter
                     .expect_commit_statuses_update()
                     .times(1)
-                    .return_const(Ok(()));
+                    .return_once(|_, _, _, _, _, _| Ok(()));
 
                 let mut redis_adapter = MockRedisService::new();
                 redis_adapter

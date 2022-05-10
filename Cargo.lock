@@ -1218,7 +1218,7 @@ dependencies = [
  "dotenv",
  "github-scbot-crypto",
  "github-scbot-sentry",
- "thiserror",
+ "snafu",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-error",
@@ -1235,7 +1235,7 @@ dependencies = [
  "rand 0.8.5",
  "rsa",
  "serde",
- "thiserror",
+ "snafu",
 ]
 
 [[package]]
@@ -1292,7 +1292,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_plain",
- "thiserror",
+ "snafu",
  "tracing",
 ]
 
@@ -1313,6 +1313,7 @@ dependencies = [
  "pretty_assertions 0.7.2",
  "regex",
  "smart-default",
+ "snafu",
  "thiserror",
  "tracing",
 ]

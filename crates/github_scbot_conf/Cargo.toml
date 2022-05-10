@@ -8,7 +8,7 @@ edition = "2021"
 dotenv = "0.15"
 github-scbot-crypto = { path = "../github_scbot_crypto" }
 github-scbot-sentry = { path = "../github_scbot_sentry" }
-thiserror = "1.0"
+snafu = "0.7.1"
 tracing = "0.1"
 tracing-bunyan-formatter = "0.3.0"
 tracing-error = "0.2.0"

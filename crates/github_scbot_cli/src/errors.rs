@@ -5,6 +5,7 @@ use snafu::{prelude::*, Backtrace};
 pub enum CliError {
     #[snafu(display("{}", source))]
     ConfError {
+        #[snafu(backtrace)]
         source: github_scbot_conf::ConfError,
     },
     #[snafu(display("{}", source))]
@@ -16,6 +17,7 @@ pub enum CliError {
     UiError { source: github_scbot_tui::UiError },
     #[snafu(display("{}", source))]
     ApiError {
+        #[snafu(backtrace)]
         source: github_scbot_ghapi::ApiError,
     },
     #[snafu(display("{}", source))]

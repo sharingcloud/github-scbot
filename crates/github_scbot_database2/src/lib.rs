@@ -5,6 +5,7 @@ pub(crate) mod models;
 pub(crate) mod utils;
 
 use std::ops::Deref;
+use std::time::Duration;
 
 pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool, MockAccountDB};
@@ -56,6 +57,9 @@ where
 
 pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
     PgPoolOptions::new()
+        .connect_timeout(Duration::from_secs(
+            config.database_connection_timeout.into(),
+        ))
         .max_connections(config.database_pool_size)
         .connect(&config.database_url)
         .await

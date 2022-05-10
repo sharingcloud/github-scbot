@@ -11,7 +11,9 @@ use github_scbot_types::{
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
+use crate::errors::{HttpSnafu, MergeSnafu};
 use crate::{
     adapter::{ApiService, GhReviewApi, GifResponse},
     auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
@@ -37,7 +39,7 @@ impl GithubApiService {
         get_authenticated_client_builder(&self.config, self)
             .await?
             .build()
-            .map_err(ApiError::from)
+            .context(HttpSnafu)
     }
 
     fn build_url(&self, path: String) -> String {
@@ -330,7 +332,13 @@ impl ApiService for GithubApiService {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| ApiError::MergeError(e.to_string()))?;
+            .map_err(|_| {
+                MergeSnafu {
+                    pr_number: issue_number,
+                    repository_path: format!("{owner}/{name}"),
+                }
+                .build()
+            })?;
 
         Ok(())
     }

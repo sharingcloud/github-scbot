@@ -197,37 +197,41 @@ async fn test_qa_disabled_repository() -> Result<()> {
             api_adapter
                 .expect_pulls_get()
                 .times(1)
-                .return_const(Ok(GhPullRequest {
-                    mergeable: Some(true),
-                    ..Default::default()
-                }));
+                .return_once(|_, _, _| {
+                    Ok(GhPullRequest {
+                        mergeable: Some(true),
+                        ..Default::default()
+                    })
+                });
 
             api_adapter
                 .expect_pull_reviews_list()
                 .times(1)
-                .return_const(Ok(vec![]));
+                .return_once(|_, _, _| Ok(vec![]));
 
             api_adapter
                 .expect_check_suites_list()
                 .times(1)
-                .return_const(Ok(vec![GhCheckSuite {
-                    status: GhCheckStatus::Completed,
-                    conclusion: Some(GhCheckConclusion::Success),
-                    pull_requests: vec![GhPullRequestShort {
-                        number: 1,
+                .return_once(|_, _, _| {
+                    Ok(vec![GhCheckSuite {
+                        status: GhCheckStatus::Completed,
+                        conclusion: Some(GhCheckConclusion::Success),
+                        pull_requests: vec![GhPullRequestShort {
+                            number: 1,
+                            ..Default::default()
+                        }],
+                        app: GhApplication {
+                            slug: "github-actions".into(),
+                            ..Default::default()
+                        },
                         ..Default::default()
-                    }],
-                    app: GhApplication {
-                        slug: "github-actions".into(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                }]));
+                    }])
+                });
 
             api_adapter
                 .expect_issue_labels_list()
                 .times(1)
-                .return_const(Ok(vec![]));
+                .return_once(|_, _, _| Ok(vec![]));
 
             api_adapter
                 .expect_issue_labels_replace_all()
@@ -238,17 +242,17 @@ async fn test_qa_disabled_repository() -> Result<()> {
                         && labels == ["step/awaiting-review"]
                 })
                 .times(1)
-                .return_const(Ok(()));
+                .return_once(|_, _, _, _| Ok(()));
 
             api_adapter
                 .expect_comments_post()
                 .times(1)
-                .return_const(Ok(1));
+                .return_once(|_, _, _, _| Ok(1));
 
             api_adapter
                 .expect_commit_statuses_update()
                 .times(1)
-                .return_const(Ok(()));
+                .return_once(|_, _, _, _, _, _| Ok(()));
 
             let result = handle_pull_request_opened(
                 &config,
