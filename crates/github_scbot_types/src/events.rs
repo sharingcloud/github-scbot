@@ -26,6 +26,12 @@ impl EventType {
     }
 }
 
+impl std::fmt::Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_str())
+    }
+}
+
 impl TryFrom<&str> for EventType {
     type Error = TypeError;
 

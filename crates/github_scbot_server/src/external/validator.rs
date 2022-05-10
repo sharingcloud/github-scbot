@@ -3,26 +3,33 @@
 use std::sync::Arc;
 
 use actix_web::http::StatusCode;
+use actix_web::ResponseError;
 use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_crypto::{CryptoError, JwtUtils};
 use github_scbot_database2::{
     DatabaseError, ExternalAccount, ExternalAccountDB, ExternalJwtClaims,
 };
-use github_scbot_sentry::{sentry, WrapEyre};
-use thiserror::Error;
+use github_scbot_sentry::sentry;
+use snafu::{Backtrace, ResultExt, Snafu};
 
 use crate::server::AppContext;
 
 /// Validation error.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum ValidationError {
-    #[error("Unknown account.")]
-    UnknownAccount,
-    #[error("Database error.")]
-    DatabaseError(#[from] DatabaseError),
-    #[error(transparent)]
-    TokenError(#[from] CryptoError),
+    #[snafu(display("Unknown account."))]
+    UnknownAccount { backtrace: Backtrace },
+    #[snafu(display("Database error,\n  caused by: {}", source))]
+    DatabaseError {
+        #[snafu(backtrace)]
+        source: DatabaseError,
+    },
+    #[snafu(display("Token error,\n  caused by: {}", source))]
+    TokenError {
+        #[snafu(backtrace)]
+        source: CryptoError,
+    },
 }
 
 impl ValidationError {
@@ -31,13 +38,13 @@ impl ValidationError {
             scope.set_extra("Token", token.into());
         });
 
-        Self::TokenError(source)
+        Self::TokenError { source }
     }
 }
 
-impl From<ValidationError> for WrapEyre {
-    fn from(e: ValidationError) -> Self {
-        Self::new(e.into(), StatusCode::BAD_REQUEST)
+impl ResponseError for ValidationError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
     }
 }
 
@@ -48,7 +55,7 @@ pub async fn jwt_auth_validator(
 ) -> Result<ServiceRequest, Error> {
     jwt_auth_validator_inner(req, credentials)
         .await
-        .map_err(WrapEyre::to_http_error)
+        .map_err(Into::into)
 }
 
 async fn jwt_auth_validator_inner(
@@ -83,6 +90,7 @@ pub async fn extract_account_from_token(
         JwtUtils::decode_jwt(token).map_err(|e| ValidationError::token_error(token, e))?;
     exa_db
         .get(&claims.iss)
-        .await?
-        .ok_or(ValidationError::UnknownAccount)
+        .await
+        .context(DatabaseSnafu)?
+        .ok_or_else(|| UnknownAccountSnafu.build())
 }

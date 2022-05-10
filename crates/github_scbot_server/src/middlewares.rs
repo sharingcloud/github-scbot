@@ -16,14 +16,13 @@ use futures::{
     Future,
 };
 use github_scbot_conf::Config;
-use github_scbot_sentry::WrapEyre;
 use tracing::warn;
 
 use super::{
     constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH},
     utils::is_valid_signature,
 };
-use crate::ServerError;
+use crate::errors::{InvalidWebhookSignatureSnafu, MissingWebhookSignatureSnafu};
 
 /// Signature verification configuration.
 pub struct VerifySignature {
@@ -107,16 +106,15 @@ where
                     let headers = req.headers().clone();
                     let signature = headers
                         .get(GITHUB_SIGNATURE_HEADER)
-                        .ok_or_else(|| {
-                            WrapEyre::to_http_error(ServerError::MissingWebhookSignature)
-                        })?
+                        .ok_or_else(|| MissingWebhookSignatureSnafu.build())?
                         .to_str()
-                        .map_err(|_e| ServerError::InvalidWebhookSignature)
-                        .map_err(WrapEyre::to_http_error)?;
+                        .map_err(|_| {
+                            actix_web::Error::from(InvalidWebhookSignatureSnafu.build())
+                        })?;
 
                     // Quick check because split_at can panic.
                     if signature.len() <= SIGNATURE_PREFIX_LENGTH {
-                        return Err(WrapEyre::from(ServerError::InvalidWebhookSignature).into());
+                        return Err(InvalidWebhookSignatureSnafu.build().into());
                     }
 
                     // Strip signature prefix
@@ -126,11 +124,11 @@ where
                     let mut stream = req.take_payload();
 
                     while let Some(chunk) = stream.next().await {
-                        body.extend_from_slice(&chunk?);
+                        body.extend_from_slice(&chunk.unwrap());
                     }
 
                     if !is_valid_signature(sig, &body, &secret) {
-                        return Err(WrapEyre::from(ServerError::InvalidWebhookSignature).into());
+                        return Err(InvalidWebhookSignatureSnafu.build().into());
                     }
 
                     // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438

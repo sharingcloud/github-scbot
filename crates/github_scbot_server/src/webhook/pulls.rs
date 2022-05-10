@@ -10,8 +10,10 @@ use github_scbot_types::{
     events::EventType,
     pulls::{GhPullRequestAction, GhPullRequestEvent},
 };
+use snafu::ResultExt;
 
 use super::parse_event_type;
+use crate::errors::LogicSnafu;
 use crate::errors::Result;
 
 pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent> {
@@ -26,9 +28,13 @@ pub(crate) async fn pull_request_event(
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
     if matches!(event.action, GhPullRequestAction::Opened) {
-        handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event).await?;
+        handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event)
+            .await
+            .context(LogicSnafu)?;
     } else {
-        handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event).await?;
+        handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event)
+            .await
+            .context(LogicSnafu)?;
     }
 
     Ok(HttpResponse::Ok().body("Pull request."))
