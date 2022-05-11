@@ -1,13 +1,15 @@
+use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
     errors::Result,
     fields::{GhMergeStrategyDecode, RuleBranchDecode},
-    DatabaseError, Repository,
+    Repository,
 };
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
@@ -94,7 +96,7 @@ impl<'a> MergeRuleDBImpl<'a> {
         .bind(id)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 }
 
@@ -108,17 +110,11 @@ impl MergeRuleDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(DatabaseError::ConnectionError)
+        self.pool.begin().await.context(ConnectionSnafu)
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(DatabaseError::TransactionError)
+        transaction.commit().await.context(TransactionSnafu)
     }
 }
 
@@ -219,7 +215,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .bind(instance.strategy.to_string())
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(new_id).await.map(|x| x.unwrap())
@@ -243,7 +239,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .bind(instance.head_branch.to_string())
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(new_id).await.map(|x| x.unwrap())
@@ -272,7 +268,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .bind(head_branch.to_string())
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -302,7 +298,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -318,7 +314,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         .bind(name)
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -331,7 +327,7 @@ impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 }
 

@@ -2,13 +2,13 @@
 
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
-use github_scbot_sentry::eyre::Result;
 
 use self::{
     auth::AuthCommand, debug::DebugCommand, export::ExportCommand, import::ImportCommand,

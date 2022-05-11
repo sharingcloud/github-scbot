@@ -1,10 +1,12 @@
 use std::io::Write;
 
+use crate::errors::{ApiSnafu, IoSnafu, LogicSnafu};
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_logic::{pulls::PullRequestLogic, status::StatusLogic};
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
+use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
 
@@ -34,12 +36,14 @@ impl Command for PullRequestSyncCommand {
             repo_name,
             pr_number,
         )
-        .await?;
+        .await
+        .context(LogicSnafu)?;
 
         let upstream_pr = ctx
             .api_adapter
             .pulls_get(repo_owner, repo_name, pr_number)
-            .await?;
+            .await
+            .context(ApiSnafu)?;
 
         StatusLogic::update_pull_request_status(
             ctx.api_adapter.as_ref(),
@@ -50,13 +54,15 @@ impl Command for PullRequestSyncCommand {
             pr_number,
             &upstream_pr,
         )
-        .await?;
+        .await
+        .context(LogicSnafu)?;
 
         writeln!(
             ctx.writer,
             "Pull request #{} from {} updated from GitHub.",
             self.number, self.repository_path
-        )?;
+        )
+        .context(IoSnafu)?;
         Ok(())
     }
 }
@@ -83,48 +89,52 @@ mod tests {
                 api_adapter
                     .expect_pulls_get()
                     .times(1)
-                    .return_const(Ok(GhPullRequest {
-                        number: 1,
-                        ..Default::default()
-                    }));
+                    .return_once(|_, _, _| {
+                        Ok(GhPullRequest {
+                            number: 1,
+                            ..Default::default()
+                        })
+                    });
 
                 api_adapter
                     .expect_pull_reviews_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_check_suites_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_issue_labels_list()
                     .times(1)
-                    .return_const(Ok(vec![]));
+                    .return_once(|_, _, _| Ok(vec![]));
 
                 api_adapter
                     .expect_issue_labels_replace_all()
                     .times(1)
-                    .return_const(Ok(()));
+                    .return_once(|_, _, _, _| Ok(()));
 
                 api_adapter
                     .expect_comments_post()
                     .times(1)
-                    .return_const(Ok(1));
+                    .return_once(|_, _, _, _| Ok(1));
 
                 api_adapter
                     .expect_commit_statuses_update()
                     .times(1)
-                    .return_const(Ok(()));
+                    .return_once(|_, _, _, _, _, _| Ok(()));
 
                 let mut redis_adapter = MockRedisService::new();
                 redis_adapter
                     .expect_wait_lock_resource()
                     .times(1)
-                    .return_const(Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
-                        "test",
-                    ))));
+                    .returning(|_, _| {
+                        Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                            "test",
+                        )))
+                    });
 
                 let output = test_command(
                     config.clone(),

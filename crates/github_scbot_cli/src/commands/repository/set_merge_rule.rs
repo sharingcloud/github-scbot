@@ -1,17 +1,19 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::MergeRule;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::{
     pulls::GhMergeStrategy, repository::RepositoryPath, rule_branch::RuleBranch,
 };
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// set merge rule for a repository.
 #[derive(FromArgs)]
@@ -42,13 +44,15 @@ impl Command for RepositorySetMergeRuleCommand {
             // Update default strategy
             pr_repo
                 .set_default_strategy(owner, name, self.strategy)
-                .await?;
+                .await
+                .context(DatabaseSnafu)?;
 
             writeln!(
                 ctx.writer,
                 "Default strategy updated to '{}' for repository '{}'",
                 self.strategy, self.repository_path
-            )?;
+            )
+            .context(IoSnafu)?;
         } else {
             let mut mr_repo = ctx.db_adapter.merge_rules();
             mr_repo
@@ -58,7 +62,8 @@ impl Command for RepositorySetMergeRuleCommand {
                     self.base_branch.clone(),
                     self.head_branch.clone(),
                 )
-                .await?;
+                .await
+                .context(DatabaseSnafu)?;
             mr_repo
                 .create(
                     MergeRule::builder()
@@ -66,11 +71,13 @@ impl Command for RepositorySetMergeRuleCommand {
                         .base_branch(self.base_branch.clone())
                         .head_branch(self.head_branch.clone())
                         .strategy(self.strategy)
-                        .build()?,
+                        .build()
+                        .unwrap(),
                 )
-                .await?;
+                .await
+                .context(DatabaseSnafu)?;
 
-            writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch)?;
+            writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch).context(IoSnafu)?;
         }
 
         Ok(())

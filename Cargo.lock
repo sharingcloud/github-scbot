@@ -381,7 +381,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be69f70ef5497dd6ab331a50bd95c6ac6b8f7f17a7967838332743fbd58dc3b5"
 dependencies = [
  "argh_shared",
- "heck",
+ "heck 0.3.3",
  "proc-macro2",
  "quote",
  "syn",
@@ -917,6 +917,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "doc-comment"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
+
+[[package]]
 name = "dotenv"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -947,16 +953,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9852635589dc9f9ea1b6fe9f05b50ef208c85c834a562f0c6abb1c475736ec2b"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "eyre"
-version = "0.6.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c2b6b5a29c02cdc822728b7d7b8ae1bab3e3b05d44522770ddd49722eeac7eb"
-dependencies = [
- "indenter",
- "once_cell",
 ]
 
 [[package]]
@@ -1200,7 +1196,7 @@ dependencies = [
  "github-scbot-types",
  "indoc",
  "owo-colors",
- "thiserror",
+ "snafu",
  "tokio",
 ]
 
@@ -1211,7 +1207,7 @@ dependencies = [
  "dotenv",
  "github-scbot-crypto",
  "github-scbot-sentry",
- "thiserror",
+ "snafu",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-error",
@@ -1228,7 +1224,7 @@ dependencies = [
  "rand 0.8.5",
  "rsa",
  "serde",
- "thiserror",
+ "snafu",
 ]
 
 [[package]]
@@ -1258,8 +1254,8 @@ dependencies = [
  "pretty_assertions 0.6.1",
  "serde",
  "serde_json",
+ "snafu",
  "sqlx",
- "thiserror",
  "tracing",
 ]
 
@@ -1275,7 +1271,7 @@ dependencies = [
  "github-scbot-crypto",
  "github-scbot-types",
  "github-scbot-utils",
- "heck",
+ "heck 0.3.3",
  "http",
  "maplit",
  "mockall",
@@ -1284,7 +1280,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_plain",
- "thiserror",
+ "snafu",
  "tracing",
 ]
 
@@ -1305,7 +1301,7 @@ dependencies = [
  "pretty_assertions 0.7.2",
  "regex",
  "smart-default",
- "thiserror",
+ "snafu",
  "tracing",
 ]
 
@@ -1320,7 +1316,7 @@ dependencies = [
  "github-scbot-utils",
  "mockall",
  "redis-async",
- "thiserror",
+ "snafu",
  "tracing",
 ]
 
@@ -1330,7 +1326,6 @@ version = "0.21.1"
 dependencies = [
  "sentry",
  "sentry-actix",
- "sentry-eyre",
  "tracing",
 ]
 
@@ -1362,7 +1357,7 @@ dependencies = [
  "rust-crypto",
  "serde",
  "serde_json",
- "thiserror",
+ "snafu",
  "tracing",
  "tracing-actix-web",
 ]
@@ -1374,8 +1369,8 @@ dependencies = [
  "github-scbot-conf",
  "github-scbot-database2",
  "github-scbot-types",
+ "snafu",
  "termion",
- "thiserror",
  "tui",
 ]
 
@@ -1387,7 +1382,7 @@ dependencies = [
  "serde",
  "serde_plain",
  "smart-default",
- "thiserror",
+ "snafu",
 ]
 
 [[package]]
@@ -1439,6 +1434,12 @@ checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
 dependencies = [
  "unicode-segmentation",
 ]
+
+[[package]]
+name = "heck"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
 
 [[package]]
 name = "hermit-abi"
@@ -1563,12 +1564,6 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
-
-[[package]]
-name = "indenter"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
@@ -2604,7 +2599,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2d23af89cf3e40dffb53f974e9a21653353b3e21cf51633aa58006f2a0caf8a"
 dependencies = [
  "httpdate",
- "log",
  "reqwest",
  "sentry-backtrace",
  "sentry-contexts",
@@ -2617,12 +2611,12 @@ dependencies = [
 [[package]]
 name = "sentry-actix"
 version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82ec8ee3655ec56335ee86b6a9e5cb2c86c61a457e9b550781e64c8928066737"
 dependencies = [
  "actix-web",
  "futures-util",
  "sentry-core",
- "sentry-eyre",
- "serde_json",
 ]
 
 [[package]]
@@ -2657,20 +2651,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56333f11be3a78131c67637f7611339df8af7ad9af831226585a457df75f9e3b"
 dependencies = [
  "lazy_static",
- "log",
  "rand 0.8.5",
  "sentry-types",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "sentry-eyre"
-version = "0.1.0"
-dependencies = [
- "sentry-backtrace",
- "sentry-core",
- "stable-eyre",
 ]
 
 [[package]]
@@ -2853,6 +2837,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "snafu"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5177903bf45656592d9eb5c0e22f408fc023aae51dbe2088889b71633ba451f2"
+dependencies = [
+ "backtrace",
+ "doc-comment",
+ "snafu-derive",
+]
+
+[[package]]
+name = "snafu-derive"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "410b26ed97440d90ced3e2488c868d56a86e2064f5d7d6f417909b286afe25e5"
+dependencies = [
+ "heck 0.4.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "socket2"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2953,7 +2960,7 @@ checksum = "eee35713129561f5e55c554bba1c378e2a7e67f81257b7311183de98c50e6f94"
 dependencies = [
  "dotenv",
  "either",
- "heck",
+ "heck 0.3.3",
  "once_cell",
  "proc-macro2",
  "quote",
@@ -2975,17 +2982,6 @@ dependencies = [
  "once_cell",
  "tokio",
  "tokio-native-tls",
-]
-
-[[package]]
-name = "stable-eyre"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556fec8c2da34c70b75f16d88df8a8cd7e652e567ff097b7e9df0022c8695cc4"
-dependencies = [
- "backtrace",
- "eyre",
- "indenter",
 ]
 
 [[package]]

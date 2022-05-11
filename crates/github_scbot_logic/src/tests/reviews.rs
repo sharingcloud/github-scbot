@@ -89,45 +89,49 @@ async fn test_review_creation() -> Result<()> {
         api_adapter
             .expect_pulls_get()
             .times(1)
-            .return_const(Ok(GhPullRequest {
-                ..Default::default()
-            }));
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    ..Default::default()
+                })
+            });
 
         // One call for command sender, one for target reviewer
         api_adapter
             .expect_user_permissions_get()
             .times(2)
-            .return_const(Ok(GhUserPermission::Write));
+            .returning(|_, _, _| Ok(GhUserPermission::Write));
 
         // One call to assign reviewer
         api_adapter
             .expect_pull_reviewer_requests_add()
             .times(1)
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _| Ok(()));
 
         // One call to list upstream reviews
         api_adapter
             .expect_pull_reviews_list()
             .times(1)
-            .return_const(Ok(vec![GhReviewApi {
-                user: GhUser {
-                    login: "him".into(),
-                },
-                state: GhReviewStateApi::Pending,
-                submitted_at: Utc::now(),
-            }]));
+            .return_once(|_, _, _| {
+                Ok(vec![GhReviewApi {
+                    user: GhUser {
+                        login: "him".into(),
+                    },
+                    state: GhReviewStateApi::Pending,
+                    submitted_at: Utc::now(),
+                }])
+            });
 
         // One call to get check suites
         api_adapter
             .expect_check_suites_list()
             .times(1)
-            .return_const(Ok(vec![]));
+            .return_once(|_, _, _| Ok(vec![]));
 
         // One call to list labels
         api_adapter
             .expect_issue_labels_list()
             .times(1)
-            .return_const(Ok(vec![]));
+            .return_once(|_, _, _| Ok(vec![]));
 
         // One call to replace all labels
         api_adapter
@@ -139,25 +143,25 @@ async fn test_review_creation() -> Result<()> {
                 predicate::eq(1),
                 predicate::function(|v| v == ["step/awaiting-required-review"]),
             )
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _| Ok(()));
 
         // One call to update target comment
         api_adapter
             .expect_comments_update()
             .times(1)
-            .return_const(Ok(0));
+            .return_once(|_, _, _, _| Ok(0));
 
         // One call to update status
         api_adapter
             .expect_commit_statuses_update()
             .times(1)
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _, _, _| Ok(()));
 
         // One call to post comment
         api_adapter
             .expect_comments_post()
             .times(1)
-            .return_const(Ok(1));
+            .return_once(|_, _, _, _| Ok(1));
 
         let (repo, pr) = arrange(&config, &db_adapter).await;
         let upstream_pr = GhPullRequest {
@@ -193,15 +197,17 @@ async fn test_review_creation() -> Result<()> {
         api_adapter
             .expect_pulls_get()
             .times(1)
-            .return_const(Ok(GhPullRequest {
-                ..Default::default()
-            }));
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    ..Default::default()
+                })
+            });
 
         // One call for command sender
         api_adapter
             .expect_user_permissions_get()
             .times(1)
-            .return_const(Ok(GhUserPermission::Write));
+            .return_once(|_, _, _| Ok(GhUserPermission::Write));
 
         // One call to unassign reviewer
         api_adapter
@@ -210,31 +216,33 @@ async fn test_review_creation() -> Result<()> {
                 owner == "owner" && name == "name" && *issue_number == 1u64 && reviewers == ["him"]
             })
             .times(1)
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _| Ok(()));
 
         // One call to list upstream reviews
         api_adapter
             .expect_pull_reviews_list()
             .times(1)
-            .return_const(Ok(vec![GhReviewApi {
-                user: GhUser {
-                    login: "him".into(),
-                },
-                state: GhReviewStateApi::Pending,
-                submitted_at: Utc::now(),
-            }]));
+            .return_once(|_, _, _| {
+                Ok(vec![GhReviewApi {
+                    user: GhUser {
+                        login: "him".into(),
+                    },
+                    state: GhReviewStateApi::Pending,
+                    submitted_at: Utc::now(),
+                }])
+            });
 
         // One call to get check suites
         api_adapter
             .expect_check_suites_list()
             .times(1)
-            .return_const(Ok(vec![]));
+            .return_once(|_, _, _| Ok(vec![]));
 
         // One call to list labels
         api_adapter
             .expect_issue_labels_list()
             .times(1)
-            .return_const(Ok(vec![]));
+            .return_once(|_, _, _| Ok(vec![]));
 
         // One call to replace all labels
         api_adapter
@@ -246,25 +254,25 @@ async fn test_review_creation() -> Result<()> {
                 predicate::eq(1),
                 predicate::function(|v| v == ["step/awaiting-review"]),
             )
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _| Ok(()));
 
         // One call to update target comment
         api_adapter
             .expect_comments_update()
             .times(1)
-            .return_const(Ok(0));
+            .return_once(|_, _, _, _| Ok(0));
 
         // One call to update status
         api_adapter
             .expect_commit_statuses_update()
             .times(1)
-            .return_const(Ok(()));
+            .return_once(|_, _, _, _, _, _| Ok(()));
 
         // One call to post comment
         api_adapter
             .expect_comments_post()
             .times(1)
-            .return_const(Ok(1));
+            .return_once(|_, _, _, _| Ok(1));
 
         parse_and_execute_command(
             &config,

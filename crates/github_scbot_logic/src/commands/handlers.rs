@@ -8,6 +8,7 @@ use github_scbot_types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
+use tracing::error;
 
 use super::command::CommandExecutionResult;
 use crate::{
@@ -81,11 +82,18 @@ pub async fn handle_merge_command(
             )
             .await
         {
+            error!(
+                owner = %repo_owner,
+                name = %repo_name,
+                pr_number = pr_number,
+                error = %e,
+                message = "Error while merging pull request"
+            );
+
             actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));
-            actions.push(ResultAction::PostComment(format!(
-                "Could not merge this pull request: _{}_",
-                e
-            )));
+            actions.push(ResultAction::PostComment(
+                "Error while merging this pull request.".to_string(),
+            ));
         } else {
             actions.push(ResultAction::AddReaction(GhReactionType::PlusOne));
             actions.push(ResultAction::PostComment(format!(
@@ -832,6 +840,7 @@ mod tests {
     use github_scbot_types::common::GhUserPermission;
     use maplit::hashmap;
     use mockall::predicate;
+    use snafu::Backtrace;
 
     use super::*;
     use crate::commands::command::CommandHandlingStatus;
@@ -901,7 +910,16 @@ mod tests {
         db_adapter.expect_pull_requests().times(3).returning(|| {
             let mut mock = MockPullRequestDB::new();
             mock.expect_get().returning(|_, _, _| {
-                async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+                async {
+                    Ok(Some(
+                        PullRequest::builder()
+                            .checks_enabled(false)
+                            .qa_status(QaStatus::Skipped)
+                            .build()
+                            .unwrap(),
+                    ))
+                }
+                .boxed()
             });
 
             Box::new(mock)
@@ -970,7 +988,13 @@ mod tests {
         api_adapter
             .expect_pulls_merge()
             .times(1)
-            .returning(|_, _, _, _, _, _| Err(ApiError::HTTPError("Nope.".into())));
+            .returning(|_, _, _, _, _, _| {
+                Err(ApiError::MergeError {
+                    pr_number: 1,
+                    repository_path: "owner/name".into(),
+                    backtrace: Backtrace::new(),
+                })
+            });
         api_adapter
             .expect_pull_reviews_list()
             .times(1)
@@ -996,9 +1020,7 @@ mod tests {
             result.result_actions,
             vec![
                 ResultAction::AddReaction(GhReactionType::MinusOne),
-                ResultAction::PostComment(
-                    "Could not merge this pull request: _HTTP error: Nope._".into()
-                )
+                ResultAction::PostComment("Error while merging this pull request.".into())
             ]
         );
 

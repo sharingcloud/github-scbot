@@ -5,11 +5,13 @@ use std::{str::FromStr, sync::Arc};
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
-use github_scbot_sentry::{sentry, WrapEyre};
+use github_scbot_sentry::sentry;
 use github_scbot_types::repository::RepositoryPath;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
-use crate::{external::validator::extract_account_from_auth, server::AppContext, ServerError};
+use crate::errors::LogicSnafu;
+use crate::{external::validator::extract_account_from_auth, server::AppContext};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct QaStatusJson {
@@ -26,7 +28,7 @@ pub(crate) async fn set_qa_status(
 ) -> Result<HttpResponse> {
     let target_account = extract_account_from_auth(&mut *ctx.db_adapter.external_accounts(), &auth)
         .await
-        .map_err(WrapEyre::to_http_error)?;
+        .map_err(actix_web::Error::from)?;
 
     sentry::configure_scope(|scope| {
         scope.set_user(Some(sentry::User {
@@ -49,8 +51,7 @@ pub(crate) async fn set_qa_status(
         data.status,
     )
     .await
-    .map_err(ServerError::from)
-    .map_err(WrapEyre::to_http_error)?;
+    .context(LogicSnafu)?;
 
     Ok(HttpResponse::Ok().body("Set QA status."))
 }

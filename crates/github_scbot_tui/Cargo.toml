@@ -8,7 +8,7 @@ edition = "2021"
 github-scbot-conf = { path = "../github_scbot_conf" }
 github-scbot-database2 = { path = "../github_scbot_database2" }
 github-scbot-types = { path = "../github_scbot_types" }
-thiserror = "1.0"
+snafu = "0.7.1"
 
 [target.'cfg(unix)'.dependencies]
 termion = "1.5.5"

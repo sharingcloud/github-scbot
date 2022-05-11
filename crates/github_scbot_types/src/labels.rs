@@ -2,7 +2,7 @@
 
 use std::convert::TryFrom;
 
-use super::errors::TypeError;
+use super::errors::{TypeError, UnknownStepLabelSnafu};
 
 /// Step label.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -51,7 +51,10 @@ impl TryFrom<&str> for StepLabel {
             "step/awaiting-qa" => Ok(Self::AwaitingQa),
             "step/awaiting-merge" => Ok(Self::AwaitingMerge),
             "step/locked" => Ok(Self::Locked),
-            name => Err(TypeError::UnknownStepLabel(name.to_string())),
+            name => UnknownStepLabelSnafu {
+                label: name.to_string(),
+            }
+            .fail(),
         }
     }
 }

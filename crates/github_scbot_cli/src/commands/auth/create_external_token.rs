@@ -1,13 +1,15 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// create external token.
 #[derive(FromArgs)]
@@ -23,7 +25,12 @@ impl Command for AuthCreateExternalTokenCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut exa_db = ctx.db_adapter.external_accounts();
         let exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        writeln!(ctx.writer, "{}", exa.generate_access_token()?)?;
+        writeln!(
+            ctx.writer,
+            "{}",
+            exa.generate_access_token().context(DatabaseSnafu)?
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

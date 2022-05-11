@@ -1,15 +1,18 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
 use github_scbot_database2::ExternalAccountRight;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::{
     commands::{Command, CommandContext},
+    errors::{DatabaseSnafu, IoSnafu},
     utils::CliDbExt,
 };
+
+use snafu::ResultExt;
 
 /// add right to account.
 #[derive(FromArgs)]
@@ -33,21 +36,27 @@ impl Command for AuthAddAccountRightCommand {
 
         let repo = CliDbExt::get_existing_repository(&mut *repo_db, owner, name).await?;
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        exr_db.delete(owner, name, &self.username).await?;
+        exr_db
+            .delete(owner, name, &self.username)
+            .await
+            .context(DatabaseSnafu)?;
         exr_db
             .create(
                 ExternalAccountRight::builder()
                     .repository_id(repo.id())
                     .username(self.username.clone())
-                    .build()?,
+                    .build()
+                    .unwrap(),
             )
-            .await?;
+            .await
+            .context(DatabaseSnafu)?;
 
         writeln!(
             ctx.writer,
             "Right added to repository '{}' for account '{}'.",
             self.repository_path, self.username
-        )?;
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

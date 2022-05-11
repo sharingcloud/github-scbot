@@ -1,14 +1,16 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// set manual interaction mode for a repository.
 #[derive(FromArgs)]
@@ -31,13 +33,15 @@ impl Command for RepositorySetManualInteractionCommand {
 
         pr_repo
             .set_manual_interaction(owner, name, self.manual_interaction)
-            .await?;
+            .await
+            .context(DatabaseSnafu)?;
 
         writeln!(
             ctx.writer,
             "Manual interaction mode set to '{}' for repository {}.",
             self.manual_interaction, self.repository_path
-        )?;
+        )
+        .context(IoSnafu)?;
 
         Ok(())
     }

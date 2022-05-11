@@ -13,14 +13,11 @@ pub use crate::{
     errors::{ConfError, Result},
 };
 
-use github_scbot_sentry::eyre;
-
 pub use crate::logging::configure_logging;
 
 /// Configure application startup.
-pub fn configure_startup() -> eyre::Result<Config> {
+pub fn configure_startup() -> Result<Config> {
     dotenv::dotenv().ok();
-    github_scbot_sentry::eyre::install()?;
 
     let config = Config::from_env();
     self::logging::configure_logging(&config)?;

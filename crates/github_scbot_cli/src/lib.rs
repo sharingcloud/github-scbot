@@ -3,15 +3,20 @@
 use std::{ffi::OsStr, io::Write, path::Path};
 
 use argh::FromArgs;
+use errors::CliError;
 use github_scbot_conf::{configure_startup, Config};
 use github_scbot_database2::{establish_pool_connection, run_migrations, DbServiceImplPool};
-use github_scbot_sentry::eyre::{self, eyre::eyre};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
+use snafu::{whatever, ResultExt};
 
 use self::commands::{Command, CommandContext, SubCommand};
 
 mod commands;
+pub(crate) mod errors;
 pub(crate) mod utils;
+use errors::{ConfSnafu, DatabaseSnafu};
+
+type Result<T, E = CliError> = std::result::Result<T, E>;
 
 /// command.
 #[derive(FromArgs)]
@@ -26,16 +31,19 @@ struct Args {
 }
 
 /// Initialize command line.
-pub fn initialize_command_line() -> eyre::Result<()> {
-    let config = configure_startup()?;
+pub fn initialize_command_line() -> Result<()> {
+    let config = configure_startup().context(ConfSnafu)?;
     let args: Args = argh::from_env();
+
     parse_args_sync(config, args)
 }
 
-fn parse_args_sync(config: Config, args: Args) -> eyre::Result<()> {
-    async fn sync(config: Config, args: Args) -> eyre::Result<()> {
-        let pool = establish_pool_connection(&config).await?;
-        run_migrations(&pool).await?;
+fn parse_args_sync(config: Config, args: Args) -> Result<()> {
+    async fn sync(config: Config, args: Args) -> Result<()> {
+        let pool = establish_pool_connection(&config)
+            .await
+            .context(DatabaseSnafu)?;
+        run_migrations(&pool).await.context(DatabaseSnafu)?;
 
         let db_adapter = DbServiceImplPool::new(pool);
         let api_adapter = MetricsApiService::new(config.clone());
@@ -75,16 +83,17 @@ fn parse_args_sync(config: Config, args: Args) -> eyre::Result<()> {
     Ok(())
 }
 
-async fn parse_args<W: Write>(args: Args, ctx: CommandContext<W>) -> eyre::Result<()> {
+async fn parse_args<W: Write>(args: Args, ctx: CommandContext<W>) -> Result<()> {
     if let Some(cmd) = args.cmd {
         cmd.execute(ctx).await
     } else {
-        return Err(eyre!("Missing subcommand. Use --help for more info."));
+        whatever!("Missing subcommand. Use --help for more info.");
     }
 }
 
 #[cfg(test)]
 mod testutils {
+    use super::Result;
     use argh::FromArgs;
     use github_scbot_conf::Config;
     use github_scbot_database2::DbService;
@@ -99,7 +108,7 @@ mod testutils {
         api_adapter: Box<dyn ApiService>,
         redis_adapter: Box<dyn RedisService>,
         command_args: &[&str],
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<String> {
         let mut buf = Vec::new();
 
         {

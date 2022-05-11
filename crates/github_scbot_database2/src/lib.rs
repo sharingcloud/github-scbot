@@ -5,6 +5,7 @@ pub(crate) mod models;
 pub(crate) mod utils;
 
 use std::ops::Deref;
+use std::time::Duration;
 
 pub use exchange::Exchanger;
 pub use models::account::{Account, AccountDB, AccountDBImpl, AccountDBImplPool, MockAccountDB};
@@ -31,7 +32,9 @@ pub use models::required_reviewer::{
     RequiredReviewerDBImplPool,
 };
 
+use errors::{ConnectionSnafu, MigrationSnafu};
 pub use errors::{DatabaseError, Result};
+use snafu::ResultExt;
 pub use utils::use_temporary_db;
 pub type DbPool = sqlx::postgres::PgPool;
 
@@ -47,17 +50,20 @@ where
     sqlx::migrate!("./migrations")
         .run(migrator)
         .await
-        .map_err(DatabaseError::MigrationError)?;
+        .context(MigrationSnafu)?;
 
     Ok(())
 }
 
 pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
     PgPoolOptions::new()
+        .connect_timeout(Duration::from_secs(
+            config.database_connection_timeout.into(),
+        ))
         .max_connections(config.database_pool_size)
         .connect(&config.database_url)
         .await
-        .map_err(DatabaseError::ConnectionError)
+        .context(ConnectionSnafu)
 }
 
 #[mockall::automock]

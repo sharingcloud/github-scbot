@@ -1,11 +1,13 @@
+use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
 use async_trait::async_trait;
 use github_scbot_conf::Config;
 use github_scbot_database_macros::SCGetter;
 use github_scbot_types::pulls::GhMergeStrategy;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, fields::GhMergeStrategyDecode, DatabaseError};
+use crate::{errors::Result, fields::GhMergeStrategyDecode};
 
 #[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize, PartialEq)]
 #[builder(default, setter(into))]
@@ -160,17 +162,11 @@ impl RepositoryDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(DatabaseError::ConnectionError)
+        self.pool.begin().await.context(ConnectionSnafu)
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(DatabaseError::TransactionError)
+        transaction.commit().await.context(TransactionSnafu)
     }
 }
 
@@ -372,7 +368,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(instance.default_enable_checks)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -407,7 +403,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(instance.name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -423,7 +419,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -438,7 +434,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(id as i32)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -455,7 +451,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -471,7 +467,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -495,7 +491,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -522,7 +518,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -549,7 +545,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -576,7 +572,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -603,7 +599,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -630,7 +626,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())
@@ -657,7 +653,7 @@ impl<'a> RepositoryDB for RepositoryDBImpl<'a> {
         .bind(name)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get_from_id(id as u64).await.map(|x| x.unwrap())

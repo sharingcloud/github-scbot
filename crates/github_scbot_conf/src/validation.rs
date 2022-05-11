@@ -2,7 +2,7 @@
 
 use github_scbot_crypto::JwtUtils;
 
-use crate::{config::Config, ConfError, Result};
+use crate::{config::Config, Result};
 
 enum ApiConfigError {
     MissingToken,
@@ -11,6 +11,8 @@ enum ApiConfigError {
     MissingPrivateKey,
     InvalidPrivateKey,
 }
+
+use crate::errors::EnvVarsSnafu;
 
 fn validate_env_vars(config: &Config) -> Result<()> {
     #[inline]
@@ -66,7 +68,7 @@ fn validate_env_vars(config: &Config) -> Result<()> {
     if error.is_empty() {
         Ok(())
     } else {
-        Err(ConfError::ConfigurationError(error))
+        EnvVarsSnafu { errors: error }.fail()
     }
 }
 

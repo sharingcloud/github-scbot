@@ -13,8 +13,6 @@ members = [
     "crates/github_scbot_tui",
     "crates/github_scbot_types",
     "crates/github_scbot_utils",
-    "crates/sentry-eyre",
-    "crates/sentry-actix"
 ]
 
 [profile.dev.package.backtrace]
@@ -24,4 +22,4 @@ opt-level = 3
 opt-level = 3
 
 [profile.release]
-debug = true
+debug = 1

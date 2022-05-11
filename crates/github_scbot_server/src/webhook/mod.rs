@@ -16,18 +16,18 @@ use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
-use github_scbot_sentry::{sentry, WrapEyre};
+use github_scbot_sentry::sentry;
 use github_scbot_types::events::EventType;
 use serde::Deserialize;
+use snafu::ResultExt;
 
 use self::{
     checks::parse_check_suite_event, issues::parse_issue_comment_event, ping::parse_ping_event,
     pulls::parse_pull_request_event, reviews::parse_review_event,
 };
+use crate::errors::EventParseSnafu;
 use crate::{
-    constants::GITHUB_EVENT_HEADER,
-    errors::{Result, ServerError},
-    server::AppContext,
+    constants::GITHUB_EVENT_HEADER, errors::Result, server::AppContext,
     utils::convert_payload_to_string,
 };
 
@@ -86,7 +86,7 @@ fn parse_event_type<'de, T>(event_type: EventType, body: &'de str) -> Result<T>
 where
     T: Deserialize<'de>,
 {
-    serde_json::from_str(body).map_err(|e| ServerError::EventParseError(event_type, e))
+    serde_json::from_str(body).context(EventParseSnafu { event_type })
 }
 
 fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
@@ -118,7 +118,7 @@ pub(crate) async fn event_handler(
                 &body,
             )
             .await
-            .map_err(WrapEyre::to_http_error)
+            .map_err(Into::into)
         } else {
             let event_type: &str = event_type.into();
             Ok(HttpResponse::BadRequest().json(serde_json::json!({

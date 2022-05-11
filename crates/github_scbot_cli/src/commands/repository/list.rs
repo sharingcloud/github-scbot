@@ -1,10 +1,12 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 
 use crate::commands::{Command, CommandContext};
+use crate::errors::{DatabaseSnafu, IoSnafu};
+use snafu::ResultExt;
 
 /// list known repositories.
 #[derive(FromArgs)]
@@ -14,12 +16,17 @@ pub(crate) struct RepositoryListCommand {}
 #[async_trait(?Send)]
 impl Command for RepositoryListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let repos = ctx.db_adapter.repositories().all().await?;
+        let repos = ctx
+            .db_adapter
+            .repositories()
+            .all()
+            .await
+            .context(DatabaseSnafu)?;
         if repos.is_empty() {
-            writeln!(ctx.writer, "No repository known.")?;
+            writeln!(ctx.writer, "No repository known.").context(IoSnafu)?;
         } else {
             for repo in repos {
-                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name())?;
+                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name()).context(IoSnafu)?;
             }
         }
 

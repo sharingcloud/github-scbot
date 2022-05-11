@@ -4,34 +4,33 @@ use std::time::Duration;
 
 use actix::MailboxError;
 use async_trait::async_trait;
-use thiserror::Error;
+use snafu::{prelude::*, Backtrace};
 
 /// Lock error.
-#[derive(Debug, Error, Clone)]
+#[allow(missing_docs)]
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
 pub enum RedisError {
     /// Mailbox error.
-    #[error("Actix mailbox error: {0}")]
-    MailboxError(String),
+    #[snafu(display("Actix mailbox error,\n  caused by: {}", source))]
+    MailboxError {
+        source: MailboxError,
+        backtrace: Backtrace,
+    },
 
     /// Actix error.
-    #[error("Actix-Redis error: {0}")]
-    ActixError(String),
+    #[snafu(display("Actix-Redis error,\n  caused by: {}", source))]
+    ActixError {
+        source: actix_redis::Error,
+        backtrace: Backtrace,
+    },
 
     /// Command error.
-    #[error("Redis command error: {0}")]
-    CommandError(String),
-}
-
-impl From<MailboxError> for RedisError {
-    fn from(err: MailboxError) -> Self {
-        Self::MailboxError(err.to_string())
-    }
-}
-
-impl From<actix_redis::Error> for RedisError {
-    fn from(err: actix_redis::Error) -> Self {
-        Self::ActixError(err.to_string())
-    }
+    #[snafu(display("Redis command error: {}", result))]
+    CommandError {
+        result: String,
+        backtrace: Backtrace,
+    },
 }
 
 /// Lock status.

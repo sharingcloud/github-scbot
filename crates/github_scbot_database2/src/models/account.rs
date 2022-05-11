@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use github_scbot_database_macros::SCGetter;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, DatabaseError};
+use crate::errors::Result;
+use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default, setter(into))]
@@ -61,17 +63,11 @@ impl AccountDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(DatabaseError::ConnectionError)
+        self.pool.begin().await.context(ConnectionSnafu)
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(DatabaseError::TransactionError)
+        transaction.commit().await.context(TransactionSnafu)
     }
 }
 
@@ -159,7 +155,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .bind(instance.is_admin)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get(&username).await.map(|x| x.unwrap())
@@ -179,7 +175,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .bind(instance.username)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get(&username).await.map(|x| x.unwrap())
@@ -197,7 +193,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -210,7 +206,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -225,7 +221,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -240,7 +236,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .bind(true)
         .fetch_all(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)
+        .context(SqlSnafu)
     }
 
     #[tracing::instrument(skip(self))]
@@ -257,7 +253,7 @@ impl<'a> AccountDB for AccountDBImpl<'a> {
         .bind(username)
         .fetch_one(&mut *self.connection)
         .await
-        .map_err(DatabaseError::SqlError)?
+        .context(SqlSnafu)?
         .get(0);
 
         self.get(&username).await.map(|x| x.unwrap())

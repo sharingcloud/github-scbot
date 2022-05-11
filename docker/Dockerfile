@@ -2,7 +2,9 @@
 FROM rust:buster as builder
 WORKDIR /usr/src/app
 
-RUN rustup toolchain install 1.60.0
+RUN apt update \
+    && apt install lld -y \
+    && rustup toolchain install 1.60.0
 
 COPY ./crates /usr/src/app/crates
 COPY Cargo.lock /usr/src/app

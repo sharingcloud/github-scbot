@@ -1,14 +1,16 @@
 use std::io::Write;
 
+use crate::Result;
 use argh::FromArgs;
 use async_trait::async_trait;
-use github_scbot_sentry::eyre::Result;
 use github_scbot_types::repository::RepositoryPath;
 
+use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
+use snafu::ResultExt;
 
 /// list merge rules for a repository.
 #[derive(FromArgs)]
@@ -28,14 +30,20 @@ impl Command for RepositoryListMergeRulesCommand {
         let repo = CliDbExt::get_existing_repository(&mut *repo_db, owner, name).await?;
 
         let default_strategy = repo.default_strategy();
-        let rules = ctx.db_adapter.merge_rules().list(owner, name).await?;
+        let rules = ctx
+            .db_adapter
+            .merge_rules()
+            .list(owner, name)
+            .await
+            .context(DatabaseSnafu)?;
 
         writeln!(
             ctx.writer,
             "Merge rules for repository {}:",
             self.repository_path
-        )?;
-        writeln!(ctx.writer, "- Default: '{}'", default_strategy)?;
+        )
+        .context(IoSnafu)?;
+        writeln!(ctx.writer, "- Default: '{}'", default_strategy).context(IoSnafu)?;
         for rule in rules {
             writeln!(
                 ctx.writer,
@@ -43,7 +51,8 @@ impl Command for RepositoryListMergeRulesCommand {
                 rule.base_branch(),
                 rule.head_branch(),
                 rule.strategy()
-            )?;
+            )
+            .context(IoSnafu)?;
         }
 
         Ok(())

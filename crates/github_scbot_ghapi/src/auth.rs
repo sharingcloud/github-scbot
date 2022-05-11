@@ -8,8 +8,10 @@ use github_scbot_utils::TimeUtils;
 use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
-use crate::{adapter::ApiService, ApiError, Result};
+use crate::errors::JwtSnafu;
+use crate::{adapter::ApiService, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -91,8 +93,7 @@ fn create_app_token(config: &Config) -> Result<String> {
         iss: config.github_app_id,
     };
 
-    JwtUtils::create_jwt(&config.github_app_private_key, &claims)
-        .map_err(|e| ApiError::JWTError(e.to_string()))
+    JwtUtils::create_jwt(&config.github_app_private_key, &claims).context(JwtSnafu)
 }
 
 async fn create_installation_access_token(
