@@ -12,6 +12,7 @@ use github_scbot_types::{
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
+use tracing::debug;
 
 use crate::errors::{HttpSnafu, MergeSnafu};
 use crate::{
@@ -406,17 +407,41 @@ impl ApiService for GithubApiService {
         name: &str,
         issue_number: u64,
     ) -> Result<Vec<GhReviewApi>> {
-        Ok(self
-            .get_client()
-            .await?
-            .get(&self.build_url(format!(
-                "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
-            )))
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?)
+        let mut responses = vec![];
+        let mut curr_page = 1;
+        let max_per_page = 100;
+
+        loop {
+            debug!(current = curr_page, message = "Fetching review page");
+
+            let results: Vec<GhReviewApi> = self
+                .get_client()
+                .await?
+                .get(&self.build_url(format!(
+                    "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
+                )))
+                .query(&[("per_page", max_per_page), ("page", curr_page)])
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?;
+
+            match results.len() {
+                0 => {
+                    break;
+                }
+                n if n == max_per_page => {
+                    responses.extend(results);
+                    curr_page += 1;
+                }
+                _ => {
+                    responses.extend(results);
+                }
+            }
+        }
+
+        Ok(responses)
     }
 
     #[tracing::instrument(skip(self))]

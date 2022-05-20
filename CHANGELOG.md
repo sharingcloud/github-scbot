@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2022-05-20
+
 ### Changed
 
 - Migrate error handling to 'snafu'
 - Use `lld` as default linker
+
+### Fixed
+
+- Fetch all reviews instead of first 30
 
 ## [0.21.1] - 2022-05-05
 

@@ -1179,7 +1179,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix-rt",
  "argh",
@@ -1202,7 +1202,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-conf"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "dotenv",
  "github-scbot-crypto",
@@ -1218,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "jsonwebtoken",
  "rand 0.8.5",
@@ -1229,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-macros"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1238,7 +1238,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database2"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1261,7 +1261,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1286,7 +1286,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix-rt",
  "chrono",
@@ -1307,7 +1307,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix",
  "actix-redis",
@@ -1322,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-sentry"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "sentry",
  "sentry-actix",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1364,7 +1364,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database2",
@@ -1376,7 +1376,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-types"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "chrono",
  "serde",
@@ -1387,7 +1387,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-utils"
-version = "0.21.1"
+version = "0.21.2"
 
 [[package]]
 name = "h2"
