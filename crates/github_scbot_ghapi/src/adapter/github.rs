@@ -437,6 +437,7 @@ impl ApiService for GithubApiService {
                 }
                 _ => {
                     responses.extend(results);
+                    break;
                 }
             }
         }
