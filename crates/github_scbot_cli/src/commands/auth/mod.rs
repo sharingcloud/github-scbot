@@ -33,7 +33,7 @@ use self::{
     remove_external_account::AuthRemoveExternalAccountCommand,
 };
 
-/// authentication related commands.
+/// Authentication related commands
 #[derive(Parser)]
 pub(crate) struct AuthCommand {
     #[clap(subcommand)]

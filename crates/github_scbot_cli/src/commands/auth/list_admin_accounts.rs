@@ -8,7 +8,7 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list admin accounts.
+/// List admin accounts
 #[derive(Parser)]
 pub(crate) struct AuthListAdminAccountsCommand;
 

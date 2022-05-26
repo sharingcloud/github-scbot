@@ -11,10 +11,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// list rights for account.
+/// List rights for account
 #[derive(Parser)]
 pub(crate) struct AuthListAccountRightsCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

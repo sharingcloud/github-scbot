@@ -14,12 +14,12 @@ use crate::{
 
 use snafu::ResultExt;
 
-/// add right to account.
+/// Add right to account
 #[derive(Parser)]
 pub(crate) struct AuthAddAccountRightCommand {
-    /// account username.
+    /// Account username
     username: String,
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

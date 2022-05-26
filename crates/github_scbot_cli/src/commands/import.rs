@@ -13,10 +13,10 @@ use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
-/// import all data.
+/// Import all data
 #[derive(Parser)]
 pub(crate) struct ImportCommand {
-    /// input file.
+    /// Tnput file
     input_file: PathBuf,
 }
 

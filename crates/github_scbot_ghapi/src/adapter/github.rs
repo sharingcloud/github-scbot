@@ -14,7 +14,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::{future::Future, time::Duration};
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::errors::{HttpSnafu, MergeSnafu};
 use crate::{
@@ -60,7 +60,10 @@ impl GithubApiService {
 
         backoff::future::retry(conf, || async {
             f().await.map_err(|e| match e {
-                ApiError::HttpError { .. } => backoff::Error::transient(e),
+                ApiError::HttpError { .. } => {
+                    info!("Will retry API call ...");
+                    backoff::Error::transient(e)
+                }
                 _ => backoff::Error::permanent(e),
             })
         })

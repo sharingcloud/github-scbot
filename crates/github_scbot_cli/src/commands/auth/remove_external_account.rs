@@ -11,10 +11,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// remove external account.
+/// Remove external account
 #[derive(Parser)]
 pub(crate) struct AuthRemoveExternalAccountCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

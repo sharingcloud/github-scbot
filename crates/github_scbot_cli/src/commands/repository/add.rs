@@ -10,10 +10,10 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// add repository.
+/// Add repository
 #[derive(Parser)]
 pub(crate) struct RepositoryAddCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

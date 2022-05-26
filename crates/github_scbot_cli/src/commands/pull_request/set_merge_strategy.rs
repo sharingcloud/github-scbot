@@ -12,16 +12,16 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// list known pull request for a repository.
+/// List known pull request for a repository
 #[derive(Parser)]
 pub(crate) struct PullRequestSetMergeStrategyCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
+    /// Pull request number
     number: u64,
 
-    /// merge strategy.
+    /// Merge strategy
     strategy: Option<GhMergeStrategy>,
 }
 

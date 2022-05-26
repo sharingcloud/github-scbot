@@ -12,10 +12,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// list merge rules for a repository.
+/// List merge rules for a repository
 #[derive(Parser)]
 pub(crate) struct RepositoryListMergeRulesCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

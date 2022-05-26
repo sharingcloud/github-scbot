@@ -12,10 +12,10 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// show repository info.
+/// Show repository info
 #[derive(Parser)]
 pub(crate) struct RepositoryShowCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

@@ -9,10 +9,10 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// remove admin rights from account.
+/// Remove admin rights from account
 #[derive(Parser)]
 pub(crate) struct AuthRemoveAdminRightsCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

@@ -13,10 +13,10 @@ use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
-/// export all data.
+/// Export all data
 #[derive(Parser)]
 pub(crate) struct ExportCommand {
-    /// output file, stdout if not precised.
+    /// Output file, stdout if not precised
     #[clap(short, long)]
     output_file: Option<PathBuf>,
 }

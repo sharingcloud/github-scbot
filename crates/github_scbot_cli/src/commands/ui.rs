@@ -9,7 +9,7 @@ use snafu::ResultExt;
 use super::{Command, CommandContext};
 use crate::errors::UiSnafu;
 
-/// start TUI.
+/// Start TUI
 #[derive(Parser)]
 pub(crate) struct UiCommand;
 

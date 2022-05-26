@@ -12,12 +12,12 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// remove right from account.
+/// Remove right from account
 #[derive(Parser)]
 pub(crate) struct AuthRemoveAccountRightCommand {
-    /// account username.
+    /// Account username
     username: String,
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

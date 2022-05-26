@@ -9,10 +9,10 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// create external account.
+/// Create external account
 #[derive(Parser)]
 pub(crate) struct AuthCreateExternalAccountCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

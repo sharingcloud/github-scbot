@@ -11,10 +11,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// create external token.
+/// Create external token
 #[derive(Parser)]
 pub(crate) struct AuthCreateExternalTokenCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

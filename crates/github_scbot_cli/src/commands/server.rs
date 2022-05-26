@@ -9,7 +9,7 @@ use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
-/// start server.
+/// Start server
 #[derive(Parser)]
 pub(crate) struct ServerCommand;
 

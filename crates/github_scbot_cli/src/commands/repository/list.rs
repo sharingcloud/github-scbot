@@ -8,7 +8,7 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list known repositories.
+/// List known repositories
 #[derive(Parser)]
 pub(crate) struct RepositoryListCommand;
 

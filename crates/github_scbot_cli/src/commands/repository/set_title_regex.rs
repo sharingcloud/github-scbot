@@ -12,12 +12,12 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// set PR title regex for a repository.
+/// Set PR title regex for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetTitleRegexCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// regex value.
+    /// Regex value
     value: String,
 }
 

@@ -12,12 +12,12 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// set default QA status for a repository.
+/// Set default QA status for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetQAStatusCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// status.
+    /// Status
     #[clap(parse(try_from_str))]
     status: bool,
 }

@@ -12,14 +12,14 @@ use crate::{
 };
 use snafu::{whatever, ResultExt};
 
-/// remove merge rule for a repository.
+/// Remove merge rule for a repository
 #[derive(Parser)]
 pub(crate) struct RepositoryRemoveMergeRuleCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// base branch name.
+    /// Base branch name
     base_branch: RuleBranch,
-    /// head branch name.
+    /// Head branch name
     head_branch: RuleBranch,
 }
 

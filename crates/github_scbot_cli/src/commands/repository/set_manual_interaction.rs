@@ -12,12 +12,12 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// set manual interaction mode for a repository.
+/// Set manual interaction mode for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetManualInteractionCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// mode.
+    /// Manual interaction mode
     #[clap(parse(try_from_str))]
     manual_interaction: bool,
 }

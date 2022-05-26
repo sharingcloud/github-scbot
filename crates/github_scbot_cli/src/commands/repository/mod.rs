@@ -33,7 +33,7 @@ use self::{
     set_title_regex::RepositorySetTitleRegexCommand, show::RepositoryShowCommand,
 };
 
-/// manage repositories.
+/// Manage repositories
 #[derive(Parser)]
 pub(crate) struct RepositoryCommand {
     #[clap(subcommand)]

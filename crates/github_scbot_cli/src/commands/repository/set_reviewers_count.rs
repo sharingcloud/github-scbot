@@ -12,12 +12,12 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// set default reviewers count for a repository.
+/// Set default reviewers count for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetReviewersCountCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// regex value.
+    /// Regex value
     reviewers_count: u64,
 }
 

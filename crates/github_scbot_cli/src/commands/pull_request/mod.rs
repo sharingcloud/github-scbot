@@ -16,7 +16,7 @@ use self::{
     show::PullRequestShowCommand, sync::PullRequestSyncCommand,
 };
 
-/// manage pull requests.
+/// Manage pull requests
 #[derive(Parser)]
 pub(crate) struct PullRequestCommand {
     #[clap(subcommand)]

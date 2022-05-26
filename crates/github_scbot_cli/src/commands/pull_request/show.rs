@@ -12,13 +12,13 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// show pull request info.
+/// Show pull request info
 #[derive(Parser)]
 pub(crate) struct PullRequestShowCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
+    /// Pull request number
     number: u64,
 }
 

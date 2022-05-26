@@ -8,10 +8,10 @@ use clap::Parser;
 use github_scbot_database2::Account;
 use snafu::ResultExt;
 
-/// add admin rights to account.
+/// Add admin rights to account
 #[derive(Parser)]
 pub(crate) struct AuthAddAdminRightsCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 

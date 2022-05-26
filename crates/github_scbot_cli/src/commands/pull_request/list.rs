@@ -9,10 +9,10 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list known pull request for a repository.
+/// List known pull request for a repository
 #[derive(Parser)]
 pub(crate) struct PullRequestListCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 }
 

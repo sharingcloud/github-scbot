@@ -11,7 +11,7 @@ use crate::Result;
 mod test_sentry;
 use test_sentry::DebugTestSentryCommand;
 
-/// debug related commands.
+/// Debug related commands
 #[derive(Parser)]
 pub(crate) struct DebugCommand {
     #[clap(subcommand)]

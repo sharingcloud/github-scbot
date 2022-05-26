@@ -15,16 +15,16 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// set merge rule for a repository.
+/// Set merge rule for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetMergeRuleCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// base branch name.
+    /// Base branch name
     base_branch: RuleBranch,
-    /// head branch name.
+    /// Head branch name
     head_branch: RuleBranch,
-    /// merge strategy.
+    /// Merge strategy
     strategy: GhMergeStrategy,
 }
 

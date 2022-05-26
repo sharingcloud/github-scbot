@@ -8,7 +8,7 @@ use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list external accounts.
+/// List external accounts
 #[derive(Parser)]
 pub(crate) struct AuthListExternalAccountsCommand;
 

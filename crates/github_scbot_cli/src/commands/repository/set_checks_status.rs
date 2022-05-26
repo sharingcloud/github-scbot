@@ -12,12 +12,12 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// set default checks status for a repository.
+/// Set default checks status for a repository
 #[derive(Parser)]
 pub(crate) struct RepositorySetChecksStatusCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// status.
+    /// Status
     #[clap(parse(try_from_str))]
     status: bool,
 }

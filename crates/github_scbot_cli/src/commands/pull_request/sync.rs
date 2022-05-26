@@ -10,13 +10,13 @@ use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
 
-/// synchronize pull request from upstream.
+/// Synchronize pull request from upstream
 #[derive(Parser)]
 pub(crate) struct PullRequestSyncCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
+    /// Pull request number
     number: u64,
 }
 

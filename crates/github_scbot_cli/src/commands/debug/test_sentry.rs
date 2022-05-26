@@ -8,10 +8,10 @@ use snafu::whatever;
 
 use super::{Command, CommandContext};
 
-/// send a test message to Sentry.
+/// Send a test message to Sentry
 #[derive(Parser)]
 pub(crate) struct DebugTestSentryCommand {
-    /// custom message, defaults to "This is a test".
+    /// Custom message, defaults to "This is a test"
     #[clap(short, long)]
     message: Option<String>,
 }

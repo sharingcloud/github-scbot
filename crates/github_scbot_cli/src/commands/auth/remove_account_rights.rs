@@ -11,10 +11,10 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// remove all rights from account.
+/// Remove all rights from account
 #[derive(Parser)]
 pub(crate) struct AuthRemoveAccountRightsCommand {
-    /// account username.
+    /// Account username
     username: String,
 }
 
