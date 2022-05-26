@@ -2,17 +2,16 @@ use std::io::Write;
 
 use crate::errors::ServerSnafu;
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_server::server::{run_bot_server, AppContext};
 use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
-/// start server.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "server")]
-pub(crate) struct ServerCommand {}
+/// Start server
+#[derive(Parser)]
+pub(crate) struct ServerCommand;
 
 #[async_trait(?Send)]
 impl Command for ServerCommand {

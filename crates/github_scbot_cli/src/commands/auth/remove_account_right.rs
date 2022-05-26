@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 use snafu::ResultExt;
 
@@ -12,15 +12,12 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// remove right from account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "remove-account-right")]
+/// Remove right from account
+#[derive(Parser)]
 pub(crate) struct AuthRemoveAccountRightCommand {
-    /// account username.
-    #[argh(positional)]
+    /// Account username
     username: String,
-    /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

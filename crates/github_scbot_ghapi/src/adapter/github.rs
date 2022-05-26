@@ -1,6 +1,7 @@
 //! GitHub adapter
 
 use async_trait::async_trait;
+use backoff::ExponentialBackoffBuilder;
 use github_scbot_conf::Config;
 use github_scbot_types::{
     checks::GhCheckSuite,
@@ -12,7 +13,8 @@ use github_scbot_types::{
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use tracing::debug;
+use std::{future::Future, time::Duration};
+use tracing::{debug, info};
 
 use crate::errors::{HttpSnafu, MergeSnafu};
 use crate::{
@@ -46,6 +48,28 @@ impl GithubApiService {
     fn build_url(&self, path: String) -> String {
         build_github_url(&self.config, path)
     }
+
+    async fn call_with_retry<F, Fut, T>(&self, f: F) -> Result<T>
+    where
+        F: Fn() -> Fut,
+        Fut: Future<Output = Result<T>>,
+    {
+        let conf = ExponentialBackoffBuilder::default()
+            .with_max_elapsed_time(Some(Duration::from_secs(30)))
+            .build();
+
+        backoff::future::retry(conf, || async {
+            f().await.map_err(|e| match e {
+                ApiError::HttpError { .. } => {
+                    info!("Will retry API call ...");
+                    backoff::Error::transient(e)
+                }
+                _ => backoff::Error::permanent(e),
+            })
+        })
+        .await
+        .map_err(Into::into)
+    }
 }
 
 #[async_trait(?Send)]
@@ -62,20 +86,24 @@ impl ApiService for GithubApiService {
             name: String,
         }
 
-        Ok(self
-            .get_client()
-            .await?
-            .get(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/{issue_number}/labels"
-            )))
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Vec<Label>>()
-            .await?
-            .into_iter()
-            .map(|x| x.name)
-            .collect())
+        self.call_with_retry(|| async move {
+            Ok(self
+                .get_client()
+                .await?
+                .get(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/{issue_number}/labels"
+                )))
+                .query(&[("per_page", 100)])
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<Vec<Label>>()
+                .await?
+                .into_iter()
+                .map(|x| x.name)
+                .collect())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -91,17 +119,20 @@ impl ApiService for GithubApiService {
             labels: &'a [String],
         }
 
-        self.get_client()
-            .await?
-            .put(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/{issue_number}/labels"
-            )))
-            .json(&Request { labels })
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .put(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/{issue_number}/labels"
+                )))
+                .json(&Request { labels })
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -117,17 +148,20 @@ impl ApiService for GithubApiService {
             labels: &'a [String],
         }
 
-        self.get_client()
-            .await?
-            .post(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/{issue_number}/labels"
-            )))
-            .json(&Request { labels })
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .post(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/{issue_number}/labels"
+                )))
+                .json(&Request { labels })
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self), ret)]
@@ -142,19 +176,22 @@ impl ApiService for GithubApiService {
             permission: GhUserPermission,
         }
 
-        let response = self
-            .get_client()
-            .await?
-            .get(&self.build_url(format!(
-                "/repos/{owner}/{name}/collaborators/{username}/permission"
-            )))
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Response>()
-            .await?;
+        self.call_with_retry(|| async move {
+            let response = self
+                .get_client()
+                .await?
+                .get(&self.build_url(format!(
+                    "/repos/{owner}/{name}/collaborators/{username}/permission"
+                )))
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<Response>()
+                .await?;
 
-        Ok(response.permission)
+            Ok(response.permission)
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -169,19 +206,46 @@ impl ApiService for GithubApiService {
             check_suites: Vec<GhCheckSuite>,
         }
 
-        let response = self
-            .get_client()
-            .await?
-            .get(&self.build_url(format!(
-                "/repos/{owner}/{name}/commits/{git_ref}/check-suites"
-            )))
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Response>()
-            .await?;
+        let mut responses = vec![];
+        let mut curr_page = 1;
+        let max_per_page = 100;
 
-        Ok(response.check_suites)
+        loop {
+            debug!(current = curr_page, message = "Fetching check suites page");
+
+            let results: Vec<GhCheckSuite> = self
+                .call_with_retry(|| async move {
+                    let response = self
+                        .get_client()
+                        .await?
+                        .get(&self.build_url(format!(
+                            "/repos/{owner}/{name}/commits/{git_ref}/check-suites"
+                        )))
+                        .query(&[("per_page", max_per_page), ("page", curr_page)])
+                        .send()
+                        .await?
+                        .error_for_status()?
+                        .json::<Response>()
+                        .await?;
+
+                    Ok(response.check_suites)
+                })
+                .await?;
+
+            match results.len() {
+                0 => break,
+                n if n == max_per_page => {
+                    responses.extend(results);
+                    curr_page += 1;
+                }
+                _ => {
+                    responses.extend(results);
+                    break;
+                }
+            }
+        }
+
+        Ok(responses)
     }
 
     #[tracing::instrument(skip(self), ret)]
@@ -202,19 +266,22 @@ impl ApiService for GithubApiService {
             id: u64,
         }
 
-        Ok(self
-            .get_client()
-            .await?
-            .post(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/{issue_number}/comments"
-            )))
-            .json(&Request { body })
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Response>()
-            .await?
-            .id)
+        self.call_with_retry(|| async move {
+            Ok(self
+                .get_client()
+                .await?
+                .post(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/{issue_number}/comments"
+                )))
+                .json(&Request { body })
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<Response>()
+                .await?
+                .id)
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self), ret)]
@@ -235,33 +302,39 @@ impl ApiService for GithubApiService {
             id: u64,
         }
 
-        Ok(self
-            .get_client()
-            .await?
-            .patch(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/comments/{comment_id}"
-            )))
-            .json(&Request { body })
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Response>()
-            .await?
-            .id)
+        self.call_with_retry(|| async move {
+            Ok(self
+                .get_client()
+                .await?
+                .patch(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/comments/{comment_id}"
+                )))
+                .json(&Request { body })
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<Response>()
+                .await?
+                .id)
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
     async fn comments_delete(&self, owner: &str, name: &str, comment_id: u64) -> Result<()> {
-        self.get_client()
-            .await?
-            .delete(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/comments/{comment_id}"
-            )))
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .delete(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/comments/{comment_id}"
+                )))
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -277,32 +350,38 @@ impl ApiService for GithubApiService {
             content: &'a str,
         }
 
-        self.get_client()
-            .await?
-            .post(&self.build_url(format!(
-                "/repos/{owner}/{name}/issues/comments/{comment_id}/reactions"
-            )))
-            .json(&Request {
-                content: reaction_type.to_str(),
-            })
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .post(&self.build_url(format!(
+                    "/repos/{owner}/{name}/issues/comments/{comment_id}/reactions"
+                )))
+                .json(&Request {
+                    content: reaction_type.to_str(),
+                })
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
     async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
-        Ok(self
-            .get_client()
-            .await?
-            .get(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}")))
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?)
+        self.call_with_retry(|| async move {
+            Ok(self
+                .get_client()
+                .await?
+                .get(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}")))
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?)
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -322,26 +401,29 @@ impl ApiService for GithubApiService {
             merge_method: String,
         }
 
-        self.get_client()
-            .await?
-            .put(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}/merge")))
-            .json(&Request {
-                commit_title,
-                commit_message,
-                merge_method: merge_strategy.to_string(),
-            })
-            .send()
-            .await?
-            .error_for_status()
-            .map_err(|_| {
-                MergeSnafu {
-                    pr_number: issue_number,
-                    repository_path: format!("{owner}/{name}"),
-                }
-                .build()
-            })?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .put(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}/merge")))
+                .json(&Request {
+                    commit_title,
+                    commit_message,
+                    merge_method: merge_strategy.to_string(),
+                })
+                .send()
+                .await?
+                .error_for_status()
+                .map_err(|_| {
+                    MergeSnafu {
+                        pr_number: issue_number,
+                        repository_path: format!("{owner}/{name}"),
+                    }
+                    .build()
+                })?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -357,17 +439,20 @@ impl ApiService for GithubApiService {
             reviewers: &'a [String],
         }
 
-        self.get_client()
-            .await?
-            .post(&self.build_url(format!(
-                "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
-            )))
-            .json(&Request { reviewers })
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .post(&self.build_url(format!(
+                    "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+                )))
+                .json(&Request { reviewers })
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -383,21 +468,24 @@ impl ApiService for GithubApiService {
             reviewers: &'a [String],
         }
 
-        self.get_client()
-            .await?
-            .delete(&self.build_url(format!(
-                "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
-            )))
-            .json(&Request { reviewers })
-            .header(
-                http::header::ACCEPT,
-                http::header::HeaderValue::from_static("application/vnd.github.v3+json"),
-            )
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .delete(&self.build_url(format!(
+                    "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+                )))
+                .json(&Request { reviewers })
+                .header(
+                    http::header::ACCEPT,
+                    http::header::HeaderValue::from_static("application/vnd.github.v3+json"),
+                )
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
@@ -415,16 +503,20 @@ impl ApiService for GithubApiService {
             debug!(current = curr_page, message = "Fetching review page");
 
             let results: Vec<GhReviewApi> = self
-                .get_client()
-                .await?
-                .get(&self.build_url(format!(
-                    "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
-                )))
-                .query(&[("per_page", max_per_page), ("page", curr_page)])
-                .send()
-                .await?
-                .error_for_status()?
-                .json()
+                .call_with_retry(|| async move {
+                    self.get_client()
+                        .await?
+                        .get(&self.build_url(format!(
+                            "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
+                        )))
+                        .query(&[("per_page", max_per_page), ("page", curr_page)])
+                        .send()
+                        .await?
+                        .error_for_status()?
+                        .json()
+                        .await
+                        .map_err(Into::into)
+                })
                 .await?;
 
             match results.len() {
@@ -462,43 +554,49 @@ impl ApiService for GithubApiService {
             context: &'a str,
         }
 
-        self.get_client()
-            .await?
-            .post(&self.build_url(format!("/repos/{owner}/{name}/statuses/{git_ref}")))
-            .json(&Request {
-                state: status.to_str(),
-                context: title,
-                description: body
-                    .chars()
-                    .take(MAX_STATUS_DESCRIPTION_LEN)
-                    .collect::<String>(),
-            })
-            .send()
-            .await?
-            .error_for_status()?;
+        self.call_with_retry(|| async move {
+            self.get_client()
+                .await?
+                .post(&self.build_url(format!("/repos/{owner}/{name}/statuses/{git_ref}")))
+                .json(&Request {
+                    state: status.to_str(),
+                    context: title,
+                    description: body
+                        .chars()
+                        .take(MAX_STATUS_DESCRIPTION_LEN)
+                        .collect::<String>(),
+                })
+                .send()
+                .await?
+                .error_for_status()?;
 
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     #[tracing::instrument(skip(self))]
     async fn gif_search(&self, api_key: &str, search: &str) -> Result<GifResponse> {
-        let client = reqwest::Client::new();
-        client
-            .get(&format!("{}/search", GIF_API_URL))
-            .query(&[
-                ("q", search),
-                ("key", api_key),
-                ("limit", "3"),
-                ("locale", "en_US"),
-                ("contentfilter", "low"),
-                ("media_filter", "basic"),
-                ("ar_range", "all"),
-            ])
-            .send()
-            .await?
-            .json()
-            .await
-            .map_err(ApiError::from)
+        self.call_with_retry(|| async move {
+            let client = reqwest::Client::new();
+            client
+                .get(&format!("{}/search", GIF_API_URL))
+                .query(&[
+                    ("q", search),
+                    ("key", api_key),
+                    ("limit", "3"),
+                    ("locale", "en_US"),
+                    ("contentfilter", "low"),
+                    ("media_filter", "basic"),
+                    ("ar_range", "all"),
+                ])
+                .send()
+                .await?
+                .json()
+                .await
+                .map_err(ApiError::from)
+        })
+        .await
     }
 
     async fn installations_create_token(
@@ -511,17 +609,20 @@ impl ApiService for GithubApiService {
             token: String,
         }
 
-        Ok(get_anonymous_client_builder(&self.config)?
-            .build()?
-            .post(&self.build_url(format!(
-                "/app/installations/{installation_id}/access_tokens"
-            )))
-            .bearer_auth(auth_token)
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Response>()
-            .await?
-            .token)
+        self.call_with_retry(|| async move {
+            Ok(get_anonymous_client_builder(&self.config)?
+                .build()?
+                .post(&self.build_url(format!(
+                    "/app/installations/{installation_id}/access_tokens"
+                )))
+                .bearer_auth(auth_token)
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<Response>()
+                .await?
+                .token)
+        })
+        .await
     }
 }

@@ -2,8 +2,8 @@
 
 use std::io::Write;
 
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
 
@@ -11,11 +11,10 @@ use crate::Result;
 mod test_sentry;
 use test_sentry::DebugTestSentryCommand;
 
-/// debug related commands.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "debug")]
+/// Debug related commands
+#[derive(Parser)]
 pub(crate) struct DebugCommand {
-    #[argh(subcommand)]
+    #[clap(subcommand)]
     inner: DebugSubCommand,
 }
 
@@ -26,8 +25,7 @@ impl Command for DebugCommand {
     }
 }
 
-#[derive(FromArgs)]
-#[argh(subcommand)]
+#[derive(Subcommand)]
 enum DebugSubCommand {
     TestSentry(DebugTestSentryCommand),
 }

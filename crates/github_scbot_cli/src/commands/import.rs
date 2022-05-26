@@ -6,19 +6,17 @@ use std::{
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::Exchanger;
 use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
-/// import all data.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "import")]
+/// Import all data
+#[derive(Parser)]
 pub(crate) struct ImportCommand {
-    /// input file.
-    #[argh(positional)]
+    /// Tnput file
     input_file: PathBuf,
 }
 

@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::IoSnafu;
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 use snafu::ResultExt;
 
@@ -12,12 +12,10 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// show repository info.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "show")]
+/// Show repository info
+#[derive(Parser)]
 pub(crate) struct RepositoryShowCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

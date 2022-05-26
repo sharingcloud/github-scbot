@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::{pulls::GhMergeStrategy, repository::RepositoryPath};
 use snafu::ResultExt;
 
@@ -12,20 +12,16 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// list known pull request for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "set-merge-strategy")]
+/// List known pull request for a repository
+#[derive(Parser)]
 pub(crate) struct PullRequestSetMergeStrategyCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
-    #[argh(positional)]
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
-    #[argh(positional)]
+    /// Pull request number
     number: u64,
 
-    /// merge strategy.
-    #[argh(positional)]
+    /// Merge strategy
     strategy: Option<GhMergeStrategy>,
 }
 

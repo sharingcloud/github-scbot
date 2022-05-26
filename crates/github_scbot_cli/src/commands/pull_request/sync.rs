@@ -2,24 +2,21 @@ use std::io::Write;
 
 use crate::errors::{ApiSnafu, IoSnafu, LogicSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_logic::{pulls::PullRequestLogic, status::StatusLogic};
 use github_scbot_types::repository::RepositoryPath;
 use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
 
-/// synchronize pull request from upstream.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "sync")]
+/// Synchronize pull request from upstream
+#[derive(Parser)]
 pub(crate) struct PullRequestSyncCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
-    #[argh(positional)]
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
-    #[argh(positional)]
+    /// Pull request number
     number: u64,
 }
 

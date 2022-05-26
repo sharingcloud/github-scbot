@@ -1,17 +1,16 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list known repositories.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list")]
-pub(crate) struct RepositoryListCommand {}
+/// List known repositories
+#[derive(Parser)]
+pub(crate) struct RepositoryListCommand;
 
 #[async_trait(?Send)]
 impl Command for RepositoryListCommand {

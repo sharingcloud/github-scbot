@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -12,15 +12,12 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// set PR title regex for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "set-title-regex")]
+/// Set PR title regex for a repository
+#[derive(Parser)]
 pub(crate) struct RepositorySetTitleRegexCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
-    /// regex value.
-    #[argh(positional)]
+    /// Regex value
     value: String,
 }
 

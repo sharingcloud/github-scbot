@@ -3,8 +3,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
 
@@ -33,11 +33,10 @@ use self::{
     set_title_regex::RepositorySetTitleRegexCommand, show::RepositoryShowCommand,
 };
 
-/// manage repositories.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "repositories")]
+/// Manage repositories
+#[derive(Parser)]
 pub(crate) struct RepositoryCommand {
-    #[argh(subcommand)]
+    #[clap(subcommand)]
     inner: RepositorySubCommand,
 }
 
@@ -48,8 +47,7 @@ impl Command for RepositoryCommand {
     }
 }
 
-#[derive(FromArgs)]
-#[argh(subcommand)]
+#[derive(Subcommand)]
 enum RepositorySubCommand {
     Add(RepositoryAddCommand),
     SetTitleRegex(RepositorySetTitleRegexCommand),

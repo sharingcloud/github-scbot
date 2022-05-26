@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
@@ -11,12 +11,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// create external token.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "create-external-token")]
+/// Create external token
+#[derive(Parser)]
 pub(crate) struct AuthCreateExternalTokenCommand {
-    /// account username.
-    #[argh(positional)]
+    /// Account username
     username: String,
 }
 

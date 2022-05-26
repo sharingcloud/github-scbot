@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::ExternalAccountRight;
 use github_scbot_types::repository::RepositoryPath;
 
@@ -14,15 +14,12 @@ use crate::{
 
 use snafu::ResultExt;
 
-/// add right to account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "add-account-right")]
+/// Add right to account
+#[derive(Parser)]
 pub(crate) struct AuthAddAccountRightCommand {
-    /// account username.
-    #[argh(positional)]
+    /// Account username
     username: String,
-    /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 

@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
@@ -11,12 +11,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// remove external account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "remove-external-account")]
+/// Remove external account
+#[derive(Parser)]
 pub(crate) struct AuthRemoveExternalAccountCommand {
-    /// account username.
-    #[argh(positional)]
+    /// Account username
     username: String,
 }
 

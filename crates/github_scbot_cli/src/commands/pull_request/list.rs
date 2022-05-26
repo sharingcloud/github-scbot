@@ -1,20 +1,18 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list known pull request for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list")]
+/// List known pull request for a repository
+#[derive(Parser)]
 pub(crate) struct PullRequestListCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
-    #[argh(positional)]
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 }
 

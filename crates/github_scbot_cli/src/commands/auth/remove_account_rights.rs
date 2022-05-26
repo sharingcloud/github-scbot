@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use snafu::ResultExt;
 
 use crate::{
@@ -11,12 +11,10 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// remove all rights from account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "remove-account-rights")]
+/// Remove all rights from account
+#[derive(Parser)]
 pub(crate) struct AuthRemoveAccountRightsCommand {
-    /// account username.
-    #[argh(positional)]
+    /// Account username
     username: String,
 }
 

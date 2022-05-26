@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
 
@@ -16,11 +16,10 @@ use self::{
     show::PullRequestShowCommand, sync::PullRequestSyncCommand,
 };
 
-/// manage pull requests.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "pull-requests")]
+/// Manage pull requests
+#[derive(Parser)]
 pub(crate) struct PullRequestCommand {
-    #[argh(subcommand)]
+    #[clap(subcommand)]
     inner: PullRequestSubCommand,
 }
 
@@ -31,8 +30,7 @@ impl Command for PullRequestCommand {
     }
 }
 
-#[derive(FromArgs)]
-#[argh(subcommand)]
+#[derive(Subcommand)]
 pub(crate) enum PullRequestSubCommand {
     Show(PullRequestShowCommand),
     Sync(PullRequestSyncCommand),

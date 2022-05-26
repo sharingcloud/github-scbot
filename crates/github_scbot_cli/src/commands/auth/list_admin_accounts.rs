@@ -1,17 +1,16 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
-/// list admin accounts.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list-admin-accounts")]
-pub(crate) struct AuthListAdminAccountsCommand {}
+/// List admin accounts
+#[derive(Parser)]
+pub(crate) struct AuthListAdminAccountsCommand;
 
 #[async_trait(?Send)]
 impl Command for AuthListAdminAccountsCommand {

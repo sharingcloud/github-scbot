@@ -3,8 +3,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
 
@@ -33,11 +33,10 @@ use self::{
     remove_external_account::AuthRemoveExternalAccountCommand,
 };
 
-/// authentication related commands.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "auth")]
+/// Authentication related commands
+#[derive(Parser)]
 pub(crate) struct AuthCommand {
-    #[argh(subcommand)]
+    #[clap(subcommand)]
     inner: AuthSubCommand,
 }
 
@@ -48,8 +47,7 @@ impl Command for AuthCommand {
     }
 }
 
-#[derive(FromArgs)]
-#[argh(subcommand)]
+#[derive(Subcommand)]
 enum AuthSubCommand {
     CreateExternalAccount(AuthCreateExternalAccountCommand),
     CreateExternalToken(AuthCreateExternalTokenCommand),

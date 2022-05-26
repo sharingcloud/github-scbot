@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::IoSnafu;
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 use snafu::ResultExt;
 
@@ -12,16 +12,13 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// show pull request info.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "show")]
+/// Show pull request info
+#[derive(Parser)]
 pub(crate) struct PullRequestShowCommand {
-    /// repository path (e.g. 'MyOrganization/my-project')
-    #[argh(positional)]
+    /// Repository path (e.g. 'MyOrganization/my-project')
     repository_path: RepositoryPath,
 
-    /// pull request number.
-    #[argh(positional)]
+    /// Pull request number
     number: u64,
 }
 

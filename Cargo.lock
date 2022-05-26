@@ -445,9 +445,12 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
 dependencies = [
+ "futures-core",
  "getrandom",
  "instant",
+ "pin-project-lite",
  "rand 0.8.5",
+ "tokio",
 ]
 
 [[package]]
@@ -588,6 +591,45 @@ dependencies = [
  "serde",
  "time 0.1.44",
  "winapi",
+]
+
+[[package]]
+name = "clap"
+version = "3.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2dbdf4bdacb33466e854ce889eee8dfd5729abf7ccd7664d0a2d60cd384440b"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_derive",
+ "clap_lex",
+ "indexmap",
+ "lazy_static",
+ "strsim",
+ "termcolor",
+ "textwrap",
+]
+
+[[package]]
+name = "clap_derive"
+version = "3.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25320346e922cffe59c0bbc5410c8d8784509efb321488971081313cb1e1a33c"
+dependencies = [
+ "heck 0.4.0",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a37c35f1112dad5e6e0b1adaff798507497a18fceeb30cceb3bae7d1427b9213"
+dependencies = [
+ "os_str_bytes",
 ]
 
 [[package]]
@@ -1179,11 +1221,12 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix-rt",
  "argh",
  "async-trait",
+ "clap",
  "dialoguer",
  "github-scbot-conf",
  "github-scbot-database2",
@@ -1202,7 +1245,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-conf"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "dotenv",
  "github-scbot-crypto",
@@ -1218,7 +1261,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "jsonwebtoken",
  "rand 0.8.5",
@@ -1229,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-macros"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1238,7 +1281,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database2"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1261,10 +1304,11 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix-rt",
  "async-trait",
+ "backoff",
  "chrono",
  "futures-util",
  "github-scbot-conf",
@@ -1286,7 +1330,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix-rt",
  "chrono",
@@ -1307,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix",
  "actix-redis",
@@ -1322,7 +1366,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-sentry"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "sentry",
  "sentry-actix",
@@ -1331,7 +1375,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1364,7 +1408,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "github-scbot-conf",
  "github-scbot-database2",
@@ -1376,7 +1420,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-types"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1387,7 +1431,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-utils"
-version = "0.21.2"
+version = "0.22.0"
 
 [[package]]
 name = "h2"
@@ -2009,6 +2053,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "os_str_bytes"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21326818e99cfe6ce1e524c2a805c189a99b5ae555a35d19f9a284b427d86afa"
+
+[[package]]
 name = "output_vt100"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2223,6 +2273,30 @@ dependencies = [
  "ctor",
  "diff",
  "output_vt100",
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
 ]
 
 [[package]]
@@ -3044,6 +3118,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "termcolor"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
+dependencies = [
+ "winapi-util",
+]
+
+[[package]]
 name = "terminal_size"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3070,6 +3153,12 @@ name = "termtree"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "507e9898683b6c43a9aa55b64259b721b52ba226e0f3779137e50ad114a4c90b"
+
+[[package]]
+name = "textwrap"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
 name = "thiserror"
@@ -3605,6 +3694,15 @@ name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-util"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70ec6ce85bb158151cae5e5c87f95a8e97d2c0c4b001223f33a334e3ce5de178"
+dependencies = [
+ "winapi",
+]
 
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"

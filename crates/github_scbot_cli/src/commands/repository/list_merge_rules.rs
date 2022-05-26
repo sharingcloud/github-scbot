@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -12,12 +12,10 @@ use crate::{
 };
 use snafu::ResultExt;
 
-/// list merge rules for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list-merge-rules")]
+/// List merge rules for a repository
+#[derive(Parser)]
 pub(crate) struct RepositoryListMergeRulesCommand {
-    /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
+    /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
 }
 
