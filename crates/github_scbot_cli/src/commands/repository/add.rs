@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::Repository;
 use github_scbot_types::repository::RepositoryPath;
 
@@ -11,11 +11,9 @@ use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
 /// add repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "add")]
+#[derive(Parser)]
 pub(crate) struct RepositoryAddCommand {
     /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
     repository_path: RepositoryPath,
 }
 

@@ -1,19 +1,18 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_sentry::send_test_event;
 use snafu::whatever;
 
 use super::{Command, CommandContext};
 
 /// send a test message to Sentry.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "test-sentry")]
+#[derive(Parser)]
 pub(crate) struct DebugTestSentryCommand {
     /// custom message, defaults to "This is a test".
-    #[argh(option, short = 'm')]
+    #[clap(short, long)]
     message: Option<String>,
 }
 

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Retry mechanism on each GitHub endpoints
 
+### Changed
+
+- Use `clap` version 3
+
 ### Fixed
 
 - Fetch all check suites instead of first 30

@@ -1,17 +1,16 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
 /// list external accounts.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list-external-accounts")]
-pub(crate) struct AuthListExternalAccountsCommand {}
+#[derive(Parser)]
+pub(crate) struct AuthListExternalAccountsCommand;
 
 #[async_trait(?Send)]
 impl Command for AuthListExternalAccountsCommand {

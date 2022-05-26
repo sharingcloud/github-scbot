@@ -3,8 +3,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Subcommand;
 use github_scbot_conf::Config;
 use github_scbot_database2::DbService;
 use github_scbot_ghapi::adapter::ApiService;
@@ -38,15 +38,14 @@ pub(crate) trait Command {
 }
 
 /// Command
-#[derive(FromArgs)]
-#[argh(subcommand)]
+#[derive(Subcommand)]
 pub(crate) enum SubCommand {
     Server(ServerCommand),
     Ui(UiCommand),
     Export(ExportCommand),
     Import(ImportCommand),
-    PullRequest(PullRequestCommand),
-    Repository(RepositoryCommand),
+    PullRequests(PullRequestCommand),
+    Repositories(RepositoryCommand),
     Auth(AuthCommand),
     Debug(DebugCommand),
 }
@@ -59,9 +58,9 @@ impl Command for SubCommand {
             Self::Ui(sub) => sub.execute(ctx).await,
             Self::Export(sub) => sub.execute(ctx).await,
             Self::Import(sub) => sub.execute(ctx).await,
-            Self::PullRequest(sub) => sub.execute(ctx).await,
+            Self::PullRequests(sub) => sub.execute(ctx).await,
             Self::Auth(sub) => sub.execute(ctx).await,
-            Self::Repository(sub) => sub.execute(ctx).await,
+            Self::Repositories(sub) => sub.execute(ctx).await,
             Self::Debug(sub) => sub.execute(ctx).await,
         }
     }

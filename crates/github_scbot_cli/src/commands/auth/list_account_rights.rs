@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
@@ -12,11 +12,9 @@ use crate::{
 use snafu::ResultExt;
 
 /// list rights for account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "list-account-rights")]
+#[derive(Parser)]
 pub(crate) struct AuthListAccountRightsCommand {
     /// account username.
-    #[argh(positional)]
     username: String,
 }
 

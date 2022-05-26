@@ -6,19 +6,18 @@ use std::{
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::Exchanger;
 use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
 /// export all data.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "export")]
+#[derive(Parser)]
 pub(crate) struct ExportCommand {
     /// output file, stdout if not precised.
-    #[argh(option, short = 'o')]
+    #[clap(short, long)]
     output_file: Option<PathBuf>,
 }
 

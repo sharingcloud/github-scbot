@@ -1,13 +1,13 @@
 //! CLI module.
 
-use std::{ffi::OsStr, io::Write, path::Path};
+use std::io::Write;
 
-use argh::FromArgs;
+use clap::Parser;
 use errors::CliError;
 use github_scbot_conf::{configure_startup, Config};
 use github_scbot_database2::{establish_pool_connection, run_migrations, DbServiceImplPool};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
-use snafu::{whatever, ResultExt};
+use snafu::ResultExt;
 
 use self::commands::{Command, CommandContext, SubCommand};
 
@@ -18,22 +18,19 @@ use errors::{ConfSnafu, DatabaseSnafu};
 
 type Result<T, E = CliError> = std::result::Result<T, E>;
 
-/// command.
-#[derive(FromArgs)]
-#[argh(description = "SharingCloud PR Bot")]
+/// SharingCloud PR Bot
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None, name = "github-scbot")]
+#[clap(propagate_version = true)]
 struct Args {
-    #[argh(subcommand)]
-    cmd: Option<SubCommand>,
-
-    /// show version.
-    #[argh(switch)]
-    version: bool,
+    #[clap(subcommand)]
+    cmd: SubCommand,
 }
 
 /// Initialize command line.
 pub fn initialize_command_line() -> Result<()> {
     let config = configure_startup().context(ConfSnafu)?;
-    let args: Args = argh::from_env();
+    let args = Args::parse();
 
     parse_args_sync(config, args)
 }
@@ -59,42 +56,25 @@ fn parse_args_sync(config: Config, args: Args) -> Result<()> {
         parse_args(args, ctx).await
     }
 
-    if args.version {
-        let exec_name = std::env::args()
-            .next()
-            .as_ref()
-            .map(Path::new)
-            .and_then(Path::file_name)
-            .and_then(OsStr::to_str)
-            .map(String::from)
-            .unwrap();
-        let version = env!("CARGO_PKG_VERSION");
-        println!("{} {}", exec_name, version)
-    } else {
-        actix_rt::System::with_tokio_rt(|| {
-            tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-        })
-        .block_on(sync(config, args))?;
-    }
+    actix_rt::System::with_tokio_rt(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    })
+    .block_on(sync(config, args))?;
 
     Ok(())
 }
 
 async fn parse_args<W: Write>(args: Args, ctx: CommandContext<W>) -> Result<()> {
-    if let Some(cmd) = args.cmd {
-        cmd.execute(ctx).await
-    } else {
-        whatever!("Missing subcommand. Use --help for more info.");
-    }
+    args.cmd.execute(ctx).await
 }
 
 #[cfg(test)]
 mod testutils {
     use super::Result;
-    use argh::FromArgs;
+    use clap::Parser;
     use github_scbot_conf::Config;
     use github_scbot_database2::DbService;
     use github_scbot_ghapi::adapter::ApiService;
@@ -120,7 +100,13 @@ mod testutils {
                 writer: &mut buf,
             };
 
-            let args = Args::from_args(&["bot"], command_args).unwrap();
+            let command_args = {
+                let mut tmp_args = vec!["bot"];
+                tmp_args.extend(command_args);
+                tmp_args
+            };
+
+            let args = Args::try_parse_from(command_args).unwrap();
             parse_args(args, ctx).await?;
         }
 

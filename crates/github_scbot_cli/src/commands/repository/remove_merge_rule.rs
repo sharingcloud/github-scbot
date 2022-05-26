@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::{repository::RepositoryPath, rule_branch::RuleBranch};
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -13,17 +13,13 @@ use crate::{
 use snafu::{whatever, ResultExt};
 
 /// remove merge rule for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "remove-merge-rule")]
+#[derive(Parser)]
 pub(crate) struct RepositoryRemoveMergeRuleCommand {
     /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
     repository_path: RepositoryPath,
     /// base branch name.
-    #[argh(positional)]
     base_branch: RuleBranch,
     /// head branch name.
-    #[argh(positional)]
     head_branch: RuleBranch,
 }
 

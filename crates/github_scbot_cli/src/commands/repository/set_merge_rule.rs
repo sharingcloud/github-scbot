@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::MergeRule;
 use github_scbot_types::{
     pulls::GhMergeStrategy, repository::RepositoryPath, rule_branch::RuleBranch,
@@ -16,20 +16,15 @@ use crate::{
 use snafu::ResultExt;
 
 /// set merge rule for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "set-merge-rule")]
+#[derive(Parser)]
 pub(crate) struct RepositorySetMergeRuleCommand {
     /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
     repository_path: RepositoryPath,
     /// base branch name.
-    #[argh(positional)]
     base_branch: RuleBranch,
     /// head branch name.
-    #[argh(positional)]
     head_branch: RuleBranch,
     /// merge strategy.
-    #[argh(positional)]
     strategy: GhMergeStrategy,
 }
 

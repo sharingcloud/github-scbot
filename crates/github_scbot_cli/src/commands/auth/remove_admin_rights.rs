@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_database2::Account;
 
 use crate::commands::{Command, CommandContext};
@@ -10,11 +10,9 @@ use crate::errors::{DatabaseSnafu, IoSnafu};
 use snafu::ResultExt;
 
 /// remove admin rights from account.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "remove-admin-rights")]
+#[derive(Parser)]
 pub(crate) struct AuthRemoveAdminRightsCommand {
     /// account username.
-    #[argh(positional)]
     username: String,
 }
 

@@ -2,8 +2,8 @@ use std::io::Write;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 use snafu::ResultExt;
 
@@ -13,14 +13,12 @@ use crate::{
 };
 
 /// set default QA status for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "set-qa-status")]
+#[derive(Parser)]
 pub(crate) struct RepositorySetQAStatusCommand {
     /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
     repository_path: RepositoryPath,
     /// status.
-    #[argh(positional)]
+    #[clap(parse(try_from_str))]
     status: bool,
 }
 

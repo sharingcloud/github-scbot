@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::Result;
-use argh::FromArgs;
 use async_trait::async_trait;
+use clap::Parser;
 use github_scbot_types::repository::RepositoryPath;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -13,14 +13,12 @@ use crate::{
 use snafu::ResultExt;
 
 /// set manual interaction mode for a repository.
-#[derive(FromArgs)]
-#[argh(subcommand, name = "set-manual-interaction")]
+#[derive(Parser)]
 pub(crate) struct RepositorySetManualInteractionCommand {
     /// repository path (e.g. `MyOrganization/my-project`).
-    #[argh(positional)]
     repository_path: RepositoryPath,
     /// mode.
-    #[argh(positional)]
+    #[clap(parse(try_from_str))]
     manual_interaction: bool,
 }
 
