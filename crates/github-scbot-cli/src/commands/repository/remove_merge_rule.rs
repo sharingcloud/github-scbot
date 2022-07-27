@@ -70,7 +70,7 @@ impl Command for RepositoryRemoveMergeRuleCommand {
 mod tests {
     use github_scbot_core::config::Config;
     use github_scbot_core::types::rule_branch::RuleBranch;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, DbService, DbServiceImplPool, MergeRule, Repository,
     };
     use github_scbot_ghapi::adapter::MockApiService;

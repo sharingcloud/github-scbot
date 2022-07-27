@@ -1,6 +1,6 @@
 //! UI state utils.
 
-use github_scbot_database2::{PullRequest, Repository};
+use github_scbot_database::{PullRequest, Repository};
 use termion::event::Key;
 use tui::widgets::ListState;
 

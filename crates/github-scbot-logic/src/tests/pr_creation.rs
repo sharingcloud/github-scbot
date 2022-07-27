@@ -7,7 +7,7 @@ use github_scbot_core::types::{
 use github_scbot_ghapi::adapter::MockApiService;
 use github_scbot_redis::{LockInstance, LockStatus, MockRedisService};
 
-use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool, Repository, Result};
+use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool, Repository, Result};
 
 use crate::pulls::{handle_pull_request_opened, PullRequestLogic, PullRequestOpenedStatus};
 

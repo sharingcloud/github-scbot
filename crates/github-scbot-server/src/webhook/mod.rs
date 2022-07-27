@@ -15,7 +15,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::events::EventType;
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use serde::Deserialize;

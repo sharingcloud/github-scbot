@@ -11,7 +11,7 @@ pub enum CliError {
     #[snafu(display("{}", source))]
     DatabaseError {
         #[snafu(backtrace)]
-        source: github_scbot_database2::DatabaseError,
+        source: github_scbot_database::DatabaseError,
     },
     #[snafu(display("{}", source))]
     UiError { source: github_scbot_tui::UiError },

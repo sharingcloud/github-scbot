@@ -8,7 +8,7 @@ use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_database2::Exchanger;
+use github_scbot_database::Exchanger;
 use snafu::ResultExt;
 
 use super::{Command, CommandContext};

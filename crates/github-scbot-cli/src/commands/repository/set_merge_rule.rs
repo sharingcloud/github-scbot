@@ -6,7 +6,7 @@ use clap::Parser;
 use github_scbot_core::types::{
     pulls::GhMergeStrategy, repository::RepositoryPath, rule_branch::RuleBranch,
 };
-use github_scbot_database2::MergeRule;
+use github_scbot_database::MergeRule;
 
 use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
@@ -83,7 +83,7 @@ impl Command for RepositorySetMergeRuleCommand {
 mod tests {
     use github_scbot_core::config::Config;
     use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
-    use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool, Repository};
+    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool, Repository};
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 

@@ -8,7 +8,7 @@ use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_database2::Exchanger;
+use github_scbot_database::Exchanger;
 use snafu::ResultExt;
 
 use super::{Command, CommandContext};
@@ -44,7 +44,7 @@ mod tests {
     use std::io::{BufWriter, Cursor};
 
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, Account, DbService, DbServiceImplPool, Exchanger, ExternalAccount,
         ExternalAccountRight, MergeRule, PullRequest, Repository, RequiredReviewer,
     };

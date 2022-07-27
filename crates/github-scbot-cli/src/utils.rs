@@ -1,6 +1,6 @@
 use crate::errors::DatabaseSnafu;
 use crate::Result;
-use github_scbot_database2::{
+use github_scbot_database::{
     ExternalAccount, ExternalAccountDB, PullRequest, PullRequestDB, Repository, RepositoryDB,
 };
 use snafu::{whatever, ResultExt};

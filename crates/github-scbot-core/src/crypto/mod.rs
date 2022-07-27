@@ -1,19 +1,17 @@
 //! Crypto module.
 
-#![warn(missing_docs)]
-#![warn(clippy::all)]
-
 mod errors;
 mod jwt;
 mod rsa;
-
-pub use jwt::JwtUtils;
-pub use rand;
+mod sig;
 
 pub use self::{
     errors::{CryptoError, Result},
     rsa::RsaUtils,
+    sig::is_valid_signature,
 };
+pub use jwt::JwtUtils;
+pub use rand;
 
 #[cfg(test)]
 mod tests {

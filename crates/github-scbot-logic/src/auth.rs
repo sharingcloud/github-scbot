@@ -1,7 +1,7 @@
 //! Authentication logic module.
 
 use github_scbot_core::types::common::GhUserPermission;
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 
 use crate::Result;
 

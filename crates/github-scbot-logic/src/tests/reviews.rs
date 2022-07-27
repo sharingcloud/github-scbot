@@ -6,7 +6,7 @@ use github_scbot_core::types::{
     common::{GhUser, GhUserPermission},
     pulls::GhPullRequest,
 };
-use github_scbot_database2::{
+use github_scbot_database::{
     use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository, Result,
 };
 use github_scbot_ghapi::adapter::{ApiService, GhReviewApi, GhReviewStateApi, MockApiService};

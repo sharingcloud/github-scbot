@@ -62,7 +62,7 @@ impl Command for PullRequestSetMergeStrategyCommand {
 mod tests {
     use github_scbot_core::config::Config;
     use github_scbot_core::types::pulls::GhMergeStrategy;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
     };
     use github_scbot_ghapi::adapter::MockApiService;

@@ -5,7 +5,7 @@ use github_scbot_core::types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
-use github_scbot_database2::{DbService, PullRequest, Repository, RequiredReviewer};
+use github_scbot_database::{DbService, PullRequest, Repository, RequiredReviewer};
 use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use regex::Regex;
 

@@ -1,7 +1,7 @@
 //! External module.
 
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database2::{DbService, ExternalAccount};
+use github_scbot_database::{DbService, ExternalAccount};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 

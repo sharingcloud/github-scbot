@@ -37,7 +37,7 @@ impl Command for AuthCreateExternalTokenCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool, ExternalAccount};
+    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool, ExternalAccount};
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 

@@ -1,7 +1,7 @@
 //! Application module.
 
 use github_scbot_core::types::status::QaStatus;
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use termion::event::Key;
 use tui::{
     backend::Backend,

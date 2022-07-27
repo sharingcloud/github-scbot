@@ -9,7 +9,7 @@ use github_scbot_core::types::{
     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
     status::CheckStatus,
 };
-use github_scbot_database2::{DbService, PullRequest, Repository};
+use github_scbot_database::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::RedisService;
 

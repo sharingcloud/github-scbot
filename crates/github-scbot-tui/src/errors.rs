@@ -25,11 +25,11 @@ pub enum UiError {
         backtrace: Backtrace,
     },
 
-    /// Wraps [`github_scbot_database2::DatabaseError`].
+    /// Wraps [`github_scbot_database::DatabaseError`].
     #[snafu(display("Database error,\n  caused by: {}", source))]
     Database {
         #[snafu(backtrace)]
-        source: github_scbot_database2::DatabaseError,
+        source: github_scbot_database::DatabaseError,
     },
 }
 
@@ -51,8 +51,8 @@ impl From<std::sync::mpsc::RecvError> for UiError {
     }
 }
 
-impl From<github_scbot_database2::DatabaseError> for UiError {
-    fn from(e: github_scbot_database2::DatabaseError) -> Self {
+impl From<github_scbot_database::DatabaseError> for UiError {
+    fn from(e: github_scbot_database::DatabaseError) -> Self {
         Self::Database { source: e }
     }
 }

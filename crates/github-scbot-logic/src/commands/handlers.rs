@@ -5,7 +5,7 @@ use github_scbot_core::types::{
     pulls::{GhMergeStrategy, GhPullRequest},
     status::{CheckStatus, QaStatus},
 };
-use github_scbot_database2::{DbService, RequiredReviewer};
+use github_scbot_database::{DbService, RequiredReviewer};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use std::fmt::Write;
@@ -839,7 +839,7 @@ pub fn handle_admin_help_command(
 mod tests {
     use futures_util::FutureExt;
     use github_scbot_core::types::common::GhUserPermission;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         Account, MockAccountDB, MockDbService, MockMergeRuleDB, MockPullRequestDB,
         MockRepositoryDB, MockRequiredReviewerDB, PullRequest, Repository,
     };

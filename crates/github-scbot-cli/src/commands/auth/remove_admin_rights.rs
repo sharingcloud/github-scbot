@@ -3,7 +3,7 @@ use std::io::Write;
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_database2::Account;
+use github_scbot_database::Account;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -51,7 +51,7 @@ impl Command for AuthRemoveAdminRightsCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{use_temporary_db, Account, DbService, DbServiceImplPool};
+    use github_scbot_database::{use_temporary_db, Account, DbService, DbServiceImplPool};
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 

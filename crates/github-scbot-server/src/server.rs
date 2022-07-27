@@ -12,7 +12,7 @@ use actix_web::{
 use actix_web_httpauth::middleware::HttpAuthentication;
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
-use github_scbot_database2::{DbPool, DbService, DbServiceImplPool};
+use github_scbot_database::{DbPool, DbService, DbServiceImplPool};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use snafu::ResultExt;

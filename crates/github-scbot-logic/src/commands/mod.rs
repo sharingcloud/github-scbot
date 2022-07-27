@@ -8,7 +8,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::{
     common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest,
 };
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::RedisService;
 pub use handlers::handle_qa_command;

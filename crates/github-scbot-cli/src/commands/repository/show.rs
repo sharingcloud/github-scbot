@@ -36,7 +36,7 @@ impl Command for RepositoryShowCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool, Repository};
+    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool, Repository};
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 

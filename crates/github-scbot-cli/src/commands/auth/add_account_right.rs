@@ -4,7 +4,7 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database2::ExternalAccountRight;
+use github_scbot_database::ExternalAccountRight;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -62,7 +62,7 @@ impl Command for AuthAddAccountRightCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, DbService, DbServiceImplPool, ExternalAccount, Repository,
     };
     use github_scbot_ghapi::adapter::MockApiService;

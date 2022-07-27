@@ -4,7 +4,7 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database2::Repository;
+use github_scbot_database::Repository;
 
 use crate::commands::{Command, CommandContext};
 use crate::errors::{DatabaseSnafu, IoSnafu};
@@ -43,7 +43,7 @@ impl Command for RepositoryAddCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{use_temporary_db, DbService, DbServiceImplPool};
+    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool};
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 

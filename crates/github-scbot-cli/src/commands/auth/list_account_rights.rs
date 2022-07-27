@@ -54,7 +54,7 @@ impl Command for AuthListAccountRightsCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, DbService, DbServiceImplPool, ExternalAccount, ExternalAccountRight,
         Repository,
     };

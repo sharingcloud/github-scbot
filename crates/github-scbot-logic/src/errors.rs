@@ -20,11 +20,11 @@ pub enum LogicError {
         source: github_scbot_ghapi::ApiError,
     },
 
-    /// Wraps [`github_scbot_database2::DatabaseError`].
+    /// Wraps [`github_scbot_database::DatabaseError`].
     #[snafu(display("Database error,\n  caused by: {}", source))]
     DatabaseError {
         #[snafu(backtrace)]
-        source: github_scbot_database2::DatabaseError,
+        source: github_scbot_database::DatabaseError,
     },
 
     /// Wraps [`github_scbot_redis::RedisError`].
@@ -50,8 +50,8 @@ impl From<github_scbot_ghapi::ApiError> for LogicError {
     }
 }
 
-impl From<github_scbot_database2::DatabaseError> for LogicError {
-    fn from(e: github_scbot_database2::DatabaseError) -> Self {
+impl From<github_scbot_database::DatabaseError> for LogicError {
+    fn from(e: github_scbot_database::DatabaseError) -> Self {
         Self::DatabaseError { source: e }
     }
 }

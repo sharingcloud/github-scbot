@@ -1,5 +1,5 @@
 [package]
-name = "github-scbot-database2"
+name = "github-scbot-database"
 version = "0.22.0"
 edition = "2021"
 

@@ -7,7 +7,7 @@ use github_scbot_core::types::{
     pulls::GhPullRequest,
     status::{CheckStatus, QaStatus, StatusState},
 };
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::{LockStatus, RedisService};
 pub use pull_status::PullRequestStatus;

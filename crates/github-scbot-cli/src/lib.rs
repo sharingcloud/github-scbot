@@ -5,7 +5,7 @@ use std::io::Write;
 use clap::Parser;
 use errors::CliError;
 use github_scbot_core::config::{configure_startup, Config};
-use github_scbot_database2::{establish_pool_connection, run_migrations, DbServiceImplPool};
+use github_scbot_database::{establish_pool_connection, run_migrations, DbServiceImplPool};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
 use snafu::ResultExt;
 
@@ -76,7 +76,7 @@ mod testutils {
     use super::Result;
     use clap::Parser;
     use github_scbot_core::config::Config;
-    use github_scbot_database2::DbService;
+    use github_scbot_database::DbService;
     use github_scbot_ghapi::adapter::ApiService;
     use github_scbot_redis::RedisService;
 

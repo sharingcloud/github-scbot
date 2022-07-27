@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_core::types::{checks::GhCheckSuiteEvent, events::EventType};
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_logic::checks::handle_check_suite_event;
 use github_scbot_redis::RedisService;

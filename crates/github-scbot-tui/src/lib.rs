@@ -11,7 +11,7 @@ mod events;
 mod state;
 
 mod errors;
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 
 use self::errors::Result;
 pub use errors::UiError;

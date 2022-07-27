@@ -49,7 +49,7 @@ impl Command for PullRequestShowCommand {
 #[cfg(test)]
 mod tests {
     use github_scbot_core::config::Config;
-    use github_scbot_database2::{
+    use github_scbot_database::{
         use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
     };
     use github_scbot_ghapi::adapter::MockApiService;

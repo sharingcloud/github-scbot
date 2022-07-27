@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-database2 = { path = "../github-scbot-database2" }
+github-scbot-database = { path = "../github-scbot-database" }
 snafu = "0.7.1"
 
 [target.'cfg(unix)'.dependencies]

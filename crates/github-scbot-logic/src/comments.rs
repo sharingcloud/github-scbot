@@ -5,7 +5,7 @@ use github_scbot_core::types::{
     issues::{GhIssueCommentAction, GhIssueCommentEvent},
     pulls::GhPullRequest,
 };
-use github_scbot_database2::DbService;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use tracing::info;

@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-database2 = { path = "../github-scbot-database2" }
+github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
