@@ -27,6 +27,18 @@ pub enum CryptoError {
         source: jsonwebtoken::errors::Error,
         backtrace: Backtrace,
     },
+    #[snafu(display("Invalid signature format: {}", sig))]
+    InvalidSignatureFormat {
+        sig: String,
+        source: hex::FromHexError,
+        backtrace: Backtrace,
+    },
+    #[snafu(display("Invalid HMAC secret key length: {}", key))]
+    InvalidSecretKeyLength {
+        key: String,
+        source: hmac::digest::InvalidLength,
+        backtrace: Backtrace,
+    },
 }
 
 /// Result alias for `CryptoError`.

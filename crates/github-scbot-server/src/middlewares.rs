@@ -124,8 +124,11 @@ where
                         body.extend_from_slice(&chunk.unwrap());
                     }
 
-                    if !is_valid_signature(sig, &body, &secret) {
-                        return Err(InvalidWebhookSignatureSnafu.build().into());
+                    match is_valid_signature(sig, &body, &secret) {
+                        Ok(false) | Err(_) => {
+                            return Err(InvalidWebhookSignatureSnafu.build().into())
+                        }
+                        _ => (),
                     }
 
                     // Thanks https://github.com/actix/actix-web/issues/1457#issuecomment-617342438
