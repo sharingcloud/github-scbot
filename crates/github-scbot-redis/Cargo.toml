@@ -9,13 +9,13 @@ edition = "2021"
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
 
-actix = "0.12.0"
-actix-redis = "0.11.0"
-async-trait = "0.1.50"
-mockall = "0.11.0"
+actix = "0.13.0"
+actix-redis = "0.12.0"
+async-trait = "0.1.56"
+mockall = "0.11.2"
 snafu = "0.7.1"
-redis-async = "0.12.1"
-tracing = "0.1"
+redis-async = "0.13.0"
+tracing = "0.1.35"
 
 [dev-dependencies]
 actix-rt = "2.7.0"

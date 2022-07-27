@@ -52,24 +52,31 @@ impl ResponseError for ValidationError {
 pub async fn jwt_auth_validator(
     req: ServiceRequest,
     credentials: BearerAuth,
-) -> Result<ServiceRequest, Error> {
+) -> Result<ServiceRequest, (Error, ServiceRequest)> {
     jwt_auth_validator_inner(req, credentials)
         .await
-        .map_err(Into::into)
+        .map_err(|(err, req)| (err.into(), req))
 }
 
 async fn jwt_auth_validator_inner(
     req: ServiceRequest,
     credentials: BearerAuth,
-) -> Result<ServiceRequest, ValidationError> {
+) -> Result<ServiceRequest, (ValidationError, ServiceRequest)> {
     let ctx = req.app_data::<web::Data<Arc<AppContext>>>().unwrap();
     let target_account =
-        extract_account_from_auth(&mut *ctx.db_adapter.external_accounts(), &credentials).await?;
+        match extract_account_from_auth(&mut *ctx.db_adapter.external_accounts(), &credentials)
+            .await
+        {
+            Ok(acc) => acc,
+            Err(e) => return Err((e, req)),
+        };
 
     // Validate token with ISS
     let tok = credentials.token();
-    let _claims: ExternalJwtClaims = JwtUtils::verify_jwt(tok, target_account.public_key())
-        .map_err(|e| ValidationError::token_error(tok, e))?;
+    let _claims: ExternalJwtClaims = match JwtUtils::verify_jwt(tok, target_account.public_key()) {
+        Ok(claims) => claims,
+        Err(e) => return Err((ValidationError::token_error(tok, e), req)),
+    };
 
     Ok(req)
 }

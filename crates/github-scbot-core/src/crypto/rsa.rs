@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
+
 const RSA_SIZE: u32 = 2048;
 
 /// RSA utilities.
@@ -38,10 +40,7 @@ impl Display for PrivateRsaKey {
 impl RsaUtils {
     /// Generate a RSA key-pair.
     pub fn generate_rsa_keys() -> (PrivateRsaKey, PublicRsaKey) {
-        use ::rsa::{
-            pkcs1::{ToRsaPrivateKey, ToRsaPublicKey},
-            RsaPrivateKey, RsaPublicKey,
-        };
+        use ::rsa::{RsaPrivateKey, RsaPublicKey};
         use rand::rngs::OsRng;
 
         let mut rng = OsRng;
@@ -49,10 +48,10 @@ impl RsaUtils {
             RsaPrivateKey::new(&mut rng, RSA_SIZE as usize).expect("failed to generate a key");
         let pub_key = RsaPublicKey::from(&priv_key);
         let priv_key_pem = priv_key
-            .to_pkcs1_pem()
+            .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
             .expect("RSA private key to PEM conversion should work");
         let pub_key_pem = pub_key
-            .to_pkcs1_pem()
+            .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
             .expect("RSA public key to PEM conversion should work");
 
         (

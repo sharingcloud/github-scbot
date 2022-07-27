@@ -10,15 +10,15 @@ github-scbot-database2 = { path = "../github-scbot-database2" }
 github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
-regex = "1.4"
+regex = "1.6.0"
 smart-default = "0.6.0"
 snafu = "0.7.1"
-tracing = "0.1"
+tracing = "0.1.35"
 
 [dev-dependencies]
-actix-rt = "2"
+actix-rt = "2.7.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures-util = "0.3.21"
 maplit = "1.0.2"
-mockall = "0.11.0"
-pretty_assertions = "0.7.2"
+mockall = "0.11.2"
+pretty_assertions = "1.2.1"

@@ -10,5 +10,5 @@ github-scbot-database2 = { path = "../github-scbot-database2" }
 snafu = "0.7.1"
 
 [target.'cfg(unix)'.dependencies]
-termion = "1.5.5"
-tui = "0.13"
+termion = "1.5.6"
+tui = { version = "0.18.0", features = ["termion"] }

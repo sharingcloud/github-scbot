@@ -10,6 +10,7 @@ use github_scbot_core::types::{
     reviews::GhReviewState,
     status::StatusState,
 };
+use heck::ToSnakeCase;
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
@@ -32,8 +33,6 @@ pub enum GhReviewStateApi {
 
 impl From<GhReviewStateApi> for GhReviewState {
     fn from(state_api: GhReviewStateApi) -> Self {
-        use heck::SnakeCase;
-
         let str_value = serde_plain::to_string(&state_api).unwrap();
         let snake_case_value = str_value.to_snake_case();
         serde_plain::from_str(&snake_case_value).unwrap()

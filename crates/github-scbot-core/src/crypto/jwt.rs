@@ -1,7 +1,4 @@
-use jsonwebtoken::{
-    dangerous_insecure_decode, decode, encode, Algorithm, DecodingKey, EncodingKey, Header,
-    Validation,
-};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{de::DeserializeOwned, Serialize};
 use snafu::ResultExt;
 
@@ -40,7 +37,10 @@ impl JwtUtils {
     where
         T: DeserializeOwned,
     {
-        Ok(dangerous_insecure_decode(token)
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.insecure_disable_signature_validation();
+
+        Ok(decode(token, &DecodingKey::from_secret(&[]), &validation)
             .context(JwtVerificationFailedSnafu)?
             .claims)
     }
