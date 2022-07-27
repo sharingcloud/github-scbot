@@ -62,7 +62,10 @@ impl ReviewApi {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::types::{common::GhUser, reviews::GhReviewState};
+    use github_scbot_core::{
+        time::OffsetDateTime,
+        types::{common::GhUser, reviews::GhReviewState},
+    };
 
     use super::*;
     use crate::adapter::GhReviewStateApi;
@@ -70,7 +73,7 @@ mod tests {
     fn new_review(username: &str, state: GhReviewStateApi) -> GhReviewApi {
         GhReviewApi {
             state,
-            submitted_at: chrono::Utc::now(),
+            submitted_at: OffsetDateTime::now_utc(),
             user: GhUser {
                 login: username.into(),
             },

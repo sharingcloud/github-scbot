@@ -1,8 +1,8 @@
 //! Check types.
 
-use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
+use time::OffsetDateTime;
 
 use super::{
     common::{GhApplication, GhRepository, GhUser},
@@ -82,11 +82,11 @@ pub struct GhCheckSuite {
     /// Application.
     pub app: GhApplication,
     /// Created at.
-    #[default(chrono::Utc::now())]
-    pub created_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub created_at: OffsetDateTime,
     /// Updated at.
-    #[default(chrono::Utc::now())]
-    pub updated_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub updated_at: OffsetDateTime,
 }
 
 /// GitHub Check suite event.

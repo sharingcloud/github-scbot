@@ -30,5 +30,4 @@ prometheus = { version = "0.13.1", features = ["process"] }
 lazy_static = "1.4.0"
 
 [dev-dependencies]
-chrono = { version = "0.4.19", features = ["serde"] }
 pretty_assertions = "1.2.1"

@@ -121,7 +121,7 @@ dependencies = [
  "futures-core",
  "log",
  "redis-async",
- "time 0.3.9",
+ "time 0.3.11",
  "tokio",
  "tokio-util",
 ]
@@ -242,7 +242,7 @@ dependencies = [
  "serde_urlencoded",
  "smallvec",
  "socket2",
- "time 0.3.9",
+ "time 0.3.11",
  "url",
 ]
 
@@ -547,20 +547,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "chrono"
-version = "0.4.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "670ad68c9088c2a963aaa298cb369688cf3f9465ce5e2d4ca10e6e0098a1ce73"
-dependencies = [
- "libc",
- "num-integer",
- "num-traits",
- "serde",
- "time 0.1.44",
- "winapi",
-]
-
-[[package]]
 name = "clap"
 version = "3.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -633,7 +619,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94d4706de1b0fa5b132270cddffa8585166037822e260a944fe161acd137ca05"
 dependencies = [
  "percent-encoding",
- "time 0.3.9",
+ "time 0.3.11",
  "version_check",
 ]
 
@@ -1218,7 +1204,6 @@ dependencies = [
 name = "github-scbot-core"
 version = "0.22.0"
 dependencies = [
- "chrono",
  "dotenv",
  "jsonwebtoken",
  "rand 0.8.5",
@@ -1229,6 +1214,7 @@ dependencies = [
  "serde_plain",
  "smart-default",
  "snafu",
+ "time 0.3.11",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-error",
@@ -1264,7 +1250,6 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "backoff",
- "chrono",
  "futures-util",
  "github-scbot-core",
  "heck 0.4.0",
@@ -1285,7 +1270,6 @@ name = "github-scbot-logic"
 version = "0.22.0"
 dependencies = [
  "actix-rt",
- "chrono",
  "futures-util",
  "github-scbot-core",
  "github-scbot-database2",
@@ -1334,7 +1318,6 @@ dependencies = [
  "actix-web-httpauth",
  "actix-web-prom",
  "async-trait",
- "chrono",
  "futures",
  "github-scbot-core",
  "github-scbot-database2",
@@ -2685,7 +2668,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "time 0.3.9",
+ "time 0.3.11",
  "url",
  "uuid",
 ]
@@ -2823,7 +2806,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "thiserror",
- "time 0.3.9",
+ "time 0.3.11",
 ]
 
 [[package]]
@@ -3132,13 +3115,14 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.9"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2702e08a7a860f005826c6815dcac101b19b5eb330c27fe4a5928fec1d20ddd"
+checksum = "72c91f41dcb2f096c05f0873d667dceec1087ce5bcf984ec8ffb19acddbb3217"
 dependencies = [
  "itoa",
  "libc",
  "num_threads",
+ "serde",
  "time-macros",
 ]
 
@@ -3283,7 +3267,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
- "time 0.3.9",
+ "time 0.3.11",
  "tracing",
  "tracing-core",
  "tracing-log",

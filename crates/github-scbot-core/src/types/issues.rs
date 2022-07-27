@@ -1,8 +1,8 @@
 //! Issue types.
 
-use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
+use time::OffsetDateTime;
 
 use super::common::{GhLabel, GhRepository, GhUser};
 
@@ -87,13 +87,13 @@ pub struct GhIssue {
     /// State.
     pub state: GhIssueState,
     /// Created at.
-    #[default(chrono::Utc::now())]
-    pub created_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub created_at: OffsetDateTime,
     /// Updated at.
-    #[default(chrono::Utc::now())]
-    pub updated_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub updated_at: OffsetDateTime,
     /// Closed at.
-    pub closed_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<OffsetDateTime>,
     /// Body.
     pub body: Option<String>,
 }
@@ -120,11 +120,11 @@ pub struct GhIssueComment {
     /// User.
     pub user: GhUser,
     /// Created at.
-    #[default(chrono::Utc::now())]
-    pub created_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub created_at: OffsetDateTime,
     /// Updated at.
-    #[default(chrono::Utc::now())]
-    pub updated_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub updated_at: OffsetDateTime,
     /// Body.
     pub body: String,
 }

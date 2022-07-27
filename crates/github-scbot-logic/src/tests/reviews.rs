@@ -1,7 +1,7 @@
 //! Review tests
 
-use chrono::Utc;
 use github_scbot_core::config::Config;
+use github_scbot_core::time::OffsetDateTime;
 use github_scbot_core::types::{
     common::{GhUser, GhUserPermission},
     pulls::GhPullRequest,
@@ -117,7 +117,7 @@ async fn test_review_creation() -> Result<()> {
                         login: "him".into(),
                     },
                     state: GhReviewStateApi::Pending,
-                    submitted_at: Utc::now(),
+                    submitted_at: OffsetDateTime::now_utc(),
                 }])
             });
 
@@ -228,7 +228,7 @@ async fn test_review_creation() -> Result<()> {
                         login: "him".into(),
                     },
                     state: GhReviewStateApi::Pending,
-                    submitted_at: Utc::now(),
+                    submitted_at: OffsetDateTime::now_utc(),
                 }])
             });
 

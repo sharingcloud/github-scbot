@@ -8,7 +8,6 @@ edition = "2021"
 github-scbot-core = { path = "../github-scbot-core" }
 
 async-trait = "0.1.56"
-chrono = { version = "0.4.19", features = ["serde"] }
 futures-util = "0.3.21"
 heck = "0.4.0"
 http = "0.2.8"

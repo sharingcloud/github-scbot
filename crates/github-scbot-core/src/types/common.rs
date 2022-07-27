@@ -1,7 +1,7 @@
 //! Common types.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 /// GitHub User.
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
@@ -48,7 +48,7 @@ pub struct GhCommit {
     /// Message.
     pub message: String,
     /// Timestamp.
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: OffsetDateTime,
     /// Author.
     pub author: GhCommitUser,
     /// Committer.

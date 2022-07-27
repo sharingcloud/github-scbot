@@ -516,11 +516,13 @@ impl PullRequestLogic {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Duration, Utc};
-    use github_scbot_core::types::{
-        checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
-        common::GhApplication,
-        status::CheckStatus,
+    use github_scbot_core::{
+        time::{Duration, OffsetDateTime},
+        types::{
+            checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
+            common::GhApplication,
+            status::CheckStatus,
+        },
     };
 
     use super::*;
@@ -669,7 +671,7 @@ mod tests {
         );
 
         // Two GitHub actions at different moments
-        let now = Utc::now();
+        let now = OffsetDateTime::now_utc();
         assert_eq!(
             PullRequestLogic::filter_and_merge_check_suites(
                 vec![

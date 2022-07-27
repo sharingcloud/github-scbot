@@ -1,17 +1,22 @@
 //! Webhook handler tests
 
-use github_scbot_core::types::{
-    checks::{
-        GhCheckConclusion, GhCheckStatus, GhCheckSuite, GhCheckSuiteAction, GhCheckSuiteEvent,
+use github_scbot_core::{
+    time::{format_description::well_known::Rfc3339, OffsetDateTime},
+    types::{
+        checks::{
+            GhCheckConclusion, GhCheckStatus, GhCheckSuite, GhCheckSuiteAction, GhCheckSuiteEvent,
+        },
+        common::{GhApplication, GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser},
+        issues::{
+            GhIssue, GhIssueComment, GhIssueCommentAction, GhIssueCommentEvent, GhIssueState,
+        },
+        ping::GhPingEvent,
+        pulls::{
+            GhPullRequest, GhPullRequestAction, GhPullRequestEvent, GhPullRequestShort,
+            GhPullRequestState,
+        },
+        reviews::{GhReview, GhReviewAction, GhReviewEvent, GhReviewState},
     },
-    common::{GhApplication, GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser},
-    issues::{GhIssue, GhIssueComment, GhIssueCommentAction, GhIssueCommentEvent, GhIssueState},
-    ping::GhPingEvent,
-    pulls::{
-        GhPullRequest, GhPullRequestAction, GhPullRequestEvent, GhPullRequestShort,
-        GhPullRequestState,
-    },
-    reviews::{GhReview, GhReviewAction, GhReviewEvent, GhReviewState},
 };
 use pretty_assertions::assert_eq;
 
@@ -77,12 +82,10 @@ fn test_check_suite_completed_event_parsing() -> ServerResult<()> {
                     },
                     name: "GitHub Actions".to_string()
                 },
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:29Z")
+                created_at: OffsetDateTime::parse("2020-11-13T17:34:29Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-13T17:41:47Z", &Rfc3339)
                     .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:41:47Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
             },
             repository: GhRepository {
                 name: "test-repo".to_string(),
@@ -118,12 +121,10 @@ fn test_issue_comment_created_event_parsing() -> ServerResult<()> {
                 },
                 labels: vec![],
                 state: GhIssueState::Open,
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-15T15:49:48Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-15T16:13:15Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                created_at: OffsetDateTime::parse("2020-11-15T15:49:48Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-15T16:13:15Z", &Rfc3339)
+                    .expect("bad date"),
                 closed_at: None,
                 body: Some("Ajout du module de gestion des webhooks.".to_string())
             },
@@ -132,12 +133,10 @@ fn test_issue_comment_created_event_parsing() -> ServerResult<()> {
                 user: GhUser {
                     login: "me".to_string()
                 },
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-15T16:13:15Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-15T16:13:15Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                created_at: OffsetDateTime::parse("2020-11-15T16:13:15Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-15T16:13:15Z", &Rfc3339)
+                    .expect("bad date"),
                 body: "Un autre commentaire de test.".to_string()
             },
             repository: GhRepository {
@@ -175,12 +174,10 @@ fn test_pull_request_opened_event_parsing() -> ServerResult<()> {
                     login: "me".to_string()
                 },
                 body: Some("Ceci est\nle corps de la \nPR".to_string()),
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:23Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:23Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                created_at: OffsetDateTime::parse("2020-11-13T17:34:23Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-13T17:34:23Z", &Rfc3339)
+                    .expect("bad date"),
                 closed_at: None,
                 merged_at: None,
                 requested_reviewers: vec![],
@@ -243,12 +240,10 @@ fn test_pull_request_labeled_event_parsing() -> ServerResult<()> {
                     login: "me".to_string()
                 },
                 body: Some("This is a PR body".to_string()),
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:34:23Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:39:42Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                created_at: OffsetDateTime::parse("2020-11-13T17:34:23Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-13T17:39:42Z", &Rfc3339)
+                    .expect("bad date"),
                 closed_at: None,
                 merged_at: None,
                 requested_reviewers: vec![GhUser {
@@ -323,9 +318,7 @@ fn test_review_submitted_event_parsing() -> ServerResult<()> {
                     login: "me".to_string()
                 },
                 submitted_at: Some(
-                    chrono::DateTime::parse_from_rfc3339("2020-11-13T17:25:46Z")
-                        .expect("bad date")
-                        .with_timezone(&chrono::Utc)
+                    OffsetDateTime::parse("2020-11-13T17:25:46Z", &Rfc3339).expect("bad date")
                 ),
                 state: GhReviewState::ChangesRequested
             },
@@ -338,12 +331,10 @@ fn test_review_submitted_event_parsing() -> ServerResult<()> {
                     login: "orig".to_string()
                 },
                 body: Some("This is a PR body".to_string()),
-                created_at: chrono::DateTime::parse_from_rfc3339("2020-11-12T16:09:47Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339("2020-11-13T17:25:46Z")
-                    .expect("bad date")
-                    .with_timezone(&chrono::Utc),
+                created_at: OffsetDateTime::parse("2020-11-12T16:09:47Z", &Rfc3339)
+                    .expect("bad date"),
+                updated_at: OffsetDateTime::parse("2020-11-13T17:25:46Z", &Rfc3339)
+                    .expect("bad date"),
                 closed_at: None,
                 merged_at: None,
                 requested_reviewers: vec![

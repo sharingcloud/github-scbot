@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use github_scbot_core::types::{
-    checks::GhCheckSuite,
-    common::{GhUser, GhUserPermission},
-    issues::GhReactionType,
-    pulls::{GhMergeStrategy, GhPullRequest},
-    reviews::GhReviewState,
-    status::StatusState,
+use github_scbot_core::{
+    time::OffsetDateTime,
+    types::{
+        checks::GhCheckSuite,
+        common::{GhUser, GhUserPermission},
+        issues::GhReactionType,
+        pulls::{GhMergeStrategy, GhPullRequest},
+        reviews::GhReviewState,
+        status::StatusState,
+    },
 };
 use heck::ToSnakeCase;
 use serde::{Deserialize, Serialize};
@@ -45,7 +47,7 @@ pub struct GhReviewApi {
     /// User.
     pub user: GhUser,
     /// Submitted at.
-    pub submitted_at: DateTime<Utc>,
+    pub submitted_at: OffsetDateTime,
     /// State.
     pub state: GhReviewStateApi,
 }
@@ -54,7 +56,7 @@ impl Default for GhReviewApi {
     fn default() -> Self {
         Self {
             user: GhUser::default(),
-            submitted_at: Utc::now(),
+            submitted_at: OffsetDateTime::now_utc(),
             state: GhReviewStateApi::Pending,
         }
     }

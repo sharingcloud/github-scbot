@@ -2,8 +2,8 @@
 
 use snafu::prelude::*;
 use std::{convert::TryFrom, str::FromStr};
+use time::OffsetDateTime;
 
-use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_plain;
 use smart_default::SmartDefault;
@@ -127,15 +127,15 @@ pub struct GhPullRequest {
     /// Body.
     pub body: Option<String>,
     /// Created at.
-    #[default(chrono::Utc::now())]
-    pub created_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub created_at: OffsetDateTime,
     /// Updated at.
-    #[default(chrono::Utc::now())]
-    pub updated_at: DateTime<Utc>,
+    #[default(OffsetDateTime::now_utc())]
+    pub updated_at: OffsetDateTime,
     /// Closed at.
-    pub closed_at: Option<DateTime<Utc>>,
+    pub closed_at: Option<OffsetDateTime>,
     /// Merged at.
-    pub merged_at: Option<DateTime<Utc>>,
+    pub merged_at: Option<OffsetDateTime>,
     /// Requested reviewers.
     pub requested_reviewers: Vec<GhUser>,
     /// Labels.

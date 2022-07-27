@@ -1,9 +1,9 @@
 //! Review types.
 
-use chrono::{self, DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_plain;
 use smart_default::SmartDefault;
+use time::OffsetDateTime;
 
 use super::common::{GhRepository, GhUser};
 use super::pulls::GhPullRequest;
@@ -56,7 +56,7 @@ pub struct GhReview {
     /// User.
     pub user: GhUser,
     /// Submitted at.
-    pub submitted_at: Option<DateTime<Utc>>,
+    pub submitted_at: Option<OffsetDateTime>,
     /// State.
     pub state: GhReviewState,
 }
