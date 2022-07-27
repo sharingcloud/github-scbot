@@ -912,7 +912,7 @@ mod tests {
             .returning(|_, _, _| Ok(vec![]));
         api_adapter
             .expect_check_suites_list()
-            .times(1)
+            .times(0)
             .returning(|_, _, _| Ok(vec![]));
 
         let mut db_adapter = MockDbService::new();
@@ -1010,7 +1010,7 @@ mod tests {
             .returning(|_, _, _| Ok(vec![]));
         api_adapter
             .expect_check_suites_list()
-            .times(1)
+            .times(0)
             .returning(|_, _, _| Ok(vec![]));
 
         let result = handle_merge_command(
@@ -1045,7 +1045,7 @@ mod tests {
             .returning(|_, _, _| Ok(vec![]));
         api_adapter
             .expect_check_suites_list()
-            .times(1)
+            .times(0)
             .returning(|_, _, _| Ok(vec![]));
 
         let result = handle_merge_command(

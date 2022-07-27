@@ -121,10 +121,10 @@ async fn test_review_creation() -> Result<()> {
                 }])
             });
 
-        // One call to get check suites
+        // No call to get check suites
         api_adapter
             .expect_check_suites_list()
-            .times(1)
+            .times(0)
             .return_once(|_, _, _| Ok(vec![]));
 
         // One call to list labels
@@ -232,10 +232,10 @@ async fn test_review_creation() -> Result<()> {
                 }])
             });
 
-        // One call to get check suites
+        // No call to get check suites
         api_adapter
             .expect_check_suites_list()
-            .times(1)
+            .times(0)
             .return_once(|_, _, _| Ok(vec![]));
 
         // One call to list labels

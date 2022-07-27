@@ -82,15 +82,19 @@ impl PullRequestStatus {
             .required_reviewers()
             .list(repo_owner, repo_name, pr_number)
             .await?;
-        let checks_status = PullRequestLogic::get_checks_status_from_github(
-            api_adapter,
-            repo_owner,
-            repo_name,
-            &upstream_pr.head.sha,
-            pr_model.checks_enabled(),
-            &[],
-        )
-        .await?;
+        let checks_status = if pr_model.checks_enabled() {
+            PullRequestLogic::get_checks_status_from_github(
+                api_adapter,
+                repo_owner,
+                repo_name,
+                &upstream_pr.head.sha,
+                pr_model.checks_enabled(),
+                &[],
+            )
+            .await?
+        } else {
+            CheckStatus::Skipped
+        };
 
         let strategy = if let Some(s) = pr_model.strategy_override() {
             *s
