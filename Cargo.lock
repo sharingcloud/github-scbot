@@ -1228,15 +1228,13 @@ dependencies = [
  "async-trait",
  "clap",
  "dialoguer",
- "github-scbot-conf",
+ "github-scbot-core",
  "github-scbot-database2",
  "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
- "github-scbot-sentry",
  "github-scbot-server",
  "github-scbot-tui",
- "github-scbot-types",
  "indoc",
  "owo-colors",
  "snafu",
@@ -1244,12 +1242,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-conf"
+name = "github-scbot-core"
 version = "0.22.0"
 dependencies = [
+ "chrono",
  "dotenv",
- "github-scbot-crypto",
- "github-scbot-sentry",
+ "jsonwebtoken",
+ "rand 0.8.5",
+ "rsa",
+ "sentry",
+ "sentry-actix",
+ "serde",
+ "serde_plain",
+ "smart-default",
  "snafu",
  "tracing",
  "tracing-bunyan-formatter",
@@ -1257,26 +1262,6 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "tracing-tree",
-]
-
-[[package]]
-name = "github-scbot-crypto"
-version = "0.22.0"
-dependencies = [
- "jsonwebtoken",
- "rand 0.8.5",
- "rsa",
- "serde",
- "snafu",
-]
-
-[[package]]
-name = "github-scbot-database-macros"
-version = "0.22.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1288,11 +1273,8 @@ dependencies = [
  "derive_builder",
  "futures",
  "futures-util",
- "github-scbot-conf",
- "github-scbot-crypto",
- "github-scbot-database-macros",
- "github-scbot-types",
- "github-scbot-utils",
+ "github-scbot-core",
+ "github-scbot-macros",
  "mockall",
  "pretty_assertions 0.6.1",
  "serde",
@@ -1311,10 +1293,7 @@ dependencies = [
  "backoff",
  "chrono",
  "futures-util",
- "github-scbot-conf",
- "github-scbot-crypto",
- "github-scbot-types",
- "github-scbot-utils",
+ "github-scbot-core",
  "heck 0.3.3",
  "http",
  "maplit",
@@ -1335,11 +1314,10 @@ dependencies = [
  "actix-rt",
  "chrono",
  "futures-util",
- "github-scbot-conf",
+ "github-scbot-core",
  "github-scbot-database2",
  "github-scbot-ghapi",
  "github-scbot-redis",
- "github-scbot-types",
  "maplit",
  "mockall",
  "pretty_assertions 0.7.2",
@@ -1350,6 +1328,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-macros"
+version = "0.22.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "github-scbot-redis"
 version = "0.22.0"
 dependencies = [
@@ -1357,19 +1344,10 @@ dependencies = [
  "actix-redis",
  "actix-rt",
  "async-trait",
- "github-scbot-utils",
+ "github-scbot-core",
  "mockall",
  "redis-async",
  "snafu",
- "tracing",
-]
-
-[[package]]
-name = "github-scbot-sentry"
-version = "0.22.0"
-dependencies = [
- "sentry",
- "sentry-actix",
  "tracing",
 ]
 
@@ -1385,14 +1363,11 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
- "github-scbot-conf",
- "github-scbot-crypto",
+ "github-scbot-core",
  "github-scbot-database2",
  "github-scbot-ghapi",
  "github-scbot-logic",
  "github-scbot-redis",
- "github-scbot-sentry",
- "github-scbot-types",
  "hex",
  "lazy_static",
  "pretty_assertions 0.7.2",
@@ -1410,28 +1385,12 @@ dependencies = [
 name = "github-scbot-tui"
 version = "0.22.0"
 dependencies = [
- "github-scbot-conf",
+ "github-scbot-core",
  "github-scbot-database2",
- "github-scbot-types",
  "snafu",
  "termion",
  "tui",
 ]
-
-[[package]]
-name = "github-scbot-types"
-version = "0.22.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_plain",
- "smart-default",
- "snafu",
-]
-
-[[package]]
-name = "github-scbot-utils"
-version = "0.22.0"
 
 [[package]]
 name = "h2"

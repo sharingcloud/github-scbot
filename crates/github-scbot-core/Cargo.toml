@@ -1,0 +1,26 @@
+[package]
+name = "github-scbot-core"
+version = "0.22.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { version = "0.4.19", features = ["serde"] }
+dotenv = "0.15"
+jsonwebtoken = "7"
+rand = "0.8.4"
+rsa = "0.5.0"
+serde = { version = "1", features = ["derive"] }
+serde_plain = "0.3.0"
+sentry = { version = "0.25.0", features = ["tracing"] }
+sentry-actix = "0.25.0"
+smart-default = "0.6.0"
+snafu = "0.7.1"
+tracing = "0.1"
+tracing-bunyan-formatter = "0.3.0"
+tracing-error = "0.2.0"
+tracing-log = "0.1.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-tree = "0.2.0"

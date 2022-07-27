@@ -1,0 +1,24 @@
+[package]
+name = "github-scbot-logic"
+version = "0.22.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+[dependencies]
+github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-database2 = { path = "../github-scbot-database2" }
+github-scbot-ghapi = { path = "../github-scbot-ghapi" }
+github-scbot-redis = { path = "../github-scbot-redis" }
+
+regex = "1.4"
+smart-default = "0.6.0"
+snafu = "0.7.1"
+tracing = "0.1"
+
+[dev-dependencies]
+actix-rt = "2"
+chrono = { version = "0.4.19", features = ["serde"] }
+futures-util = "0.3.21"
+maplit = "1.0.2"
+mockall = "0.11.0"
+pretty_assertions = "0.7.2"
