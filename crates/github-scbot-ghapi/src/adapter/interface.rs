@@ -47,6 +47,7 @@ pub struct GhReviewApi {
     /// User.
     pub user: GhUser,
     /// Submitted at.
+    #[serde(with = "github_scbot_core::time::serde::rfc3339")]
     pub submitted_at: OffsetDateTime,
     /// State.
     pub state: GhReviewStateApi,

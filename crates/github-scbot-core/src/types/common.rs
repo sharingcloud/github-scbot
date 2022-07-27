@@ -48,6 +48,7 @@ pub struct GhCommit {
     /// Message.
     pub message: String,
     /// Timestamp.
+    #[serde(with = "time::serde::rfc3339")]
     pub timestamp: OffsetDateTime,
     /// Author.
     pub author: GhCommitUser,

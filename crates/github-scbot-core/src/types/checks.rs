@@ -83,9 +83,11 @@ pub struct GhCheckSuite {
     pub app: GhApplication,
     /// Created at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Updated at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 

@@ -56,6 +56,7 @@ pub struct GhReview {
     /// User.
     pub user: GhUser,
     /// Submitted at.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub submitted_at: Option<OffsetDateTime>,
     /// State.
     pub state: GhReviewState,

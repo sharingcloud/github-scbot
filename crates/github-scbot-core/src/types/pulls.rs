@@ -128,13 +128,17 @@ pub struct GhPullRequest {
     pub body: Option<String>,
     /// Created at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Updated at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
     /// Closed at.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub closed_at: Option<OffsetDateTime>,
     /// Merged at.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub merged_at: Option<OffsetDateTime>,
     /// Requested reviewers.
     pub requested_reviewers: Vec<GhUser>,

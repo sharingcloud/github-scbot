@@ -88,11 +88,14 @@ pub struct GhIssue {
     pub state: GhIssueState,
     /// Created at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Updated at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
     /// Closed at.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub closed_at: Option<OffsetDateTime>,
     /// Body.
     pub body: Option<String>,
@@ -121,9 +124,11 @@ pub struct GhIssueComment {
     pub user: GhUser,
     /// Created at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Updated at.
     #[default(OffsetDateTime::now_utc())]
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
     /// Body.
     pub body: String,
