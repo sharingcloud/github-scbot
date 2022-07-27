@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Unification of core crates in a `github-scbot-core` crate
+- Rename `github-scbot-database2` to `github-scbot-database`
+- Change crate folder case from `snake_case` to `kebab-case`
+- Update all libs to their latest versions
+- Replace `chrono` with `time`
+- Replace `crypto` with `sha2` and `hmac`
+
 ## [0.22.0] - 2022-05-26
 
 ### Added
