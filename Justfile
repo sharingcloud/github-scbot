@@ -1,5 +1,5 @@
 set dotenv-load := false
-version := `cat ./crates/github_scbot_cli/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
+version := `cat ./crates/github-scbot-cli/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
 
 _default:
 	@just -l
@@ -37,7 +37,7 @@ test-coverage:
 
 # Set crates version
 set-version v:
-	ls -d crates/github_scbot_*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+	ls -d crates/github-scbot-*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
 
 # Show version
 show-version:
