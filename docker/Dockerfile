@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 RUN apt update \
     && apt install lld -y \
-    && rustup toolchain install 1.60.0
+    && rustup toolchain install 1.62.1
 
 COPY ./crates /usr/src/app/crates
 COPY Cargo.lock /usr/src/app
