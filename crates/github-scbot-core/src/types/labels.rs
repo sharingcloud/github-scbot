@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use super::errors::{TypeError, UnknownStepLabelSnafu};
 
 /// Step label.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StepLabel {
     /// Work in progress.
     Wip,

@@ -5,7 +5,7 @@ use serde::Deserialize;
 use super::common::{GhRepository, GhUser};
 
 /// GitHub Ping event.
-#[derive(Debug, Deserialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Default, PartialEq, Eq)]
 pub struct GhPingEvent {
     /// Zen text.
     pub zen: String,

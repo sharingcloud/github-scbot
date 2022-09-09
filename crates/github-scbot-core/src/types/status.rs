@@ -38,7 +38,7 @@ impl From<StatusState> for &'static str {
 }
 
 /// Check status.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum CheckStatus {
     /// Waiting.
@@ -101,7 +101,7 @@ impl From<CheckStatus> for &'static str {
 }
 
 /// QA status.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum QaStatus {
     /// Waiting.

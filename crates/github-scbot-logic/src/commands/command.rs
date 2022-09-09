@@ -43,7 +43,7 @@ pub enum CommandHandlingStatus {
 }
 
 /// User command.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum UserCommand {
     /// Skip QA status.
     SkipQaStatus(bool),
@@ -80,7 +80,7 @@ pub enum UserCommand {
 }
 
 /// Admin command.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AdminCommand {
     /// Show admin help message.
     Help,
@@ -109,7 +109,7 @@ pub enum AdminCommand {
 }
 
 /// Command.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Command {
     /// User command.
     User(UserCommand),
@@ -118,7 +118,7 @@ pub enum Command {
 }
 
 /// Command execution result.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CommandExecutionResult {
     /// Should update status.
     pub should_update_status: bool,
@@ -191,7 +191,7 @@ impl CommandExecutionResultBuilder {
 }
 
 /// Result action.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ResultAction {
     /// Post comment.
     PostComment(String),

@@ -9,7 +9,7 @@ use super::common::{GhRepository, GhUser};
 use super::pulls::GhPullRequest;
 
 /// GitHub Review action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhReviewAction {
     /// Submitted.
@@ -51,7 +51,7 @@ impl From<&str> for GhReviewState {
 }
 
 /// GitHub Review.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
 pub struct GhReview {
     /// User.
     pub user: GhUser,
@@ -63,7 +63,7 @@ pub struct GhReview {
 }
 
 /// GitHub Review event.
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct GhReviewEvent {
     /// Action.
     pub action: GhReviewAction,

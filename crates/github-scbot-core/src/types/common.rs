@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 /// GitHub User.
-#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 pub struct GhUser {
     /// Username.
     pub login: String,
@@ -63,7 +63,7 @@ pub struct GhCommit {
 }
 
 /// GitHub Branch.
-#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 pub struct GhBranch {
     /// Label.
     pub label: Option<String>,
@@ -77,7 +77,7 @@ pub struct GhBranch {
 }
 
 /// GitHub Branch (short format).
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq, Clone)]
 pub struct GhBranchShort {
     /// Reference.
     #[serde(rename = "ref")]
@@ -87,7 +87,7 @@ pub struct GhBranchShort {
 }
 
 /// GitHub Repository.
-#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 pub struct GhRepository {
     /// Name.
     pub name: String,
@@ -98,7 +98,7 @@ pub struct GhRepository {
 }
 
 /// GitHub Label.
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Default)]
 pub struct GhLabel {
     /// Name.
     pub name: String,
@@ -109,7 +109,7 @@ pub struct GhLabel {
 }
 
 /// GitHub Application.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Default, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Default, Clone)]
 pub struct GhApplication {
     /// Slug name.
     pub slug: String,

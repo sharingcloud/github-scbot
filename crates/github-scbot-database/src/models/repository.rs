@@ -9,7 +9,9 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 
 use crate::{errors::Result, fields::GhMergeStrategyDecode};
 
-#[derive(SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize, PartialEq)]
+#[derive(
+    SCGetter, Debug, Clone, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
+)]
 #[builder(default, setter(into))]
 pub struct Repository {
     #[get]

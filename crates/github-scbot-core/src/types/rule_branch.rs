@@ -5,7 +5,7 @@ use std::{convert::Infallible, str::FromStr};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 /// Rule branch.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RuleBranch {
     /// Named.
     Named(String),

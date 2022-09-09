@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use crate::Result;
 
 /// Review state (API version)
-#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GhReviewStateApi {
     /// Approved.

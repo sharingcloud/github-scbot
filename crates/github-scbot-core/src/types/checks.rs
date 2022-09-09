@@ -10,7 +10,7 @@ use super::{
 };
 
 /// GitHub Check suite action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckSuiteAction {
     /// Completed.
@@ -23,7 +23,7 @@ pub enum GhCheckSuiteAction {
 }
 
 /// GitHub Check status.
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, SmartDefault, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckStatus {
     /// Completed.
@@ -40,7 +40,7 @@ pub enum GhCheckStatus {
 }
 
 /// GitHub Check conclusion.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckConclusion {
     /// Action required.
@@ -65,7 +65,7 @@ pub enum GhCheckConclusion {
 }
 
 /// GitHub Check suite.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq, Clone)]
 pub struct GhCheckSuite {
     /// ID.
     pub id: u64,
@@ -92,7 +92,7 @@ pub struct GhCheckSuite {
 }
 
 /// GitHub Check suite event.
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct GhCheckSuiteEvent {
     /// Action.
     pub action: GhCheckSuiteAction,

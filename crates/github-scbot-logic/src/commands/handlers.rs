@@ -639,9 +639,9 @@ pub async fn handle_set_default_qa_status_command(
         .await?;
 
     let comment = if status {
-        "QA disabled for this repository."
-    } else {
         "QA enabled for this repository."
+    } else {
+        "QA disabled for this repository."
     };
     Ok(CommandExecutionResult::builder()
         .with_status_update(true)

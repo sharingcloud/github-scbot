@@ -7,7 +7,7 @@ use time::OffsetDateTime;
 use super::common::{GhLabel, GhRepository, GhUser};
 
 /// GitHub Reaction type.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GhReactionType {
     /// 👍
     PlusOne,
@@ -50,7 +50,7 @@ impl From<GhReactionType> for &'static str {
 }
 
 /// GitHub Issue comment action.
-#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, SmartDefault)]
 #[serde(rename_all = "snake_case")]
 pub enum GhIssueCommentAction {
     /// Created.
@@ -63,7 +63,7 @@ pub enum GhIssueCommentAction {
 }
 
 /// GitHub Issue state.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhIssueState {
     /// Open.
@@ -74,7 +74,7 @@ pub enum GhIssueState {
 }
 
 /// GitHub Issue.
-#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, SmartDefault)]
 pub struct GhIssue {
     /// Number.
     pub number: u64,
@@ -102,21 +102,21 @@ pub struct GhIssue {
 }
 
 /// GitHub Issue comment changes body.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub struct GhIssueCommentChangesBody {
     /// From.
     pub from: String,
 }
 
 /// GitHub Issue comment changes.
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct GhIssueCommentChanges {
     /// Body.
     pub body: GhIssueCommentChangesBody,
 }
 
 /// GitHub Issue comment.
-#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, SmartDefault)]
 pub struct GhIssueComment {
     /// ID.
     pub id: u64,
@@ -135,7 +135,7 @@ pub struct GhIssueComment {
 }
 
 /// GitHub Issue comment event.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub struct GhIssueCommentEvent {
     /// Action.
     pub action: GhIssueCommentAction,

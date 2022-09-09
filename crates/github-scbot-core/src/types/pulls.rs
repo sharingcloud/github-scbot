@@ -12,7 +12,7 @@ use super::common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser};
 use super::errors::{TypeError, UnknownMergeStrategySnafu};
 
 /// GitHub Merge strategy.
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhMergeStrategy {
     /// Merge
@@ -62,7 +62,7 @@ impl Default for GhMergeStrategy {
 }
 
 /// GitHub Pull request action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, SmartDefault, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhPullRequestAction {
     /// Assigned.
@@ -99,7 +99,7 @@ pub enum GhPullRequestAction {
 }
 
 /// GitHub Pull request state.
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhPullRequestState {
     /// Open.
@@ -112,7 +112,7 @@ pub enum GhPullRequestState {
 }
 
 /// GitHub Pull request.
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, PartialEq, Eq)]
 pub struct GhPullRequest {
     /// Number.
     pub number: u64,
@@ -159,7 +159,7 @@ pub struct GhPullRequest {
 }
 
 /// GitHub Pull request short format.
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq, Clone)]
 pub struct GhPullRequestShort {
     /// Number.
     pub number: u64,
@@ -170,7 +170,7 @@ pub struct GhPullRequestShort {
 }
 
 /// GitHub Pull request event.
-#[derive(Debug, Deserialize, Serialize, Default, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone, Eq, PartialEq)]
 pub struct GhPullRequestEvent {
     /// Action.
     pub action: GhPullRequestAction,
