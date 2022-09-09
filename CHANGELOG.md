@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `chrono` with `time`
 - Replace `crypto` with `sha2` and `hmac`
 
+### Fixed
+
+- Skipping checks command skip checks on existing PRs (fixes #151)
+- Fix wrong message when enabling QA on the whole repository (fixes #152)
+
 ## [0.22.0] - 2022-05-26
 
 ### Added
