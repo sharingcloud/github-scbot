@@ -1168,7 +1168,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix-rt",
  "argh",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-core"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "dotenv",
  "hex",
@@ -1216,7 +1216,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1236,7 +1236,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1258,7 +1258,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logic"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix-rt",
  "futures-util",
@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-macros"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1286,7 +1286,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix",
  "actix-redis",
@@ -1301,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1328,7 +1328,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.23.0"
+version = "0.23.0-rc1"
 dependencies = [
  "github-scbot-core",
  "github-scbot-database",
