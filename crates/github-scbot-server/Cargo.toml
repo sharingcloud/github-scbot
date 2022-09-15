@@ -1,0 +1,31 @@
+[package]
+name = "github-scbot-server"
+version = "0.23.0-rc1"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+[dependencies]
+github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-ghapi = { path = "../github-scbot-ghapi" }
+github-scbot-database = { path = "../github-scbot-database" }
+github-scbot-logic = { path = "../github-scbot-logic" }
+github-scbot-redis = { path = "../github-scbot-redis" }
+
+actix-cors = "0.6.1"
+actix-http = "3.2.1"
+actix-web = "4.1.0"
+actix-web-httpauth = "0.8.0"
+actix-web-prom = "0.6.0"
+async-trait = "0.1.56"
+futures = "0.3.21"
+regex = "1.6.0"
+serde = { version = "1.0.140", features = ["derive"] }
+serde_json = "1.0.82"
+snafu = "0.7.1"
+tracing = "0.1.35"
+tracing-actix-web = "0.6.0"
+prometheus = { version = "0.13.1", features = ["process"] }
+lazy_static = "1.4.0"
+
+[dev-dependencies]
+pretty_assertions = "1.2.1"

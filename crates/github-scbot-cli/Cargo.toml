@@ -1,0 +1,26 @@
+[package]
+name = "github-scbot-cli"
+version = "0.23.0-rc1"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+[dependencies]
+github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-ghapi = { path = "../github-scbot-ghapi" }
+github-scbot-database = { path = "../github-scbot-database" }
+github-scbot-logic = { path = "../github-scbot-logic" }
+github-scbot-server = { path = "../github-scbot-server" }
+github-scbot-tui = { path = "../github-scbot-tui" }
+github-scbot-redis = { path = "../github-scbot-redis" }
+
+actix-rt = "2.7.0"
+async-trait = "0.1.56"
+argh = "0.1.8"
+dialoguer = "0.10.1"
+owo-colors = "3.4.0"
+tokio = { version = "1.20.1", features = ["full"] }
+snafu = { version = "0.7.1", features = ["backtrace", "backtraces-impl-backtrace-crate"] }
+clap = { version = "3.2.15", features = ["derive"] }
+
+[dev-dependencies]
+indoc = "1.0.6"
