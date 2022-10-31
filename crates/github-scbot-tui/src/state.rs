@@ -1,7 +1,7 @@
 //! UI state utils.
 
+use crossterm::event::KeyCode;
 use github_scbot_database::{PullRequest, Repository};
-use termion::event::Key;
 use tui::widgets::ListState;
 
 pub enum SelectionMode {
@@ -141,22 +141,21 @@ impl AppState {
         self.pull_requests_state.select(None);
     }
 
-    pub fn on_ui_key(&mut self, key: Key) {
+    pub fn on_ui_key(&mut self, key: KeyCode) {
         match key {
-            Key::Char(c) => {
-                if c == '\n'
-                    && matches!(self.selection_mode, SelectionMode::Repository)
+            KeyCode::Enter => {
+                if matches!(self.selection_mode, SelectionMode::Repository)
                     && !self.pull_requests_for_repository().is_empty()
                 {
                     self.selection_mode = SelectionMode::PullRequest;
                     self.pull_requests_state.select(Some(0));
                 }
             }
-            Key::Esc => {
+            KeyCode::Esc => {
                 self.selection_mode = SelectionMode::Repository;
                 self.unselect_value();
             }
-            Key::Up => match self.selection_mode {
+            KeyCode::Up => match self.selection_mode {
                 SelectionMode::Repository => {
                     self.previous_repository();
                 }
@@ -164,7 +163,7 @@ impl AppState {
                     self.previous_pull_request();
                 }
             },
-            Key::Down => match self.selection_mode {
+            KeyCode::Down => match self.selection_mode {
                 SelectionMode::Repository => {
                     self.next_repository();
                 }

@@ -1,8 +1,8 @@
 //! Application module.
 
+use crossterm::event::KeyCode;
 use github_scbot_core::types::status::QaStatus;
 use github_scbot_database::DbService;
-use termion::event::Key;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -18,7 +18,7 @@ pub struct App<'a> {
     pub title: &'a str,
     pub should_quit: bool,
     pub data: AppState,
-    pub last_key_pressed: Option<Key>,
+    pub last_key_pressed: Option<KeyCode>,
 }
 
 impl<'a> App<'a> {
@@ -334,14 +334,14 @@ impl<'a> App<'a> {
         self.draw_help(f, help_area);
     }
 
-    pub fn on_key(&mut self, key: Key) {
+    pub fn on_key(&mut self, key: KeyCode) {
         match key {
-            Key::Char(c) => match c {
+            KeyCode::Char(c) => match c {
                 'q' => {
                     self.should_quit = true;
                 }
                 o => {
-                    self.data.on_ui_key(Key::Char(o));
+                    self.data.on_ui_key(KeyCode::Char(o));
                 }
             },
             o => {

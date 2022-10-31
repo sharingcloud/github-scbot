@@ -7,8 +7,6 @@ edition = "2021"
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
 github-scbot-database = { path = "../github-scbot-database" }
+crossterm = "0.25.0"
 snafu = "0.7.1"
-
-[target.'cfg(unix)'.dependencies]
-termion = "1.5.6"
-tui = { version = "0.18.0", features = ["termion"] }
+tui = "0.19.0"
