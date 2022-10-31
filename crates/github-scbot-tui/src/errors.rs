@@ -7,10 +7,6 @@ use snafu::{prelude::*, Backtrace};
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum UiError {
-    /// Unsupported OS.
-    #[snafu(display("Current OS is unsupported (for now)."))]
-    Unsupported { backtrace: Backtrace },
-
     /// Wraps [`std::io::IoError`].
     #[snafu(display("I/O error,\n  caused by: {}", source))]
     Io {

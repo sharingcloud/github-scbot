@@ -18,5 +18,5 @@ async fn panic_route() -> ActixResult<HttpResponse> {
 }
 
 async fn will_error() -> Result<(), ServerError> {
-    Err(ServerError::InternalError)
+    crate::errors::InternalSnafu.fail()
 }

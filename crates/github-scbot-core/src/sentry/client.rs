@@ -36,8 +36,8 @@ where
             options.in_app_exclude.push("tokio");
             options.release = sentry::release_name!();
             options.send_default_pii = true;
-            // options.attach_stacktrace = true;
-            options.debug = true;
+            options.attach_stacktrace = true;
+            options.debug = false;
 
             let init = sentry::init(options);
             Some(init)
