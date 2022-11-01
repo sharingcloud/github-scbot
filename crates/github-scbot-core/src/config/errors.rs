@@ -1,6 +1,6 @@
 //! Configuration errors.
 
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// Configuration error.
 #[allow(missing_docs)]
@@ -13,12 +13,10 @@ pub enum ConfError {
     ))]
     TracingSetGlobalDefaultError {
         source: tracing::dispatcher::SetGlobalDefaultError,
-        backtrace: Backtrace,
     },
     #[snafu(display("Could not initialize tracing log tracer,\n  caused by: {}", source))]
     TracingLogTracerError {
         source: tracing::log::SetLoggerError,
-        backtrace: Backtrace,
     },
     #[snafu(display(
         "Wrong env filter configuration: {}\n  caused by: {}",
@@ -28,13 +26,9 @@ pub enum ConfError {
     EnvFilterConfigurationError {
         source: tracing_subscriber::filter::ParseError,
         configuration: String,
-        backtrace: Backtrace,
     },
     #[snafu(display("Errors on environment variables:\n{}", errors))]
-    EnvVarsError {
-        errors: String,
-        backtrace: Backtrace,
-    },
+    EnvVarsError { errors: String },
 }
 
 /// Result alias for `ConfError`.

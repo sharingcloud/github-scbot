@@ -1,6 +1,6 @@
 //! API errors.
 
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// API error.
 #[allow(missing_docs)]
@@ -16,30 +16,22 @@ pub enum ApiError {
     MergeError {
         pr_number: u64,
         repository_path: String,
-        backtrace: Backtrace,
     },
 
     /// Http error.
     #[snafu(display("HTTP error,\n  caused by: {}", source))]
-    HttpError {
-        source: reqwest::Error,
-        backtrace: Backtrace,
-    },
+    HttpError { source: reqwest::Error },
 
     /// Jwt error.
     #[snafu(display("JWT error,\n  caused by: {}", source))]
     JwtError {
-        #[snafu(backtrace)]
         source: github_scbot_core::crypto::CryptoError,
     },
 }
 
 impl From<reqwest::Error> for ApiError {
     fn from(e: reqwest::Error) -> Self {
-        ApiError::HttpError {
-            source: e,
-            backtrace: Backtrace::new(),
-        }
+        ApiError::HttpError { source: e }
     }
 }
 

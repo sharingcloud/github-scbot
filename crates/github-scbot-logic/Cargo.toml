@@ -10,6 +10,7 @@ github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
+async-trait = "0.1.56"
 regex = "1.6.0"
 smart-default = "0.6.0"
 snafu = "0.7.1"

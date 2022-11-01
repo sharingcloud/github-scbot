@@ -131,15 +131,12 @@ mod tests {
         ));
         assert!(matches!(
             Command::from_comment("this-is-a-command", &[]),
-            Err(CommandError::UnknownCommand {
-                command: _,
-                backtrace: _
-            })
+            Err(CommandError::UnknownCommand { command: _ })
         ));
 
         assert!(matches!(
             Command::from_comment("req+", &[]),
-            Err(CommandError::IncompleteCommand { backtrace: _ })
+            Err(CommandError::IncompleteCommand)
         ));
         assert!(matches!(
             Command::from_comment("admin-set-needed-reviewers", &["12"]),
@@ -147,7 +144,7 @@ mod tests {
         ));
         assert!(matches!(
             Command::from_comment("admin-set-needed-reviewers", &["toto"]),
-            Err(CommandError::ArgumentParsingError { backtrace: _ })
+            Err(CommandError::ArgumentParsingError)
         ));
     }
 }

@@ -1,6 +1,6 @@
 //! Crypto errors.
 
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// Crypto error.
 #[allow(missing_docs)]
@@ -8,36 +8,22 @@ use snafu::{prelude::*, Backtrace};
 #[snafu(visibility(pub(crate)))]
 pub enum CryptoError {
     #[snafu(display("Jwt creation error,\n  caused by: {}", source))]
-    JwtCreationFailed {
-        source: jsonwebtoken::errors::Error,
-        backtrace: Backtrace,
-    },
+    JwtCreationFailed { source: jsonwebtoken::errors::Error },
     #[snafu(display("Jwt verification error,\n  caused by: {}", source))]
-    JwtVerificationFailed {
-        source: jsonwebtoken::errors::Error,
-        backtrace: Backtrace,
-    },
+    JwtVerificationFailed { source: jsonwebtoken::errors::Error },
     #[snafu(display("Invalid encoding key,\n  caused by: {}", source))]
-    InvalidEncodingKey {
-        source: jsonwebtoken::errors::Error,
-        backtrace: Backtrace,
-    },
+    InvalidEncodingKey { source: jsonwebtoken::errors::Error },
     #[snafu(display("Invalid decoding key,\n  caused by: {}", source))]
-    InvalidDecodingKey {
-        source: jsonwebtoken::errors::Error,
-        backtrace: Backtrace,
-    },
+    InvalidDecodingKey { source: jsonwebtoken::errors::Error },
     #[snafu(display("Invalid signature format: {}", sig))]
     InvalidSignatureFormat {
         sig: String,
         source: hex::FromHexError,
-        backtrace: Backtrace,
     },
     #[snafu(display("Invalid HMAC secret key length: {}", key))]
     InvalidSecretKeyLength {
         key: String,
         source: hmac::digest::InvalidLength,
-        backtrace: Backtrace,
     },
 }
 

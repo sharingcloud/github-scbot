@@ -1,17 +1,15 @@
 //! Comments logic.
 
 use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    issues::{GhIssueCommentAction, GhIssueCommentEvent},
-    pulls::GhPullRequest,
-};
+use github_scbot_core::types::issues::{GhIssueCommentAction, GhIssueCommentEvent};
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use tracing::info;
 
+use crate::commands::CommandContext;
 use crate::{
-    commands::{AdminCommand, Command, CommandExecutor, CommandParser, CommandResult},
+    commands::{AdminCommand, Command, CommandExecutor, CommandParser},
     pulls::PullRequestLogic,
     status::StatusLogic,
     Result,
@@ -41,7 +39,7 @@ pub async fn handle_issue_comment_event(
                     .pulls_get(repo_owner, repo_name, pr_number)
                     .await?;
 
-                handle_comment_creation(
+                let ctx = CommandContext {
                     config,
                     api_adapter,
                     db_adapter,
@@ -49,11 +47,12 @@ pub async fn handle_issue_comment_event(
                     repo_owner,
                     repo_name,
                     pr_number,
-                    &upstream_pr,
-                    &event,
-                    commands,
-                )
-                .await?
+                    upstream_pr: &upstream_pr,
+                    comment_id: event.comment.id,
+                    comment_author: &event.comment.user.login,
+                };
+
+                CommandExecutor::execute_commands(&ctx, commands).await?;
             }
             None => {
                 // Parse admin enable
@@ -102,41 +101,6 @@ pub async fn handle_issue_comment_event(
             }
         };
     }
-
-    Ok(())
-}
-
-/// Handle comment creation.
-#[allow(clippy::too_many_arguments)]
-pub async fn handle_comment_creation(
-    config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
-    redis_adapter: &dyn RedisService,
-    repo_owner: &str,
-    repo_name: &str,
-    pr_number: u64,
-    upstream_pr: &GhPullRequest,
-    event: &GhIssueCommentEvent,
-    commands: Vec<CommandResult<Command>>,
-) -> Result<()> {
-    let comment_author = &event.comment.user.login;
-    let comment_id = event.comment.id;
-
-    CommandExecutor::execute_commands(
-        config,
-        api_adapter,
-        db_adapter,
-        redis_adapter,
-        repo_owner,
-        repo_name,
-        pr_number,
-        upstream_pr,
-        comment_id,
-        comment_author,
-        commands,
-    )
-    .await?;
 
     Ok(())
 }

@@ -3,7 +3,7 @@
 use actix_http::StatusCode;
 use actix_web::ResponseError;
 use github_scbot_core::types::events::EventType;
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// Webhook error.
 #[allow(missing_docs)]
@@ -18,25 +18,20 @@ pub enum ServerError {
     EventParseError {
         event_type: EventType,
         source: serde_json::Error,
-        backtrace: Backtrace,
     },
 
     #[snafu(display("Missing webhook signature."))]
-    MissingWebhookSignature { backtrace: Backtrace },
+    MissingWebhookSignature,
 
     #[snafu(display("Invalid webhook signature."))]
-    InvalidWebhookSignature { backtrace: Backtrace },
+    InvalidWebhookSignature,
 
     #[snafu(display("I/O error,\n  caused by: {}", source))]
-    IoError {
-        source: std::io::Error,
-        backtrace: Backtrace,
-    },
+    IoError { source: std::io::Error },
 
     #[snafu(display("Logic error,\n  caused by: {}", source))]
     LogicError {
         source: github_scbot_logic::LogicError,
-        backtrace: Backtrace,
     },
 
     #[snafu(display("Internal error."))]

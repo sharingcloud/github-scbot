@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
 use smart_default::SmartDefault;
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;
 
@@ -12,19 +12,16 @@ const MAX_REVIEWERS_PER_COMMAND: usize = 16;
 pub enum CommandError {
     /// Unknown command.
     #[snafu(display("This command is unknown."))]
-    UnknownCommand {
-        command: String,
-        backtrace: Backtrace,
-    },
+    UnknownCommand { command: String },
     /// Argument parsing error.
     #[snafu(display("Error while parsing command arguments."))]
-    ArgumentParsingError { backtrace: Backtrace },
+    ArgumentParsingError,
     /// Incomplete command.
     #[snafu(display("Incomplete command."))]
-    IncompleteCommand { backtrace: Backtrace },
+    IncompleteCommand,
     /// Invalid usage.
     #[snafu(display("Invalid usage: {}", usage))]
-    InvalidUsage { usage: String, backtrace: Backtrace },
+    InvalidUsage { usage: String },
 }
 
 /// Command result.
@@ -449,11 +446,11 @@ mod tests {
         assert!(matches!(Command::parse_u64(&["123"]), Ok(123)));
         assert!(matches!(
             Command::parse_u64(&["123", "456"]),
-            Err(CommandError::ArgumentParsingError { backtrace: _ })
+            Err(CommandError::ArgumentParsingError)
         ));
         assert!(matches!(
             Command::parse_u64(&["toto"]),
-            Err(CommandError::ArgumentParsingError { backtrace: _ })
+            Err(CommandError::ArgumentParsingError)
         ));
     }
 
@@ -465,11 +462,11 @@ mod tests {
         ));
         assert!(matches!(
             Command::parse_merge_strategy(&["what"]),
-            Err(CommandError::ArgumentParsingError { backtrace: _ })
+            Err(CommandError::ArgumentParsingError)
         ));
         assert!(matches!(
             Command::parse_merge_strategy(&[]),
-            Err(CommandError::ArgumentParsingError { backtrace: _ })
+            Err(CommandError::ArgumentParsingError)
         ));
     }
 
@@ -510,7 +507,7 @@ mod tests {
         );
         assert!(matches!(
             Command::parse_reviewers(&[]),
-            Err(CommandError::IncompleteCommand { backtrace: _ })
+            Err(CommandError::IncompleteCommand)
         ));
     }
 }

@@ -1,12 +1,18 @@
 //! External module.
 
-use github_scbot_core::types::repository::RepositoryPath;
+use github_scbot_core::{
+    config::Config,
+    types::{repository::RepositoryPath, status::QaStatus},
+};
 use github_scbot_database::{DbService, ExternalAccount};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
 use crate::{
-    commands::{handle_qa_command, CommandExecutor},
+    commands::{
+        commands::{BotCommand, SetQaStatusCommand},
+        CommandContext, CommandExecutor,
+    },
     Result,
 };
 
@@ -22,6 +28,7 @@ use crate::{
     )
 )]
 pub async fn set_qa_status_for_pull_requests(
+    config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &dyn DbService,
     redis_adapter: &dyn RedisService,
@@ -29,7 +36,7 @@ pub async fn set_qa_status_for_pull_requests(
     repository_path: RepositoryPath,
     pull_request_numbers: &[u64],
     author: &str,
-    status: Option<bool>,
+    status: QaStatus,
 ) -> Result<()> {
     let (repo_owner, repo_name) = repository_path.components();
     if db_adapter
@@ -45,22 +52,25 @@ pub async fn set_qa_status_for_pull_requests(
                 .await?
                 .is_some()
             {
-                let result = handle_qa_command(
-                    db_adapter, repo_owner, repo_name, *pr_number, author, status,
-                )
-                .await?;
+                let upstream_pr = api_adapter
+                    .pulls_get(repo_owner, repo_name, *pr_number)
+                    .await?;
 
-                CommandExecutor::process_command_result(
+                let ctx = CommandContext {
+                    config,
                     api_adapter,
                     db_adapter,
                     redis_adapter,
                     repo_owner,
                     repo_name,
-                    *pr_number,
-                    0,
-                    &result,
-                )
-                .await?;
+                    pr_number: *pr_number,
+                    upstream_pr: &upstream_pr,
+                    comment_id: 0,
+                    comment_author: author,
+                };
+
+                let result = SetQaStatusCommand::new(status).handle(&ctx).await?;
+                CommandExecutor::process_command_result(&ctx, &result).await?;
             }
         }
     }

@@ -1,6 +1,6 @@
 //! Logic errors.
 
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// Logic error.
 #[allow(missing_docs)]
@@ -8,39 +8,30 @@ use snafu::{prelude::*, Backtrace};
 pub enum LogicError {
     /// Wraps [`regex::Error`].
     #[snafu(display("Error while compiling regex,\n  caused by: {}", source))]
-    RegexError {
-        source: regex::Error,
-        backtrace: Backtrace,
-    },
+    RegexError { source: regex::Error },
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
     #[snafu(display("API error,\n  caused by: {}", source))]
     ApiError {
-        #[snafu(backtrace)]
         source: github_scbot_ghapi::ApiError,
     },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[snafu(display("Database error,\n  caused by: {}", source))]
     DatabaseError {
-        #[snafu(backtrace)]
         source: github_scbot_database::DatabaseError,
     },
 
     /// Wraps [`github_scbot_redis::RedisError`].
     #[snafu(display("Redis error,\n  caused by: {}", source))]
     RedisError {
-        #[snafu(backtrace)]
         source: github_scbot_redis::RedisError,
     },
 }
 
 impl From<regex::Error> for LogicError {
     fn from(e: regex::Error) -> Self {
-        Self::RegexError {
-            source: e,
-            backtrace: Backtrace::new(),
-        }
+        Self::RegexError { source: e }
     }
 }
 

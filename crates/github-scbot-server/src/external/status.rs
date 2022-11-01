@@ -6,6 +6,7 @@ use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::repository::RepositoryPath;
+use github_scbot_core::types::status::QaStatus;
 use github_scbot_logic::external::set_qa_status_for_pull_requests;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -39,8 +40,14 @@ pub(crate) async fn set_qa_status(
 
     // TODO: CAN EXPLODE
     let repo_path = RepositoryPath::from_str(&data.repository_path).unwrap();
+    let status = match data.status {
+        None => QaStatus::Waiting,
+        Some(true) => QaStatus::Pass,
+        Some(false) => QaStatus::Fail,
+    };
 
     set_qa_status_for_pull_requests(
+        &ctx.config,
         ctx.api_adapter.as_ref(),
         ctx.db_adapter.as_ref(),
         ctx.redis_adapter.as_ref(),
@@ -48,7 +55,7 @@ pub(crate) async fn set_qa_status(
         repo_path,
         &data.pull_request_numbers,
         &data.author,
-        data.status,
+        status,
     )
     .await
     .context(LogicSnafu)?;

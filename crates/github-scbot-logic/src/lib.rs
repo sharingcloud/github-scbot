@@ -1,7 +1,7 @@
 //! Logic module.
 
-#![warn(missing_docs)]
 #![warn(clippy::all)]
+#![allow(clippy::new_without_default)]
 
 pub mod auth;
 pub mod checks;

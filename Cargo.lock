@@ -1261,6 +1261,7 @@ name = "github-scbot-logic"
 version = "0.23.0-rc1"
 dependencies = [
  "actix-rt",
+ "async-trait",
  "futures-util",
  "github-scbot-core",
  "github-scbot-database",

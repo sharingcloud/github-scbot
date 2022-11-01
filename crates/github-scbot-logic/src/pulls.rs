@@ -13,6 +13,7 @@ use github_scbot_database::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::RedisService;
 
+use crate::commands::CommandContext;
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
     status::{PullRequestStatus, StatusLogic},
@@ -103,7 +104,8 @@ pub async fn handle_pull_request_opened(
                     config,
                     &event.pull_request.body.unwrap_or_default(),
                 );
-                CommandExecutor::execute_commands(
+
+                let ctx = CommandContext {
                     config,
                     api_adapter,
                     db_adapter,
@@ -111,12 +113,12 @@ pub async fn handle_pull_request_opened(
                     repo_owner,
                     repo_name,
                     pr_number,
-                    &upstream_pr,
-                    0,
-                    &event.pull_request.user.login,
-                    commands,
-                )
-                .await?;
+                    upstream_pr: &upstream_pr,
+                    comment_id: 0,
+                    comment_author: &event.pull_request.user.login,
+                };
+
+                CommandExecutor::execute_commands(&ctx, commands).await?;
 
                 Ok(PullRequestOpenedStatus::Created)
             } else {

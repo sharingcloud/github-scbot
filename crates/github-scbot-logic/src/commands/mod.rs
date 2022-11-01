@@ -1,54 +1,56 @@
 //! Commands module.
 
 mod command;
-mod handlers;
+#[allow(clippy::module_inception)]
+pub mod commands;
 mod parser;
 
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    common::GhUserPermission, issues::GhReactionType, pulls::GhPullRequest,
-};
+use github_scbot_core::types::{common::GhUserPermission, issues::GhReactionType};
 use github_scbot_database::DbService;
-use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_redis::RedisService;
-pub use handlers::handle_qa_command;
+use github_scbot_ghapi::comments::CommentApi;
 pub use parser::CommandParser;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::StatusLogic};
 use crate::{
     auth::AuthLogic,
-    commands::command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
+    commands::{
+        command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
+        commands::{
+            AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
+            AdminSetDefaultAutomergeCommand, AdminSetDefaultChecksStatusCommand,
+            AdminSetDefaultMergeStrategyCommand, AdminSetDefaultPrTitleRegexCommand,
+            AdminSetDefaultQaStatusCommand, AdminSetDefaultReviewersCommand,
+            AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand, HelpCommand, IsAdminCommand,
+            LockCommand, MergeCommand, PingCommand, SetAutomergeCommand, SetChecksStatusCommand,
+            SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand,
+            SetRequiredReviewersCommand,
+        },
+    },
 };
+
+#[cfg(test)]
+pub(crate) use commands::tests::CommandContextTest;
+pub use commands::{BotCommand, CommandContext};
 
 /// Command executor.
 pub struct CommandExecutor;
 
 impl CommandExecutor {
     /// Execute multiple commands.
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(
         skip_all,
         fields(
-            repo_owner = %repo_owner,
-            repo_name = %repo_name,
-            pr_number = pr_number,
-            comment_author = %comment_author,
+            repo_owner = %ctx.repo_owner,
+            repo_name = %ctx.repo_name,
+            pr_number = ctx.pr_number,
+            comment_author = %ctx.comment_author,
             commands = ?commands
         ),
         ret
     )]
-    pub async fn execute_commands(
-        config: &Config,
-        api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
-        redis_adapter: &dyn RedisService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        upstream_pr: &GhPullRequest,
-        comment_id: u64,
-        comment_author: &str,
+    pub async fn execute_commands<'a>(
+        ctx: &CommandContext<'a>,
         commands: Vec<CommandResult<Command>>,
     ) -> Result<CommandExecutionResult> {
         let mut status = vec![];
@@ -56,21 +58,7 @@ impl CommandExecutor {
         for command in commands {
             match command {
                 Ok(command) => {
-                    status.push(
-                        Self::execute_command(
-                            config,
-                            api_adapter,
-                            db_adapter,
-                            redis_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            upstream_pr,
-                            comment_author,
-                            command,
-                        )
-                        .await?,
-                    );
+                    status.push(Self::execute_command(ctx, command).await?);
                 }
                 Err(e) => {
                     // Handle error
@@ -87,46 +75,30 @@ impl CommandExecutor {
 
         // Merge and handle command result
         let command_result = Self::merge_command_results(status);
-        Self::process_command_result(
-            api_adapter,
-            db_adapter,
-            redis_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            comment_id,
-            &command_result,
-        )
-        .await?;
+        Self::process_command_result(ctx, &command_result).await?;
 
         Ok(command_result)
     }
 
     /// Process command result.
-    #[allow(clippy::too_many_arguments)]
-    pub async fn process_command_result(
-        api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
-        redis_adapter: &dyn RedisService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        comment_id: u64,
+    pub async fn process_command_result<'a>(
+        ctx: &CommandContext<'a>,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
             // Make sure the upstream is up to date
-            let upstream_pr = api_adapter
-                .pulls_get(repo_owner, repo_name, pr_number)
+            let upstream_pr = ctx
+                .api_adapter
+                .pulls_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
                 .await?;
 
             StatusLogic::update_pull_request_status(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
+                ctx.api_adapter,
+                ctx.db_adapter,
+                ctx.redis_adapter,
+                ctx.repo_owner,
+                ctx.repo_name,
+                ctx.pr_number,
                 &upstream_pr,
             )
             .await?;
@@ -136,20 +108,20 @@ impl CommandExecutor {
             match action {
                 ResultAction::AddReaction(reaction) => {
                     CommentApi::add_reaction_to_comment(
-                        api_adapter,
-                        repo_owner,
-                        repo_name,
-                        comment_id,
+                        ctx.api_adapter,
+                        ctx.repo_owner,
+                        ctx.repo_name,
+                        ctx.comment_id,
                         *reaction,
                     )
                     .await?;
                 }
                 ResultAction::PostComment(comment) => {
                     CommentApi::post_comment(
-                        api_adapter,
-                        repo_owner,
-                        repo_name,
-                        pr_number,
+                        ctx.api_adapter,
+                        ctx.repo_owner,
+                        ctx.repo_name,
+                        ctx.pr_number,
                         comment,
                     )
                     .await?;
@@ -212,258 +184,46 @@ impl CommandExecutor {
     }
 
     /// Execute command.
-    #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+    #[allow(clippy::too_many_lines)]
     #[tracing::instrument(
         skip_all,
         fields(
-            repo_owner = %repo_owner,
-            repo_name = %repo_name,
-            pr_number = pr_number,
-            comment_author = %comment_author,
+            repo_owner = %ctx.repo_owner,
+            repo_name = %ctx.repo_name,
+            pr_number = ctx.pr_number,
+            comment_author = %ctx.comment_author,
             command = ?command
         ),
         ret
     )]
-    pub async fn execute_command(
-        config: &Config,
-        api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
-        redis_adapter: &dyn RedisService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        upstream_pr: &GhPullRequest,
-        comment_author: &str,
+    pub async fn execute_command<'a>(
+        ctx: &CommandContext<'a>,
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
 
-        let permission = api_adapter
-            .user_permissions_get(repo_owner, repo_name, comment_author)
+        let permission = ctx
+            .api_adapter
+            .user_permissions_get(ctx.repo_owner, ctx.repo_name, ctx.comment_author)
             .await?;
 
-        if Self::validate_user_rights_on_command(db_adapter, comment_author, permission, &command)
-            .await?
+        if Self::validate_user_rights_on_command(
+            ctx.db_adapter,
+            ctx.comment_author,
+            permission,
+            &command,
+        )
+        .await?
         {
             command_result = match &command {
-                Command::User(cmd) => match cmd {
-                    UserCommand::Automerge(s) => {
-                        handlers::handle_auto_merge_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            comment_author,
-                            *s,
-                        )
-                        .await?
-                    }
-                    UserCommand::SkipQaStatus(s) => {
-                        handlers::handle_skip_qa_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            comment_author,
-                            *s,
-                        )
-                        .await?
-                    }
-                    UserCommand::SkipChecksStatus(s) => {
-                        handlers::handle_skip_checks_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            comment_author,
-                            *s,
-                        )
-                        .await?
-                    }
-                    UserCommand::QaStatus(s) => {
-                        handlers::handle_qa_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            comment_author,
-                            *s,
-                        )
-                        .await?
-                    }
-                    UserCommand::Lock(s, reason) => {
-                        handlers::handle_lock_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            comment_author,
-                            *s,
-                            reason.clone(),
-                        )
-                        .await?
-                    }
-                    UserCommand::Ping => handlers::handle_ping_command(comment_author)?,
-                    UserCommand::Merge(strategy) => {
-                        handlers::handle_merge_command(
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            upstream_pr,
-                            comment_author,
-                            *strategy,
-                        )
-                        .await?
-                    }
-                    UserCommand::AssignRequiredReviewers(reviewers) => {
-                        handlers::handle_assign_required_reviewers_command(
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            reviewers.clone(),
-                        )
-                        .await?
-                    }
-                    UserCommand::SetMergeStrategy(strategy) => {
-                        handlers::handle_set_merge_strategy(
-                            db_adapter, repo_owner, repo_name, pr_number, *strategy,
-                        )
-                        .await?
-                    }
-                    UserCommand::UnsetMergeStrategy => {
-                        handlers::handle_unset_merge_strategy(
-                            db_adapter, repo_owner, repo_name, pr_number,
-                        )
-                        .await?
-                    }
-                    UserCommand::SetLabels(labels) => {
-                        handlers::handle_set_labels(
-                            api_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            labels,
-                        )
-                        .await?
-                    }
-                    UserCommand::UnsetLabels(labels) => {
-                        handlers::handle_unset_labels(
-                            api_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            labels,
-                        )
-                        .await?
-                    }
-                    UserCommand::UnassignRequiredReviewers(reviewers) => {
-                        handlers::handle_unassign_required_reviewers_command(
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            reviewers.clone(),
-                        )
-                        .await?
-                    }
-                    UserCommand::Gif(terms) => {
-                        handlers::handle_gif_command(config, api_adapter, terms).await?
-                    }
-                    UserCommand::Help => handlers::handle_help_command(config, comment_author)?,
-                    UserCommand::IsAdmin => {
-                        handlers::handle_is_admin_command(db_adapter, comment_author).await?
-                    }
-                },
-                Command::Admin(cmd) => match cmd {
-                    AdminCommand::Help => {
-                        handlers::handle_admin_help_command(config, comment_author)?
-                    }
-                    AdminCommand::Enable => CommandExecutionResult::builder().ignored().build(),
-                    AdminCommand::Disable => {
-                        handlers::handle_admin_disable_command(
-                            api_adapter,
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                        )
-                        .await?
-                    }
-                    AdminCommand::Synchronize => {
-                        handlers::handle_admin_sync_command(
-                            config, db_adapter, repo_owner, repo_name, pr_number,
-                        )
-                        .await?
-                    }
-                    AdminCommand::ResetSummary => {
-                        handlers::handle_admin_reset_summary_command(
-                            api_adapter,
-                            db_adapter,
-                            redis_adapter,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            upstream_pr,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultNeededReviewers(count) => {
-                        handlers::handle_set_default_needed_reviewers_command(
-                            db_adapter, repo_owner, repo_name, *count,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultMergeStrategy(strategy) => {
-                        handlers::handle_set_default_merge_strategy_command(
-                            db_adapter, repo_owner, repo_name, *strategy,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultPRTitleRegex(rgx) => {
-                        handlers::handle_set_default_pr_title_regex_command(
-                            db_adapter,
-                            repo_owner,
-                            repo_name,
-                            rgx.clone(),
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultQAStatus(status) => {
-                        handlers::handle_set_default_qa_status_command(
-                            db_adapter, repo_owner, repo_name, *status,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultChecksStatus(status) => {
-                        handlers::handle_set_default_checks_status_command(
-                            db_adapter, repo_owner, repo_name, *status,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetDefaultAutomerge(value) => {
-                        handlers::handle_set_default_automerge_command(
-                            db_adapter, repo_owner, repo_name, *value,
-                        )
-                        .await?
-                    }
-                    AdminCommand::SetNeededReviewers(count) => {
-                        handlers::handle_set_needed_reviewers_command(
-                            db_adapter, repo_owner, repo_name, pr_number, *count,
-                        )
-                        .await?
-                    }
-                },
+                Command::User(cmd) => Self::_execute_user_command(ctx, cmd).await?,
+                Command::Admin(cmd) => Self::_execute_admin_command(ctx, cmd).await?,
             };
 
             for action in &mut command_result.result_actions {
                 if let ResultAction::PostComment(comment) = action {
                     // Include command recap before comment
-                    *comment = format!("> {}\n\n{}", command.to_bot_string(config), comment);
+                    *comment = format!("> {}\n\n{}", command.to_bot_string(ctx.config), comment);
                 }
             }
         } else {
@@ -474,6 +234,102 @@ impl CommandExecutor {
         }
 
         Ok(command_result)
+    }
+
+    async fn _execute_user_command<'a>(
+        ctx: &CommandContext<'a>,
+        cmd: &UserCommand,
+    ) -> Result<CommandExecutionResult> {
+        match cmd {
+            UserCommand::Automerge(s) => SetAutomergeCommand::new(*s).handle(ctx).await,
+            UserCommand::SkipQaStatus(s) => {
+                SetQaStatusCommand::new_skip_or_wait(*s).handle(ctx).await
+            }
+            UserCommand::SkipChecksStatus(s) => {
+                SetChecksStatusCommand::new_skip_or_wait(*s)
+                    .handle(ctx)
+                    .await
+            }
+            UserCommand::QaStatus(s) => SetQaStatusCommand::new_pass_or_fail(*s).handle(ctx).await,
+            UserCommand::Lock(s, reason) => LockCommand::new(*s, reason.clone()).handle(ctx).await,
+            UserCommand::Ping => PingCommand::new().handle(ctx).await,
+            UserCommand::Merge(strategy) => MergeCommand::new(*strategy).handle(ctx).await,
+            UserCommand::AssignRequiredReviewers(reviewers) => {
+                SetRequiredReviewersCommand::new_assign(reviewers.clone())
+                    .handle(ctx)
+                    .await
+            }
+            UserCommand::SetMergeStrategy(strategy) => {
+                SetMergeStrategyCommand::new(*strategy).handle(ctx).await
+            }
+            UserCommand::UnsetMergeStrategy => {
+                SetMergeStrategyCommand::new_unset().handle(ctx).await
+            }
+            UserCommand::SetLabels(labels) => {
+                SetLabelsCommand::new_added(labels.clone())
+                    .handle(ctx)
+                    .await
+            }
+            UserCommand::UnsetLabels(labels) => {
+                SetLabelsCommand::new_removed(labels.clone())
+                    .handle(ctx)
+                    .await
+            }
+            UserCommand::UnassignRequiredReviewers(reviewers) => {
+                SetRequiredReviewersCommand::new_unassign(reviewers.clone())
+                    .handle(ctx)
+                    .await
+            }
+            UserCommand::Gif(terms) => GifCommand::new(terms.clone()).handle(ctx).await,
+            UserCommand::Help => HelpCommand::new().handle(ctx).await,
+            UserCommand::IsAdmin => IsAdminCommand::new().handle(ctx).await,
+        }
+    }
+
+    async fn _execute_admin_command<'a>(
+        ctx: &CommandContext<'a>,
+        cmd: &AdminCommand,
+    ) -> Result<CommandExecutionResult> {
+        match cmd {
+            AdminCommand::Help => AdminHelpCommand::new().handle(ctx).await,
+            AdminCommand::Enable => Ok(CommandExecutionResult::builder().ignored().build()),
+            AdminCommand::Disable => AdminDisableCommand::new().handle(ctx).await,
+            AdminCommand::Synchronize => AdminSyncCommand::new().handle(ctx).await,
+            AdminCommand::ResetSummary => AdminResetSummaryCommand::new().handle(ctx).await,
+            AdminCommand::SetDefaultNeededReviewers(count) => {
+                AdminSetDefaultReviewersCommand::new(*count)
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetDefaultMergeStrategy(strategy) => {
+                AdminSetDefaultMergeStrategyCommand::new(*strategy)
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+                AdminSetDefaultPrTitleRegexCommand::new(rgx.clone())
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetDefaultQAStatus(status) => {
+                AdminSetDefaultQaStatusCommand::new(*status)
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetDefaultChecksStatus(status) => {
+                AdminSetDefaultChecksStatusCommand::new(*status)
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetDefaultAutomerge(value) => {
+                AdminSetDefaultAutomergeCommand::new(*value)
+                    .handle(ctx)
+                    .await
+            }
+            AdminCommand::SetNeededReviewers(count) => {
+                AdminSetPrReviewersCommand::new(*count).handle(ctx).await
+            }
+        }
     }
 
     /// Validate user rights on command.

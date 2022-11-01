@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use actix::MailboxError;
 use async_trait::async_trait;
-use snafu::{prelude::*, Backtrace};
+use snafu::prelude::*;
 
 /// Lock error.
 #[allow(missing_docs)]
@@ -13,24 +13,15 @@ use snafu::{prelude::*, Backtrace};
 pub enum RedisError {
     /// Mailbox error.
     #[snafu(display("Actix mailbox error,\n  caused by: {}", source))]
-    MailboxError {
-        source: MailboxError,
-        backtrace: Backtrace,
-    },
+    MailboxError { source: MailboxError },
 
     /// Actix error.
     #[snafu(display("Actix-Redis error,\n  caused by: {}", source))]
-    ActixError {
-        source: actix_redis::Error,
-        backtrace: Backtrace,
-    },
+    ActixError { source: actix_redis::Error },
 
     /// Command error.
     #[snafu(display("Redis command error: {}", result))]
-    CommandError {
-        result: String,
-        backtrace: Backtrace,
-    },
+    CommandError { result: String },
 }
 
 /// Lock status.

@@ -9,7 +9,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::crypto::{CryptoError, JwtUtils};
 use github_scbot_core::sentry::sentry;
 use github_scbot_database::{DatabaseError, ExternalAccount, ExternalAccountDB, ExternalJwtClaims};
-use snafu::{Backtrace, ResultExt, Snafu};
+use snafu::{ResultExt, Snafu};
 
 use crate::server::AppContext;
 
@@ -17,17 +17,11 @@ use crate::server::AppContext;
 #[derive(Debug, Snafu)]
 pub enum ValidationError {
     #[snafu(display("Unknown account."))]
-    UnknownAccount { backtrace: Backtrace },
+    UnknownAccount,
     #[snafu(display("Database error,\n  caused by: {}", source))]
-    DatabaseError {
-        #[snafu(backtrace)]
-        source: DatabaseError,
-    },
+    DatabaseError { source: DatabaseError },
     #[snafu(display("Token error,\n  caused by: {}", source))]
-    TokenError {
-        #[snafu(backtrace)]
-        source: CryptoError,
-    },
+    TokenError { source: CryptoError },
 }
 
 impl ValidationError {
