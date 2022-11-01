@@ -5,7 +5,7 @@ use snafu::prelude::*;
 /// Logic error.
 #[allow(missing_docs)]
 #[derive(Debug, Snafu)]
-pub enum LogicError {
+pub enum DomainError {
     /// Wraps [`regex::Error`].
     #[snafu(display("Error while compiling regex,\n  caused by: {}", source))]
     RegexError { source: regex::Error },
@@ -29,29 +29,29 @@ pub enum LogicError {
     },
 }
 
-impl From<regex::Error> for LogicError {
+impl From<regex::Error> for DomainError {
     fn from(e: regex::Error) -> Self {
         Self::RegexError { source: e }
     }
 }
 
-impl From<github_scbot_ghapi::ApiError> for LogicError {
+impl From<github_scbot_ghapi::ApiError> for DomainError {
     fn from(e: github_scbot_ghapi::ApiError) -> Self {
         Self::ApiError { source: e }
     }
 }
 
-impl From<github_scbot_database::DatabaseError> for LogicError {
+impl From<github_scbot_database::DatabaseError> for DomainError {
     fn from(e: github_scbot_database::DatabaseError) -> Self {
         Self::DatabaseError { source: e }
     }
 }
 
-impl From<github_scbot_redis::RedisError> for LogicError {
+impl From<github_scbot_redis::RedisError> for DomainError {
     fn from(e: github_scbot_redis::RedisError) -> Self {
         Self::RedisError { source: e }
     }
 }
 
-/// Result alias for `LogicError`.
-pub type Result<T> = core::result::Result<T, LogicError>;
+/// Result alias for `DomainError`.
+pub type Result<T> = core::result::Result<T, DomainError>;

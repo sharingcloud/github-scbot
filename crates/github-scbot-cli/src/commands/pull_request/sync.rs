@@ -1,11 +1,11 @@
 use std::io::Write;
 
-use crate::errors::{ApiSnafu, IoSnafu, LogicSnafu};
+use crate::errors::{ApiSnafu, IoSnafu, DomainSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_logic::{pulls::PullRequestLogic, status::StatusLogic};
+use github_scbot_domain::{pulls::PullRequestLogic, status::StatusLogic};
 use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
@@ -34,7 +34,7 @@ impl Command for PullRequestSyncCommand {
             pr_number,
         )
         .await
-        .context(LogicSnafu)?;
+        .context(DomainSnafu)?;
 
         let upstream_pr = ctx
             .api_adapter
@@ -52,7 +52,7 @@ impl Command for PullRequestSyncCommand {
             &upstream_pr,
         )
         .await
-        .context(LogicSnafu)?;
+        .context(DomainSnafu)?;
 
         writeln!(
             ctx.writer,

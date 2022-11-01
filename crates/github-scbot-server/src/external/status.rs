@@ -7,11 +7,11 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_core::types::status::QaStatus;
-use github_scbot_logic::external::set_qa_status_for_pull_requests;
+use github_scbot_domain::external::set_qa_status_for_pull_requests;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
-use crate::errors::LogicSnafu;
+use crate::errors::DomainSnafu;
 use crate::{external::validator::extract_account_from_auth, server::AppContext};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,7 +58,7 @@ pub(crate) async fn set_qa_status(
         status,
     )
     .await
-    .context(LogicSnafu)?;
+    .context(DomainSnafu)?;
 
     Ok(HttpResponse::Ok().body("Set QA status."))
 }

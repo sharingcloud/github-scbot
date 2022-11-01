@@ -22,8 +22,8 @@ pub enum CliError {
         source: github_scbot_server::ServerError,
     },
     #[snafu(display("{}", source))]
-    LogicError {
-        source: github_scbot_logic::LogicError,
+    DomainError {
+        source: github_scbot_domain::DomainError,
     },
     #[snafu(display("{}", source))]
     IoError { source: std::io::Error },

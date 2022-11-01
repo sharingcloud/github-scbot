@@ -1168,7 +1168,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "argh",
@@ -1177,8 +1177,8 @@ dependencies = [
  "dialoguer",
  "github-scbot-core",
  "github-scbot-database",
+ "github-scbot-domain",
  "github-scbot-ghapi",
- "github-scbot-logic",
  "github-scbot-redis",
  "github-scbot-server",
  "github-scbot-tui",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-core"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "dotenv",
  "hex",
@@ -1216,7 +1216,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1235,8 +1235,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-domain"
+version = "0.23.0-dev"
+dependencies = [
+ "actix-rt",
+ "async-trait",
+ "futures-util",
+ "github-scbot-core",
+ "github-scbot-database",
+ "github-scbot-ghapi",
+ "github-scbot-redis",
+ "maplit",
+ "mockall",
+ "pretty_assertions",
+ "regex",
+ "smart-default",
+ "snafu",
+ "tracing",
+]
+
+[[package]]
 name = "github-scbot-ghapi"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
@@ -1257,28 +1277,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-logic"
-version = "0.23.0-rc1"
-dependencies = [
- "actix-rt",
- "async-trait",
- "futures-util",
- "github-scbot-core",
- "github-scbot-database",
- "github-scbot-ghapi",
- "github-scbot-redis",
- "maplit",
- "mockall",
- "pretty_assertions",
- "regex",
- "smart-default",
- "snafu",
- "tracing",
-]
-
-[[package]]
 name = "github-scbot-macros"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1287,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-redis"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "actix",
  "actix-redis",
@@ -1302,7 +1302,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1313,8 +1313,8 @@ dependencies = [
  "futures",
  "github-scbot-core",
  "github-scbot-database",
+ "github-scbot-domain",
  "github-scbot-ghapi",
- "github-scbot-logic",
  "github-scbot-redis",
  "lazy_static",
  "pretty_assertions",
@@ -1329,7 +1329,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 dependencies = [
  "crossterm",
  "github-scbot-core",

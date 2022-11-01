@@ -8,12 +8,12 @@ use github_scbot_core::types::{
 };
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_logic::pulls::{handle_pull_request_event, handle_pull_request_opened};
+use github_scbot_domain::pulls::{handle_pull_request_event, handle_pull_request_opened};
 use github_scbot_redis::RedisService;
 use snafu::ResultExt;
 
 use super::parse_event_type;
-use crate::errors::LogicSnafu;
+use crate::errors::DomainSnafu;
 use crate::errors::Result;
 
 pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent> {
@@ -30,11 +30,11 @@ pub(crate) async fn pull_request_event(
     if matches!(event.action, GhPullRequestAction::Opened) {
         handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event)
             .await
-            .context(LogicSnafu)?;
+            .context(DomainSnafu)?;
     } else {
         handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event)
             .await
-            .context(LogicSnafu)?;
+            .context(DomainSnafu)?;
     }
 
     Ok(HttpResponse::Ok().body("Pull request."))

@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-cli"
-version = "0.23.0-rc1"
+version = "0.23.0-dev"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
@@ -8,7 +8,7 @@ edition = "2021"
 github-scbot-core = { path = "../github-scbot-core" }
 github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-database = { path = "../github-scbot-database" }
-github-scbot-logic = { path = "../github-scbot-logic" }
+github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
 github-scbot-redis = { path = "../github-scbot-redis" }

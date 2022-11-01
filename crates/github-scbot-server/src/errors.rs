@@ -30,8 +30,8 @@ pub enum ServerError {
     IoError { source: std::io::Error },
 
     #[snafu(display("Logic error,\n  caused by: {}", source))]
-    LogicError {
-        source: github_scbot_logic::LogicError,
+    DomainError {
+        source: github_scbot_domain::DomainError,
     },
 
     #[snafu(display("Internal error."))]

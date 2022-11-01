@@ -5,11 +5,11 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_logic::comments::handle_issue_comment_event;
+use github_scbot_domain::comments::handle_issue_comment_event;
 use github_scbot_redis::RedisService;
 
 use super::parse_event_type;
-use crate::errors::LogicSnafu;
+use crate::errors::DomainSnafu;
 use crate::errors::Result;
 use snafu::ResultExt;
 
@@ -26,6 +26,6 @@ pub(crate) async fn issue_comment_event(
 ) -> Result<HttpResponse> {
     handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event)
         .await
-        .context(LogicSnafu)?;
+        .context(DomainSnafu)?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

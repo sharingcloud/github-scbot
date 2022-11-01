@@ -4,12 +4,12 @@ use actix_web::HttpResponse;
 use github_scbot_core::types::{events::EventType, reviews::GhReviewEvent};
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_logic::reviews::handle_review_event;
+use github_scbot_domain::reviews::handle_review_event;
 use github_scbot_redis::RedisService;
 use snafu::ResultExt;
 
 use super::parse_event_type;
-use crate::errors::LogicSnafu;
+use crate::errors::DomainSnafu;
 use crate::errors::Result;
 
 pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
@@ -24,6 +24,6 @@ pub(crate) async fn review_event(
 ) -> Result<HttpResponse> {
     handle_review_event(api_adapter, db_adapter, redis_adapter, event)
         .await
-        .context(LogicSnafu)?;
+        .context(DomainSnafu)?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }

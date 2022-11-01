@@ -18,4 +18,4 @@ pub mod summary;
 #[cfg(test)]
 mod tests;
 
-pub use errors::{LogicError, Result};
+pub use errors::{DomainError, Result};
