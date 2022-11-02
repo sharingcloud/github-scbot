@@ -3,7 +3,7 @@ use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
 
-use crate::interface::{LockInstance, LockStatus, RedisError, RedisService};
+use crate::{RedisError, RedisService, LockInstance, LockStatus};
 
 /// Redis adapter.
 #[derive(Clone)]
@@ -78,10 +78,7 @@ impl RedisService for RedisServiceImpl {
 mod tests {
     use std::error::Error;
 
-    use crate::{
-        interface::{LockStatus, RedisService},
-        redis::RedisServiceImpl,
-    };
+    use super::*;
 
     #[actix_rt::test]
     async fn test_redis() -> Result<(), Box<dyn Error>> {
