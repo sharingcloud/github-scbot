@@ -1,9 +1,9 @@
 use crate::Result;
 use clap::Parser;
-use std::io::Write;
 use github_scbot_core::config::Config;
 use github_scbot_database::{establish_pool_connection, run_migrations, DbServiceImplPool};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
+use std::io::Write;
 
 use crate::commands::{Command, CommandContext, SubCommand};
 
@@ -49,7 +49,10 @@ impl CommandExecutor {
         Ok(())
     }
 
-    pub(crate) async fn parse_args_async<W: Write>(args: Args, ctx: CommandContext<W>) -> Result<()> {
+    pub(crate) async fn parse_args_async<W: Write>(
+        args: Args,
+        ctx: CommandContext<W>,
+    ) -> Result<()> {
         args.cmd.execute(ctx).await
     }
 }

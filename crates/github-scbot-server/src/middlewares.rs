@@ -18,8 +18,8 @@ use futures::{
 use github_scbot_core::{config::Config, crypto::is_valid_signature};
 use tracing::warn;
 
-use crate::ServerError;
 use super::constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH};
+use crate::ServerError;
 
 /// Signature verification configuration.
 pub struct VerifySignature {
@@ -103,7 +103,7 @@ where
                     let headers = req.headers().clone();
                     let signature = headers
                         .get(GITHUB_SIGNATURE_HEADER)
-                        .ok_or_else(|| ServerError::MissingWebhookSignature)?
+                        .ok_or(ServerError::MissingWebhookSignature)?
                         .to_str()
                         .map_err(|_| {
                             actix_web::Error::from(ServerError::InvalidWebhookSignature)

@@ -5,7 +5,10 @@ use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
-use crate::{commands::CommandContext, args::{Args, CommandExecutor}};
+use crate::{
+    args::{Args, CommandExecutor},
+    commands::CommandContext,
+};
 
 pub(crate) async fn test_command(
     config: Config,

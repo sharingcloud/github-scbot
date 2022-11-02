@@ -10,8 +10,8 @@ use github_scbot_core::crypto::{CryptoError, JwtUtils};
 use github_scbot_core::sentry::sentry;
 use github_scbot_database::{DatabaseError, ExternalAccount, ExternalAccountDB, ExternalJwtClaims};
 
-use thiserror::Error;
 use crate::server::AppContext;
+use thiserror::Error;
 
 /// Validation error.
 #[derive(Debug, Error)]
@@ -91,5 +91,5 @@ pub async fn extract_account_from_token(
         .get(&claims.iss)
         .await
         .map_err(|e| ValidationError::DatabaseError { source: e })?
-        .ok_or_else(|| ValidationError::UnknownAccount)
+        .ok_or(ValidationError::UnknownAccount)
 }

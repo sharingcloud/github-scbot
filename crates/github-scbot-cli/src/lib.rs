@@ -8,9 +8,9 @@ use github_scbot_core::config::configure_startup;
 
 pub(crate) mod args;
 mod commands;
-pub(crate) mod utils;
 #[cfg(test)]
 mod testutils;
+pub(crate) mod utils;
 
 /// Initialize command line.
 pub fn initialize_command_line() -> Result<()> {

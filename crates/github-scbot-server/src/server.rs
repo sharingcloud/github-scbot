@@ -27,8 +27,7 @@ use crate::{
     middlewares::VerifySignature,
     redis::MetricsRedisService,
     webhook::configure_webhook_handlers,
-    Result,
-    ServerError,
+    Result, ServerError,
 };
 
 /// App context.

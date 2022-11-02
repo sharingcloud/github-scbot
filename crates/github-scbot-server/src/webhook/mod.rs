@@ -11,6 +11,7 @@ mod tests;
 
 use std::{convert::TryFrom, sync::Arc};
 
+use crate::{Result, ServerError};
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::sentry;
@@ -19,16 +20,12 @@ use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use serde::Deserialize;
-use crate::{Result, ServerError};
 
 use self::{
     checks::parse_check_suite_event, issues::parse_issue_comment_event, ping::parse_ping_event,
     pulls::parse_pull_request_event, reviews::parse_review_event,
 };
-use crate::{
-    constants::GITHUB_EVENT_HEADER, server::AppContext,
-    utils::convert_payload_to_string,
-};
+use crate::{constants::GITHUB_EVENT_HEADER, server::AppContext, utils::convert_payload_to_string};
 
 async fn parse_event(
     config: &Config,
@@ -85,7 +82,10 @@ fn parse_event_type<'de, T>(event_type: EventType, body: &'de str) -> Result<T>
 where
     T: Deserialize<'de>,
 {
-    serde_json::from_str(body).map_err(|e| ServerError::EventParseError { event_type, source: e })
+    serde_json::from_str(body).map_err(|e| ServerError::EventParseError {
+        event_type,
+        source: e,
+    })
 }
 
 fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {

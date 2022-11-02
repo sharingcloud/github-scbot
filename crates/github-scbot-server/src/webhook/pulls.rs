@@ -12,7 +12,7 @@ use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
 use super::parse_event_type;
-use crate::{ServerError, Result};
+use crate::{Result, ServerError};
 
 pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent> {
     parse_event_type(EventType::PullRequest, body)

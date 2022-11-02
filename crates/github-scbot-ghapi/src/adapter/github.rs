@@ -411,11 +411,9 @@ impl ApiService for GithubApiService {
                 .send()
                 .await?
                 .error_for_status()
-                .map_err(|_| {
-                    ApiError::MergeError {
-                        pr_number: issue_number,
-                        repository_path: format!("{owner}/{name}"),
-                    }
+                .map_err(|_| ApiError::MergeError {
+                    pr_number: issue_number,
+                    repository_path: format!("{owner}/{name}"),
                 })?;
 
             Ok(())

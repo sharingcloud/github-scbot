@@ -368,7 +368,8 @@ impl Command {
     }
 
     fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
-        GhMergeStrategy::try_from(&args.join(" ")[..]).map_err(|_e| CommandError::ArgumentParsingError)
+        GhMergeStrategy::try_from(&args.join(" ")[..])
+            .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
     fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<GhMergeStrategy>> {
@@ -377,7 +378,8 @@ impl Command {
             Ok(None)
         } else {
             Ok(Some(
-                GhMergeStrategy::try_from(&args[..]).map_err(|_e| CommandError::ArgumentParsingError)?,
+                GhMergeStrategy::try_from(&args[..])
+                    .map_err(|_e| CommandError::ArgumentParsingError)?,
             ))
         }
     }

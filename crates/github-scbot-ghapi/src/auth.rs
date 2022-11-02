@@ -7,7 +7,7 @@ use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
 
-use crate::{adapter::ApiService, Result, ApiError};
+use crate::{adapter::ApiService, ApiError, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -89,7 +89,8 @@ fn create_app_token(config: &Config) -> Result<String> {
         iss: config.github_app_id,
     };
 
-    JwtUtils::create_jwt(&config.github_app_private_key, &claims).map_err(|e| ApiError::JwtError { source: e })
+    JwtUtils::create_jwt(&config.github_app_private_key, &claims)
+        .map_err(|e| ApiError::JwtError { source: e })
 }
 
 async fn create_installation_access_token(
