@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -30,15 +28,13 @@ impl Command for RepositorySetReviewersCountCommand {
 
         pr_repo
             .set_default_needed_reviewers_count(owner, name, self.reviewers_count)
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         writeln!(
             ctx.writer,
             "Default reviewers count updated to {} for repository {}.",
             self.reviewers_count, self.repository_path
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

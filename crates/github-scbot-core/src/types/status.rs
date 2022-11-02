@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use serde::{Deserialize, Serialize};
 
-use super::errors::{TypeError, UnknownCheckStatusSnafu, UnknownQaStatusSnafu};
+use super::errors::TypeError;
 
 /// Status state.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -73,10 +73,9 @@ impl TryFrom<&str> for CheckStatus {
             "waiting" => Ok(Self::Waiting),
             "skipped" => Ok(Self::Skipped),
             "fail" => Ok(Self::Fail),
-            e => UnknownCheckStatusSnafu {
+            e => Err(TypeError::UnknownCheckStatus {
                 status: e.to_string(),
-            }
-            .fail(),
+            }),
         }
     }
 }
@@ -142,10 +141,9 @@ impl TryFrom<&str> for QaStatus {
             "waiting" => Ok(Self::Waiting),
             "fail" => Ok(Self::Fail),
             "skipped" => Ok(Self::Skipped),
-            e => UnknownQaStatusSnafu {
+            e => Err(TypeError::UnknownQaStatus {
                 status: e.to_string(),
-            }
-            .fail(),
+            }),
         }
     }
 }

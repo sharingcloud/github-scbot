@@ -4,12 +4,10 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// Create external token
 #[derive(Parser)]
@@ -23,12 +21,7 @@ impl Command for AuthCreateExternalTokenCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut exa_db = ctx.db_adapter.external_accounts();
         let exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        writeln!(
-            ctx.writer,
-            "{}",
-            exa.generate_access_token().context(DatabaseSnafu)?
-        )
-        .context(IoSnafu)?;
+        writeln!(ctx.writer, "{}", exa.generate_access_token()?)?;
 
         Ok(())
     }

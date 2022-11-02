@@ -1,22 +1,17 @@
 //! CLI module.
 
+use anyhow::Result;
 use std::io::Write;
 
 use clap::Parser;
-use errors::CliError;
 use github_scbot_core::config::{configure_startup, Config};
 use github_scbot_database::{establish_pool_connection, run_migrations, DbServiceImplPool};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
-use snafu::ResultExt;
 
 use self::commands::{Command, CommandContext, SubCommand};
 
 mod commands;
-pub(crate) mod errors;
 pub(crate) mod utils;
-use errors::{ConfSnafu, DatabaseSnafu};
-
-type Result<T, E = CliError> = std::result::Result<T, E>;
 
 /// SharingCloud PR Bot
 #[derive(Parser)]
@@ -29,7 +24,7 @@ struct Args {
 
 /// Initialize command line.
 pub fn initialize_command_line() -> Result<()> {
-    let config = configure_startup().context(ConfSnafu)?;
+    let config = configure_startup()?;
     let args = Args::parse();
 
     parse_args_sync(config, args)
@@ -37,10 +32,8 @@ pub fn initialize_command_line() -> Result<()> {
 
 fn parse_args_sync(config: Config, args: Args) -> Result<()> {
     async fn sync(config: Config, args: Args) -> Result<()> {
-        let pool = establish_pool_connection(&config)
-            .await
-            .context(DatabaseSnafu)?;
-        run_migrations(&pool).await.context(DatabaseSnafu)?;
+        let pool = establish_pool_connection(&config).await?;
+        run_migrations(&pool).await?;
 
         let db_adapter = DbServiceImplPool::new(pool);
         let api_adapter = MetricsApiService::new(config.clone());

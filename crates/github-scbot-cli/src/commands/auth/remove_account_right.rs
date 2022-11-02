@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -33,16 +31,12 @@ impl Command for AuthRemoveAccountRightCommand {
         let _repo = CliDbExt::get_existing_repository(&mut *repo_db, owner, name).await?;
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
 
-        exr_db
-            .delete(owner, name, &self.username)
-            .await
-            .context(DatabaseSnafu)?;
+        exr_db.delete(owner, name, &self.username).await?;
         writeln!(
             ctx.writer,
             "Right removed to repository '{}' for account '{}'.",
             self.repository_path, self.username
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

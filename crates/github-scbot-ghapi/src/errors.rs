@@ -1,29 +1,28 @@
 //! API errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// API error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum ApiError {
     /// Merge error.
-    #[snafu(display(
+    #[error(
         "Could not merge pull request #{} on repository {}",
         pr_number,
         repository_path
-    ))]
+    )]
     MergeError {
         pr_number: u64,
         repository_path: String,
     },
 
     /// Http error.
-    #[snafu(display("HTTP error,\n  caused by: {}", source))]
+    #[error("HTTP error,\n  caused by: {}", source)]
     HttpError { source: reqwest::Error },
 
     /// Jwt error.
-    #[snafu(display("JWT error,\n  caused by: {}", source))]
+    #[error("JWT error,\n  caused by: {}", source)]
     JwtError {
         source: github_scbot_core::crypto::CryptoError,
     },

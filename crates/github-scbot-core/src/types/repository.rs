@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use super::errors::{InvalidRepositoryPathSnafu, TypeError};
+use super::errors::TypeError;
 
 /// Repository path.
 #[derive(Debug)]
@@ -48,10 +48,9 @@ impl RepositoryPath {
         if split.len() == 2 {
             Ok((split[0], split[1]))
         } else {
-            InvalidRepositoryPathSnafu {
+            Err(TypeError::InvalidRepositoryPath {
                 path: repo_path.to_string(),
-            }
-            .fail()
+            })
         }
     }
 }

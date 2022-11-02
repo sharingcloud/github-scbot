@@ -4,12 +4,10 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// List rights for account
 #[derive(Parser)]
@@ -26,24 +24,19 @@ impl Command for AuthListAccountRightsCommand {
         let mut exr_db = ctx.db_adapter.external_account_rights();
 
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        let rights = exr_db.list(&self.username).await.context(DatabaseSnafu)?;
+        let rights = exr_db.list(&self.username).await?;
 
         if rights.is_empty() {
             writeln!(
                 ctx.writer,
                 "No right found from account '{}'.",
                 self.username
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
-            writeln!(ctx.writer, "Rights from account '{}':", self.username).context(IoSnafu)?;
+            writeln!(ctx.writer, "Rights from account '{}':", self.username)?;
             for right in rights {
-                let repo = repo_db
-                    .get_from_id(right.repository_id())
-                    .await
-                    .context(DatabaseSnafu)?
-                    .unwrap();
-                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name()).context(IoSnafu)?;
+                let repo = repo_db.get_from_id(right.repository_id()).await?.unwrap();
+                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name())?;
             }
         }
 

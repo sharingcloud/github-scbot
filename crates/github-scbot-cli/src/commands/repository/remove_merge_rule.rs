@@ -1,16 +1,15 @@
 use std::io::Write;
 
 use crate::Result;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::{repository::RepositoryPath, rule_branch::RuleBranch};
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::{whatever, ResultExt};
 
 /// Remove merge rule for a repository
 #[derive(Parser)]
@@ -32,7 +31,7 @@ impl Command for RepositoryRemoveMergeRuleCommand {
                 .await?;
 
         if self.base_branch == RuleBranch::Wildcard && self.head_branch == RuleBranch::Wildcard {
-            whatever!("Cannot remove default strategy");
+            return Err(anyhow!("Cannot remove default strategy"));
         } else {
             let found = ctx
                 .db_adapter
@@ -43,22 +42,19 @@ impl Command for RepositoryRemoveMergeRuleCommand {
                     self.base_branch.clone(),
                     self.head_branch.clone(),
                 )
-                .await
-                .context(DatabaseSnafu)?;
+                .await?;
             if found {
                 writeln!(
                     ctx.writer,
                     "Merge rule for repository '{}' and branches '{}' (base) <- '{}' (head) deleted.",
                     self.repository_path, self.base_branch, self.head_branch
-                )
-                .context(IoSnafu)?;
+                )?;
             } else {
                 writeln!(
                     ctx.writer,
                     "Unknown merge rule for repository '{}' and branches '{}' (base) <- '{}' (head).",
                     self.repository_path, self.base_branch, self.head_branch
-                )
-                .context(IoSnafu)?;
+                )?;
             }
         }
 

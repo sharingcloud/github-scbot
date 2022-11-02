@@ -9,18 +9,18 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::crypto::{CryptoError, JwtUtils};
 use github_scbot_core::sentry::sentry;
 use github_scbot_database::{DatabaseError, ExternalAccount, ExternalAccountDB, ExternalJwtClaims};
-use snafu::{ResultExt, Snafu};
 
+use thiserror::Error;
 use crate::server::AppContext;
 
 /// Validation error.
-#[derive(Debug, Snafu)]
+#[derive(Debug, Error)]
 pub enum ValidationError {
-    #[snafu(display("Unknown account."))]
+    #[error("Unknown account.")]
     UnknownAccount,
-    #[snafu(display("Database error,\n  caused by: {}", source))]
+    #[error("Database error,\n  caused by: {}", source)]
     DatabaseError { source: DatabaseError },
-    #[snafu(display("Token error,\n  caused by: {}", source))]
+    #[error("Token error,\n  caused by: {}", source)]
     TokenError { source: CryptoError },
 }
 
@@ -90,6 +90,6 @@ pub async fn extract_account_from_token(
     exa_db
         .get(&claims.iss)
         .await
-        .context(DatabaseSnafu)?
-        .ok_or_else(|| UnknownAccountSnafu.build())
+        .map_err(|e| ValidationError::DatabaseError { source: e })?
+        .ok_or_else(|| ValidationError::UnknownAccount)
 }

@@ -6,8 +6,6 @@ use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 
 use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
 
 /// List known pull request for a repository
 #[derive(Parser)]
@@ -21,23 +19,17 @@ impl Command for PullRequestListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let prs = ctx
-            .db_adapter
-            .pull_requests()
-            .list(owner, name)
-            .await
-            .context(DatabaseSnafu)?;
+        let prs = ctx.db_adapter.pull_requests().list(owner, name).await?;
 
         if prs.is_empty() {
             writeln!(
                 ctx.writer,
                 "No PR found from repository '{}'.",
                 self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
             for pr in prs {
-                writeln!(ctx.writer, "- #{}", pr.number()).context(IoSnafu)?;
+                writeln!(ctx.writer, "- #{}", pr.number())?;
             }
         }
 

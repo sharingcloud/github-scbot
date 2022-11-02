@@ -9,10 +9,8 @@ use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_core::types::status::QaStatus;
 use github_scbot_domain::external::set_qa_status_for_pull_requests;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 
-use crate::errors::DomainSnafu;
-use crate::{external::validator::extract_account_from_auth, server::AppContext};
+use crate::{external::validator::extract_account_from_auth, server::AppContext, ServerError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct QaStatusJson {
@@ -58,7 +56,7 @@ pub(crate) async fn set_qa_status(
         status,
     )
     .await
-    .context(DomainSnafu)?;
+    .map_err(|e| ServerError::DomainError { source: e })?;
 
     Ok(HttpResponse::Ok().body("Set QA status."))
 }

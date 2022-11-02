@@ -1,22 +1,21 @@
 //! UI errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// UI error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum UiError {
     /// Wraps [`std::io::IoError`].
-    #[snafu(display("I/O error,\n  caused by: {}", source))]
+    #[error("I/O error,\n  caused by: {}", source)]
     Io { source: std::io::Error },
 
     /// Wraps [`std::sync::mpsc::RecvError`].
-    #[snafu(display("Channel communication error,\n  caused by: {}", source))]
+    #[error("Channel communication error,\n  caused by: {}", source)]
     Recv { source: std::sync::mpsc::RecvError },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[snafu(display("Database error,\n  caused by: {}", source))]
+    #[error("Database error,\n  caused by: {}", source)]
     Database {
         source: github_scbot_database::DatabaseError,
     },

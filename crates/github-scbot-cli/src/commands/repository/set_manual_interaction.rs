@@ -5,12 +5,10 @@ use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// Set manual interaction mode for a repository
 #[derive(Parser)]
@@ -31,15 +29,13 @@ impl Command for RepositorySetManualInteractionCommand {
 
         pr_repo
             .set_manual_interaction(owner, name, self.manual_interaction)
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         writeln!(
             ctx.writer,
             "Manual interaction mode set to '{}' for repository {}.",
             self.manual_interaction, self.repository_path
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

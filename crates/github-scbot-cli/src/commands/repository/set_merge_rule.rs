@@ -8,12 +8,10 @@ use github_scbot_core::types::{
 };
 use github_scbot_database::MergeRule;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// Set merge rule for a repository
 #[derive(Parser)]
@@ -39,15 +37,13 @@ impl Command for RepositorySetMergeRuleCommand {
             // Update default strategy
             pr_repo
                 .set_default_strategy(owner, name, self.strategy)
-                .await
-                .context(DatabaseSnafu)?;
+                .await?;
 
             writeln!(
                 ctx.writer,
                 "Default strategy updated to '{}' for repository '{}'",
                 self.strategy, self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
             let mut mr_repo = ctx.db_adapter.merge_rules();
             mr_repo
@@ -57,8 +53,7 @@ impl Command for RepositorySetMergeRuleCommand {
                     self.base_branch.clone(),
                     self.head_branch.clone(),
                 )
-                .await
-                .context(DatabaseSnafu)?;
+                .await?;
             mr_repo
                 .create(
                     MergeRule::builder()
@@ -69,10 +64,9 @@ impl Command for RepositorySetMergeRuleCommand {
                         .build()
                         .unwrap(),
                 )
-                .await
-                .context(DatabaseSnafu)?;
+                .await?;
 
-            writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch).context(IoSnafu)?;
+            writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch)?;
         }
 
         Ok(())

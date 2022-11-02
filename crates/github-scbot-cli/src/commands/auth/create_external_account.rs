@@ -6,8 +6,6 @@ use clap::Parser;
 use github_scbot_database::ExternalAccount;
 
 use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
 
 /// Create external account
 #[derive(Parser)]
@@ -29,10 +27,9 @@ impl Command for AuthCreateExternalAccountCommand {
                     .build()
                     .unwrap(),
             )
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
-        writeln!(ctx.writer, "External account '{}' created.", self.username).context(IoSnafu)?;
+        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
 
         Ok(())
     }

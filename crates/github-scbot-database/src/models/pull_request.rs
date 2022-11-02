@@ -1,13 +1,11 @@
-use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
+use crate::{DatabaseError, Result};
 use async_trait::async_trait;
 use github_scbot_core::types::{pulls::GhMergeStrategy, status::QaStatus};
 use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
 use crate::{
-    errors::Result,
     fields::{GhMergeStrategyDecode, QaStatusDecode},
     Repository,
 };
@@ -161,7 +159,7 @@ impl<'a> PullRequestDBImpl<'a> {
         .bind(id as i32)
         .fetch_optional(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 }
 
@@ -175,11 +173,17 @@ impl PullRequestDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool.begin().await.context(ConnectionSnafu)
+        self.pool
+            .begin()
+            .await
+            .map_err(|e| DatabaseError::ConnectionError { source: e })
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction.commit().await.context(TransactionSnafu)
+        transaction
+            .commit()
+            .await
+            .map_err(|e| DatabaseError::TransactionError { source: e })
     }
 }
 
@@ -387,7 +391,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(instance.strategy_override.map(|x| x.to_string()))
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -421,7 +425,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(instance.number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -444,7 +448,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_optional(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -465,7 +469,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -483,7 +487,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(name)
         .fetch_all(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -496,7 +500,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -525,7 +529,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -557,7 +561,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -589,7 +593,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -621,7 +625,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -653,7 +657,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -685,7 +689,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())
@@ -717,7 +721,7 @@ impl<'a> PullRequestDB for PullRequestDBImpl<'a> {
         .bind(number as i32)
         .fetch_one(&mut *self.connection)
         .await
-        .context(SqlSnafu)?
+        .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
         self.get_from_id(new_id as u64).await.map(|x| x.unwrap())

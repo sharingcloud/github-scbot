@@ -1,6 +1,5 @@
 //! Configuration module.
 
-#![warn(missing_docs)]
 #![warn(clippy::all)]
 #![allow(clippy::module_inception)]
 

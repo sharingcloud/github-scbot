@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-use crate::crypto::JwtUtils;
+use crate::{config::ConfError, crypto::JwtUtils};
 
 use super::{config::Config, Result};
 
@@ -13,8 +13,6 @@ enum ApiConfigError {
     MissingPrivateKey,
     InvalidPrivateKey,
 }
-
-use super::errors::EnvVarsSnafu;
 
 fn validate_env_vars(config: &Config) -> Result<()> {
     #[inline]
@@ -70,7 +68,7 @@ fn validate_env_vars(config: &Config) -> Result<()> {
     if error.is_empty() {
         Ok(())
     } else {
-        EnvVarsSnafu { errors: error }.fail()
+        Err(ConfError::EnvVarsError { errors: error })
     }
 }
 

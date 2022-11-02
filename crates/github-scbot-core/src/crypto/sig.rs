@@ -1,8 +1,7 @@
 use hmac::{Mac, SimpleHmac};
 use sha2::Sha256;
-use snafu::ResultExt;
 
-use super::errors::{CryptoError, InvalidSecretKeyLengthSnafu, InvalidSignatureFormatSnafu};
+use super::errors::CryptoError;
 
 /// Check if a signature is valid.
 pub fn is_valid_signature<'a>(
@@ -10,14 +9,17 @@ pub fn is_valid_signature<'a>(
     body: &'a [u8],
     secret: &str,
 ) -> Result<bool, CryptoError> {
-    let decoded_signature = &hex::decode(signature).context(InvalidSignatureFormatSnafu {
-        sig: signature.to_string(),
-    })?;
-    let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).context(
-        InvalidSecretKeyLengthSnafu {
+    let decoded_signature =
+        &hex::decode(signature).map_err(|e| CryptoError::InvalidSignatureFormat {
+            sig: signature.to_string(),
+            source: e,
+        })?;
+    let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|e| {
+        CryptoError::InvalidSecretKeyLength {
             key: secret.to_string(),
-        },
-    )?;
+            source: e,
+        }
+    })?;
     hmac.update(body);
     Ok(hmac.verify_slice(decoded_signature).is_ok())
 }

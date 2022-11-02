@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update all libs to their latest versions
 - Replace `chrono` with `time`
 - Replace `crypto` with `sha2` and `hmac`
+- Migrate error handling to `thiserror`
+- Split comment commands in separate source files.
 
 ### Fixed
 

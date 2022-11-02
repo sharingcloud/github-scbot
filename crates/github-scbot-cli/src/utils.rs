@@ -1,9 +1,7 @@
-use crate::errors::DatabaseSnafu;
-use crate::Result;
+use anyhow::{anyhow, Result};
 use github_scbot_database::{
     ExternalAccount, ExternalAccountDB, PullRequest, PullRequestDB, Repository, RepositoryDB,
 };
-use snafu::{whatever, ResultExt};
 
 pub struct CliDbExt;
 
@@ -13,14 +11,11 @@ impl CliDbExt {
         owner: &str,
         name: &str,
     ) -> Result<Repository> {
-        let opt = repository_db
-            .get(owner, name)
-            .await
-            .context(DatabaseSnafu)?;
+        let opt = repository_db.get(owner, name).await?;
 
         match opt {
             Some(s) => Ok(s),
-            None => whatever!("Unknown repository '{}/{}'", owner, name),
+            None => Err(anyhow!("Unknown repository '{}/{}'", owner, name)),
         }
     }
 
@@ -30,19 +25,16 @@ impl CliDbExt {
         name: &str,
         number: u64,
     ) -> Result<PullRequest> {
-        let opt = pull_request_db
-            .get(owner, name, number)
-            .await
-            .context(DatabaseSnafu)?;
+        let opt = pull_request_db.get(owner, name, number).await?;
 
         match opt {
             Some(p) => Ok(p),
-            None => whatever!(
+            None => Err(anyhow!(
                 "Unknown pull request #{} for repository '{}/{}'",
                 number,
                 owner,
                 name
-            ),
+            )),
         }
     }
 
@@ -50,14 +42,11 @@ impl CliDbExt {
         external_account_db: &mut dyn ExternalAccountDB,
         username: &str,
     ) -> Result<ExternalAccount> {
-        let opt = external_account_db
-            .get(username)
-            .await
-            .context(DatabaseSnafu)?;
+        let opt = external_account_db.get(username).await?;
 
         match opt {
             Some(e) => Ok(e),
-            None => whatever!("Unknown external account '{}'", username),
+            None => Err(anyhow!("Unknown external account '{}'", username)),
         }
     }
 }

@@ -3,10 +3,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
-mod tests;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-pub use tests::Mock;
 
 /// Time utilities.
 pub struct TimeUtils;

@@ -8,11 +8,8 @@ use github_scbot_database::ExternalAccountRight;
 
 use crate::{
     commands::{Command, CommandContext},
-    errors::{DatabaseSnafu, IoSnafu},
     utils::CliDbExt,
 };
-
-use snafu::ResultExt;
 
 /// Add right to account
 #[derive(Parser)]
@@ -33,10 +30,7 @@ impl Command for AuthAddAccountRightCommand {
 
         let repo = CliDbExt::get_existing_repository(&mut *repo_db, owner, name).await?;
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        exr_db
-            .delete(owner, name, &self.username)
-            .await
-            .context(DatabaseSnafu)?;
+        exr_db.delete(owner, name, &self.username).await?;
         exr_db
             .create(
                 ExternalAccountRight::builder()
@@ -45,15 +39,13 @@ impl Command for AuthAddAccountRightCommand {
                     .build()
                     .unwrap(),
             )
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         writeln!(
             ctx.writer,
             "Right added to repository '{}' for account '{}'.",
             self.repository_path, self.username
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

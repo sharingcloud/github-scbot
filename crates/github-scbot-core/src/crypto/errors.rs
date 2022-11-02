@@ -1,26 +1,24 @@
 //! Crypto errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// Crypto error.
-#[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum CryptoError {
-    #[snafu(display("Jwt creation error,\n  caused by: {}", source))]
+    #[error("Jwt creation error,\n  caused by: {}", source)]
     JwtCreationFailed { source: jsonwebtoken::errors::Error },
-    #[snafu(display("Jwt verification error,\n  caused by: {}", source))]
+    #[error("Jwt verification error,\n  caused by: {}", source)]
     JwtVerificationFailed { source: jsonwebtoken::errors::Error },
-    #[snafu(display("Invalid encoding key,\n  caused by: {}", source))]
+    #[error("Invalid encoding key,\n  caused by: {}", source)]
     InvalidEncodingKey { source: jsonwebtoken::errors::Error },
-    #[snafu(display("Invalid decoding key,\n  caused by: {}", source))]
+    #[error("Invalid decoding key,\n  caused by: {}", source)]
     InvalidDecodingKey { source: jsonwebtoken::errors::Error },
-    #[snafu(display("Invalid signature format: {}", sig))]
+    #[error("Invalid signature format: {}", sig)]
     InvalidSignatureFormat {
         sig: String,
         source: hex::FromHexError,
     },
-    #[snafu(display("Invalid HMAC secret key length: {}", key))]
+    #[error("Invalid HMAC secret key length: {}", key)]
     InvalidSecretKeyLength {
         key: String,
         source: hmac::digest::InvalidLength,

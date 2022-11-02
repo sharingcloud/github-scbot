@@ -1,12 +1,10 @@
 use std::io::Write;
 
-use crate::errors::{ApiSnafu, IoSnafu, DomainSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_domain::{pulls::PullRequestLogic, status::StatusLogic};
-use snafu::ResultExt;
 
 use crate::commands::{Command, CommandContext};
 
@@ -33,14 +31,12 @@ impl Command for PullRequestSyncCommand {
             repo_name,
             pr_number,
         )
-        .await
-        .context(DomainSnafu)?;
+        .await?;
 
         let upstream_pr = ctx
             .api_adapter
             .pulls_get(repo_owner, repo_name, pr_number)
-            .await
-            .context(ApiSnafu)?;
+            .await?;
 
         StatusLogic::update_pull_request_status(
             ctx.api_adapter.as_ref(),
@@ -51,15 +47,13 @@ impl Command for PullRequestSyncCommand {
             pr_number,
             &upstream_pr,
         )
-        .await
-        .context(DomainSnafu)?;
+        .await?;
 
         writeln!(
             ctx.writer,
             "Pull request #{} from {} updated from GitHub.",
             self.number, self.repository_path
-        )
-        .context(IoSnafu)?;
+        )?;
         Ok(())
     }
 }

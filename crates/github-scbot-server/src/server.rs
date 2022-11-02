@@ -15,7 +15,6 @@ use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
 use github_scbot_database::{DbPool, DbService, DbServiceImplPool};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
-use snafu::ResultExt;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 
@@ -29,9 +28,8 @@ use crate::{
     redis::MetricsRedisService,
     webhook::configure_webhook_handlers,
     Result,
+    ServerError,
 };
-
-use crate::errors::IoSnafu;
 
 /// App context.
 pub struct AppContext {
@@ -147,8 +145,8 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
 
     server
         .bind(ip_with_port)
-        .context(IoSnafu)?
+        .map_err(|e| ServerError::IoError { source: e })?
         .run()
         .await
-        .context(IoSnafu)
+        .map_err(|e| ServerError::IoError { source: e })
 }

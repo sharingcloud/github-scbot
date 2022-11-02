@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -31,15 +29,13 @@ impl Command for RepositorySetQAStatusCommand {
 
         pr_repo
             .set_default_enable_qa(owner, name, self.status)
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         writeln!(
             ctx.writer,
             "Default QA status set to '{}' for repository {}.",
             self.status, self.repository_path
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

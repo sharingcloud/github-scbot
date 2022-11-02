@@ -19,15 +19,14 @@ use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use serde::Deserialize;
-use snafu::ResultExt;
+use crate::{Result, ServerError};
 
 use self::{
     checks::parse_check_suite_event, issues::parse_issue_comment_event, ping::parse_ping_event,
     pulls::parse_pull_request_event, reviews::parse_review_event,
 };
-use crate::errors::EventParseSnafu;
 use crate::{
-    constants::GITHUB_EVENT_HEADER, errors::Result, server::AppContext,
+    constants::GITHUB_EVENT_HEADER, server::AppContext,
     utils::convert_payload_to_string,
 };
 
@@ -86,7 +85,7 @@ fn parse_event_type<'de, T>(event_type: EventType, body: &'de str) -> Result<T>
 where
     T: Deserialize<'de>,
 {
-    serde_json::from_str(body).context(EventParseSnafu { event_type })
+    serde_json::from_str(body).map_err(|e| ServerError::EventParseError { event_type, source: e })
 }
 
 fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {

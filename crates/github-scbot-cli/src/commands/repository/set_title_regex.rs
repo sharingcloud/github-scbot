@@ -5,12 +5,10 @@ use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// Set PR title regex for a repository
 #[derive(Parser)]
@@ -30,15 +28,13 @@ impl Command for RepositorySetTitleRegexCommand {
 
         pr_repo
             .set_pr_title_validation_regex(owner, name, &self.value)
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         writeln!(
             ctx.writer,
             "PR title regular expression set to '{}' for repository '{}'.",
             self.value, self.repository_path
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

@@ -1,10 +1,10 @@
 use std::io::Write;
 
 use crate::Result;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::sentry::send_test_event;
-use snafu::whatever;
 
 use super::{Command, CommandContext};
 
@@ -20,7 +20,7 @@ pub(crate) struct DebugTestSentryCommand {
 impl Command for DebugTestSentryCommand {
     async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         if ctx.config.sentry_url.is_empty() {
-            whatever!("Sentry URL is not configured.")
+            Err(anyhow!("Sentry URL is not configured."))
         } else {
             send_test_event(&ctx.config.sentry_url, self.message).await;
             Ok(())

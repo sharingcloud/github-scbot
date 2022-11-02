@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::IoSnafu;
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -26,8 +24,8 @@ impl Command for RepositoryShowCommand {
         let mut pr_repo = ctx.db_adapter.repositories();
         let repo = CliDbExt::get_existing_repository(&mut *pr_repo, owner, name).await?;
 
-        writeln!(ctx.writer, "Accessing repository {}", self.repository_path).context(IoSnafu)?;
-        writeln!(ctx.writer, "{:#?}", repo).context(IoSnafu)?;
+        writeln!(ctx.writer, "Accessing repository {}", self.repository_path)?;
+        writeln!(ctx.writer, "{:#?}", repo)?;
 
         Ok(())
     }

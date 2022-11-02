@@ -7,8 +7,6 @@ use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_database::Repository;
 
 use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
 
 /// Add repository
 #[derive(Parser)]
@@ -29,13 +27,9 @@ impl Command for RepositoryAddCommand {
             .build()
             .unwrap();
 
-        ctx.db_adapter
-            .repositories()
-            .create(repo)
-            .await
-            .context(DatabaseSnafu)?;
+        ctx.db_adapter.repositories().create(repo).await?;
 
-        writeln!(ctx.writer, "Repository {} created.", self.repository_path).context(IoSnafu)?;
+        writeln!(ctx.writer, "Repository {} created.", self.repository_path)?;
         Ok(())
     }
 }

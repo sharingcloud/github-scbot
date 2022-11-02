@@ -6,8 +6,6 @@ use clap::Parser;
 use github_scbot_database::Account;
 
 use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
 
 /// Remove admin rights from account
 #[derive(Parser)]
@@ -20,29 +18,26 @@ pub(crate) struct AuthRemoveAdminRightsCommand {
 impl Command for AuthRemoveAdminRightsCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut acc_db = ctx.db_adapter.accounts();
-        match acc_db.get(&self.username).await.context(DatabaseSnafu)? {
-            Some(_) => acc_db
-                .set_is_admin(&self.username, false)
-                .await
-                .context(DatabaseSnafu)?,
-            None => acc_db
-                .create(
-                    Account::builder()
-                        .username(self.username.clone())
-                        .is_admin(false)
-                        .build()
-                        .unwrap(),
-                )
-                .await
-                .context(DatabaseSnafu)?,
+        match acc_db.get(&self.username).await? {
+            Some(_) => acc_db.set_is_admin(&self.username, false).await?,
+            None => {
+                acc_db
+                    .create(
+                        Account::builder()
+                            .username(self.username.clone())
+                            .is_admin(false)
+                            .build()
+                            .unwrap(),
+                    )
+                    .await?
+            }
         };
 
         writeln!(
             ctx.writer,
             "Account '{}' added/edited without admin rights.",
             self.username
-        )
-        .context(IoSnafu)?;
+        )?;
 
         Ok(())
     }

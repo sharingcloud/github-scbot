@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::{pulls::GhMergeStrategy, repository::RepositoryPath};
-use snafu::ResultExt;
 
 use crate::{
     commands::{Command, CommandContext},
@@ -35,23 +33,20 @@ impl Command for PullRequestSetMergeStrategyCommand {
             CliDbExt::get_existing_pull_request(&mut *pr_db, owner, name, self.number).await?;
         pr_db
             .set_strategy_override(owner, name, self.number, self.strategy)
-            .await
-            .context(DatabaseSnafu)?;
+            .await?;
 
         if let Some(s) = self.strategy {
             writeln!(
                 ctx.writer,
                 "Setting {:?} as a merge strategy override for pull request #{} on repository {}",
                 s, self.number, self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
             writeln!(
                 ctx.writer,
                 "Removing merge strategy override for pull request #{} on repository {}",
                 self.number, self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         }
 
         Ok(())

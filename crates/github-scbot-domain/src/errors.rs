@@ -1,29 +1,29 @@
 //! Logic errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// Logic error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
+#[derive(Debug, Error)]
 pub enum DomainError {
     /// Wraps [`regex::Error`].
-    #[snafu(display("Error while compiling regex,\n  caused by: {}", source))]
+    #[error("Error while compiling regex,\n  caused by: {}", source)]
     RegexError { source: regex::Error },
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
-    #[snafu(display("API error,\n  caused by: {}", source))]
+    #[error("API error,\n  caused by: {}", source)]
     ApiError {
         source: github_scbot_ghapi::ApiError,
     },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[snafu(display("Database error,\n  caused by: {}", source))]
+    #[error("Database error,\n  caused by: {}", source)]
     DatabaseError {
         source: github_scbot_database::DatabaseError,
     },
 
     /// Wraps [`github_scbot_redis::RedisError`].
-    #[snafu(display("Redis error,\n  caused by: {}", source))]
+    #[error("Redis error,\n  caused by: {}", source)]
     RedisError {
         source: github_scbot_redis::RedisError,
     },

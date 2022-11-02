@@ -13,8 +13,8 @@ github-scbot-redis = { path = "../github-scbot-redis" }
 async-trait = "0.1.56"
 regex = "1.6.0"
 smart-default = "0.6.0"
-snafu = "0.7.1"
 tracing = "0.1.35"
+thiserror = "1.0.37"
 
 [dev-dependencies]
 actix-rt = "2.7.0"

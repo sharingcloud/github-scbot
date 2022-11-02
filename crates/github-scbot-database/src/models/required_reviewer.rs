@@ -1,11 +1,10 @@
-use crate::errors::{ConnectionSnafu, SqlSnafu, TransactionSnafu};
 use async_trait::async_trait;
 use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 
-use crate::{errors::Result, PullRequest};
+use crate::PullRequest;
+use crate::{DatabaseError, Result};
 
 #[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
 #[builder(default, setter(into))]
@@ -91,7 +90,7 @@ impl<'a> RequiredReviewerDBImpl<'a> {
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 }
 
@@ -105,11 +104,17 @@ impl RequiredReviewerDBImplPool {
     }
 
     pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool.begin().await.context(ConnectionSnafu)
+        self.pool
+            .begin()
+            .await
+            .map_err(|e| DatabaseError::ConnectionError { source: e })
     }
 
     pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction.commit().await.context(TransactionSnafu)
+        transaction
+            .commit()
+            .await
+            .map_err(|e| DatabaseError::TransactionError { source: e })
     }
 }
 
@@ -198,7 +203,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .bind(instance.username())
         .execute(&mut *self.connection)
         .await
-        .context(SqlSnafu)?;
+        .map_err(|e| DatabaseError::SqlError { source: e })?;
 
         self.get_from_pull_request_id(instance.pull_request_id, instance.username())
             .await
@@ -228,7 +233,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .bind(username)
         .fetch_optional(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -258,7 +263,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .execute(&mut *self.connection)
         .await
         .map(|x| x.rows_affected() > 0)
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -281,7 +286,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         .bind(number as i32)
         .fetch_all(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 
     #[tracing::instrument(skip(self))]
@@ -294,7 +299,7 @@ impl<'a> RequiredReviewerDB for RequiredReviewerDBImpl<'a> {
         )
         .fetch_all(&mut *self.connection)
         .await
-        .context(SqlSnafu)
+        .map_err(|e| DatabaseError::SqlError { source: e })
     }
 }
 

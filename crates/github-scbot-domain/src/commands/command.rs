@@ -3,24 +3,24 @@ use std::convert::TryFrom;
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
 use smart_default::SmartDefault;
-use snafu::prelude::*;
+use thiserror::Error;
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;
 
 /// Command error.
-#[derive(Debug, Snafu)]
+#[derive(Debug, Error)]
 pub enum CommandError {
     /// Unknown command.
-    #[snafu(display("This command is unknown."))]
+    #[error("This command is unknown.")]
     UnknownCommand { command: String },
     /// Argument parsing error.
-    #[snafu(display("Error while parsing command arguments."))]
+    #[error("Error while parsing command arguments.")]
     ArgumentParsingError,
     /// Incomplete command.
-    #[snafu(display("Incomplete command."))]
+    #[error("Incomplete command.")]
     IncompleteCommand,
     /// Invalid usage.
-    #[snafu(display("Invalid usage: {}", usage))]
+    #[error("Invalid usage: {}", usage)]
     InvalidUsage { usage: String },
 }
 
@@ -260,10 +260,9 @@ impl Command {
             }
             // Unknown command
             unknown => {
-                return Err(UnknownCommandSnafu {
+                return Err(CommandError::UnknownCommand {
                     command: unknown.to_string(),
-                }
-                .build())
+                })
             }
         }))
     }
@@ -365,11 +364,11 @@ impl Command {
     fn parse_u64(args: &[&str]) -> CommandResult<u64> {
         args.join(" ")
             .parse()
-            .map_err(|_e| ArgumentParsingSnafu.build())
+            .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
     fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
-        GhMergeStrategy::try_from(&args.join(" ")[..]).map_err(|_e| ArgumentParsingSnafu.build())
+        GhMergeStrategy::try_from(&args.join(" ")[..]).map_err(|_e| CommandError::ArgumentParsingError)
     }
 
     fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<GhMergeStrategy>> {
@@ -378,7 +377,7 @@ impl Command {
             Ok(None)
         } else {
             Ok(Some(
-                GhMergeStrategy::try_from(&args[..]).map_err(|_e| ArgumentParsingSnafu.build())?,
+                GhMergeStrategy::try_from(&args[..]).map_err(|_e| CommandError::ArgumentParsingError)?,
             ))
         }
     }
@@ -402,7 +401,7 @@ impl Command {
             .collect::<Vec<_>>();
 
         if labels.is_empty() {
-            Err(IncompleteCommandSnafu.build())
+            Err(CommandError::IncompleteCommand)
         } else {
             Ok(labels)
         }
@@ -415,13 +414,13 @@ impl Command {
             .collect();
 
         if reviewers.is_empty() {
-            Err(IncompleteCommandSnafu.build())
+            Err(CommandError::IncompleteCommand)
         } else if reviewers.len() > MAX_REVIEWERS_PER_COMMAND {
-            Err(InvalidUsageSnafu {
+            Err(CommandError::InvalidUsage {
                 usage: format!(
                     "You can only specify up to {MAX_REVIEWERS_PER_COMMAND} reviewers on one command."
                 )
-            }.build())
+            })
         } else {
             Ok(reviewers)
         }

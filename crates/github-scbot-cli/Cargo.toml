@@ -14,12 +14,11 @@ github-scbot-tui = { path = "../github-scbot-tui" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
 actix-rt = "2.7.0"
+anyhow = { version = "1.0", features = ["backtrace"] }
 async-trait = "0.1.56"
 argh = "0.1.8"
 dialoguer = "0.10.1"
-owo-colors = "3.4.0"
 tokio = { version = "1.20.1", features = ["full"] }
-snafu = { version = "0.7.1", features = ["backtrace", "backtraces-impl-backtrace-crate"] }
 clap = { version = "3.2.15", features = ["derive"] }
 
 [dev-dependencies]

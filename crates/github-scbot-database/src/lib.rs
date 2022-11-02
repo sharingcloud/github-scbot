@@ -32,9 +32,7 @@ pub use models::required_reviewer::{
     RequiredReviewerDBImplPool,
 };
 
-use errors::{ConnectionSnafu, MigrationSnafu};
 pub use errors::{DatabaseError, Result};
-use snafu::ResultExt;
 pub use utils::use_temporary_db;
 pub type DbPool = sqlx::postgres::PgPool;
 
@@ -50,7 +48,7 @@ where
     sqlx::migrate!("./migrations")
         .run(migrator)
         .await
-        .context(MigrationSnafu)?;
+        .map_err(|e| DatabaseError::MigrationError { source: e })?;
 
     Ok(())
 }
@@ -63,7 +61,7 @@ pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
         .max_connections(config.database_pool_size)
         .connect(&config.database_url)
         .await
-        .context(ConnectionSnafu)
+        .map_err(|e| DatabaseError::ConnectionError { source: e })
 }
 
 #[mockall::automock]

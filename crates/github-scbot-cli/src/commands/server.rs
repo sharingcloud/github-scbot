@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::errors::ServerSnafu;
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_server::server::{run_bot_server, AppContext};
-use snafu::ResultExt;
 
 use super::{Command, CommandContext};
 
@@ -23,6 +21,6 @@ impl Command for ServerCommand {
             ctx.redis_adapter,
         );
 
-        run_bot_server(context).await.context(ServerSnafu)
+        run_bot_server(context).await.map_err(Into::into)
     }
 }

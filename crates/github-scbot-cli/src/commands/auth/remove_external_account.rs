@@ -4,12 +4,10 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
 };
-use snafu::ResultExt;
 
 /// Remove external account
 #[derive(Parser)]
@@ -23,9 +21,9 @@ impl Command for AuthRemoveExternalAccountCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let mut exa_db = ctx.db_adapter.external_accounts();
         let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        exa_db.delete(&self.username).await.context(DatabaseSnafu)?;
+        exa_db.delete(&self.username).await?;
 
-        writeln!(ctx.writer, "External account '{}' removed.", self.username).context(IoSnafu)?;
+        writeln!(ctx.writer, "External account '{}' removed.", self.username)?;
 
         Ok(())
     }

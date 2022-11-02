@@ -1,33 +1,31 @@
 //! Configuration errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// Configuration error.
-#[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum ConfError {
-    #[snafu(display(
+    #[error(
         "Could not set tracing global default subscriber,\n  caused by: {}",
         source
-    ))]
+    )]
     TracingSetGlobalDefaultError {
         source: tracing::dispatcher::SetGlobalDefaultError,
     },
-    #[snafu(display("Could not initialize tracing log tracer,\n  caused by: {}", source))]
+    #[error("Could not initialize tracing log tracer,\n  caused by: {}", source)]
     TracingLogTracerError {
         source: tracing::log::SetLoggerError,
     },
-    #[snafu(display(
+    #[error(
         "Wrong env filter configuration: {}\n  caused by: {}",
         configuration,
         source
-    ))]
+    )]
     EnvFilterConfigurationError {
         source: tracing_subscriber::filter::ParseError,
         configuration: String,
     },
-    #[snafu(display("Errors on environment variables:\n{}", errors))]
+    #[error("Errors on environment variables:\n{}", errors)]
     EnvVarsError { errors: String },
 }
 

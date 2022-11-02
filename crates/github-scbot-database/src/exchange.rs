@@ -4,9 +4,8 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 
-use crate::errors::ExchangeJsonSnafu;
+use crate::DatabaseError;
 use crate::{
     Account, DbService, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
     RepositoryDB, RequiredReviewer,
@@ -44,7 +43,8 @@ impl Exchanger {
             required_reviewers: db_service.required_reviewers().all().await?,
         };
 
-        serde_json::to_writer_pretty(writer, &data).context(ExchangeJsonSnafu)?;
+        serde_json::to_writer_pretty(writer, &data)
+            .map_err(|e| DatabaseError::ExchangeJsonError { source: e })?;
 
         Ok(())
     }
@@ -53,7 +53,8 @@ impl Exchanger {
         db_service: &mut dyn DbService,
         reader: R,
     ) -> Result<()> {
-        let data: ExchangeData = serde_json::from_reader(reader).context(ExchangeJsonSnafu)?;
+        let data: ExchangeData = serde_json::from_reader(reader)
+            .map_err(|e| DatabaseError::ExchangeJsonError { source: e })?;
 
         let mut repo_id_map = HashMap::new();
         let mut pr_id_map = HashMap::new();

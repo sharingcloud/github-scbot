@@ -1,37 +1,36 @@
 //! Type errors.
 
-use snafu::prelude::*;
+use thiserror::Error;
 
 /// Type error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum TypeError {
     /// Unknown step label.
-    #[snafu(display("Unknown step label: {}", label))]
+    #[error("Unknown step label: {}", label)]
     UnknownStepLabel { label: String },
 
     /// Unknown check status.
-    #[snafu(display("Unknown check status: {}", status))]
+    #[error("Unknown check status: {}", status)]
     UnknownCheckStatus { status: String },
 
     /// Unknown QA status.
-    #[snafu(display("Unknown QA status: {}", status))]
+    #[error("Unknown QA status: {}", status)]
     UnknownQaStatus { status: String },
 
     /// Unknown merge strategy.
-    #[snafu(display("Unknown merge strategy: {}", strategy))]
+    #[error("Unknown merge strategy: {}", strategy)]
     UnknownMergeStrategy {
         strategy: String,
         source: serde_plain::Error,
     },
 
     /// Invalid repository path.
-    #[snafu(display("Invalid repository path: {}", path))]
+    #[error("Invalid repository path: {}", path)]
     InvalidRepositoryPath { path: String },
 
     /// Unsupported event.
-    #[snafu(display("Unsupported event: {}", event))]
+    #[error("Unsupported event: {}", event)]
     UnsupportedEvent { event: String },
 }
 

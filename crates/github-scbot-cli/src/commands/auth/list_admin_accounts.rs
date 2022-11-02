@@ -5,8 +5,6 @@ use async_trait::async_trait;
 use clap::Parser;
 
 use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
 
 /// List admin accounts
 #[derive(Parser)]
@@ -15,18 +13,13 @@ pub(crate) struct AuthListAdminAccountsCommand;
 #[async_trait(?Send)]
 impl Command for AuthListAdminAccountsCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let accounts = ctx
-            .db_adapter
-            .accounts()
-            .list_admins()
-            .await
-            .context(DatabaseSnafu)?;
+        let accounts = ctx.db_adapter.accounts().list_admins().await?;
         if accounts.is_empty() {
-            writeln!(ctx.writer, "No admin account found.").context(IoSnafu)?;
+            writeln!(ctx.writer, "No admin account found.")?;
         } else {
-            writeln!(ctx.writer, "Admin accounts:").context(IoSnafu)?;
+            writeln!(ctx.writer, "Admin accounts:")?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username()).context(IoSnafu)?;
+                writeln!(ctx.writer, "- {}", account.username())?;
             }
         }
 
