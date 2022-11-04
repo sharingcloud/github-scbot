@@ -22,4 +22,6 @@ tokio = { version = "1.20.1", features = ["full"] }
 clap = { version = "3.2.15", features = ["derive"] }
 
 [dev-dependencies]
+futures-util = "0.3.21"
 indoc = "1.0.6"
+mockall = "0.11.2"

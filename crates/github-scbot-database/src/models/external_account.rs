@@ -16,7 +16,9 @@ pub struct ExternalJwtClaims {
     pub iss: String,
 }
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
+#[derive(
+    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq,
+)]
 #[builder(default, setter(into))]
 pub struct ExternalAccount {
     #[get_deref]

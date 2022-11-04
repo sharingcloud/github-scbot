@@ -1,4 +1,4 @@
-use crate::{RedisService, RedisError};
+use crate::{RedisError, RedisService};
 
 /// Lock status.
 #[derive(Clone, Debug)]

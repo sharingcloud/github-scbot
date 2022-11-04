@@ -51,7 +51,7 @@ impl Command for PullRequestSyncCommand {
 
         writeln!(
             ctx.writer,
-            "Pull request #{} from {} updated from GitHub.",
+            "Pull request #{} from '{}' updated from GitHub.",
             self.number, self.repository_path
         )?;
         Ok(())
@@ -60,108 +60,128 @@ impl Command for PullRequestSyncCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
+    use futures_util::FutureExt;
     use github_scbot_core::types::pulls::GhPullRequest;
-    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool};
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::{LockInstance, LockStatus, MockRedisService};
+    use github_scbot_core::types::rule_branch::RuleBranch;
+    use github_scbot_database::{
+        MockMergeRuleDB, MockPullRequestDB, MockRepositoryDB, MockRequiredReviewerDB, PullRequest,
+        Repository,
+    };
+    use github_scbot_redis::{LockInstance, LockStatus};
+    use mockall::predicate;
 
-    use crate::testutils::test_command;
+    use crate::testutils::{test_command, CommandContextTest};
+    use crate::Result;
 
     #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_pull_request_sync",
-            |config, pool| async move {
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let mut api_adapter = MockApiService::new();
-                api_adapter
-                    .expect_pulls_get()
-                    .times(1)
-                    .return_once(|_, _, _| {
-                        Ok(GhPullRequest {
-                            number: 1,
-                            ..Default::default()
-                        })
-                    });
+    async fn test() -> Result<()> {
+        let mut ctx = CommandContextTest::new();
+        ctx.api_adapter
+            .expect_pulls_get()
+            .times(1)
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                })
+            });
+        ctx.api_adapter
+            .expect_pull_reviews_list()
+            .times(1)
+            .return_once(|_, _, _| Ok(vec![]));
+        ctx.api_adapter
+            .expect_issue_labels_list()
+            .times(1)
+            .return_once(|_, _, _| Ok(vec![]));
+        ctx.api_adapter
+            .expect_issue_labels_replace_all()
+            .times(1)
+            .return_once(|_, _, _, _| Ok(()));
+        ctx.api_adapter
+            .expect_comments_post()
+            .times(1)
+            .return_once(|_, _, _, _| Ok(1));
+        ctx.api_adapter
+            .expect_commit_statuses_update()
+            .times(1)
+            .return_once(|_, _, _, _, _, _| Ok(()));
 
-                api_adapter
-                    .expect_pull_reviews_list()
-                    .times(1)
-                    .return_once(|_, _, _| Ok(vec![]));
+        ctx.redis_adapter
+            .expect_wait_lock_resource()
+            .times(1)
+            .returning(|_, _| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "test",
+                )))
+            });
 
-                api_adapter
-                    .expect_check_suites_list()
-                    .times(1)
-                    .return_once(|_, _, _| Ok(vec![]));
+        ctx.db_adapter.expect_repositories().returning(|| {
+            let mut mock = MockRepositoryDB::new();
+            mock.expect_get()
+                .with(predicate::eq("owner"), predicate::eq("name"))
+                .returning(|_, _| {
+                    async { Ok(Some(Repository::builder().build().unwrap())) }.boxed()
+                });
 
-                api_adapter
-                    .expect_issue_labels_list()
-                    .times(1)
-                    .return_once(|_, _, _| Ok(vec![]));
-
-                api_adapter
-                    .expect_issue_labels_replace_all()
-                    .times(1)
-                    .return_once(|_, _, _, _| Ok(()));
-
-                api_adapter
-                    .expect_comments_post()
-                    .times(1)
-                    .return_once(|_, _, _, _| Ok(1));
-
-                api_adapter
-                    .expect_commit_statuses_update()
-                    .times(1)
-                    .return_once(|_, _, _, _, _, _| Ok(()));
-
-                let mut redis_adapter = MockRedisService::new();
-                redis_adapter
-                    .expect_wait_lock_resource()
-                    .times(1)
-                    .returning(|_, _| {
-                        Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
-                            "test",
-                        )))
-                    });
-
-                let output = test_command(
-                    config.clone(),
-                    Box::new(db_adapter),
-                    Box::new(api_adapter),
-                    Box::new(redis_adapter),
-                    &["pull-requests", "sync", "owner/name", "1"],
+            Box::new(mock)
+        });
+        ctx.db_adapter.expect_merge_rules().returning(|| {
+            let mut mock = MockMergeRuleDB::new();
+            mock.expect_get()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(RuleBranch::Named("".into())),
+                    predicate::eq(RuleBranch::Named("".into())),
                 )
-                .await?;
+                .returning(|_, _, _, _| async { Ok(None) }.boxed());
 
-                assert_eq!(
-                    output,
-                    "Pull request #1 from owner/name updated from GitHub.\n"
-                );
+            Box::new(mock)
+        });
+        ctx.db_adapter.expect_required_reviewers().returning(|| {
+            let mut mock = MockRequiredReviewerDB::new();
+            mock.expect_list()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                )
+                .returning(|_, _, _| async { Ok(vec![]) }.boxed());
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                assert!(
-                    db_adapter
-                        .repositories()
-                        .get("owner", "name")
-                        .await?
-                        .is_some(),
-                    "repository owner/name should exist"
-                );
-                assert!(
-                    db_adapter
-                        .pull_requests()
-                        .get("owner", "name", 1)
-                        .await?
-                        .is_some(),
-                    "pull request #1 on repository owner/name should exist"
-                );
+            Box::new(mock)
+        });
+        ctx.db_adapter.expect_pull_requests().returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                )
+                .returning(|_, _, _| {
+                    async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+                });
 
-                Ok(())
-            },
-        )
-        .await;
+            mock.expect_set_status_comment_id()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(1),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+
+            Box::new(mock)
+        });
+
+        let output = test_command(ctx, &["pull-requests", "sync", "owner/name", "1"]).await?;
+        assert_eq!(
+            output,
+            "Pull request #1 from 'owner/name' updated from GitHub.\n"
+        );
+
+        Ok(())
     }
 }

@@ -5,7 +5,9 @@ use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transa
 
 use crate::{DatabaseError, Result};
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
+#[derive(
+    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq,
+)]
 #[builder(default, setter(into))]
 pub struct Account {
     #[get_deref]

@@ -37,16 +37,4 @@ impl CliDbExt {
             )),
         }
     }
-
-    pub async fn get_existing_external_account(
-        external_account_db: &mut dyn ExternalAccountDB,
-        username: &str,
-    ) -> Result<ExternalAccount> {
-        let opt = external_account_db.get(username).await?;
-
-        match opt {
-            Some(e) => Ok(e),
-            None => Err(anyhow!("Unknown external account '{}'", username)),
-        }
-    }
 }

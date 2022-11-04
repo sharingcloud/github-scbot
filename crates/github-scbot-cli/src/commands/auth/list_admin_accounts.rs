@@ -1,25 +1,27 @@
 use std::io::Write;
 
 use crate::Result;
-use async_trait::async_trait;
 use clap::Parser;
-
-use crate::commands::{Command, CommandContext};
+use github_scbot_domain::use_cases::auth::ListAdminAccountsUseCaseInterface;
 
 /// List admin accounts
 #[derive(Parser)]
 pub(crate) struct AuthListAdminAccountsCommand;
 
-#[async_trait(?Send)]
-impl Command for AuthListAdminAccountsCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let accounts = ctx.db_adapter.accounts().list_admins().await?;
+impl AuthListAdminAccountsCommand {
+    pub async fn run<W: Write>(
+        self,
+        mut writer: W,
+        use_case: &dyn ListAdminAccountsUseCaseInterface,
+    ) -> Result<()> {
+        let accounts = use_case.run().await?;
+
         if accounts.is_empty() {
-            writeln!(ctx.writer, "No admin account found.")?;
+            writeln!(writer, "No admin account found.")?;
         } else {
-            writeln!(ctx.writer, "Admin accounts:")?;
+            writeln!(writer, "Admin accounts:")?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username())?;
+                writeln!(writer, "- {}", account.username())?;
             }
         }
 
@@ -29,72 +31,58 @@ impl Command for AuthListAdminAccountsCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
-    use github_scbot_database::{use_temporary_db, Account, DbService, DbServiceImplPool};
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use async_trait::async_trait;
+    use github_scbot_database::Account;
+    use github_scbot_domain::DomainError;
 
-    use crate::testutils::test_command;
+    use super::*;
+    use crate::testutils::buffer_to_string;
 
     #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_list_admin_accounts",
-            |config, pool| async move {
-                let db_adapter = DbServiceImplPool::new(pool.clone());
+    async fn test_no_account() -> Result<()> {
+        struct Impl;
 
-                let output = test_command(
-                    config.clone(),
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["auth", "list-admin-accounts"],
-                )
-                .await?;
+        #[async_trait(?Send)]
+        impl ListAdminAccountsUseCaseInterface for Impl {
+            async fn run(&self) -> Result<Vec<Account>, DomainError> {
+                Ok(vec![])
+            }
+        }
 
-                assert_eq!(output, "No admin account found.\n");
+        let mut buf = Vec::new();
+        let cmd = AuthListAdminAccountsCommand;
+        cmd.run(&mut buf, &Impl).await?;
+        assert_eq!(buffer_to_string(buf), "No admin account found.\n");
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                db_adapter
-                    .accounts()
-                    .create(Account::builder().username("me").is_admin(true).build()?)
-                    .await?;
-                db_adapter
-                    .accounts()
-                    .create(Account::builder().username("him").is_admin(true).build()?)
-                    .await?;
-                db_adapter
-                    .accounts()
-                    .create(
-                        Account::builder()
-                            .username("other")
-                            .is_admin(false)
-                            .build()?,
-                    )
-                    .await?;
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["auth", "list-admin-accounts"],
-                )
-                .await?;
+        Ok(())
+    }
 
-                assert_eq!(
-                    output,
-                    indoc::indoc! {r#"
-                        Admin accounts:
-                        - me
-                        - him
-                    "#}
-                );
+    #[actix_rt::test]
+    async fn test_accounts() -> Result<()> {
+        struct Impl;
 
-                Ok(())
-            },
-        )
-        .await;
+        #[async_trait(?Send)]
+        impl ListAdminAccountsUseCaseInterface for Impl {
+            async fn run(&self) -> Result<Vec<Account>, DomainError> {
+                Ok(vec![
+                    Account::builder().username("one").build().unwrap(),
+                    Account::builder().username("two").build().unwrap(),
+                ])
+            }
+        }
+
+        let mut buf = Vec::new();
+        let cmd = AuthListAdminAccountsCommand;
+        cmd.run(&mut buf, &Impl).await?;
+        assert_eq!(
+            buffer_to_string(buf),
+            indoc::indoc! {r#"
+                Admin accounts:
+                - one
+                - two
+            "#}
+        );
+
+        Ok(())
     }
 }

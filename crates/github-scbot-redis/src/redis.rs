@@ -3,7 +3,7 @@ use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
 
-use crate::{RedisError, RedisService, LockInstance, LockStatus};
+use crate::{LockInstance, LockStatus, RedisError, RedisService};
 
 /// Redis adapter.
 #[derive(Clone)]

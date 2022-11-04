@@ -1,48 +1,29 @@
 use std::io::Write;
 
 use crate::Result;
-use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::ExternalAccountRight;
-
-use crate::{
-    commands::{Command, CommandContext},
-    utils::CliDbExt,
-};
+use github_scbot_domain::use_cases::auth::AddAccountRightUseCaseInterface;
 
 /// Add right to account
 #[derive(Parser)]
 pub(crate) struct AuthAddAccountRightCommand {
     /// Account username
-    username: String,
+    pub username: String,
     /// Repository path (e.g. `MyOrganization/my-project`)
-    repository_path: RepositoryPath,
+    pub repository_path: RepositoryPath,
 }
 
-#[async_trait(?Send)]
-impl Command for AuthAddAccountRightCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let (owner, name) = self.repository_path.components();
-        let mut repo_db = ctx.db_adapter.repositories();
-        let mut exa_db = ctx.db_adapter.external_accounts();
-        let mut exr_db = ctx.db_adapter.external_account_rights();
-
-        let repo = CliDbExt::get_existing_repository(&mut *repo_db, owner, name).await?;
-        let _exa = CliDbExt::get_existing_external_account(&mut *exa_db, &self.username).await?;
-        exr_db.delete(owner, name, &self.username).await?;
-        exr_db
-            .create(
-                ExternalAccountRight::builder()
-                    .repository_id(repo.id())
-                    .username(self.username.clone())
-                    .build()
-                    .unwrap(),
-            )
-            .await?;
+impl AuthAddAccountRightCommand {
+    pub async fn run<W: Write>(
+        self,
+        mut writer: W,
+        use_case: &dyn AddAccountRightUseCaseInterface,
+    ) -> Result<()> {
+        use_case.run().await?;
 
         writeln!(
-            ctx.writer,
+            writer,
             "Right added to repository '{}' for account '{}'.",
             self.repository_path, self.username
         )?;
@@ -53,68 +34,35 @@ impl Command for AuthAddAccountRightCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
-    use github_scbot_database::{
-        use_temporary_db, DbService, DbServiceImplPool, ExternalAccount, Repository,
-    };
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use async_trait::async_trait;
+    use github_scbot_domain::DomainError;
 
-    use crate::testutils::test_command;
+    use super::*;
+    use crate::testutils::buffer_to_string;
+
+    struct Impl;
+
+    #[async_trait(?Send)]
+    impl AddAccountRightUseCaseInterface for Impl {
+        async fn run(&self) -> Result<(), DomainError> {
+            Ok(())
+        }
+    }
 
     #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_add_account_right",
-            |config, pool| async move {
-                let api_adapter = MockApiService::new();
-                let redis_adapter = MockRedisService::new();
-                let db_adapter = DbServiceImplPool::new(pool.clone());
+    async fn test() -> Result<()> {
+        let mut buf = Vec::new();
+        let cmd = AuthAddAccountRightCommand {
+            repository_path: "owner/name".try_into().unwrap(),
+            username: "me".into(),
+        };
+        cmd.run(&mut buf, &Impl).await?;
 
-                db_adapter
-                    .repositories()
-                    .create(
-                        Repository::builder()
-                            .with_config(&config)
-                            .owner("owner")
-                            .name("name")
-                            .build()?,
-                    )
-                    .await?;
-                db_adapter
-                    .external_accounts()
-                    .create(ExternalAccount::builder().username("me").build()?)
-                    .await?;
+        assert_eq!(
+            buffer_to_string(buf),
+            "Right added to repository 'owner/name' for account 'me'.\n"
+        );
 
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(api_adapter),
-                    Box::new(redis_adapter),
-                    &["auth", "add-account-right", "me", "owner/name"],
-                )
-                .await?;
-
-                assert_eq!(
-                    output,
-                    "Right added to repository 'owner/name' for account 'me'.\n"
-                );
-
-                let db_adapter = DbServiceImplPool::new(pool);
-                assert!(
-                    db_adapter
-                        .external_account_rights()
-                        .get("owner", "name", "me")
-                        .await?
-                        .is_some(),
-                    "external account 'me' should have rights on repository 'owner/name'"
-                );
-
-                Ok(())
-            },
-        )
-        .await;
+        Ok(())
     }
 }

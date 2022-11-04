@@ -14,6 +14,7 @@ pub mod pulls;
 pub mod reviews;
 pub mod status;
 pub mod summary;
+pub mod use_cases;
 
 #[cfg(test)]
 mod tests;

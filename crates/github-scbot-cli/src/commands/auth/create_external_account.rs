@@ -1,35 +1,25 @@
 use std::io::Write;
 
 use crate::Result;
-use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_database::ExternalAccount;
-
-use crate::commands::{Command, CommandContext};
+use github_scbot_domain::use_cases::auth::CreateExternalAccountUseCaseInterface;
 
 /// Create external account
 #[derive(Parser)]
 pub(crate) struct AuthCreateExternalAccountCommand {
     /// Account username
-    username: String,
+    pub username: String,
 }
 
-#[async_trait(?Send)]
-impl Command for AuthCreateExternalAccountCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let mut exa_db = ctx.db_adapter.external_accounts();
+impl AuthCreateExternalAccountCommand {
+    pub async fn run<W: Write>(
+        self,
+        mut writer: W,
+        use_case: &dyn CreateExternalAccountUseCaseInterface,
+    ) -> Result<()> {
+        use_case.run().await?;
 
-        exa_db
-            .create(
-                ExternalAccount::builder()
-                    .username(self.username.clone())
-                    .generate_keys()
-                    .build()
-                    .unwrap(),
-            )
-            .await?;
-
-        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
+        writeln!(writer, "External account '{}' created.", self.username)?;
 
         Ok(())
     }
@@ -37,44 +27,31 @@ impl Command for AuthCreateExternalAccountCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
-    use github_scbot_database::{use_temporary_db, DbService, DbServiceImplPool};
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use async_trait::async_trait;
+    use github_scbot_domain::DomainError;
 
-    use crate::testutils::test_command;
+    use super::*;
+    use crate::testutils::buffer_to_string;
+
+    struct Impl;
+
+    #[async_trait(?Send)]
+    impl CreateExternalAccountUseCaseInterface for Impl {
+        async fn run(&self) -> Result<(), DomainError> {
+            Ok(())
+        }
+    }
 
     #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_create_external_account",
-            |config, pool| async move {
-                let api_adapter = MockApiService::new();
-                let redis_adapter = MockRedisService::new();
-                let db_adapter = DbServiceImplPool::new(pool.clone());
+    async fn test() -> Result<()> {
+        let mut buf = Vec::new();
+        let cmd = AuthCreateExternalAccountCommand {
+            username: "me".into(),
+        };
+        cmd.run(&mut buf, &Impl).await?;
 
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(api_adapter),
-                    Box::new(redis_adapter),
-                    &["auth", "create-external-account", "me"],
-                )
-                .await?;
+        assert_eq!(buffer_to_string(buf), "External account 'me' created.\n");
 
-                assert_eq!(output, "External account 'me' created.\n");
-
-                let db_adapter = DbServiceImplPool::new(pool);
-                assert!(
-                    db_adapter.external_accounts().get("me").await?.is_some(),
-                    "external account 'me' should exist"
-                );
-
-                Ok(())
-            },
-        )
-        .await;
+        Ok(())
     }
 }

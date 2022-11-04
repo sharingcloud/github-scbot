@@ -38,13 +38,13 @@ impl Command for PullRequestSetMergeStrategyCommand {
         if let Some(s) = self.strategy {
             writeln!(
                 ctx.writer,
-                "Setting {:?} as a merge strategy override for pull request #{} on repository {}",
+                "Setting '{}' as a merge strategy override for pull request #{} on repository '{}'.",
                 s, self.number, self.repository_path
             )?;
         } else {
             writeln!(
                 ctx.writer,
-                "Removing merge strategy override for pull request #{} on repository {}",
+                "Removing merge strategy override for pull request #{} on repository '{}'.",
                 self.number, self.repository_path
             )?;
         }
@@ -55,72 +55,98 @@ impl Command for PullRequestSetMergeStrategyCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
+    use futures_util::FutureExt;
     use github_scbot_core::types::pulls::GhMergeStrategy;
-    use github_scbot_database::{
-        use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
-    };
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use github_scbot_database::{MockPullRequestDB, PullRequest};
+    use mockall::predicate;
 
-    use crate::testutils::test_command;
+    use crate::testutils::{test_command, CommandContextTest};
+    use crate::Result;
 
     #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_pull_request_set_merge_strategy",
-            |config, pool| async move {
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let repo = db_adapter
-                    .repositories()
-                    .create(
-                        Repository::builder()
-                        .owner("owner")
-                        .name("name")
-                        .default_strategy(GhMergeStrategy::Merge)
-                        .build()?
-                    )
-                    .await?;
-
-                let pr = db_adapter
-                    .pull_requests()
-                    .create(PullRequest::builder().with_repository(&repo).number(1u64).build()?)
-                    .await?;
-                assert!(pr.strategy_override().is_none(), "no strategy override should be set");
-
-                let output = test_command(
-                    config.clone(),
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "set-merge-strategy", "owner/name", "1", "squash"],
+    async fn test_set() -> Result<()> {
+        let mut ctx = CommandContextTest::new();
+        ctx.db_adapter.expect_pull_requests().returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
                 )
-                .await?;
+                .returning(|_, _, _| {
+                    async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+                });
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
-                assert_eq!(*pr.strategy_override(), Some(GhMergeStrategy::Squash));
-                assert_eq!(output, "Setting Squash as a merge strategy override for pull request #1 on repository owner/name\n");
-
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "set-merge-strategy", "owner/name", "1"],
+            mock.expect_set_strategy_override()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(Some(GhMergeStrategy::Squash)),
                 )
-                .await?;
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
-                assert_eq!(*pr.strategy_override(), None);
-                assert_eq!(output, "Removing merge strategy override for pull request #1 on repository owner/name\n");
+            Box::new(mock)
+        });
 
-                Ok(())
-            },
+        let output = test_command(
+            ctx,
+            &[
+                "pull-requests",
+                "set-merge-strategy",
+                "owner/name",
+                "1",
+                "squash",
+            ],
         )
-        .await;
+        .await?;
+        assert_eq!(output, "Setting 'squash' as a merge strategy override for pull request #1 on repository 'owner/name'.\n");
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_unset() -> Result<()> {
+        let mut ctx = CommandContextTest::new();
+        ctx.db_adapter.expect_pull_requests().returning(|| {
+            let mut mock = MockPullRequestDB::new();
+            mock.expect_get()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                )
+                .returning(|_, _, _| {
+                    async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
+                });
+
+            mock.expect_set_strategy_override()
+                .with(
+                    predicate::eq("owner"),
+                    predicate::eq("name"),
+                    predicate::eq(1),
+                    predicate::eq(None),
+                )
+                .returning(|_, _, _, _| {
+                    async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
+                });
+
+            Box::new(mock)
+        });
+
+        let output = test_command(
+            ctx,
+            &["pull-requests", "set-merge-strategy", "owner/name", "1"],
+        )
+        .await?;
+        assert_eq!(
+            output,
+            "Removing merge strategy override for pull request #1 on repository 'owner/name'.\n"
+        );
+
+        Ok(())
     }
 }

@@ -1179,6 +1179,7 @@ dependencies = [
  "async-trait",
  "clap",
  "dialoguer",
+ "futures-util",
  "github-scbot-core",
  "github-scbot-database",
  "github-scbot-domain",
@@ -1187,6 +1188,7 @@ dependencies = [
  "github-scbot-server",
  "github-scbot-tui",
  "indoc",
+ "mockall",
  "tokio",
 ]
 

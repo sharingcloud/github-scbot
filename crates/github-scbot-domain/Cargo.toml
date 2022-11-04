@@ -11,6 +11,7 @@ github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
 async-trait = "0.1.56"
+mockall = "0.11.2"
 regex = "1.6.0"
 smart-default = "0.6.0"
 tracing = "0.1.35"
@@ -20,5 +21,4 @@ thiserror = "1.0.37"
 actix-rt = "2.7.0"
 futures-util = "0.3.21"
 maplit = "1.0.2"
-mockall = "0.11.2"
 pretty_assertions = "1.2.1"

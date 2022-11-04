@@ -5,7 +5,7 @@ use std::str::FromStr;
 use super::errors::TypeError;
 
 /// Repository path.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RepositoryPath {
     owner: String,
     name: String,
@@ -59,7 +59,15 @@ impl FromStr for RepositoryPath {
     type Err = TypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::new(s)
+        s.try_into()
+    }
+}
+
+impl TryFrom<&str> for RepositoryPath {
+    type Error = TypeError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
 
