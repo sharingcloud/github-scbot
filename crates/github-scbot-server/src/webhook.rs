@@ -16,7 +16,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::events::EventType;
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use serde::Deserialize;
@@ -30,7 +30,7 @@ use crate::{constants::GITHUB_EVENT_HEADER, server::AppContext, utils::convert_p
 async fn parse_event(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event_type: EventType,
     body: &str,
@@ -111,7 +111,7 @@ pub(crate) async fn event_handler(
             parse_event(
                 &ctx.config,
                 ctx.api_adapter.as_ref(),
-                ctx.db_adapter.as_ref(),
+                ctx.db_adapter.lock().await.as_mut(),
                 ctx.redis_adapter.as_ref(),
                 event_type,
                 &body,

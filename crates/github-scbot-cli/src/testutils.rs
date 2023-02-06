@@ -1,11 +1,10 @@
 use std::io::Write;
 
-use super::Result;
 use clap::Parser;
 use github_scbot_core::config::Config;
-use github_scbot_database::{DbService, MockDbService};
-use github_scbot_ghapi::adapter::{ApiService, MockApiService};
-use github_scbot_redis::{MockRedisService, RedisService};
+use github_scbot_database::MemoryDb;
+use github_scbot_ghapi::adapter::MockApiService;
+use github_scbot_redis::MockRedisService;
 
 use crate::{
     args::{Args, CommandExecutor},
@@ -14,7 +13,7 @@ use crate::{
 
 pub(crate) struct CommandContextTest {
     pub config: Config,
-    pub db_adapter: MockDbService,
+    pub db_adapter: MemoryDb,
     pub api_adapter: MockApiService,
     pub redis_adapter: MockRedisService,
 }
@@ -23,7 +22,7 @@ impl CommandContextTest {
     pub fn new() -> Self {
         Self {
             config: Config::from_env(),
-            db_adapter: MockDbService::new(),
+            db_adapter: MemoryDb::new(),
             api_adapter: MockApiService::new(),
             redis_adapter: MockRedisService::new(),
         }
@@ -40,7 +39,7 @@ impl CommandContextTest {
     }
 }
 
-pub(crate) async fn test_command(ctx: CommandContextTest, command_args: &[&str]) -> Result<String> {
+pub(crate) async fn test_command(ctx: CommandContextTest, command_args: &[&str]) -> String {
     let mut buf = Vec::new();
 
     {
@@ -50,13 +49,17 @@ pub(crate) async fn test_command(ctx: CommandContextTest, command_args: &[&str])
             tmp_args
         };
 
-        let args = Args::try_parse_from(command_args).unwrap();
-        CommandExecutor::parse_args_async(args, ctx.to_context(&mut buf)).await?;
+        let args = Args::try_parse_from(command_args);
+        match args {
+            Ok(args) => CommandExecutor::parse_args_async(args, ctx.to_context(&mut buf))
+                .await
+                .unwrap(),
+            Err(e) => {
+                eprintln!("{}", e);
+                panic!("Parse error.")
+            }
+        }
     }
 
-    Ok(std::str::from_utf8(buf.as_slice()).unwrap().to_string())
-}
-
-pub(crate) fn buffer_to_string(buf: Vec<u8>) -> String {
     std::str::from_utf8(buf.as_slice()).unwrap().to_string()
 }

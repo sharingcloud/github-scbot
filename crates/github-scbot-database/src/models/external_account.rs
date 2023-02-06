@@ -1,9 +1,8 @@
-use async_trait::async_trait;
 use github_scbot_core::crypto::{JwtUtils, RsaUtils};
 use github_scbot_core::utils::TimeUtils;
 use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
+use sqlx::{postgres::PgRow, FromRow, Row};
 
 use crate::{DatabaseError, Result};
 
@@ -17,16 +16,16 @@ pub struct ExternalJwtClaims {
 }
 
 #[derive(
-    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq,
+    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
 )]
 #[builder(default, setter(into))]
 pub struct ExternalAccount {
     #[get_deref]
-    username: String,
+    pub(crate) username: String,
     #[get_deref]
-    public_key: String,
+    pub(crate) public_key: String,
     #[get_deref]
-    private_key: String,
+    pub(crate) private_key: String,
 }
 
 impl ExternalAccount {
@@ -67,274 +66,119 @@ impl ExternalAccountBuilder {
     }
 }
 
-#[async_trait]
-#[mockall::automock]
-pub trait ExternalAccountDB {
-    async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
-    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount>;
-    async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>>;
-    async fn delete(&mut self, username: &str) -> Result<bool>;
-    async fn all(&mut self) -> Result<Vec<ExternalAccount>>;
-    async fn set_keys(
-        &mut self,
-        username: &str,
-        public_key: &str,
-        private_key: &str,
-    ) -> Result<ExternalAccount>;
-}
-
-pub struct ExternalAccountDBImpl<'a> {
-    connection: &'a mut PgConnection,
-}
-
-impl<'a> ExternalAccountDBImpl<'a> {
-    pub fn new(connection: &'a mut PgConnection) -> Self {
-        Self { connection }
-    }
-}
-
-pub struct ExternalAccountDBImplPool {
-    pool: PgPool,
-}
-
-impl ExternalAccountDBImplPool {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-
-    pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(|e| DatabaseError::ConnectionError { source: e })
-    }
-
-    pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(|e| DatabaseError::TransactionError { source: e })
-    }
-}
-
-#[async_trait]
-impl ExternalAccountDB for ExternalAccountDBImplPool {
-    async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction)
-            .create(instance)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction)
-            .update(instance)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction)
-            .get(username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn delete(&mut self, username: &str) -> Result<bool> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction)
-            .delete(username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn all(&mut self) -> Result<Vec<ExternalAccount>> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction).all().await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn set_keys(
-        &mut self,
-        username: &str,
-        public_key: &str,
-        private_key: &str,
-    ) -> Result<ExternalAccount> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountDBImpl::new(&mut *transaction)
-            .set_keys(username, public_key, private_key)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-}
-
-#[async_trait]
-impl<'a> ExternalAccountDB for ExternalAccountDBImpl<'a> {
-    #[tracing::instrument(skip(self))]
-    async fn create(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
-        let username: String = sqlx::query(
-            r#"
-            INSERT INTO external_account
-            (
-                username,
-                public_key,
-                private_key
-            ) VALUES (
-                $1,
-                $2,
-                $3
-            )
-            RETURNING username;
-            "#,
-        )
-        .bind(instance.username)
-        .bind(instance.public_key)
-        .bind(instance.private_key)
-        .fetch_one(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
-        .get(0);
-
-        self.get(&username).await.map(|x| x.unwrap())
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn update(&mut self, instance: ExternalAccount) -> Result<ExternalAccount> {
-        let username: String = sqlx::query(
-            r#"
-            UPDATE external_account
-            SET public_key = $1,
-            private_key = $2
-            WHERE username = $3
-            RETURNING username;
-            "#,
-        )
-        .bind(instance.public_key)
-        .bind(instance.private_key)
-        .bind(instance.username)
-        .fetch_one(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
-        .get(0);
-
-        self.get(&username).await.map(|x| x.unwrap())
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
-        sqlx::query_as::<_, ExternalAccount>(
-            r#"
-                SELECT *
-                FROM external_account
-                WHERE username = $1
-            "#,
-        )
-        .bind(username)
-        .fetch_optional(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete(&mut self, username: &str) -> Result<bool> {
-        sqlx::query(
-            r#"
-            DELETE FROM external_account
-            WHERE username = $1
-        "#,
-        )
-        .bind(username)
-        .execute(&mut *self.connection)
-        .await
-        .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn all(&mut self) -> Result<Vec<ExternalAccount>> {
-        sqlx::query_as::<_, ExternalAccount>(
-            r#"
-            SELECT *
-            FROM external_account;
-        "#,
-        )
-        .fetch_all(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn set_keys(
-        &mut self,
-        username: &str,
-        public_key: &str,
-        private_key: &str,
-    ) -> Result<ExternalAccount> {
-        let username: String = sqlx::query(
-            r#"
-            UPDATE external_account
-            SET public_key = $1,
-            private_key = $2
-            WHERE username = $3
-            RETURNING username
-        "#,
-        )
-        .bind(public_key)
-        .bind(private_key)
-        .bind(username)
-        .fetch_one(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
-        .get(0);
-
-        self.get(&username).await.map(|x| x.unwrap())
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use github_scbot_core::config::Config;
-
-    use crate::utils::use_temporary_db;
-
-    use super::{ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl};
+mod new_tests {
+    use crate::{utils::db_test_case, ExternalAccount};
 
     #[actix_rt::test]
-    async fn test_db() {
-        use_temporary_db(
-            Config::from_env(),
-            "external-account-test-db",
-            |_config, conn| async move {
-                let mut conn = conn.acquire().await?;
-                let mut db = ExternalAccountDBImpl::new(&mut conn);
+    async fn create_no_keys() {
+        db_test_case("external_account_create_no_keys", |mut db| async move {
+            let exa = ExternalAccount::builder().username("me").build()?;
+            let exa = db.external_accounts_create(exa).await?;
+            assert_eq!(exa.username(), "me");
+            assert_eq!(exa.public_key(), "");
+            assert_eq!(exa.private_key(), "");
 
-                let _account = db
-                    .create(
-                        ExternalAccount::builder()
-                            .username("me")
-                            .public_key("sample")
-                            .private_key("sample")
-                            .build()?,
-                    )
-                    .await?;
-                assert!(db.get("me").await?.is_some());
+            Ok(())
+        })
+        .await;
+    }
 
-                let account = db.set_keys("me", "one", "two").await?;
-                assert_eq!(account.public_key(), "one");
-                assert_eq!(account.private_key(), "two");
+    #[actix_rt::test]
+    async fn create_keys() {
+        db_test_case("external_account_create_keys", |mut db| async move {
+            let exa = ExternalAccount::builder()
+                .username("me")
+                .generate_keys()
+                .build()?;
+            let exa = db.external_accounts_create(exa).await?;
+            assert_eq!(exa.username(), "me");
+            assert_ne!(exa.public_key(), "");
+            assert_ne!(exa.private_key(), "");
 
-                Ok(())
-            },
-        )
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn set_keys() {
+        db_test_case("external_account_set_keys", |mut db| async move {
+            let exa = ExternalAccount::builder().username("me").build()?;
+            db.external_accounts_create(exa).await?;
+
+            let exa = db.external_accounts_set_keys("me", "one", "two").await?;
+            assert_eq!(exa.username(), "me");
+            assert_eq!(exa.public_key(), "one");
+            assert_eq!(exa.private_key(), "two");
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn get() {
+        db_test_case("external_account_get", |mut db| async move {
+            let exa = ExternalAccount::builder()
+                .username("me")
+                .generate_keys()
+                .build()?;
+            let exa = db.external_accounts_create(exa).await?;
+            let get_exa = db.external_accounts_get("me").await?;
+            assert_eq!(Some(exa), get_exa);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn delete() {
+        db_test_case("external_account_delete", |mut db| async move {
+            let exa = ExternalAccount::builder()
+                .username("me")
+                .generate_keys()
+                .build()?;
+            db.external_accounts_create(exa).await?;
+            let found = db.external_accounts_delete("me").await?;
+            assert!(found);
+
+            let get_exa = db.external_accounts_get("me").await?;
+            assert_eq!(get_exa, None);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn delete_not_found() {
+        db_test_case("external_account_delete_not_found", |mut db| async move {
+            let found = db.external_accounts_delete("me").await?;
+            assert!(!found);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn all() {
+        db_test_case("external_account_all", |mut db| async move {
+            assert_eq!(db.external_accounts_all().await?, vec![]);
+
+            let exa1 = ExternalAccount::builder().username("me").build()?;
+            let exa2 = ExternalAccount::builder().username("him").build()?;
+            let exa3 = ExternalAccount::builder().username("her").build()?;
+
+            let exa1 = db.external_accounts_create(exa1).await?;
+            let exa2 = db.external_accounts_create(exa2).await?;
+            let exa3 = db.external_accounts_create(exa3).await?;
+            assert_eq!(db.external_accounts_all().await?, vec![exa3, exa2, exa1]);
+
+            Ok(())
+        })
         .await;
     }
 }

@@ -20,7 +20,7 @@ impl AdminHelpCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminHelpCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let comment = format!(
             "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
             You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
@@ -49,23 +49,5 @@ impl BotCommand for AdminHelpCommand {
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(comment))
             .build())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::commands::CommandContextTest;
-
-    use super::*;
-
-    #[actix_rt::test]
-    async fn test_command() -> Result<()> {
-        let ctx = CommandContextTest::new();
-        let cmd = AdminHelpCommand::new();
-
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(!result.should_update_status);
-
-        Ok(())
     }
 }

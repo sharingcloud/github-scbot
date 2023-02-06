@@ -1,26 +1,26 @@
-use crate::{DatabaseError, Result};
-use async_trait::async_trait;
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
+use sqlx::{postgres::PgRow, FromRow, Row};
 
 use crate::{
     fields::{GhMergeStrategyDecode, RuleBranchDecode},
     Repository,
 };
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
+#[derive(
+    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
+)]
 #[builder(default, setter(into))]
 pub struct MergeRule {
     #[get]
-    repository_id: u64,
+    pub(crate) repository_id: u64,
     #[get_ref]
-    base_branch: RuleBranch,
+    pub(crate) base_branch: RuleBranch,
     #[get_ref]
-    head_branch: RuleBranch,
+    pub(crate) head_branch: RuleBranch,
     #[get]
-    strategy: GhMergeStrategy,
+    pub(crate) strategy: GhMergeStrategy,
 }
 
 impl MergeRule {
@@ -51,347 +51,309 @@ impl<'r> FromRow<'r, PgRow> for MergeRule {
     }
 }
 
-#[async_trait]
-#[mockall::automock]
-pub trait MergeRuleDB {
-    async fn create(&mut self, instance: MergeRule) -> Result<MergeRule>;
-    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule>;
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<Option<MergeRule>>;
-    async fn delete(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<bool>;
-    async fn all(&mut self) -> Result<Vec<MergeRule>>;
-    async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>>;
-}
-
-pub struct MergeRuleDBImpl<'a> {
-    connection: &'a mut PgConnection,
-}
-
-impl<'a> MergeRuleDBImpl<'a> {
-    pub fn new(connection: &'a mut PgConnection) -> Self {
-        Self { connection }
-    }
-
-    async fn get_from_id(&mut self, id: i32) -> Result<Option<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
-            r#"
-            SELECT *
-            FROM merge_rule
-            WHERE id = $1
-        "#,
-        )
-        .bind(id)
-        .fetch_optional(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-}
-
-pub struct MergeRuleDBImplPool {
-    pool: PgPool,
-}
-
-impl MergeRuleDBImplPool {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-
-    pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(|e| DatabaseError::ConnectionError { source: e })
-    }
-
-    pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(|e| DatabaseError::TransactionError { source: e })
-    }
-}
-
-#[async_trait]
-impl MergeRuleDB for MergeRuleDBImplPool {
-    async fn create(&mut self, instance: MergeRule) -> Result<MergeRule> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction)
-            .create(instance)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction)
-            .update(instance)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<Option<MergeRule>> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction)
-            .get(owner, name, base_branch, head_branch)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn delete(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<bool> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction)
-            .delete(owner, name, base_branch, head_branch)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction)
-            .list(owner, name)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn all(&mut self) -> Result<Vec<MergeRule>> {
-        let mut transaction = self.begin().await?;
-        let data = MergeRuleDBImpl::new(&mut *transaction).all().await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-}
-
-#[async_trait]
-impl<'a> MergeRuleDB for MergeRuleDBImpl<'a> {
-    #[tracing::instrument(skip(self))]
-    async fn create(&mut self, instance: MergeRule) -> Result<MergeRule> {
-        let new_id: i32 = sqlx::query(
-            r#"
-            INSERT INTO merge_rule
-            (
-                repository_id,
-                base_branch,
-                head_branch,
-                strategy
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4
-            )
-            RETURNING id
-            ;
-        "#,
-        )
-        .bind(instance.repository_id as i32)
-        .bind(instance.base_branch.to_string())
-        .bind(instance.head_branch.to_string())
-        .bind(instance.strategy.to_string())
-        .fetch_one(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
-        .get(0);
-
-        self.get_from_id(new_id).await.map(|x| x.unwrap())
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn update(&mut self, instance: MergeRule) -> Result<MergeRule> {
-        let new_id: i32 = sqlx::query(
-            r#"
-            UPDATE merge_rule
-            SET strategy = $1
-            WHERE repository_id = $2
-            AND base_branch = $3
-            AND head_branch = $4
-            RETURNING id
-        "#,
-        )
-        .bind(instance.strategy.to_string())
-        .bind(instance.repository_id as i32)
-        .bind(instance.base_branch.to_string())
-        .bind(instance.head_branch.to_string())
-        .fetch_one(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
-        .get(0);
-
-        self.get_from_id(new_id).await.map(|x| x.unwrap())
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<Option<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
-            r#"
-            SELECT merge_rule.*
-            FROM merge_rule
-            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2 AND repository.id = repository_id)
-            WHERE base_branch = $3
-            AND head_branch = $4;
-        "#,
-        )
-        .bind(owner)
-        .bind(name)
-        .bind(base_branch.to_string())
-        .bind(head_branch.to_string())
-        .fetch_optional(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete(
-        &mut self,
-        owner: &str,
-        name: &str,
-        base_branch: RuleBranch,
-        head_branch: RuleBranch,
-    ) -> Result<bool> {
-        sqlx::query(
-            r#"
-            DELETE
-            FROM merge_rule
-            USING repository
-            WHERE repository.owner = $1
-            AND repository.name = $2
-            AND repository.id = repository_id
-            AND base_branch = $3
-            AND head_branch = $4;
-        "#,
-        )
-        .bind(owner)
-        .bind(name)
-        .bind(base_branch.to_string())
-        .bind(head_branch.to_string())
-        .execute(&mut *self.connection)
-        .await
-        .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
-            r#"
-            SELECT merge_rule.*
-            FROM merge_rule
-            INNER JOIN repository ON (repository.owner = $1 AND repository.name = $2 AND repository.id = repository_id)
-        "#,
-        )
-        .bind(owner)
-        .bind(name)
-        .fetch_all(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn all(&mut self) -> Result<Vec<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
-            r#"
-            SELECT *
-            FROM merge_rule
-        "#,
-        )
-        .fetch_all(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use github_scbot_core::config::Config;
+mod new_tests {
     use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 
-    use crate::{
-        models::{
-            merge_rule::{MergeRule, MergeRuleDB, MergeRuleDBImpl},
-            repository::{Repository, RepositoryDB},
-        },
-        utils::use_temporary_db,
-        RepositoryDBImpl,
-    };
+    use crate::{utils::db_test_case, MergeRule, Repository};
 
     #[actix_rt::test]
-    async fn test_db() {
-        use_temporary_db(
-            Config::from_env(),
-            "merge-rule-test-db",
-            |_config, conn| async move {
-                let mut conn = conn.acquire().await?;
-                let repo = {
-                    let mut db = RepositoryDBImpl::new(&mut conn);
-                    db.create(Repository::builder().build()?).await?
-                };
+    async fn create() {
+        db_test_case("merge_rule_create", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
 
-                let mut db = MergeRuleDBImpl::new(&mut conn);
-                let _rule = db
-                    .create(
-                        MergeRule::builder()
-                            .repository_id(repo.id())
-                            .strategy(GhMergeStrategy::Squash)
-                            .build()?,
-                    )
-                    .await?;
-                assert!(db
-                    .get("", "", RuleBranch::Wildcard, RuleBranch::Wildcard)
-                    .await?
-                    .is_some());
-                assert!(db
-                    .get(
-                        "",
-                        "",
-                        RuleBranch::Named("nope".into()),
-                        RuleBranch::Wildcard
-                    )
-                    .await?
-                    .is_none());
+            let rule = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
 
-                assert!(
-                    db.delete("", "", RuleBranch::Wildcard, RuleBranch::Wildcard)
-                        .await?
-                );
+            assert_eq!(rule.repository_id, repo.id());
+            assert_eq!(rule.base_branch, RuleBranch::Wildcard);
+            assert_eq!(rule.head_branch, RuleBranch::Named("hello".to_owned()));
+            assert_eq!(rule.strategy, GhMergeStrategy::Merge);
 
-                Ok(())
-            },
-        )
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn update() {
+        db_test_case("merge_rule_update", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+
+            db.merge_rules_create(
+                MergeRule::builder()
+                    .repository_id(repo.id())
+                    .base_branch(RuleBranch::Wildcard)
+                    .head_branch(RuleBranch::Named("hello".to_owned()))
+                    .strategy(GhMergeStrategy::Merge)
+                    .build()?,
+            )
+            .await?;
+
+            let rule = db
+                .merge_rules_update(
+                    MergeRule::builder()
+                        .repository_id(repo.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Squash)
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(rule.repository_id, repo.id());
+            assert_eq!(rule.base_branch, RuleBranch::Wildcard);
+            assert_eq!(rule.head_branch, RuleBranch::Named("hello".to_owned()));
+            assert_eq!(rule.strategy, GhMergeStrategy::Squash);
+            assert_eq!(
+                db.merge_rules_get(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned())
+                )
+                .await?,
+                Some(rule)
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn get() {
+        db_test_case("merge_rule_get", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+
+            assert_eq!(
+                db.merge_rules_get(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned())
+                )
+                .await?,
+                None
+            );
+
+            let rule = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+
+            let get_rule = db
+                .merge_rules_get(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned()),
+                )
+                .await?;
+            assert_eq!(get_rule, Some(rule));
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn delete() {
+        db_test_case("merge_rule_delete", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+
+            assert_eq!(
+                db.merge_rules_get(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned())
+                )
+                .await?,
+                None
+            );
+
+            db.merge_rules_create(
+                MergeRule::builder()
+                    .repository_id(repo.id())
+                    .base_branch(RuleBranch::Wildcard)
+                    .head_branch(RuleBranch::Named("hello".to_owned()))
+                    .strategy(GhMergeStrategy::Merge)
+                    .build()?,
+            )
+            .await?;
+
+            assert_eq!(
+                db.merge_rules_delete(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned())
+                )
+                .await?,
+                true
+            );
+
+            assert_eq!(
+                db.merge_rules_get(
+                    "me",
+                    "repo",
+                    RuleBranch::Wildcard,
+                    RuleBranch::Named("hello".to_owned())
+                )
+                .await?,
+                None
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn all() {
+        db_test_case("merge_rule_all", |mut db| async move {
+            assert_eq!(db.merge_rules_all().await?, vec![]);
+
+            let repo1 = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+            let repo2 = db
+                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .await?;
+
+            let rule1 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo1.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+            let rule2 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo1.id())
+                        .base_branch(RuleBranch::Named("hi".to_owned()))
+                        .head_branch(RuleBranch::Named("hello2".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+            let rule3 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo2.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+            let rule4 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo2.id())
+                        .base_branch(RuleBranch::Named("hi".to_owned()))
+                        .head_branch(RuleBranch::Named("hello2".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(
+                db.merge_rules_all().await?,
+                vec![rule1, rule2, rule3, rule4]
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn list() {
+        db_test_case("merge_rule_list", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+
+            assert_eq!(db.merge_rules_list("me", "repo").await?, vec![]);
+
+            let rule1 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo.id())
+                        .base_branch(RuleBranch::Wildcard)
+                        .head_branch(RuleBranch::Named("hello".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+            let rule2 = db
+                .merge_rules_create(
+                    MergeRule::builder()
+                        .repository_id(repo.id())
+                        .base_branch(RuleBranch::Named("hi".to_owned()))
+                        .head_branch(RuleBranch::Named("hello2".to_owned()))
+                        .strategy(GhMergeStrategy::Merge)
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(db.merge_rules_list("me", "repo").await?, vec![rule1, rule2]);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn cascade_repository() {
+        db_test_case("merge_rule_cascade_repository", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+
+            db.merge_rules_create(
+                MergeRule::builder()
+                    .repository_id(repo.id())
+                    .base_branch(RuleBranch::Wildcard)
+                    .head_branch(RuleBranch::Named("hello".to_owned()))
+                    .strategy(GhMergeStrategy::Merge)
+                    .build()?,
+            )
+            .await?;
+
+            db.repositories_delete("me", "repo").await?;
+            assert_eq!(db.merge_rules_all().await?, vec![]);
+
+            Ok(())
+        })
         .await;
     }
 }

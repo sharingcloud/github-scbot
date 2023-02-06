@@ -22,6 +22,14 @@ impl RepositoryPath {
         })
     }
 
+    /// Creates a new repository path from components
+    pub fn new_from_components(owner: &str, name: &str) -> Self {
+        Self {
+            owner: owner.into(),
+            name: name.into(),
+        }
+    }
+
     /// Get owner and name.
     pub fn components(&self) -> (&str, &str) {
         (&self.owner, &self.name)

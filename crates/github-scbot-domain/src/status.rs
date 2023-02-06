@@ -7,7 +7,7 @@ use github_scbot_core::types::{
     pulls::GhPullRequest,
     status::{CheckStatus, QaStatus, StatusState},
 };
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::{LockStatus, RedisService};
 pub use pull_status::PullRequestStatus;
@@ -70,7 +70,7 @@ impl StatusLogic {
     )]
     pub async fn update_pull_request_status(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
@@ -126,8 +126,7 @@ impl StatusLogic {
             .await?;
 
         let pr_model = db_adapter
-            .pull_requests()
-            .get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .unwrap();
 
@@ -151,8 +150,7 @@ impl StatusLogic {
                 .await?;
                 if !result {
                     db_adapter
-                        .pull_requests()
-                        .set_automerge(repo_owner, repo_name, pr_number, false)
+                        .pull_requests_set_automerge(repo_owner, repo_name, pr_number, false)
                         .await?;
 
                     // Update status
@@ -248,7 +246,7 @@ impl StatusLogic {
     /// Disable validation status.
     pub async fn disable_validation_status(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,

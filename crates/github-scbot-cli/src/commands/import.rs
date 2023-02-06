@@ -23,7 +23,7 @@ impl Command for ImportCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let file = File::open(&self.input_file)?;
         let reader = BufReader::new(file);
-        Exchanger::import_from_json(&mut *ctx.db_adapter, reader).await?;
+        Exchanger::import_from_json(ctx.db_adapter.as_mut(), reader).await?;
 
         Ok(())
     }

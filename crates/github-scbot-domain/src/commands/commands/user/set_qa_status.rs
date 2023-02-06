@@ -39,7 +39,7 @@ impl SetQaStatusCommand {
         }
     }
 
-    fn _create_status_message<'a>(&self, ctx: &CommandContext<'a>) -> String {
+    fn _create_status_message<'a>(&self, ctx: &mut CommandContext<'a>) -> String {
         let status = match self.status {
             QaStatus::Fail => "failed",
             QaStatus::Pass => "passed",
@@ -56,10 +56,9 @@ impl SetQaStatusCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for SetQaStatusCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         ctx.db_adapter
-            .pull_requests()
-            .set_qa_status(ctx.repo_owner, ctx.repo_name, ctx.pr_number, self.status)
+            .pull_requests_set_qa_status(ctx.repo_owner, ctx.repo_name, ctx.pr_number, self.status)
             .await?;
 
         let comment = self._create_status_message(ctx);
@@ -69,166 +68,5 @@ impl BotCommand for SetQaStatusCommand {
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(comment))
             .build())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures_util::FutureExt;
-    use github_scbot_core::types::status::QaStatus;
-    use github_scbot_database::MockPullRequestDB;
-    use github_scbot_database::PullRequest;
-    use mockall::predicate;
-
-    use crate::commands::CommandContextTest;
-
-    use super::*;
-
-    #[actix_rt::test]
-    async fn test_skip() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-
-        // Skip.
-        ctx.db_adapter
-            .expect_pull_requests()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_set_qa_status()
-                    .with(
-                        predicate::eq("owner"),
-                        predicate::eq("name"),
-                        predicate::eq(1),
-                        predicate::eq(QaStatus::Skipped),
-                    )
-                    .returning(|_, _, _, _| {
-                        async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
-                    });
-                Box::new(mock)
-            });
-
-        let cmd = SetQaStatusCommand::new(QaStatus::Skipped);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment("QA status is marked as **skipped** by **me**.".into())
-            ]
-        );
-
-        Ok(())
-    }
-
-    #[actix_rt::test]
-    async fn test_reset() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-
-        // Reset.
-        ctx.db_adapter
-            .expect_pull_requests()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_set_qa_status()
-                    .with(
-                        predicate::eq("owner"),
-                        predicate::eq("name"),
-                        predicate::eq(1),
-                        predicate::eq(QaStatus::Waiting),
-                    )
-                    .returning(|_, _, _, _| {
-                        async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
-                    });
-                Box::new(mock)
-            });
-
-        let cmd = SetQaStatusCommand::new(QaStatus::Waiting);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment("QA status is marked as **waiting** by **me**.".into())
-            ]
-        );
-
-        Ok(())
-    }
-
-    #[actix_rt::test]
-    async fn test_approve() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-
-        // Reset.
-        ctx.db_adapter
-            .expect_pull_requests()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_set_qa_status()
-                    .with(
-                        predicate::eq("owner"),
-                        predicate::eq("name"),
-                        predicate::eq(1),
-                        predicate::eq(QaStatus::Pass),
-                    )
-                    .returning(|_, _, _, _| {
-                        async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
-                    });
-                Box::new(mock)
-            });
-
-        let cmd = SetQaStatusCommand::new(QaStatus::Pass);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment("QA status is marked as **passed** by **me**.".into())
-            ]
-        );
-
-        Ok(())
-    }
-
-    #[actix_rt::test]
-    async fn test_unapprove() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-
-        // Reset.
-        ctx.db_adapter
-            .expect_pull_requests()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_set_qa_status()
-                    .with(
-                        predicate::eq("owner"),
-                        predicate::eq("name"),
-                        predicate::eq(1),
-                        predicate::eq(QaStatus::Fail),
-                    )
-                    .returning(|_, _, _, _| {
-                        async { Ok(PullRequest::builder().build().unwrap()) }.boxed()
-                    });
-                Box::new(mock)
-            });
-
-        let cmd = SetQaStatusCommand::new(QaStatus::Fail);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment("QA status is marked as **failed** by **me**.".into())
-            ]
-        );
-
-        Ok(())
     }
 }

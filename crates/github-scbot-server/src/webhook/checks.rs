@@ -2,7 +2,7 @@
 
 use actix_web::HttpResponse;
 use github_scbot_core::types::{checks::GhCheckSuiteEvent, events::EventType};
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_domain::checks::handle_check_suite_event;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
@@ -16,7 +16,7 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 
 pub(crate) async fn check_suite_event(
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {

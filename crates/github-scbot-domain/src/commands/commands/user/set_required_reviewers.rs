@@ -28,7 +28,7 @@ struct FilteredReviewers {
 
 impl FilteredReviewers {
     async fn new<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         pr_model: &PullRequest,
         reviewers: &[String],
     ) -> Result<Self> {
@@ -58,14 +58,13 @@ impl FilteredReviewers {
     }
 
     async fn _create_reviewer<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         pr_model: &PullRequest,
         reviewer_username: &str,
     ) -> Result<()> {
         match ctx
             .db_adapter
-            .required_reviewers()
-            .get(
+            .required_reviewers_get(
                 ctx.repo_owner,
                 ctx.repo_name,
                 ctx.pr_number,
@@ -76,8 +75,7 @@ impl FilteredReviewers {
             Some(_s) => Ok(()),
             None => {
                 ctx.db_adapter
-                    .required_reviewers()
-                    .create(
+                    .required_reviewers_create(
                         RequiredReviewer::builder()
                             .with_pull_request(pr_model)
                             .username(reviewer_username)
@@ -92,7 +90,7 @@ impl FilteredReviewers {
 }
 
 impl AssignRequiredReviewersCommand {
-    async fn handle<'a>(&self, ctx: &CommandContext<'a>) -> Result<CommandExecutionResult> {
+    async fn handle<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<CommandExecutionResult> {
         let pr_model = self._get_pull_request(ctx).await?;
         let reviewers = self._filter_reviewers(ctx, &pr_model).await?;
 
@@ -111,17 +109,16 @@ impl AssignRequiredReviewersCommand {
 
     async fn _filter_reviewers<'a>(
         &self,
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         pr_model: &PullRequest,
     ) -> Result<FilteredReviewers> {
         FilteredReviewers::new(ctx, pr_model, &self.reviewers).await
     }
 
-    async fn _get_pull_request<'a>(&self, ctx: &CommandContext<'a>) -> Result<PullRequest> {
+    async fn _get_pull_request<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<PullRequest> {
         Ok(ctx
             .db_adapter
-            .pull_requests()
-            .get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
+            .pull_requests_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
             .await?
             .unwrap())
     }
@@ -188,7 +185,7 @@ struct UnassignRequiredReviewersCommand {
 }
 
 impl UnassignRequiredReviewersCommand {
-    async fn handle<'a>(&self, ctx: &CommandContext<'a>) -> Result<CommandExecutionResult> {
+    async fn handle<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<CommandExecutionResult> {
         self._remove_reviewer_from_pull_request(ctx).await?;
 
         for reviewer in &self.reviewers {
@@ -219,12 +216,11 @@ impl UnassignRequiredReviewersCommand {
 
     async fn _remove_required_reviewer<'a>(
         &self,
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         reviewer_username: &str,
     ) -> Result<()> {
         ctx.db_adapter
-            .required_reviewers()
-            .delete(
+            .required_reviewers_delete(
                 ctx.repo_owner,
                 ctx.repo_name,
                 ctx.pr_number,
@@ -273,7 +269,7 @@ impl SetRequiredReviewersCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for SetRequiredReviewersCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         match self.action {
             Action::Assign => {
                 AssignRequiredReviewersCommand {
@@ -290,108 +286,5 @@ impl BotCommand for SetRequiredReviewersCommand {
                 .await
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures_util::FutureExt;
-    use github_scbot_core::types::common::GhUserPermission;
-    use github_scbot_database::{MockPullRequestDB, MockRequiredReviewerDB};
-
-    use crate::commands::CommandContextTest;
-
-    use super::*;
-
-    #[actix_rt::test]
-    async fn test_assign() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-        ctx.db_adapter
-            .expect_pull_requests()
-            .times(1)
-            .returning(|| {
-                let mut mock = MockPullRequestDB::new();
-                mock.expect_get().times(1).returning(|_, _, _| {
-                    async { Ok(Some(PullRequest::builder().build().unwrap())) }.boxed()
-                });
-
-                Box::new(mock)
-            });
-        ctx.db_adapter
-            .expect_required_reviewers()
-            .times(4)
-            .returning(|| {
-                let mut mock = MockRequiredReviewerDB::new();
-                mock.expect_get()
-                    .returning(|_, _, _, _| async { Ok(None) }.boxed());
-                mock.expect_create().returning(|_| {
-                    async { Ok(RequiredReviewer::builder().build().unwrap()) }.boxed()
-                });
-
-                Box::new(mock)
-            });
-        ctx.api_adapter
-            .expect_user_permissions_get()
-            .times(2)
-            .returning(|_, _, _| Ok(GhUserPermission::Write));
-        ctx.api_adapter
-            .expect_pull_reviewer_requests_add()
-            .times(1)
-            .returning(|_, _, _, _| Ok(()));
-
-        let cmd =
-            SetRequiredReviewersCommand::new_assign(vec![String::from("one"), String::from("two")]);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment(
-                    "**one, two** are now required reviewers on this pull request.".into()
-                )
-            ]
-        );
-
-        Ok(())
-    }
-
-    #[actix_rt::test]
-    async fn test_unassign() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-        ctx.db_adapter
-            .expect_required_reviewers()
-            .times(2)
-            .returning(|| {
-                let mut mock = MockRequiredReviewerDB::new();
-                mock.expect_delete()
-                    .times(1)
-                    .returning(|_, _, _, _| async { Ok(true) }.boxed());
-
-                Box::new(mock)
-            });
-
-        ctx.api_adapter
-            .expect_pull_reviewer_requests_remove()
-            .times(1)
-            .returning(|_, _, _, _| Ok(()));
-
-        let cmd = SetRequiredReviewersCommand::new_unassign(vec![
-            String::from("one"),
-            String::from("two"),
-        ]);
-        let result = cmd.handle(&ctx.as_context()).await?;
-        assert!(result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment(
-                    "**one, two** are not required reviewers anymore on this pull request.".into()
-                )
-            ]
-        );
-
-        Ok(())
     }
 }

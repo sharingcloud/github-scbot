@@ -1,7 +1,7 @@
 use crate::Result;
 use clap::Parser;
 use github_scbot_core::config::Config;
-use github_scbot_database::{establish_pool_connection, run_migrations, DbServiceImplPool};
+use github_scbot_database::{establish_pool_connection, run_migrations, PostgresDb};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
 use std::io::Write;
 
@@ -24,7 +24,7 @@ impl CommandExecutor {
             let pool = establish_pool_connection(&config).await?;
             run_migrations(&pool).await?;
 
-            let db_adapter = DbServiceImplPool::new(pool);
+            let db_adapter = PostgresDb::new(pool);
             let api_adapter = MetricsApiService::new(config.clone());
             let redis_adapter = MetricsRedisService::new(&config.redis_address);
             let ctx = CommandContext {

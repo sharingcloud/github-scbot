@@ -1,8 +1,8 @@
 use std::io::Write;
 
-use crate::Result;
+use crate::{commands::CommandContext, Result};
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::AddAdminRightUseCaseInterface;
+use github_scbot_domain::use_cases::auth::AddAdminRightUseCase;
 
 /// Add admin rights to account
 #[derive(Parser)]
@@ -12,52 +12,19 @@ pub(crate) struct AuthAddAdminRightsCommand {
 }
 
 impl AuthAddAdminRightsCommand {
-    pub async fn run<W: Write>(
-        self,
-        mut writer: W,
-        use_case: &dyn AddAdminRightUseCaseInterface,
-    ) -> Result<()> {
-        use_case.run().await?;
+    pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+        AddAdminRightUseCase {
+            username: self.username.clone(),
+            db_service: ctx.db_adapter.as_mut(),
+        }
+        .run()
+        .await?;
 
         writeln!(
-            writer,
+            ctx.writer,
             "Account '{}' added/edited with admin rights.",
             self.username
         )?;
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use async_trait::async_trait;
-    use github_scbot_domain::DomainError;
-
-    use super::*;
-    use crate::testutils::buffer_to_string;
-
-    struct Impl;
-
-    #[async_trait(?Send)]
-    impl AddAdminRightUseCaseInterface for Impl {
-        async fn run(&self) -> Result<(), DomainError> {
-            Ok(())
-        }
-    }
-
-    #[actix_rt::test]
-    async fn test() -> Result<()> {
-        let mut buf = Vec::new();
-        let cmd = AuthAddAdminRightsCommand {
-            username: "me".into(),
-        };
-        cmd.run(&mut buf, &Impl).await?;
-
-        assert_eq!(
-            buffer_to_string(buf),
-            "Account 'me' added/edited with admin rights.\n"
-        );
 
         Ok(())
     }

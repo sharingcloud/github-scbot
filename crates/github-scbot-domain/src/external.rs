@@ -4,7 +4,7 @@ use github_scbot_core::{
     config::Config,
     types::{repository::RepositoryPath, status::QaStatus},
 };
-use github_scbot_database::{DbService, ExternalAccount};
+use github_scbot_database::{DbServiceAll, ExternalAccount};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -30,7 +30,7 @@ use crate::{
 pub async fn set_qa_status_for_pull_requests(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     account: &ExternalAccount,
     repository_path: RepositoryPath,
@@ -40,15 +40,13 @@ pub async fn set_qa_status_for_pull_requests(
 ) -> Result<()> {
     let (repo_owner, repo_name) = repository_path.components();
     if db_adapter
-        .external_account_rights()
-        .get(repo_owner, repo_name, account.username())
+        .external_account_rights_get(repo_owner, repo_name, account.username())
         .await?
         .is_some()
     {
         for pr_number in pull_request_numbers {
             if db_adapter
-                .pull_requests()
-                .get(repo_owner, repo_name, *pr_number)
+                .pull_requests_get(repo_owner, repo_name, *pr_number)
                 .await?
                 .is_some()
             {
@@ -56,7 +54,7 @@ pub async fn set_qa_status_for_pull_requests(
                     .pulls_get(repo_owner, repo_name, *pr_number)
                     .await?;
 
-                let ctx = CommandContext {
+                let mut ctx = CommandContext {
                     config,
                     api_adapter,
                     db_adapter,
@@ -69,8 +67,8 @@ pub async fn set_qa_status_for_pull_requests(
                     comment_author: author,
                 };
 
-                let result = SetQaStatusCommand::new(status).handle(&ctx).await?;
-                CommandExecutor::process_command_result(&ctx, &result).await?;
+                let result = SetQaStatusCommand::new(status).handle(&mut ctx).await?;
+                CommandExecutor::process_command_result(&mut ctx, &result).await?;
             }
         }
     }

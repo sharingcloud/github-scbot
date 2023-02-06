@@ -1,8 +1,8 @@
 use std::io::Write;
 
-use crate::Result;
+use crate::{commands::CommandContext, Result};
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::RemoveExternalAccountUseCaseInterface;
+use github_scbot_domain::use_cases::auth::RemoveExternalAccountUseCase;
 
 /// Remove external account
 #[derive(Parser)]
@@ -12,44 +12,15 @@ pub(crate) struct AuthRemoveExternalAccountCommand {
 }
 
 impl AuthRemoveExternalAccountCommand {
-    pub async fn run<W: Write>(
-        self,
-        mut writer: W,
-        use_case: &dyn RemoveExternalAccountUseCaseInterface,
-    ) -> Result<()> {
-        use_case.run().await?;
-
-        writeln!(writer, "External account '{}' removed.", self.username)?;
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use async_trait::async_trait;
-    use github_scbot_domain::DomainError;
-
-    use super::*;
-    use crate::testutils::buffer_to_string;
-
-    #[actix_rt::test]
-    async fn test() -> Result<()> {
-        struct Impl;
-
-        #[async_trait(?Send)]
-        impl RemoveExternalAccountUseCaseInterface for Impl {
-            async fn run(&self) -> Result<(), DomainError> {
-                Ok(())
-            }
+    pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+        RemoveExternalAccountUseCase {
+            username: self.username.clone(),
+            db_service: ctx.db_adapter.as_mut(),
         }
+        .run()
+        .await?;
 
-        let mut buf = Vec::new();
-        let cmd = AuthRemoveExternalAccountCommand {
-            username: "me".into(),
-        };
-        cmd.run(&mut buf, &Impl).await?;
-        assert_eq!(buffer_to_string(buf), "External account 'me' removed.\n");
+        writeln!(ctx.writer, "External account '{}' removed.", self.username)?;
 
         Ok(())
     }

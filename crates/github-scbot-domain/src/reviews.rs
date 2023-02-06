@@ -1,7 +1,7 @@
 //! Reviews module.
 
 use github_scbot_core::types::reviews::GhReviewEvent;
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -19,7 +19,7 @@ use crate::{status::StatusLogic, Result};
 )]
 pub async fn handle_review_event(
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhReviewEvent,
 ) -> Result<()> {
@@ -29,8 +29,7 @@ pub async fn handle_review_event(
 
     // Detect required reviews
     if db_adapter
-        .pull_requests()
-        .get(repo_owner, repo_name, pr_number)
+        .pull_requests_get(repo_owner, repo_name, pr_number)
         .await?
         .is_some()
     {

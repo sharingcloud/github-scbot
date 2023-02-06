@@ -4,6 +4,8 @@ use sqlx::{postgres::PgPoolOptions, Connection, PgConnection, PgPool};
 
 use crate::{errors::StdError, run_migrations};
 
+use crate::interface::DbServiceAll;
+
 async fn create_postgres_connection(base_url: &str) -> PgConnection {
     create_connection(&create_db_url(base_url, "postgres")).await
 }
@@ -92,22 +94,36 @@ fn create_db_url(base_url: &str, db_name: &str) -> String {
 }
 
 #[allow(unused)]
-pub async fn use_temporary_db<F, Fut>(mut config: Config, name: &str, block: F)
+pub async fn db_test_case<F, Fut>(test_name: &str, block: F)
 where
-    F: Fn(Config, PgPool) -> Fut,
+    F: Fn(Box<dyn DbServiceAll>) -> Fut,
     Fut: Future<Output = Result<(), StdError>>,
 {
-    let full_name = format!("test-bot-{name}");
+    use crate::{memory::MemoryDb, postgres::PostgresDb};
+
+    let mut config = Config::from_env();
+    let full_name = format!("test-bot-{test_name}");
     let base_url = get_base_url(&config.database_url);
     let new_url = create_db_url(&base_url, &full_name);
     config.database_url = new_url.clone();
 
-    teardown_test_db(&base_url, &full_name).await;
-    setup_test_db(&base_url, &full_name).await;
+    {
+        // In memory
+        let mem_db = Box::new(MemoryDb::new());
+        println!("running memory test {full_name} ...");
+        block(mem_db).await.unwrap();
+    }
 
-    let pool = create_db_pool_connection(&config, &base_url, &full_name).await;
+    {
+        // Postgres
+        teardown_test_db(&base_url, &full_name).await;
+        setup_test_db(&base_url, &full_name).await;
 
-    block(config, pool).await.unwrap();
+        let pool = create_db_pool_connection(&config, &base_url, &full_name).await;
+        let pg_db = Box::new(PostgresDb::new(pool));
+        println!("running postgres test {full_name} ...");
+        block(pg_db).await.unwrap();
 
-    teardown_test_db(&base_url, &full_name).await;
+        teardown_test_db(&base_url, &full_name).await;
+    }
 }

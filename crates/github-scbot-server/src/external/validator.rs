@@ -8,7 +8,7 @@ use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::crypto::{CryptoError, JwtUtils};
 use github_scbot_core::sentry::sentry;
-use github_scbot_database::{DatabaseError, ExternalAccount, ExternalAccountDB, ExternalJwtClaims};
+use github_scbot_database::{DatabaseError, DbServiceAll, ExternalAccount, ExternalJwtClaims};
 
 use crate::server::AppContext;
 use thiserror::Error;
@@ -56,12 +56,11 @@ async fn jwt_auth_validator_inner(
 ) -> Result<ServiceRequest, (ValidationError, ServiceRequest)> {
     let ctx = req.app_data::<web::Data<Arc<AppContext>>>().unwrap();
     let target_account =
-        match extract_account_from_auth(&mut *ctx.db_adapter.external_accounts(), &credentials)
-            .await
-        {
-            Ok(acc) => acc,
-            Err(e) => return Err((e, req)),
-        };
+        extract_account_from_auth(ctx.db_adapter.lock().await.as_mut(), &credentials).await;
+    let target_account = match target_account {
+        Ok(acc) => acc,
+        Err(e) => return Err((e, req)),
+    };
 
     // Validate token with ISS
     let tok = credentials.token();
@@ -75,20 +74,20 @@ async fn jwt_auth_validator_inner(
 
 /// Extract account from auth.
 pub async fn extract_account_from_auth(
-    exa_db: &mut dyn ExternalAccountDB,
+    db_service: &mut dyn DbServiceAll,
     credentials: &BearerAuth,
 ) -> Result<ExternalAccount, ValidationError> {
-    extract_account_from_token(exa_db, credentials.token()).await
+    extract_account_from_token(db_service, credentials.token()).await
 }
 
 pub async fn extract_account_from_token(
-    exa_db: &mut dyn ExternalAccountDB,
+    db_service: &mut dyn DbServiceAll,
     token: &str,
 ) -> Result<ExternalAccount, ValidationError> {
     let claims: ExternalJwtClaims =
         JwtUtils::decode_jwt(token).map_err(|e| ValidationError::token_error(token, e))?;
-    exa_db
-        .get(&claims.iss)
+    db_service
+        .external_accounts_get(&claims.iss)
         .await
         .map_err(|e| ValidationError::DatabaseError { source: e })?
         .ok_or(ValidationError::UnknownAccount)

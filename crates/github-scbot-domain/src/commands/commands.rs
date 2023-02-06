@@ -1,6 +1,6 @@
 use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::GhPullRequest;
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -17,7 +17,7 @@ pub use user::*;
 pub struct CommandContext<'a> {
     pub config: &'a Config,
     pub api_adapter: &'a dyn ApiService,
-    pub db_adapter: &'a dyn DbService,
+    pub db_adapter: &'a mut dyn DbServiceAll,
     pub redis_adapter: &'a dyn RedisService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
@@ -29,13 +29,13 @@ pub struct CommandContext<'a> {
 
 #[async_trait(?Send)]
 pub trait BotCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult>;
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult>;
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
-    use github_scbot_database::MockDbService;
+    use github_scbot_database::MemoryDb;
     use github_scbot_ghapi::adapter::MockApiService;
     use github_scbot_redis::MockRedisService;
 
@@ -44,7 +44,7 @@ pub(crate) mod tests {
     pub(crate) struct CommandContextTest {
         pub config: Config,
         pub api_adapter: MockApiService,
-        pub db_adapter: MockDbService,
+        pub db_adapter: MemoryDb,
         pub redis_adapter: MockRedisService,
         pub repo_owner: String,
         pub repo_name: String,
@@ -59,7 +59,7 @@ pub(crate) mod tests {
             Self {
                 config: Config::from_env(),
                 api_adapter: MockApiService::new(),
-                db_adapter: MockDbService::new(),
+                db_adapter: MemoryDb::new(),
                 redis_adapter: MockRedisService::new(),
                 repo_owner: "owner".into(),
                 repo_name: "name".into(),
@@ -70,11 +70,11 @@ pub(crate) mod tests {
             }
         }
 
-        pub fn as_context(&self) -> CommandContext {
+        pub fn as_context(&mut self) -> CommandContext {
             CommandContext {
                 config: &self.config,
                 api_adapter: &self.api_adapter,
-                db_adapter: &self.db_adapter,
+                db_adapter: &mut self.db_adapter,
                 redis_adapter: &self.redis_adapter,
                 repo_owner: &self.repo_owner,
                 repo_name: &self.repo_name,

@@ -6,7 +6,7 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Subcommand;
 use github_scbot_core::config::Config;
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -15,6 +15,7 @@ use self::{
     pull_request::PullRequestCommand, repository::RepositoryCommand, server::ServerCommand,
     ui::UiCommand,
 };
+
 mod auth;
 mod debug;
 mod export;
@@ -26,7 +27,7 @@ mod ui;
 
 pub(crate) struct CommandContext<W: Write> {
     pub config: Config,
-    pub db_adapter: Box<dyn DbService>,
+    pub db_adapter: Box<dyn DbServiceAll>,
     pub api_adapter: Box<dyn ApiService>,
     pub redis_adapter: Box<dyn RedisService>,
     pub writer: W,

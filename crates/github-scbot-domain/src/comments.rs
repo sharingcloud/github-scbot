@@ -2,7 +2,7 @@
 
 use github_scbot_core::config::Config;
 use github_scbot_core::types::issues::{GhIssueCommentAction, GhIssueCommentEvent};
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use tracing::info;
@@ -19,7 +19,7 @@ use crate::{
 pub async fn handle_issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhIssueCommentEvent,
 ) -> Result<()> {
@@ -30,8 +30,7 @@ pub async fn handle_issue_comment_event(
 
         let commands = CommandParser::parse_commands(config, &event.comment.body);
         match db_adapter
-            .pull_requests()
-            .get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
         {
             Some(_) => {
@@ -39,7 +38,7 @@ pub async fn handle_issue_comment_event(
                     .pulls_get(repo_owner, repo_name, pr_number)
                     .await?;
 
-                let ctx = CommandContext {
+                let mut ctx = CommandContext {
                     config,
                     api_adapter,
                     db_adapter,
@@ -52,7 +51,7 @@ pub async fn handle_issue_comment_event(
                     comment_author: &event.comment.user.login,
                 };
 
-                CommandExecutor::execute_commands(&ctx, commands).await?;
+                CommandExecutor::execute_commands(&mut ctx, commands).await?;
             }
             None => {
                 // Parse admin enable

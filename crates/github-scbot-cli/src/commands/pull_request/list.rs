@@ -19,7 +19,7 @@ impl Command for PullRequestListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let prs = ctx.db_adapter.pull_requests().list(owner, name).await?;
+        let prs = ctx.db_adapter.pull_requests_list(owner, name).await?;
 
         if prs.is_empty() {
             writeln!(
@@ -32,69 +32,6 @@ impl Command for PullRequestListCommand {
                 writeln!(ctx.writer, "- #{}", pr.number())?;
             }
         }
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures_util::FutureExt;
-    use github_scbot_database::{MockPullRequestDB, PullRequest};
-    use mockall::predicate;
-
-    use crate::testutils::{test_command, CommandContextTest};
-    use crate::Result;
-
-    #[actix_rt::test]
-    async fn test_no_values() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-        ctx.db_adapter.expect_pull_requests().returning(|| {
-            let mut mock = MockPullRequestDB::new();
-            mock.expect_list()
-                .with(predicate::eq("owner"), predicate::eq("name"))
-                .returning(|_, _| async { Ok(vec![]) }.boxed());
-
-            Box::new(mock)
-        });
-
-        let output = test_command(ctx, &["pull-requests", "list", "owner/name"]).await?;
-        assert_eq!(
-            output,
-            "No pull request found for repository 'owner/name'.\n"
-        );
-
-        Ok(())
-    }
-
-    #[actix_rt::test]
-    async fn test_values() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-        ctx.db_adapter.expect_pull_requests().returning(|| {
-            let mut mock = MockPullRequestDB::new();
-            mock.expect_list()
-                .with(predicate::eq("owner"), predicate::eq("name"))
-                .returning(|_, _| {
-                    async {
-                        Ok(vec![
-                            PullRequest::builder().number(1u64).build().unwrap(),
-                            PullRequest::builder().number(2u64).build().unwrap(),
-                        ])
-                    }
-                    .boxed()
-                });
-
-            Box::new(mock)
-        });
-
-        let output = test_command(ctx, &["pull-requests", "list", "owner/name"]).await?;
-        assert_eq!(
-            output,
-            indoc::indoc! {r#"
-                - #1
-                - #2
-            "#}
-        );
 
         Ok(())
     }

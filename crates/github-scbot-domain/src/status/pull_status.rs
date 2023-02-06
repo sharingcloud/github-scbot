@@ -5,7 +5,7 @@ use github_scbot_core::types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
-use github_scbot_database::{DbService, PullRequest, Repository, RequiredReviewer};
+use github_scbot_database::{DbServiceAll, PullRequest, Repository, RequiredReviewer};
 use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use regex::Regex;
 
@@ -58,20 +58,18 @@ impl PullRequestStatus {
     )]
     pub async fn from_database(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
         let repo_model = db_adapter
-            .repositories()
-            .get(repo_owner, repo_name)
+            .repositories_get(repo_owner, repo_name)
             .await?
             .unwrap();
         let pr_model = db_adapter
-            .pull_requests()
-            .get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .unwrap();
 
@@ -79,8 +77,7 @@ impl PullRequestStatus {
             ReviewApi::list_reviews_for_pull_request(api_adapter, repo_owner, repo_name, pr_number)
                 .await?;
         let required_reviewers = db_adapter
-            .required_reviewers()
-            .list(repo_owner, repo_name, pr_number)
+            .required_reviewers_list(repo_owner, repo_name, pr_number)
             .await?;
         let checks_status = if pr_model.checks_enabled() {
             PullRequestLogic::get_checks_status_from_github(
@@ -201,7 +198,7 @@ impl PullRequestStatus {
 
     /// Get merge strategy for base and head branches.
     pub async fn get_strategy_from_branches(
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         owner: &str,
         name: &str,
         base_branch: &str,
@@ -209,8 +206,7 @@ impl PullRequestStatus {
         default_strategy: GhMergeStrategy,
     ) -> Result<GhMergeStrategy> {
         match db_adapter
-            .merge_rules()
-            .get(owner, name, base_branch.into(), head_branch.into())
+            .merge_rules_get(owner, name, base_branch.into(), head_branch.into())
             .await?
         {
             Some(r) => Ok(r.strategy()),

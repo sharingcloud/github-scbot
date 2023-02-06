@@ -22,10 +22,13 @@ impl AdminSetDefaultReviewersCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultReviewersCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         ctx.db_adapter
-            .repositories()
-            .set_default_needed_reviewers_count(ctx.repo_owner, ctx.repo_name, self.count)
+            .repositories_set_default_needed_reviewers_count(
+                ctx.repo_owner,
+                ctx.repo_name,
+                self.count,
+            )
             .await?;
 
         let comment = format!(
@@ -37,49 +40,5 @@ impl BotCommand for AdminSetDefaultReviewersCommand {
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(comment))
             .build())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures_util::FutureExt;
-    use github_scbot_database::{MockRepositoryDB, Repository};
-    use mockall::predicate;
-
-    use crate::commands::CommandContextTest;
-
-    use super::*;
-
-    #[actix_rt::test]
-    async fn test_command() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
-        ctx.db_adapter.expect_repositories().returning(|| {
-            let mut mock = MockRepositoryDB::new();
-            mock.expect_set_default_needed_reviewers_count()
-                .with(
-                    predicate::eq("owner"),
-                    predicate::eq("name"),
-                    predicate::eq(0),
-                )
-                .returning(|_, _, _| async { Ok(Repository::builder().build().unwrap()) }.boxed());
-
-            Box::new(mock)
-        });
-
-        let result = AdminSetDefaultReviewersCommand::new(0)
-            .handle(&ctx.as_context())
-            .await?;
-        assert!(!result.should_update_status);
-        assert_eq!(
-            result.result_actions,
-            vec![
-                ResultAction::AddReaction(GhReactionType::Eyes),
-                ResultAction::PostComment(
-                    "Needed reviewers count set to **0** for this repository.".into()
-                )
-            ]
-        );
-
-        Ok(())
     }
 }

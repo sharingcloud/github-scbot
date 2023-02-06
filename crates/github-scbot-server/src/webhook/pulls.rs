@@ -6,7 +6,7 @@ use github_scbot_core::types::{
     events::EventType,
     pulls::{GhPullRequestAction, GhPullRequestEvent},
 };
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_domain::pulls::{handle_pull_request_event, handle_pull_request_opened};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
@@ -21,7 +21,7 @@ pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent>
 pub(crate) async fn pull_request_event(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {

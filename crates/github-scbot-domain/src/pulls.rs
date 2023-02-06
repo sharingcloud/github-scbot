@@ -9,7 +9,7 @@ use github_scbot_core::types::{
     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
     status::CheckStatus,
 };
-use github_scbot_database::{DbService, PullRequest, Repository};
+use github_scbot_database::{DbServiceAll, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::RedisService;
 
@@ -44,7 +44,7 @@ pub enum PullRequestOpenedStatus {
 pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
@@ -58,8 +58,7 @@ pub async fn handle_pull_request_opened(
             .await?;
 
     match db_adapter
-        .pull_requests()
-        .get(repo_owner, repo_name, pr_number)
+        .pull_requests_get(repo_owner, repo_name, pr_number)
         .await?
     {
         Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
@@ -70,7 +69,7 @@ pub async fn handle_pull_request_opened(
                     .number(event.pull_request.number)
                     .build()
                     .unwrap();
-                let pr_model = db_adapter.pull_requests().create(pr).await?;
+                let pr_model = db_adapter.pull_requests_create(pr).await?;
 
                 // Get upstream pull request
                 let upstream_pr = api_adapter
@@ -105,7 +104,7 @@ pub async fn handle_pull_request_opened(
                     &event.pull_request.body.unwrap_or_default(),
                 );
 
-                let ctx = CommandContext {
+                let mut ctx = CommandContext {
                     config,
                     api_adapter,
                     db_adapter,
@@ -118,7 +117,7 @@ pub async fn handle_pull_request_opened(
                     comment_author: &event.pull_request.user.login,
                 };
 
-                CommandExecutor::execute_commands(&ctx, commands).await?;
+                CommandExecutor::execute_commands(&mut ctx, commands).await?;
 
                 Ok(PullRequestOpenedStatus::Created)
             } else {
@@ -140,7 +139,7 @@ pub async fn handle_pull_request_opened(
 )]
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
+    db_adapter: &mut dyn DbServiceAll,
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<()> {
@@ -148,8 +147,7 @@ pub async fn handle_pull_request_event(
     let repo_name = &event.repository.name;
 
     let pr_model = match db_adapter
-        .pull_requests()
-        .get(repo_owner, repo_name, event.pull_request.number)
+        .pull_requests_get(repo_owner, repo_name, event.pull_request.number)
         .await?
     {
         Some(pr) => pr,
@@ -267,17 +265,16 @@ impl PullRequestLogic {
     /// Get or create repository.
     pub async fn get_or_create_repository(
         config: &Config,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
     ) -> Result<Repository> {
         Ok(
-            match db_adapter.repositories().get(repo_owner, repo_name).await? {
+            match db_adapter.repositories_get(repo_owner, repo_name).await? {
                 Some(r) => r,
                 None => {
                     db_adapter
-                        .repositories()
-                        .create(
+                        .repositories_create(
                             Repository::builder()
                                 .owner(repo_owner)
                                 .name(repo_name)
@@ -359,7 +356,7 @@ impl PullRequestLogic {
     #[tracing::instrument(skip(config, db_adapter))]
     pub async fn synchronize_pull_request(
         config: &Config,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,
@@ -369,14 +366,12 @@ impl PullRequestLogic {
                 .await?;
 
         if db_adapter
-            .pull_requests()
-            .get(repository_owner, repository_name, pr_number)
+            .pull_requests_get(repository_owner, repository_name, pr_number)
             .await?
             .is_none()
         {
             db_adapter
-                .pull_requests()
-                .create(
+                .pull_requests_create(
                     PullRequest::builder()
                         .with_repository(&repo)
                         .number(pr_number)
@@ -406,20 +401,18 @@ impl PullRequestLogic {
     )]
     pub async fn try_automerge_pull_request(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<bool> {
         let repository = db_adapter
-            .repositories()
-            .get(repo_owner, repo_name)
+            .repositories_get(repo_owner, repo_name)
             .await?
             .unwrap();
         let pull_request = db_adapter
-            .pull_requests()
-            .get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .unwrap();
 

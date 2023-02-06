@@ -23,7 +23,7 @@ impl GifCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for GifCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         Ok(CommandExecutionResult::builder()
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(
@@ -70,7 +70,7 @@ mod tests {
             });
 
         let result = GifCommand::new("what".into())
-            .handle(&ctx.as_context())
+            .handle(&mut ctx.as_context())
             .await?;
         assert!(!result.should_update_status);
         assert_eq!(
@@ -96,7 +96,7 @@ mod tests {
             .returning(|_, _| Ok(GifResponse { results: vec![] }));
 
         let result = GifCommand::new("what".into())
-            .handle(&ctx.as_context())
+            .handle(&mut ctx.as_context())
             .await?;
         assert!(!result.should_update_status);
         assert_eq!(

@@ -1,4 +1,4 @@
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::{LockStatus, RedisService};
 use tracing::{error, warn};
@@ -22,7 +22,7 @@ impl SummaryCommentSender {
     )]
     pub async fn create_or_update(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
@@ -92,7 +92,7 @@ impl SummaryCommentSender {
 
     async fn create(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -112,7 +112,7 @@ impl SummaryCommentSender {
 
     async fn update(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -156,7 +156,7 @@ impl SummaryCommentSender {
     /// Delete comment.
     pub async fn delete(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -175,14 +175,13 @@ impl SummaryCommentSender {
     }
 
     async fn get_status_comment_id(
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
     ) -> Result<u64> {
         Ok(db_adapter
-            .pull_requests()
-            .get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .map(|pr| pr.status_comment_id())
             .unwrap_or(0))
@@ -194,7 +193,7 @@ impl SummaryCommentSender {
 
     async fn post_github_comment(
         api_adapter: &dyn ApiService,
-        db_adapter: &dyn DbService,
+        db_adapter: &mut dyn DbServiceAll,
         repo_owner: &str,
         repo_name: &str,
         issue_number: u64,
@@ -205,8 +204,7 @@ impl SummaryCommentSender {
                 .await?;
 
         db_adapter
-            .pull_requests()
-            .set_status_comment_id(repo_owner, repo_name, issue_number, comment_id)
+            .pull_requests_set_status_comment_id(repo_owner, repo_name, issue_number, comment_id)
             .await?;
 
         Ok(comment_id)

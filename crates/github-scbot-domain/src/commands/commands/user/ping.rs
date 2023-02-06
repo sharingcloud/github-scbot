@@ -20,7 +20,7 @@ impl PingCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for PingCommand {
-    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let comment = format!("**{}** pong!", ctx.comment_author);
         Ok(CommandExecutionResult::builder()
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
@@ -37,10 +37,10 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_command() -> Result<()> {
-        let ctx = CommandContextTest::new();
+        let mut ctx = CommandContextTest::new();
         let cmd = PingCommand::new();
 
-        let result = cmd.handle(&ctx.as_context()).await?;
+        let result = cmd.handle(&mut ctx.as_context()).await?;
         assert!(!result.should_update_status);
         assert_eq!(
             result.result_actions,

@@ -1,17 +1,18 @@
-use async_trait::async_trait;
 use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
+use sqlx::{postgres::PgRow, FromRow, Row};
 
-use crate::{DatabaseError, Repository, Result};
+use crate::Repository;
 
-#[derive(SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize)]
+#[derive(
+    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
+)]
 #[builder(default, setter(into))]
 pub struct ExternalAccountRight {
     #[get_deref]
-    username: String,
+    pub(crate) username: String,
     #[get]
-    repository_id: u64,
+    pub(crate) repository_id: u64,
 }
 
 impl ExternalAccountRight {
@@ -40,302 +41,311 @@ impl<'r> FromRow<'r, PgRow> for ExternalAccountRight {
     }
 }
 
-#[async_trait]
-#[mockall::automock]
-pub trait ExternalAccountRightDB {
-    async fn create(&mut self, instance: ExternalAccountRight) -> Result<ExternalAccountRight>;
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        username: &str,
-    ) -> Result<Option<ExternalAccountRight>>;
-    async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool>;
-    async fn delete_all(&mut self, username: &str) -> Result<bool>;
-    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>>;
-    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>>;
-}
-
-pub struct ExternalAccountRightDBImpl<'a> {
-    connection: &'a mut PgConnection,
-}
-
-impl<'a> ExternalAccountRightDBImpl<'a> {
-    pub fn new(connection: &'a mut PgConnection) -> Self {
-        Self { connection }
-    }
-
-    async fn get_from_id(
-        &mut self,
-        username: &str,
-        repository_id: u64,
-    ) -> Result<Option<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
-            r#"
-            SELECT *
-            FROM external_account_right
-            WHERE username = $1
-            AND repository_id = $2
-        "#,
-        )
-        .bind(username)
-        .bind(repository_id as i32)
-        .fetch_optional(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-}
-
-pub struct ExternalAccountRightDBImplPool {
-    pool: PgPool,
-}
-
-impl ExternalAccountRightDBImplPool {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-
-    pub async fn begin<'a>(&mut self) -> Result<Transaction<'a, Postgres>> {
-        self.pool
-            .begin()
-            .await
-            .map_err(|e| DatabaseError::ConnectionError { source: e })
-    }
-
-    pub async fn commit<'a>(&mut self, transaction: Transaction<'a, Postgres>) -> Result<()> {
-        transaction
-            .commit()
-            .await
-            .map_err(|e| DatabaseError::TransactionError { source: e })
-    }
-}
-
-#[async_trait]
-impl ExternalAccountRightDB for ExternalAccountRightDBImplPool {
-    async fn create(&mut self, instance: ExternalAccountRight) -> Result<ExternalAccountRight> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .create(instance)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        username: &str,
-    ) -> Result<Option<ExternalAccountRight>> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .get(owner, name, username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .delete(owner, name, username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn delete_all(&mut self, username: &str) -> Result<bool> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .delete_all(username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .list(username)
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-
-    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>> {
-        let mut transaction = self.begin().await?;
-        let data = ExternalAccountRightDBImpl::new(&mut *transaction)
-            .all()
-            .await?;
-        self.commit(transaction).await?;
-        Ok(data)
-    }
-}
-
-#[async_trait]
-impl<'a> ExternalAccountRightDB for ExternalAccountRightDBImpl<'a> {
-    #[tracing::instrument(skip(self))]
-    async fn create(&mut self, instance: ExternalAccountRight) -> Result<ExternalAccountRight> {
-        sqlx::query(
-            r#"
-            INSERT INTO external_account_right
-            (
-                username,
-                repository_id
-            ) VALUES (
-                $1,
-                $2
-            )
-            RETURNING repository_id;
-            "#,
-        )
-        .bind(&instance.username)
-        .bind(instance.repository_id as i32)
-        .execute(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?;
-
-        self.get_from_id(&instance.username, instance.repository_id)
-            .await
-            .map(|x| x.unwrap())
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn get(
-        &mut self,
-        owner: &str,
-        name: &str,
-        username: &str,
-    ) -> Result<Option<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
-            r#"
-                SELECT external_account_right.*
-                FROM external_account_right
-                INNER JOIN repository ON (repository.id = repository_id)
-                WHERE repository.owner = $1
-                AND repository.name = $2
-                AND username = $3
-            "#,
-        )
-        .bind(owner)
-        .bind(name)
-        .bind(username)
-        .fetch_optional(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete(&mut self, owner: &str, name: &str, username: &str) -> Result<bool> {
-        sqlx::query(
-            r#"
-            DELETE FROM external_account_right
-            USING repository
-            WHERE repository.id = repository_id
-            AND repository.owner = $1
-            AND repository.name = $2
-            AND username = $3
-        "#,
-        )
-        .bind(owner)
-        .bind(name)
-        .bind(username)
-        .execute(&mut *self.connection)
-        .await
-        .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn delete_all(&mut self, username: &str) -> Result<bool> {
-        sqlx::query(
-            r#"
-            DELETE FROM external_account_right
-            WHERE username = $1
-        "#,
-        )
-        .bind(username)
-        .execute(&mut *self.connection)
-        .await
-        .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn list(&mut self, username: &str) -> Result<Vec<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
-            r#"
-            SELECT *
-            FROM external_account_right
-            WHERE username = $1
-        "#,
-        )
-        .bind(username)
-        .fetch_all(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn all(&mut self) -> Result<Vec<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
-            r#"
-            SELECT *
-            FROM external_account_right
-        "#,
-        )
-        .fetch_all(&mut *self.connection)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use github_scbot_core::config::Config;
-
-    use crate::{
-        utils::use_temporary_db, ExternalAccount, ExternalAccountDB, ExternalAccountDBImpl,
-        Repository, RepositoryDB, RepositoryDBImpl,
-    };
-
-    use super::{ExternalAccountRight, ExternalAccountRightDB, ExternalAccountRightDBImpl};
+mod new_tests {
+    use crate::{utils::db_test_case, ExternalAccount, ExternalAccountRight, Repository};
 
     #[actix_rt::test]
-    async fn test_db() {
-        use_temporary_db(
-            Config::from_env(),
-            "external-account-right-test-db",
-            |_config, conn| async move {
-                let mut conn = conn.acquire().await?;
+    async fn create() {
+        db_test_case("external_account_right_create", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+            let exa = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+            let exr = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo.id())
+                        .username(exa.username())
+                        .build()?,
+                )
+                .await?;
 
-                let repo = {
-                    let mut db = RepositoryDBImpl::new(&mut conn);
-                    db.create(Repository::builder().build()?).await?
-                };
+            assert_eq!(exr.username(), exa.username());
+            assert_eq!(exr.repository_id(), repo.id());
 
-                let account = {
-                    let mut db = ExternalAccountDBImpl::new(&mut conn);
-                    db.create(ExternalAccount::builder().username("me").build()?)
-                        .await?
-                };
+            Ok(())
+        })
+        .await;
+    }
 
-                let mut db = ExternalAccountRightDBImpl::new(&mut conn);
-                let _right = db
-                    .create(
-                        ExternalAccountRight::builder()
-                            .username(account.username())
-                            .repository_id(repo.id())
-                            .build()?,
-                    )
+    #[actix_rt::test]
+    async fn get() {
+        db_test_case("external_account_right_get", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+            let exa = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+
+            assert_eq!(
+                db.external_account_rights_get("me", "repo", "me").await?,
+                None
+            );
+
+            let exr = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo.id())
+                        .username(exa.username())
+                        .build()?,
+                )
+                .await?;
+
+            let get_exr = db.external_account_rights_get("me", "repo", "me").await?;
+            assert_eq!(Some(exr), get_exr);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn delete() {
+        db_test_case("external_account_right_delete", |mut db| async move {
+            let repo = db
+                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .await?;
+            let exa = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+
+            assert_eq!(
+                db.external_account_rights_delete("me", "repo", "me")
+                    .await?,
+                false
+            );
+
+            db.external_account_rights_create(
+                ExternalAccountRight::builder()
+                    .repository_id(repo.id())
+                    .username(exa.username())
+                    .build()?,
+            )
+            .await?;
+
+            assert_eq!(
+                db.external_account_rights_delete("me", "repo", "me")
+                    .await?,
+                true
+            );
+            assert_eq!(
+                db.external_account_rights_get("me", "repo", "me").await?,
+                None
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn delete_all() {
+        db_test_case("external_account_right_delete_all", |mut db| async move {
+            let repo1 = db
+                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .await?;
+            let repo2 = db
+                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .await?;
+            let exa1 = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+            let exa2 = db
+                .external_accounts_create(ExternalAccount::builder().username("me2").build()?)
+                .await?;
+
+            assert_eq!(db.external_account_rights_delete_all("me").await?, false);
+
+            db.external_account_rights_create(
+                ExternalAccountRight::builder()
+                    .repository_id(repo1.id())
+                    .username(exa1.username())
+                    .build()?,
+            )
+            .await?;
+            db.external_account_rights_create(
+                ExternalAccountRight::builder()
+                    .repository_id(repo2.id())
+                    .username(exa1.username())
+                    .build()?,
+            )
+            .await?;
+            let exr3 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo2.id())
+                        .username(exa2.username())
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(db.external_account_rights_delete_all("me").await?, true);
+            assert_eq!(db.external_account_rights_list("me").await?, vec![]);
+            assert_eq!(db.external_account_rights_list("me2").await?, vec![exr3]);
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn list() {
+        db_test_case("external_account_right_list", |mut db| async move {
+            let repo1 = db
+                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .await?;
+            let repo2 = db
+                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .await?;
+            let exa1 = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+
+            let exr1 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo1.id())
+                        .username(exa1.username())
+                        .build()?,
+                )
+                .await?;
+            let exr2 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo2.id())
+                        .username(exa1.username())
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(
+                db.external_account_rights_list("me").await?,
+                vec![exr1, exr2]
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn all() {
+        db_test_case("external_account_right_all", |mut db| async move {
+            let repo1 = db
+                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .await?;
+            let repo2 = db
+                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .await?;
+            let exa1 = db
+                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .await?;
+            let exa2 = db
+                .external_accounts_create(ExternalAccount::builder().username("her").build()?)
+                .await?;
+
+            let exr1 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo1.id())
+                        .username(exa1.username())
+                        .build()?,
+                )
+                .await?;
+            let exr2 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo2.id())
+                        .username(exa1.username())
+                        .build()?,
+                )
+                .await?;
+            let exr3 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo1.id())
+                        .username(exa2.username())
+                        .build()?,
+                )
+                .await?;
+            let exr4 = db
+                .external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo2.id())
+                        .username(exa2.username())
+                        .build()?,
+                )
+                .await?;
+
+            assert_eq!(
+                db.external_account_rights_all().await?,
+                vec![exr3, exr4, exr1, exr2]
+            );
+
+            Ok(())
+        })
+        .await;
+    }
+
+    #[actix_rt::test]
+    async fn cascade_external_account() {
+        db_test_case(
+            "external_account_right_cascade_external_account",
+            |mut db| async move {
+                let repo = db
+                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
                     .await?;
+                let exa = db
+                    .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                    .await?;
+                db.external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo.id())
+                        .username(exa.username())
+                        .build()?,
+                )
+                .await?;
 
-                assert!(db.get("", "", "me").await?.is_some());
-                assert!(db.delete("", "", "me").await?);
+                // On account deletion, rights should be dropped
+                db.external_accounts_delete("me").await?;
+                assert_eq!(db.external_account_rights_all().await?, vec![]);
 
                 Ok(())
             },
         )
-        .await;
+        .await
+    }
+
+    #[actix_rt::test]
+    async fn cascade_repository() {
+        db_test_case(
+            "external_account_right_cascade_repository",
+            |mut db| async move {
+                let repo = db
+                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                    .await?;
+                let exa = db
+                    .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                    .await?;
+                db.external_account_rights_create(
+                    ExternalAccountRight::builder()
+                        .repository_id(repo.id())
+                        .username(exa.username())
+                        .build()?,
+                )
+                .await?;
+
+                // On repository deletion, rights should be dropped
+                db.repositories_delete("me", "repo").await?;
+                assert_eq!(db.external_account_rights_list("me").await?, vec![]);
+
+                Ok(())
+            },
+        )
+        .await
     }
 }

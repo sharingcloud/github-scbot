@@ -3,7 +3,6 @@
 #![warn(clippy::all)]
 #![allow(clippy::new_without_default)]
 
-pub mod auth;
 pub mod checks;
 pub mod commands;
 pub mod comments;
@@ -18,5 +17,7 @@ pub mod use_cases;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod testutils;
 
 pub use errors::{DomainError, Result};

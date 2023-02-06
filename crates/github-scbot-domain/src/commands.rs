@@ -6,14 +6,13 @@ pub mod commands;
 mod parser;
 
 use github_scbot_core::types::{common::GhUserPermission, issues::GhReactionType};
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::comments::CommentApi;
 pub use parser::CommandParser;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
 use super::{errors::Result, status::StatusLogic};
 use crate::{
-    auth::AuthLogic,
     commands::{
         command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
         commands::{
@@ -27,6 +26,7 @@ use crate::{
             SetRequiredReviewersCommand,
         },
     },
+    use_cases::auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
 };
 
 #[cfg(test)]
@@ -50,7 +50,7 @@ impl CommandExecutor {
         ret
     )]
     pub async fn execute_commands<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         commands: Vec<CommandResult<Command>>,
     ) -> Result<CommandExecutionResult> {
         let mut status = vec![];
@@ -82,7 +82,7 @@ impl CommandExecutor {
 
     /// Process command result.
     pub async fn process_command_result<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
@@ -197,7 +197,7 @@ impl CommandExecutor {
         ret
     )]
     pub async fn execute_command<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
@@ -237,7 +237,7 @@ impl CommandExecutor {
     }
 
     async fn _execute_user_command<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         cmd: &UserCommand,
     ) -> Result<CommandExecutionResult> {
         match cmd {
@@ -287,7 +287,7 @@ impl CommandExecutor {
     }
 
     async fn _execute_admin_command<'a>(
-        ctx: &CommandContext<'a>,
+        ctx: &mut CommandContext<'a>,
         cmd: &AdminCommand,
     ) -> Result<CommandExecutionResult> {
         match cmd {
@@ -334,23 +334,32 @@ impl CommandExecutor {
 
     /// Validate user rights on command.
     pub async fn validate_user_rights_on_command(
-        db_adapter: &dyn DbService,
+        db_service: &mut dyn DbServiceAll,
         username: &str,
         user_permission: GhUserPermission,
         command: &Command,
     ) -> Result<bool> {
-        let known_admins = AuthLogic::list_known_admin_usernames(db_adapter).await?;
-
         match command {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
-                _ => Ok(AuthLogic::has_write_right(
-                    username,
-                    user_permission,
-                    &known_admins,
-                )),
+                _ => {
+                    CheckWriteRightUseCase {
+                        username,
+                        user_permission,
+                        db_service,
+                    }
+                    .run()
+                    .await
+                }
             },
-            Command::Admin(_) => Ok(AuthLogic::is_admin(username, &known_admins)),
+            Command::Admin(_) => {
+                CheckIsAdminUseCase {
+                    username,
+                    db_service,
+                }
+                .run()
+                .await
+            }
         }
     }
 }

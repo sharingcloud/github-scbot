@@ -2,7 +2,7 @@
 
 use crossterm::event::KeyCode;
 use github_scbot_core::types::status::QaStatus;
-use github_scbot_database::DbService;
+use github_scbot_database::DbServiceAll;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -31,9 +31,9 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbService) -> Result<()> {
-        let repositories = db_adapter.repositories().all().await?;
-        let mut pull_requests = db_adapter.pull_requests().all().await?;
+    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbServiceAll) -> Result<()> {
+        let repositories = db_adapter.repositories_all().await?;
+        let mut pull_requests = db_adapter.pull_requests_all().await?;
         pull_requests.sort_by_key(|p| u64::MAX - p.number());
 
         let mut pr_kvs = Vec::new();
@@ -68,7 +68,7 @@ impl<'a> App<'a> {
                 .data
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(i.0.path())];
+                    let lines = vec![Spans::from(i.0.path().full_name())];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -119,7 +119,7 @@ impl<'a> App<'a> {
         if let Some(selected_repo) = self.data.get_current_repository() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    selected_repo.path(),
+                    selected_repo.path().full_name(),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),
