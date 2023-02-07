@@ -75,13 +75,10 @@ impl FilteredReviewers {
             Some(_s) => Ok(()),
             None => {
                 ctx.db_adapter
-                    .required_reviewers_create(
-                        RequiredReviewer::builder()
-                            .with_pull_request(pr_model)
-                            .username(reviewer_username)
-                            .build()
-                            .unwrap(),
-                    )
+                    .required_reviewers_create(RequiredReviewer {
+                        pull_request_id: pr_model.id,
+                        username: reviewer_username.into(),
+                    })
                     .await?;
                 Ok(())
             }

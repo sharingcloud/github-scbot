@@ -11,8 +11,6 @@ impl<'a> CheckIsAdminUseCase<'a> {
     pub async fn run(&mut self) -> Result<bool> {
         let known_admins: Vec<_> = self.db_service.accounts_list_admins().await?;
 
-        Ok(known_admins
-            .iter()
-            .any(|acc| acc.username() == self.username))
+        Ok(known_admins.iter().any(|acc| acc.username == self.username))
     }
 }

@@ -19,15 +19,16 @@ pub(crate) struct RepositoryAddCommand {
 impl Command for RepositoryAddCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-
-        let repo = Repository::builder()
-            .owner(owner)
-            .name(name)
-            .with_config(&ctx.config)
-            .build()
-            .unwrap();
-
-        ctx.db_adapter.repositories_create(repo).await?;
+        ctx.db_adapter
+            .repositories_create(
+                Repository {
+                    owner: owner.to_owned(),
+                    name: name.to_owned(),
+                    ..Default::default()
+                }
+                .with_config(&ctx.config),
+            )
+            .await?;
 
         writeln!(ctx.writer, "Repository {} created.", self.repository_path)?;
         Ok(())

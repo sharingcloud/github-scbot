@@ -29,7 +29,7 @@ impl Command for PullRequestListCommand {
             )?;
         } else {
             for pr in prs {
-                writeln!(ctx.writer, "- #{}", pr.number())?;
+                writeln!(ctx.writer, "- #{}", pr.number)?;
             }
         }
 

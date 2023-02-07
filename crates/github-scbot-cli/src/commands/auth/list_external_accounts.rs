@@ -21,7 +21,7 @@ impl AuthListExternalAccountsCommand {
         } else {
             writeln!(ctx.writer, "External accounts:")?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username())?;
+                writeln!(ctx.writer, "- {}", account.username)?;
             }
         }
 

@@ -48,7 +48,7 @@ pub async fn handle_check_suite_event(
             }
 
             // Skip if checks are skipped
-            if !pr_model.checks_enabled() {
+            if !pr_model.checks_enabled {
                 return Ok(());
             }
 

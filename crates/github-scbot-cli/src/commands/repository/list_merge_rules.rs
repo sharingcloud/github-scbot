@@ -24,7 +24,7 @@ impl Command for RepositoryListMergeRulesCommand {
 
         let repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;
 
-        let default_strategy = repo.default_strategy();
+        let default_strategy = repo.default_strategy;
         let rules = ctx.db_adapter.merge_rules_list(owner, name).await?;
 
         writeln!(
@@ -37,9 +37,7 @@ impl Command for RepositoryListMergeRulesCommand {
             writeln!(
                 ctx.writer,
                 "- '{}' (base) <- '{}' (head): '{}'",
-                rule.base_branch(),
-                rule.head_branch(),
-                rule.strategy()
+                rule.base_branch, rule.head_branch, rule.strategy
             )?;
         }
 

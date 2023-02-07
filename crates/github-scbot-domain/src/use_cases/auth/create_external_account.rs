@@ -11,11 +11,11 @@ impl<'a> CreateExternalAccountUseCase<'a> {
     pub async fn run(&mut self) -> Result<()> {
         self.db_service
             .external_accounts_create(
-                ExternalAccount::builder()
-                    .username(self.username.clone())
-                    .generate_keys()
-                    .build()
-                    .unwrap(),
+                ExternalAccount {
+                    username: self.username.clone(),
+                    ..Default::default()
+                }
+                .with_generated_keys(),
             )
             .await?;
 

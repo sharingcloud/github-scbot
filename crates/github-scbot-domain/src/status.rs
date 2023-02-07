@@ -133,7 +133,7 @@ impl StatusLogic {
         // Merge if auto-merge is enabled
         if matches!(step_label, StepLabel::AwaitingMerge)
             && upstream_pr.merged != Some(true)
-            && pr_model.automerge()
+            && pr_model.automerge
         {
             // Use lock
             let key = format!("pr-merge_{}-{}_{}", repo_owner, repo_name, pr_number);

@@ -183,7 +183,7 @@ impl SummaryCommentSender {
         Ok(db_adapter
             .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
-            .map(|pr| pr.status_comment_id())
+            .map(|pr| pr.status_comment_id)
             .unwrap_or(0))
     }
 

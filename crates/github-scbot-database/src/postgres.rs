@@ -18,6 +18,49 @@ impl PostgresDb {
         Self { pool }
     }
 
+    fn wrap_row_not_found(e: sqlx::Error, target: DatabaseError) -> DatabaseError {
+        if let sqlx::Error::RowNotFound = e {
+            target
+        } else {
+            DatabaseError::SqlError { source: e }
+        }
+    }
+
+    fn wrap_unknown_account(e: sqlx::Error, username: &str) -> DatabaseError {
+        Self::wrap_row_not_found(e, DatabaseError::UnknownAccount(username.into()))
+    }
+
+    fn wrap_unknown_repository(e: sqlx::Error, owner: &str, name: &str) -> DatabaseError {
+        Self::wrap_row_not_found(
+            e,
+            DatabaseError::UnknownRepository(format!("{owner}/{name}")),
+        )
+    }
+
+    fn wrap_unknown_external_account(e: sqlx::Error, username: &str) -> DatabaseError {
+        Self::wrap_row_not_found(e, DatabaseError::UnknownExternalAccount(username.into()))
+    }
+
+    fn wrap_unknown_merge_rule(
+        e: sqlx::Error,
+        base_branch: RuleBranch,
+        head_branch: RuleBranch,
+    ) -> DatabaseError {
+        Self::wrap_row_not_found(e, DatabaseError::UnknownMergeRule(base_branch, head_branch))
+    }
+
+    fn wrap_unknown_pull_request(
+        e: sqlx::Error,
+        owner: &str,
+        name: &str,
+        number: u64,
+    ) -> DatabaseError {
+        Self::wrap_row_not_found(
+            e,
+            DatabaseError::UnknownPullRequest(format!("{owner}/{name}"), number),
+        )
+    }
+
     async fn external_accounts_get_from_id(
         &mut self,
         username: &str,
@@ -47,20 +90,6 @@ impl PostgresDb {
         "#,
         )
         .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
-    }
-
-    async fn pull_requests_get_from_id(&mut self, id: u64) -> Result<Option<PullRequest>> {
-        sqlx::query_as::<_, PullRequest>(
-            r#"
-            SELECT *
-            FROM pull_request
-            WHERE id = $1
-        "#,
-        )
-        .bind(id as i32)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| DatabaseError::SqlError { source: e })
@@ -114,7 +143,7 @@ impl DbServiceAll for PostgresDb {
         .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
-        self.accounts_get(&username).await.map(|x| x.unwrap())
+        self.accounts_get_expect(&username).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -128,13 +157,13 @@ impl DbServiceAll for PostgresDb {
         "#,
         )
         .bind(instance.is_admin)
-        .bind(instance.username)
+        .bind(instance.username.clone())
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_account(e, &instance.username))?
         .get(0);
 
-        self.accounts_get(&username).await.map(|x| x.unwrap())
+        self.accounts_get_expect(&username).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -211,10 +240,10 @@ impl DbServiceAll for PostgresDb {
         .bind(username)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_account(e, username))?
         .get(0);
 
-        self.accounts_get(&username).await.map(|x| x.unwrap())
+        self.accounts_get_expect(&username).await
     }
 
     //////////////////////////
@@ -225,6 +254,11 @@ impl DbServiceAll for PostgresDb {
         &mut self,
         instance: ExternalAccountRight,
     ) -> Result<ExternalAccountRight> {
+        self.repositories_get_from_id_expect(instance.repository_id)
+            .await?;
+        self.external_accounts_get_expect(&instance.username)
+            .await?;
+
         sqlx::query(
             r#"
             INSERT INTO external_account_right
@@ -400,15 +434,13 @@ impl DbServiceAll for PostgresDb {
         )
         .bind(instance.public_key)
         .bind(instance.private_key)
-        .bind(instance.username)
+        .bind(instance.username.clone())
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_external_account(e, &instance.username))?
         .get(0);
 
-        self.external_accounts_get(&username)
-            .await
-            .map(|x| x.unwrap())
+        self.external_accounts_get_expect(&username).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -476,12 +508,10 @@ impl DbServiceAll for PostgresDb {
         .bind(username)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_external_account(e, username))?
         .get(0);
 
-        self.external_accounts_get(&username)
-            .await
-            .map(|x| x.unwrap())
+        self.external_accounts_get_expect(&username).await
     }
 
     ///////////////
@@ -501,6 +531,9 @@ impl DbServiceAll for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_create(&mut self, instance: MergeRule) -> Result<MergeRule> {
+        self.repositories_get_from_id_expect(instance.repository_id)
+            .await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             INSERT INTO merge_rule
@@ -537,6 +570,9 @@ impl DbServiceAll for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_update(&mut self, instance: MergeRule) -> Result<MergeRule> {
+        self.repositories_get_from_id_expect(instance.repository_id)
+            .await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE merge_rule
@@ -553,7 +589,7 @@ impl DbServiceAll for PostgresDb {
         .bind(instance.head_branch.to_string())
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_merge_rule(e, instance.base_branch, instance.head_branch))?
         .get(0);
 
         self.merge_rules_get_from_id(new_id)
@@ -653,6 +689,9 @@ impl DbServiceAll for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_create(&mut self, instance: PullRequest) -> Result<PullRequest> {
+        self.repositories_get_from_id_expect(instance.repository_id)
+            .await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             INSERT INTO pull_request
@@ -696,13 +735,15 @@ impl DbServiceAll for PostgresDb {
         .map_err(|e| DatabaseError::SqlError { source: e })?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_update(&mut self, instance: PullRequest) -> Result<PullRequest> {
+        let repo = self
+            .repositories_get_from_id_expect(instance.repository_id)
+            .await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -729,12 +770,10 @@ impl DbServiceAll for PostgresDb {
         .bind(instance.number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, &repo.owner, &repo.name, instance.number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -757,6 +796,21 @@ impl DbServiceAll for PostgresDb {
         .bind(owner)
         .bind(name)
         .bind(number as i32)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| DatabaseError::SqlError { source: e })
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn pull_requests_get_from_id(&mut self, id: u64) -> Result<Option<PullRequest>> {
+        sqlx::query_as::<_, PullRequest>(
+            r#"
+            SELECT *
+            FROM pull_request
+            WHERE id = $1
+        "#,
+        )
+        .bind(id as i32)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| DatabaseError::SqlError { source: e })
@@ -824,6 +878,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         status: QaStatus,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -842,12 +898,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -858,6 +912,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         count: u64,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -876,12 +932,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -892,6 +946,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         id: u64,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -910,12 +966,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -926,6 +980,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         value: bool,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -944,12 +1000,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -960,6 +1014,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         value: bool,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -978,12 +1034,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -994,6 +1048,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         value: bool,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -1012,12 +1068,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     #[tracing::instrument(skip(self))]
@@ -1028,6 +1082,8 @@ impl DbServiceAll for PostgresDb {
         number: u64,
         strategy: Option<GhMergeStrategy>,
     ) -> Result<PullRequest> {
+        self.repositories_get_expect(owner, name).await?;
+
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE pull_request
@@ -1046,12 +1102,10 @@ impl DbServiceAll for PostgresDb {
         .bind(number as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_pull_request(e, owner, name, number))?
         .get(0);
 
-        self.pull_requests_get_from_id(new_id as u64)
-            .await
-            .map(|x| x.unwrap())
+        self.pull_requests_get_from_id_expect(new_id as u64).await
     }
 
     ///////////////
@@ -1127,8 +1181,8 @@ impl DbServiceAll for PostgresDb {
             ;
         "#,
         )
-        .bind(instance.owner)
-        .bind(instance.name)
+        .bind(&instance.owner)
+        .bind(&instance.name)
         .bind(instance.manual_interaction)
         .bind(instance.pr_title_validation_regex)
         .bind(instance.default_strategy.to_string())
@@ -1139,7 +1193,7 @@ impl DbServiceAll for PostgresDb {
         .bind(instance.id as i32)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, &instance.owner, &instance.name))?
         .get(0);
 
         self.repositories_get_from_id(new_id as u64)
@@ -1230,7 +1284,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1259,7 +1313,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1288,7 +1342,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1317,7 +1371,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1346,7 +1400,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1375,7 +1429,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1404,7 +1458,7 @@ impl DbServiceAll for PostgresDb {
         .bind(name)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| Self::wrap_unknown_repository(e, owner, name))?
         .get(0);
 
         self.repositories_get_from_id(id as u64)
@@ -1420,6 +1474,9 @@ impl DbServiceAll for PostgresDb {
         &mut self,
         instance: RequiredReviewer,
     ) -> Result<RequiredReviewer> {
+        self.pull_requests_get_from_id_expect(instance.pull_request_id)
+            .await?;
+
         sqlx::query(
             r#"
             INSERT INTO required_reviewer
@@ -1435,14 +1492,14 @@ impl DbServiceAll for PostgresDb {
         "#,
         )
         .bind(instance.pull_request_id as i32)
-        .bind(instance.username())
+        .bind(instance.username.clone())
         .execute(&self.pool)
         .await
         .map_err(|e| DatabaseError::SqlError { source: e })?;
 
         self.required_reviewers_get_from_pull_request_id(
             instance.pull_request_id,
-            instance.username(),
+            &instance.username,
         )
         .await
         .map(|x| x.unwrap())

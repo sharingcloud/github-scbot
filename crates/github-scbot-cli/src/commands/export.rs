@@ -53,25 +53,33 @@ mod tests {
             let config = Config::from_env();
 
             let repo = db
-                .repositories_create(Repository::builder().with_config(&config).build()?)
+                .repositories_create(Repository { owner: "owner".into(), name: "name".into(), ..Default::default() }.with_config(&config))
                 .await?;
             let pr = db
-                .pull_requests_create(PullRequest::builder().with_repository(&repo).build()?)
+                .pull_requests_create(PullRequest { number: 1, ..Default::default() }.with_repository(&repo))
                 .await?;
-            db.merge_rules_create(MergeRule::builder().with_repository(&repo).build()?)
-                .await?;
-            db.required_reviewers_create(
-                RequiredReviewer::builder().with_pull_request(&pr).build()?,
-            )
+            db.merge_rules_create(MergeRule {
+                repository_id: repo.id,
+                ..Default::default()
+            })
             .await?;
-            db.accounts_create(Account::builder().build()?).await?;
-            db.external_accounts_create(ExternalAccount::builder().build()?)
-                .await?;
-            db.external_account_rights_create(
-                ExternalAccountRight::builder()
-                    .with_repository(&repo)
-                    .build()?,
-            )
+            db.required_reviewers_create(RequiredReviewer {
+                pull_request_id: pr.id,
+                ..Default::default()
+            })
+            .await?;
+            db.accounts_create(Account {
+                username: "me".into(),
+                is_admin: false
+            }).await?;
+            db.external_accounts_create(ExternalAccount {
+                username: "ext".into(),
+                ..Default::default()
+            }).await?;
+            db.external_account_rights_create(ExternalAccountRight {
+                repository_id: repo.id,
+                username: "ext".into(),
+            })
             .await?;
 
             let mut s = Vec::new();
@@ -81,7 +89,6 @@ mod tests {
             }
 
             let cursor = Cursor::new(&s);
-            println!("imp");
             Exchanger::import_from_json(db.as_mut(), cursor).await?;
 
             Ok(())

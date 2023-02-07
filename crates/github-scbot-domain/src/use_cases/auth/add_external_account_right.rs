@@ -12,23 +12,16 @@ pub struct AddExternalAccountRightUseCase<'a> {
 impl<'a> AddExternalAccountRightUseCase<'a> {
     pub async fn run(&mut self) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        let repository = self
-            .db_service
-            .repositories_get(owner, name)
-            .await?
-            .expect("unknown repository");
+        let repository = self.db_service.repositories_get_expect(owner, name).await?;
 
         self.db_service
             .external_account_rights_delete(owner, name, self.username)
             .await?;
         self.db_service
-            .external_account_rights_create(
-                ExternalAccountRight::builder()
-                    .repository_id(repository.id())
-                    .username(self.username)
-                    .build()
-                    .unwrap(),
-            )
+            .external_account_rights_create(ExternalAccountRight {
+                repository_id: repository.id,
+                username: self.username.into(),
+            })
             .await?;
 
         Ok(())
@@ -46,10 +39,17 @@ mod tests {
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut db_service = MemoryDb::new();
         let repository = db_service
-            .repositories_create(Repository::builder().owner("owner").name("name").build()?)
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
             .await?;
         db_service
-            .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+            .external_accounts_create(ExternalAccount {
+                username: "me".into(),
+                ..Default::default()
+            })
             .await?;
 
         AddExternalAccountRightUseCase {

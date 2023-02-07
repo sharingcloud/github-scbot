@@ -18,7 +18,7 @@ impl Command for RepositoryListCommand {
             writeln!(ctx.writer, "No repository known.")?;
         } else {
             for repo in repos {
-                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name())?;
+                writeln!(ctx.writer, "- {}/{}", repo.owner, repo.name)?;
             }
         }
 

@@ -29,7 +29,7 @@ impl AuthListAccountRightsCommand {
         } else {
             writeln!(ctx.writer, "Rights from account '{}':", self.username)?;
             for repo in repositories {
-                writeln!(ctx.writer, "- {}/{}", repo.owner(), repo.name())?;
+                writeln!(ctx.writer, "- {}/{}", repo.owner, repo.name)?;
             }
         }
 

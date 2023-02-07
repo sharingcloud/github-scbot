@@ -17,13 +17,10 @@ impl<'a> AddAdminRightUseCase<'a> {
             }
             None => {
                 self.db_service
-                    .accounts_create(
-                        Account::builder()
-                            .username(self.username.clone())
-                            .is_admin(true)
-                            .build()
-                            .unwrap(),
-                    )
+                    .accounts_create(Account {
+                        username: self.username.clone(),
+                        is_admin: true,
+                    })
                     .await?
             }
         };

@@ -1,35 +1,10 @@
-use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};
 
-use crate::Repository;
-
-#[derive(
-    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
-)]
-#[builder(default, setter(into))]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExternalAccountRight {
-    #[get_deref]
-    pub(crate) username: String,
-    #[get]
-    pub(crate) repository_id: u64,
-}
-
-impl ExternalAccountRight {
-    pub fn builder() -> ExternalAccountRightBuilder {
-        ExternalAccountRightBuilder::default()
-    }
-
-    pub fn set_repository_id(&mut self, id: u64) {
-        self.repository_id = id;
-    }
-}
-
-impl ExternalAccountRightBuilder {
-    pub fn with_repository(&mut self, repository: &Repository) -> &mut Self {
-        self.repository_id = Some(repository.id());
-        self
-    }
+    pub username: String,
+    pub repository_id: u64,
 }
 
 impl<'r> FromRow<'r, PgRow> for ExternalAccountRight {
@@ -43,28 +18,55 @@ impl<'r> FromRow<'r, PgRow> for ExternalAccountRight {
 
 #[cfg(test)]
 mod new_tests {
-    use crate::{utils::db_test_case, ExternalAccount, ExternalAccountRight, Repository};
+    use crate::{
+        utils::db_test_case, DatabaseError, ExternalAccount, ExternalAccountRight, Repository,
+    };
 
     #[actix_rt::test]
     async fn create() {
         db_test_case("external_account_right_create", |mut db| async move {
+            assert!(matches!(
+                db.external_account_rights_create(ExternalAccountRight {
+                    repository_id: 1,
+                    username: "me".into()
+                })
+                .await,
+                Err(DatabaseError::UnknownRepositoryId(1))
+            ));
+
             let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
-                .await?;
-            let exa = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
-                .await?;
-            let exr = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo.id())
-                        .username(exa.username())
-                        .build()?,
-                )
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo".into(),
+                    ..Default::default()
+                })
                 .await?;
 
-            assert_eq!(exr.username(), exa.username());
-            assert_eq!(exr.repository_id(), repo.id());
+            assert!(matches!(
+                db.external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo.id,
+                    username: "me".into()
+                })
+                .await,
+                Err(DatabaseError::UnknownExternalAccount(_))
+            ));
+
+            let exa = db
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
+                .await?;
+
+            let exr = db
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo.id,
+                    username: exa.username.clone(),
+                })
+                .await?;
+
+            assert_eq!(exr.username, exa.username);
+            assert_eq!(exr.repository_id, repo.id);
 
             Ok(())
         })
@@ -74,25 +76,30 @@ mod new_tests {
     #[actix_rt::test]
     async fn get() {
         db_test_case("external_account_right_get", |mut db| async move {
-            let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
-                .await?;
-            let exa = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
-                .await?;
-
             assert_eq!(
                 db.external_account_rights_get("me", "repo", "me").await?,
                 None
             );
 
+            let repo = db
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo".into(),
+                    ..Default::default()
+                })
+                .await?;
+            let exa = db
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
+                .await?;
+
             let exr = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo.id())
-                        .username(exa.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo.id,
+                    username: exa.username,
+                })
                 .await?;
 
             let get_exr = db.external_account_rights_get("me", "repo", "me").await?;
@@ -106,31 +113,34 @@ mod new_tests {
     #[actix_rt::test]
     async fn delete() {
         db_test_case("external_account_right_delete", |mut db| async move {
-            let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
-                .await?;
-            let exa = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
-                .await?;
-
-            assert_eq!(
-                db.external_account_rights_delete("me", "repo", "me")
-                    .await?,
-                false
+            assert!(
+                !db.external_account_rights_delete("me", "repo", "me")
+                    .await?
             );
 
-            db.external_account_rights_create(
-                ExternalAccountRight::builder()
-                    .repository_id(repo.id())
-                    .username(exa.username())
-                    .build()?,
-            )
+            let repo = db
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo".into(),
+                    ..Default::default()
+                })
+                .await?;
+            let exa = db
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
+                .await?;
+
+            db.external_account_rights_create(ExternalAccountRight {
+                repository_id: repo.id,
+                username: exa.username,
+            })
             .await?;
 
-            assert_eq!(
+            assert!(
                 db.external_account_rights_delete("me", "repo", "me")
-                    .await?,
-                true
+                    .await?
             );
             assert_eq!(
                 db.external_account_rights_get("me", "repo", "me").await?,
@@ -145,45 +155,53 @@ mod new_tests {
     #[actix_rt::test]
     async fn delete_all() {
         db_test_case("external_account_right_delete_all", |mut db| async move {
+            assert!(!db.external_account_rights_delete_all("me").await?);
+
             let repo1 = db
-                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo1".into(),
+                    ..Default::default()
+                })
                 .await?;
             let repo2 = db
-                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo2".into(),
+                    ..Default::default()
+                })
                 .await?;
             let exa1 = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
                 .await?;
             let exa2 = db
-                .external_accounts_create(ExternalAccount::builder().username("me2").build()?)
+                .external_accounts_create(ExternalAccount {
+                    username: "me2".into(),
+                    ..Default::default()
+                })
                 .await?;
 
-            assert_eq!(db.external_account_rights_delete_all("me").await?, false);
-
-            db.external_account_rights_create(
-                ExternalAccountRight::builder()
-                    .repository_id(repo1.id())
-                    .username(exa1.username())
-                    .build()?,
-            )
+            db.external_account_rights_create(ExternalAccountRight {
+                repository_id: repo1.id,
+                username: exa1.username.clone(),
+            })
             .await?;
-            db.external_account_rights_create(
-                ExternalAccountRight::builder()
-                    .repository_id(repo2.id())
-                    .username(exa1.username())
-                    .build()?,
-            )
+            db.external_account_rights_create(ExternalAccountRight {
+                repository_id: repo2.id,
+                username: exa1.username.clone(),
+            })
             .await?;
             let exr3 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo2.id())
-                        .username(exa2.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo2.id,
+                    username: exa2.username.clone(),
+                })
                 .await?;
 
-            assert_eq!(db.external_account_rights_delete_all("me").await?, true);
+            assert!(db.external_account_rights_delete_all("me").await?);
             assert_eq!(db.external_account_rights_list("me").await?, vec![]);
             assert_eq!(db.external_account_rights_list("me2").await?, vec![exr3]);
 
@@ -195,31 +213,40 @@ mod new_tests {
     #[actix_rt::test]
     async fn list() {
         db_test_case("external_account_right_list", |mut db| async move {
+            assert_eq!(db.external_account_rights_list("me").await?, vec![]);
+
             let repo1 = db
-                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo1".into(),
+                    ..Default::default()
+                })
                 .await?;
             let repo2 = db
-                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo2".into(),
+                    ..Default::default()
+                })
                 .await?;
             let exa1 = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
                 .await?;
 
             let exr1 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo1.id())
-                        .username(exa1.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo1.id,
+                    username: exa1.username.clone(),
+                })
                 .await?;
             let exr2 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo2.id())
-                        .username(exa1.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo2.id,
+                    username: exa1.username.clone(),
+                })
                 .await?;
 
             assert_eq!(
@@ -235,50 +262,58 @@ mod new_tests {
     #[actix_rt::test]
     async fn all() {
         db_test_case("external_account_right_all", |mut db| async move {
+            assert_eq!(db.external_account_rights_all().await?, vec![]);
+
             let repo1 = db
-                .repositories_create(Repository::builder().owner("me").name("repo1").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo1".into(),
+                    ..Default::default()
+                })
                 .await?;
             let repo2 = db
-                .repositories_create(Repository::builder().owner("me").name("repo2").build()?)
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "repo2".into(),
+                    ..Default::default()
+                })
                 .await?;
             let exa1 = db
-                .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                .external_accounts_create(ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                })
                 .await?;
             let exa2 = db
-                .external_accounts_create(ExternalAccount::builder().username("her").build()?)
+                .external_accounts_create(ExternalAccount {
+                    username: "her".into(),
+                    ..Default::default()
+                })
                 .await?;
 
             let exr1 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo1.id())
-                        .username(exa1.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo1.id,
+                    username: exa1.username.clone(),
+                })
                 .await?;
             let exr2 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo2.id())
-                        .username(exa1.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo2.id,
+                    username: exa1.username.clone(),
+                })
                 .await?;
             let exr3 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo1.id())
-                        .username(exa2.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo1.id,
+                    username: exa2.username.clone(),
+                })
                 .await?;
             let exr4 = db
-                .external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo2.id())
-                        .username(exa2.username())
-                        .build()?,
-                )
+                .external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo2.id,
+                    username: exa2.username.clone(),
+                })
                 .await?;
 
             assert_eq!(
@@ -297,17 +332,22 @@ mod new_tests {
             "external_account_right_cascade_external_account",
             |mut db| async move {
                 let repo = db
-                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                    .repositories_create(Repository {
+                        owner: "me".into(),
+                        name: "repo".into(),
+                        ..Default::default()
+                    })
                     .await?;
                 let exa = db
-                    .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                    .external_accounts_create(ExternalAccount {
+                        username: "me".into(),
+                        ..Default::default()
+                    })
                     .await?;
-                db.external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo.id())
-                        .username(exa.username())
-                        .build()?,
-                )
+                db.external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo.id,
+                    username: exa.username,
+                })
                 .await?;
 
                 // On account deletion, rights should be dropped
@@ -326,17 +366,22 @@ mod new_tests {
             "external_account_right_cascade_repository",
             |mut db| async move {
                 let repo = db
-                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                    .repositories_create(Repository {
+                        owner: "me".into(),
+                        name: "repo".into(),
+                        ..Default::default()
+                    })
                     .await?;
                 let exa = db
-                    .external_accounts_create(ExternalAccount::builder().username("me").build()?)
+                    .external_accounts_create(ExternalAccount {
+                        username: "me".into(),
+                        ..Default::default()
+                    })
                     .await?;
-                db.external_account_rights_create(
-                    ExternalAccountRight::builder()
-                        .repository_id(repo.id())
-                        .username(exa.username())
-                        .build()?,
-                )
+                db.external_account_rights_create(ExternalAccountRight {
+                    repository_id: repo.id,
+                    username: exa.username,
+                })
                 .await?;
 
                 // On repository deletion, rights should be dropped

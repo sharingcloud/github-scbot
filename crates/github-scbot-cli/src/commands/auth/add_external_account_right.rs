@@ -44,18 +44,19 @@ mod tests {
     async fn command() {
         let mut ctx = CommandContextTest::new();
         ctx.db_adapter
-            .repositories_create(
-                Repository::builder()
-                    .owner("me")
-                    .name("repo")
-                    .build()
-                    .unwrap(),
-            )
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "repo".into(),
+                ..Default::default()
+            })
             .await
             .unwrap();
 
         ctx.db_adapter
-            .external_accounts_create(ExternalAccount::builder().username("me").build().unwrap())
+            .external_accounts_create(ExternalAccount {
+                username: "me".into(),
+                ..Default::default()
+            })
             .await
             .unwrap();
 

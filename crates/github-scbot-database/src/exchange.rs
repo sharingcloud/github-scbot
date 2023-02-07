@@ -59,94 +59,86 @@ impl Exchanger {
         for repository in data.repositories {
             println!(
                 "> Importing repository '{}/{}'",
-                repository.owner(),
-                repository.name()
+                repository.owner, repository.name
             );
 
-            let repository_id = repository.id();
+            let repository_id = repository.id;
             let new_repository = Self::create_or_update_repository(db_service, repository).await?;
-            repo_id_map.insert(repository_id, new_repository.id());
-            repo_map.insert(new_repository.id(), new_repository);
+            repo_id_map.insert(repository_id, new_repository.id);
+            repo_map.insert(new_repository.id, new_repository);
         }
 
         for mut merge_rule in data.merge_rules {
-            let repo_id = repo_id_map.get(&merge_rule.repository_id()).unwrap();
+            let repo_id = repo_id_map.get(&merge_rule.repository_id).unwrap();
             let repo = repo_map.get(repo_id).unwrap();
 
             println!(
                 "> Importing merge rule '{}' (base) <- '{}' (head), strategy '{}' for repository '{}/{}'",
-                merge_rule.base_branch(),
-                merge_rule.head_branch(),
-                merge_rule.strategy(),
-                repo.owner(),
-                repo.name()
+                merge_rule.base_branch,
+                merge_rule.head_branch,
+                merge_rule.strategy,
+                repo.owner,
+                repo.name
             );
 
-            merge_rule.set_repository_id(*repo_id);
+            merge_rule.repository_id = *repo_id;
             Self::create_or_update_merge_rule(db_service, repo, merge_rule).await?;
         }
 
         for mut pull_request in data.pull_requests {
-            let repo_id = repo_id_map.get(&pull_request.repository_id()).unwrap();
+            let repo_id = repo_id_map.get(&pull_request.repository_id).unwrap();
             let repo = repo_map.get(repo_id).unwrap();
-            let pr_id = pull_request.id();
+            let pr_id = pull_request.id;
 
             println!(
                 "> Importing pull request #{} for repository '{}/{}'",
-                pull_request.number(),
-                repo.owner(),
-                repo.name()
+                pull_request.number, repo.owner, repo.name
             );
 
-            pull_request.set_repository_id(*repo_id);
+            pull_request.repository_id = *repo_id;
             let new_pr =
                 Self::create_or_update_pull_request(db_service, repo, pull_request).await?;
 
-            pr_id_map.insert(pr_id, new_pr.id());
-            pr_map.insert(new_pr.id(), new_pr);
+            pr_id_map.insert(pr_id, new_pr.id);
+            pr_map.insert(new_pr.id, new_pr);
         }
 
         for account in data.accounts {
-            println!("> Importing account '{}'", account.username());
+            println!("> Importing account '{}'", account.username);
 
             Self::create_or_update_account(db_service, account).await?;
         }
 
         for account in data.external_accounts {
-            println!("> Importing external account '{}'", account.username());
+            println!("> Importing external account '{}'", account.username);
 
             Self::create_or_update_external_account(db_service, account).await?;
         }
 
         for mut reviewer in data.required_reviewers {
-            let pr_id = pr_id_map.get(&reviewer.pull_request_id()).unwrap();
+            let pr_id = pr_id_map.get(&reviewer.pull_request_id).unwrap();
             let pr = pr_map.get(pr_id).unwrap();
-            let repo = repo_map.get(&pr.repository_id()).unwrap();
+            let repo = repo_map.get(&pr.repository_id).unwrap();
 
             println!(
                 "> Importing required reviewer '{}' for PR '#{}' for repository '{}/{}'",
-                reviewer.username(),
-                pr.number(),
-                repo.owner(),
-                repo.name()
+                reviewer.username, pr.number, repo.owner, repo.name
             );
 
-            reviewer.set_pull_request_id(*pr_id);
+            reviewer.pull_request_id = *pr_id;
             Self::create_or_update_reviewer(db_service, repo, pr, reviewer).await?;
         }
 
         for mut right in data.external_account_rights {
-            let repo_id = repo_id_map.get(&right.repository_id()).unwrap();
+            let repo_id = repo_id_map.get(&right.repository_id).unwrap();
             let repo = repo_map.get(repo_id).unwrap();
 
             println!(
                 "> Importing external account right for '{}' on repository '{}/{}'",
-                right.username(),
-                repo.owner(),
-                repo.name()
+                right.username, repo.owner, repo.name
             );
 
-            right.set_repository_id(*repo_id);
+            right.repository_id = *repo_id;
             Self::create_or_update_external_account_right(db_service, repo, right).await?;
         }
 
@@ -158,7 +150,7 @@ impl Exchanger {
         repository: Repository,
     ) -> Result<Repository> {
         match db_service
-            .repositories_get(repository.owner(), repository.name())
+            .repositories_get(&repository.owner, &repository.name)
             .await?
         {
             Some(_) => db_service.repositories_update(repository).await,
@@ -172,7 +164,7 @@ impl Exchanger {
         pull_request: PullRequest,
     ) -> Result<PullRequest> {
         match db_service
-            .pull_requests_get(repository.owner(), repository.name(), pull_request.number())
+            .pull_requests_get(&repository.owner, &repository.name, pull_request.number)
             .await?
         {
             Some(_) => db_service.pull_requests_update(pull_request).await,
@@ -187,10 +179,10 @@ impl Exchanger {
     ) -> Result<MergeRule> {
         match db_service
             .merge_rules_get(
-                repository.owner(),
-                repository.name(),
-                merge_rule.base_branch().clone(),
-                merge_rule.head_branch().clone(),
+                &repository.owner,
+                &repository.name,
+                merge_rule.base_branch.clone(),
+                merge_rule.head_branch.clone(),
             )
             .await?
         {
@@ -203,7 +195,7 @@ impl Exchanger {
         db_service: &mut dyn DbServiceAll,
         account: Account,
     ) -> Result<Account> {
-        match db_service.accounts_get(account.username()).await? {
+        match db_service.accounts_get(&account.username).await? {
             Some(_) => db_service.accounts_update(account).await,
             None => db_service.accounts_create(account).await,
         }
@@ -213,7 +205,7 @@ impl Exchanger {
         db_service: &mut dyn DbServiceAll,
         exa: ExternalAccount,
     ) -> Result<ExternalAccount> {
-        match db_service.external_accounts_get(exa.username()).await? {
+        match db_service.external_accounts_get(&exa.username).await? {
             Some(_) => db_service.external_accounts_update(exa).await,
             None => db_service.external_accounts_create(exa).await,
         }
@@ -227,10 +219,10 @@ impl Exchanger {
     ) -> Result<RequiredReviewer> {
         match db_service
             .required_reviewers_get(
-                repository.owner(),
-                repository.name(),
-                pull_request.number(),
-                reviewer.username(),
+                &repository.owner,
+                &repository.name,
+                pull_request.number,
+                &reviewer.username,
             )
             .await?
         {
@@ -245,7 +237,7 @@ impl Exchanger {
         right: ExternalAccountRight,
     ) -> Result<ExternalAccountRight> {
         match db_service
-            .external_account_rights_get(repository.owner(), repository.name(), right.username())
+            .external_account_rights_get(&repository.owner, &repository.name, &right.username)
             .await?
         {
             Some(s) => Ok(s),

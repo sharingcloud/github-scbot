@@ -34,13 +34,13 @@ impl<'a> App<'a> {
     pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbServiceAll) -> Result<()> {
         let repositories = db_adapter.repositories_all().await?;
         let mut pull_requests = db_adapter.pull_requests_all().await?;
-        pull_requests.sort_by_key(|p| u64::MAX - p.number());
+        pull_requests.sort_by_key(|p| u64::MAX - p.number);
 
         let mut pr_kvs = Vec::new();
         for repo in repositories {
             let mut prs = Vec::new();
             for pr in &pull_requests {
-                if repo.id() == pr.repository_id() {
+                if repo.id == pr.repository_id {
                     prs.push(pr.clone());
                 }
             }
@@ -95,7 +95,7 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let desc = format!("#{}", i.number());
+                    let desc = format!("#{}", i.number);
                     let lines = vec![Spans::from(desc)];
                     ListItem::new(lines)
                 })
@@ -162,7 +162,7 @@ impl<'a> App<'a> {
         if let Some(selected_pr) = self.data.get_current_pull_request() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    format!("#{number}", number = selected_pr.number()),
+                    format!("#{number}", number = selected_pr.number),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),
@@ -173,7 +173,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.checks_enabled();
+                        let status = selected_pr.checks_enabled;
                         let color = if status { Color::Green } else { Color::Red };
                         Span::styled(status.to_string(), Style::default().fg(color))
                     },
@@ -182,7 +182,7 @@ impl<'a> App<'a> {
                     Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.qa_status();
+                        let status = selected_pr.qa_status;
                         let color = match status {
                             QaStatus::Pass | QaStatus::Skipped => Color::Green,
                             QaStatus::Fail => Color::Red,
@@ -198,7 +198,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     Span::styled(
-                        format!("{}", selected_pr.needed_reviewers_count()),
+                        format!("{}", selected_pr.needed_reviewers_count),
                         Style::default().fg(Color::Blue),
                     ),
                 ]),
@@ -206,7 +206,7 @@ impl<'a> App<'a> {
                     Span::styled("Locked?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.locked() {
+                        let (msg, color) = if selected_pr.locked {
                             ("Yes", Color::Red)
                         } else {
                             ("No", Color::Green)

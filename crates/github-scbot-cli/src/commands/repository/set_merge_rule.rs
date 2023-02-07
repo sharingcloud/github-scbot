@@ -53,15 +53,12 @@ impl Command for RepositorySetMergeRuleCommand {
                 )
                 .await?;
             ctx.db_adapter
-                .merge_rules_create(
-                    MergeRule::builder()
-                        .repository_id(repo.id())
-                        .base_branch(self.base_branch.clone())
-                        .head_branch(self.head_branch.clone())
-                        .strategy(self.strategy)
-                        .build()
-                        .unwrap(),
-                )
+                .merge_rules_create(MergeRule {
+                    repository_id: repo.id,
+                    base_branch: self.base_branch.clone(),
+                    head_branch: self.head_branch.clone(),
+                    strategy: self.strategy,
+                })
                 .await?;
 
             writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch)?;

@@ -40,7 +40,7 @@ pub async fn set_qa_status_for_pull_requests(
 ) -> Result<()> {
     let (repo_owner, repo_name) = repository_path.components();
     if db_adapter
-        .external_account_rights_get(repo_owner, repo_name, account.username())
+        .external_account_rights_get(repo_owner, repo_name, &account.username)
         .await?
         .is_some()
     {

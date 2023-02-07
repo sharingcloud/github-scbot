@@ -1,35 +1,10 @@
-use github_scbot_macros::SCGetter;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgRow, FromRow, Row};
 
-use crate::PullRequest;
-
-#[derive(
-    SCGetter, Debug, Clone, Default, derive_builder::Builder, Serialize, Deserialize, PartialEq, Eq,
-)]
-#[builder(default, setter(into))]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RequiredReviewer {
-    #[get]
-    pub(crate) pull_request_id: u64,
-    #[get_deref]
-    pub(crate) username: String,
-}
-
-impl RequiredReviewer {
-    pub fn builder() -> RequiredReviewerBuilder {
-        RequiredReviewerBuilder::default()
-    }
-
-    pub fn set_pull_request_id(&mut self, id: u64) {
-        self.pull_request_id = id;
-    }
-}
-
-impl RequiredReviewerBuilder {
-    pub fn with_pull_request(&mut self, pull_request: &PullRequest) -> &mut Self {
-        self.pull_request_id = Some(pull_request.id());
-        self
-    }
+    pub pull_request_id: u64,
+    pub username: String,
 }
 
 impl<'r> FromRow<'r, PgRow> for RequiredReviewer {
@@ -43,35 +18,45 @@ impl<'r> FromRow<'r, PgRow> for RequiredReviewer {
 
 #[cfg(test)]
 mod new_tests {
-    use crate::{utils::db_test_case, PullRequest, Repository, RequiredReviewer};
+    use crate::{utils::db_test_case, DatabaseError, PullRequest, Repository, RequiredReviewer};
 
     #[actix_rt::test]
     async fn create() {
         db_test_case("required_reviewer_create", |mut db| async move {
             let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .repositories_create(Repository {
+                    owner: "owner".into(),
+                    name: "name".into(),
+                    ..Default::default()
+                })
                 .await?;
 
+            assert!(matches!(
+                db.required_reviewers_create(RequiredReviewer {
+                    pull_request_id: 1,
+                    username: "me".into(),
+                })
+                .await,
+                Err(DatabaseError::UnknownPullRequestId(1))
+            ));
+
             let pr = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(1u64)
-                        .build()?,
-                )
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 1,
+                    ..Default::default()
+                })
                 .await?;
 
             let r = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("me")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "me".into(),
+                })
                 .await?;
 
-            assert_eq!(r.pull_request_id(), pr.id());
-            assert_eq!(r.username(), "me");
+            assert_eq!(r.pull_request_id, pr.id);
+            assert_eq!(r.username, "me");
 
             Ok(())
         })
@@ -81,37 +66,38 @@ mod new_tests {
     #[actix_rt::test]
     async fn list() {
         db_test_case("required_reviewer_list", |mut db| async move {
+            assert_eq!(db.required_reviewers_list("me", "repo", 1).await?, vec![]);
+
             let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .repositories_create(Repository {
+                    owner: "owner".into(),
+                    name: "name".into(),
+                    ..Default::default()
+                })
                 .await?;
             let pr = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(1u64)
-                        .build()?,
-                )
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 1,
+                    ..Default::default()
+                })
                 .await?;
 
             let r1 = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("me")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "me".into(),
+                })
                 .await?;
             let r2 = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("her")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "her".into(),
+                })
                 .await?;
 
             assert_eq!(
-                db.required_reviewers_list("me", "repo", 1).await?,
+                db.required_reviewers_list("owner", "name", 1).await?,
                 vec![r2, r1]
             );
 
@@ -123,49 +109,47 @@ mod new_tests {
     #[actix_rt::test]
     async fn all() {
         db_test_case("required_reviewer_all", |mut db| async move {
+            assert_eq!(db.required_reviewers_all().await?, vec![]);
+
             let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .repositories_create(Repository {
+                    owner: "owner".into(),
+                    name: "name".into(),
+                    ..Default::default()
+                })
                 .await?;
             let pr1 = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(1u64)
-                        .build()?,
-                )
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 1,
+                    ..Default::default()
+                })
                 .await?;
             let pr2 = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(2u64)
-                        .build()?,
-                )
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 2,
+                    ..Default::default()
+                })
                 .await?;
 
             let r1 = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr1.id())
-                        .username("me")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr1.id,
+                    username: "me".into(),
+                })
                 .await?;
             let r2 = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr1.id())
-                        .username("her")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr1.id,
+                    username: "her".into(),
+                })
                 .await?;
             let r3 = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr2.id())
-                        .username("me")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr2.id,
+                    username: "me".into(),
+                })
                 .await?;
 
             assert_eq!(db.required_reviewers_all().await?, vec![r2, r1, r3]);
@@ -178,34 +162,35 @@ mod new_tests {
     #[actix_rt::test]
     async fn get() {
         db_test_case("required_reviewer_get", |mut db| async move {
-            let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
-                .await?;
-            let pr = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(1u64)
-                        .build()?,
-                )
-                .await?;
-
             assert_eq!(
-                db.required_reviewers_get("me", "repo", 1, "me").await?,
+                db.required_reviewers_get("owner", "name", 1, "me").await?,
                 None
             );
 
+            let repo = db
+                .repositories_create(Repository {
+                    owner: "owner".into(),
+                    name: "name".into(),
+                    ..Default::default()
+                })
+                .await?;
+            let pr = db
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 1,
+                    ..Default::default()
+                })
+                .await?;
+
             let r = db
-                .required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("me")
-                        .build()?,
-                )
+                .required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "me".into(),
+                })
                 .await?;
 
             assert_eq!(
-                db.required_reviewers_get("me", "repo", 1, "me").await?,
+                db.required_reviewers_get("owner", "name", 1, "me").await?,
                 Some(r)
             );
 
@@ -217,37 +202,38 @@ mod new_tests {
     #[actix_rt::test]
     async fn delete() {
         db_test_case("required_reviewer_delete", |mut db| async move {
+            assert!(
+                !db.required_reviewers_delete("owner", "name", 1, "me")
+                    .await?
+            );
+
             let repo = db
-                .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                .repositories_create(Repository {
+                    owner: "owner".into(),
+                    name: "name".into(),
+                    ..Default::default()
+                })
                 .await?;
             let pr = db
-                .pull_requests_create(
-                    PullRequest::builder()
-                        .repository_id(repo.id())
-                        .number(1u64)
-                        .build()?,
-                )
+                .pull_requests_create(PullRequest {
+                    repository_id: repo.id,
+                    number: 1,
+                    ..Default::default()
+                })
                 .await?;
 
-            assert_eq!(
-                db.required_reviewers_delete("me", "repo", 1, "me").await?,
-                false
-            );
-
-            db.required_reviewers_create(
-                RequiredReviewer::builder()
-                    .pull_request_id(pr.id())
-                    .username("me")
-                    .build()?,
-            )
+            db.required_reviewers_create(RequiredReviewer {
+                pull_request_id: pr.id,
+                username: "me".into(),
+            })
             .await?;
 
-            assert_eq!(
-                db.required_reviewers_delete("me", "repo", 1, "me").await?,
-                true
+            assert!(
+                db.required_reviewers_delete("owner", "name", 1, "me")
+                    .await?,
             );
             assert_eq!(
-                db.required_reviewers_get("me", "repo", 1, "me").await?,
+                db.required_reviewers_get("owner", "name", 1, "me").await?,
                 None
             );
 
@@ -262,26 +248,27 @@ mod new_tests {
             "required_reviewer_cascade_pull_request",
             |mut db| async move {
                 let repo = db
-                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                    .repositories_create(Repository {
+                        owner: "owner".into(),
+                        name: "name".into(),
+                        ..Default::default()
+                    })
                     .await?;
                 let pr = db
-                    .pull_requests_create(
-                        PullRequest::builder()
-                            .repository_id(repo.id())
-                            .number(1u64)
-                            .build()?,
-                    )
+                    .pull_requests_create(PullRequest {
+                        repository_id: repo.id,
+                        number: 1,
+                        ..Default::default()
+                    })
                     .await?;
 
-                db.required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("me")
-                        .build()?,
-                )
+                db.required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "me".into(),
+                })
                 .await?;
 
-                db.pull_requests_delete("me", "repo", 1).await?;
+                db.pull_requests_delete("owner", "name", 1).await?;
                 assert_eq!(db.required_reviewers_all().await?, vec![]);
 
                 Ok(())
@@ -296,26 +283,27 @@ mod new_tests {
             "required_reviewer_cascade_repository",
             |mut db| async move {
                 let repo = db
-                    .repositories_create(Repository::builder().owner("me").name("repo").build()?)
+                    .repositories_create(Repository {
+                        owner: "owner".into(),
+                        name: "name".into(),
+                        ..Default::default()
+                    })
                     .await?;
                 let pr = db
-                    .pull_requests_create(
-                        PullRequest::builder()
-                            .repository_id(repo.id())
-                            .number(1u64)
-                            .build()?,
-                    )
+                    .pull_requests_create(PullRequest {
+                        repository_id: repo.id,
+                        number: 1,
+                        ..Default::default()
+                    })
                     .await?;
 
-                db.required_reviewers_create(
-                    RequiredReviewer::builder()
-                        .pull_request_id(pr.id())
-                        .username("me")
-                        .build()?,
-                )
+                db.required_reviewers_create(RequiredReviewer {
+                    pull_request_id: pr.id,
+                    username: "me".into(),
+                })
                 .await?;
 
-                db.repositories_delete("me", "repo").await?;
+                db.repositories_delete("owner", "name").await?;
                 assert_eq!(db.required_reviewers_all().await?, vec![]);
 
                 Ok(())

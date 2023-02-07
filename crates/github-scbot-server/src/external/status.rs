@@ -31,7 +31,7 @@ pub(crate) async fn set_qa_status(
 
     sentry::configure_scope(|scope| {
         scope.set_user(Some(sentry::User {
-            username: Some(target_account.username().into()),
+            username: Some(target_account.username.clone()),
             ..sentry::User::default()
         }));
     });

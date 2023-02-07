@@ -21,7 +21,7 @@ impl AuthListAdminAccountsCommand {
         } else {
             writeln!(ctx.writer, "Admin accounts:")?;
             for account in accounts {
-                writeln!(ctx.writer, "- {}", account.username())?;
+                writeln!(ctx.writer, "- {}", account.username)?;
             }
         }
 

@@ -19,7 +19,7 @@ impl<'a> ListAccountRightsUseCase<'a> {
             for right in rights {
                 repositories.push(
                     self.db_service
-                        .repositories_get_from_id(right.repository_id())
+                        .repositories_get_from_id(right.repository_id)
                         .await?
                         .unwrap(),
                 );

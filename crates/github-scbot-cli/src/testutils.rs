@@ -28,7 +28,7 @@ impl CommandContextTest {
         }
     }
 
-    pub fn to_context<W: Write>(self, writer: W) -> CommandContext<W> {
+    pub fn into_context<W: Write>(self, writer: W) -> CommandContext<W> {
         CommandContext {
             config: self.config,
             db_adapter: Box::new(self.db_adapter),
@@ -51,7 +51,7 @@ pub(crate) async fn test_command(ctx: CommandContextTest, command_args: &[&str])
 
         let args = Args::try_parse_from(command_args);
         match args {
-            Ok(args) => CommandExecutor::parse_args_async(args, ctx.to_context(&mut buf))
+            Ok(args) => CommandExecutor::parse_args_async(args, ctx.into_context(&mut buf))
                 .await
                 .unwrap(),
             Err(e) => {

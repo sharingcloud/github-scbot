@@ -79,13 +79,13 @@ impl PullRequestStatus {
         let required_reviewers = db_adapter
             .required_reviewers_list(repo_owner, repo_name, pr_number)
             .await?;
-        let checks_status = if pr_model.checks_enabled() {
+        let checks_status = if pr_model.checks_enabled {
             PullRequestLogic::get_checks_status_from_github(
                 api_adapter,
                 repo_owner,
                 repo_name,
                 &upstream_pr.head.sha,
-                pr_model.checks_enabled(),
+                pr_model.checks_enabled,
                 &[],
             )
             .await?
@@ -93,8 +93,8 @@ impl PullRequestStatus {
             CheckStatus::Skipped
         };
 
-        let strategy = if let Some(s) = pr_model.strategy_override() {
-            *s
+        let strategy = if let Some(s) = pr_model.strategy_override {
+            s
         } else {
             let base_branch = &upstream_pr.base.reference;
             let head_branch = &upstream_pr.head.reference;
@@ -104,7 +104,7 @@ impl PullRequestStatus {
                 repo_name,
                 base_branch,
                 head_branch,
-                repo_model.default_strategy(),
+                repo_model.default_strategy,
             )
             .await?
         };
@@ -130,7 +130,7 @@ impl PullRequestStatus {
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
         // Validate reviews
-        let needed_reviews = pr_model.needed_reviewers_count() as usize;
+        let needed_reviews = pr_model.needed_reviewers_count as usize;
         let mut approved_reviews = vec![];
         let mut required_reviews = vec![];
         let mut changes_required_reviews = vec![];
@@ -155,30 +155,26 @@ impl PullRequestStatus {
         }
 
         for required_reviewer in required_reviewers {
-            if !seen_reviewers.contains(required_reviewer.username()) {
-                required_reviews.push(required_reviewer.username().to_string());
+            if !seen_reviewers.contains(&required_reviewer.username) {
+                required_reviews.push(required_reviewer.username.to_string());
             }
         }
 
         Ok(Self {
             changes_required_reviewers: changes_required_reviews,
             approved_reviewers: approved_reviews,
-            automerge: pr_model.automerge(),
+            automerge: pr_model.automerge,
             checks_status,
-            checks_url: Self::get_checks_url(
-                repo_model.owner(),
-                repo_model.name(),
-                pr_model.number(),
-            ),
-            pull_request_title_regex: repo_model.pr_title_validation_regex().into(),
+            checks_url: Self::get_checks_url(&repo_model.owner, &repo_model.name, pr_model.number),
+            pull_request_title_regex: repo_model.pr_title_validation_regex.clone(),
             needed_reviewers_count: needed_reviews,
-            qa_status: *pr_model.qa_status(),
+            qa_status: pr_model.qa_status,
             missing_required_reviewers: required_reviews,
             valid_pr_title: Self::check_pr_title(
                 &upstream_pr.title,
-                repo_model.pr_title_validation_regex(),
+                &repo_model.pr_title_validation_regex,
             )?,
-            locked: pr_model.locked(),
+            locked: pr_model.locked,
             wip: upstream_pr.draft,
             mergeable: upstream_pr.mergeable.unwrap_or(true),
             merged: upstream_pr.merged.unwrap_or(false),
@@ -193,7 +189,7 @@ impl PullRequestStatus {
 
     /// Check if a reviewer is required.
     pub fn is_required_reviewer(required_reviewers: &[RequiredReviewer], username: &str) -> bool {
-        required_reviewers.iter().any(|r| r.username() == username)
+        required_reviewers.iter().any(|r| r.username == username)
     }
 
     /// Get merge strategy for base and head branches.
@@ -209,7 +205,7 @@ impl PullRequestStatus {
             .merge_rules_get(owner, name, base_branch.into(), head_branch.into())
             .await?
         {
-            Some(r) => Ok(r.strategy()),
+            Some(r) => Ok(r.strategy),
             None => Ok(default_strategy),
         }
     }

@@ -64,7 +64,7 @@ async fn jwt_auth_validator_inner(
 
     // Validate token with ISS
     let tok = credentials.token();
-    let _claims: ExternalJwtClaims = match JwtUtils::verify_jwt(tok, target_account.public_key()) {
+    let _claims: ExternalJwtClaims = match JwtUtils::verify_jwt(tok, &target_account.public_key) {
         Ok(claims) => claims,
         Err(e) => return Err((ValidationError::token_error(tok, e), req)),
     };

@@ -64,16 +64,19 @@ pub async fn handle_pull_request_opened(
         Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
         None => {
             if PullRequestLogic::should_create_pull_request(config, &repo_model, &event) {
-                let pr = PullRequest::builder()
-                    .with_repository(&repo_model)
-                    .number(event.pull_request.number)
-                    .build()
-                    .unwrap();
-                let pr_model = db_adapter.pull_requests_create(pr).await?;
+                let pr_model = db_adapter
+                    .pull_requests_create(
+                        PullRequest {
+                            number: event.pull_request.number,
+                            ..Default::default()
+                        }
+                        .with_repository(&repo_model),
+                    )
+                    .await?;
 
                 // Get upstream pull request
                 let upstream_pr = api_adapter
-                    .pulls_get(repo_model.owner(), repo_model.name(), pr_model.number())
+                    .pulls_get(&repo_model.owner, &repo_model.name, pr_model.number)
                     .await?;
 
                 StatusLogic::update_pull_request_status(
@@ -154,7 +157,7 @@ pub async fn handle_pull_request_event(
         None => return Ok(()),
     };
 
-    let pr_number = pr_model.number();
+    let pr_number = pr_model.number;
     let mut status_changed = false;
 
     // Status update
@@ -212,7 +215,7 @@ impl PullRequestLogic {
         repo_model: &Repository,
         event: &GhPullRequestEvent,
     ) -> bool {
-        if repo_model.manual_interaction() {
+        if repo_model.manual_interaction {
             if let Some(body) = &event.pull_request.body {
                 // Check for magic instruction to enable bot
                 let commands = CommandParser::parse_commands(config, body);
@@ -275,12 +278,12 @@ impl PullRequestLogic {
                 None => {
                     db_adapter
                         .repositories_create(
-                            Repository::builder()
-                                .owner(repo_owner)
-                                .name(repo_name)
-                                .with_config(config)
-                                .build()
-                                .unwrap(),
+                            Repository {
+                                owner: repo_owner.into(),
+                                name: repo_name.into(),
+                                ..Default::default()
+                            }
+                            .with_config(config),
                         )
                         .await?
                 }
@@ -372,11 +375,11 @@ impl PullRequestLogic {
         {
             db_adapter
                 .pull_requests_create(
-                    PullRequest::builder()
-                        .with_repository(&repo)
-                        .number(pr_number)
-                        .build()
-                        .unwrap(),
+                    PullRequest {
+                        number: pr_number,
+                        ..Default::default()
+                    }
+                    .with_repository(&repo),
                 )
                 .await?;
         }
@@ -417,8 +420,8 @@ impl PullRequestLogic {
             .unwrap();
 
         let commit_title = Self::get_merge_commit_title(upstream_pr);
-        let strategy = if let Some(s) = pull_request.strategy_override() {
-            *s
+        let strategy = if let Some(s) = pull_request.strategy_override {
+            s
         } else {
             PullRequestStatus::get_strategy_from_branches(
                 db_adapter,
@@ -426,7 +429,7 @@ impl PullRequestLogic {
                 repo_name,
                 &upstream_pr.base.reference,
                 &upstream_pr.head.reference,
-                repository.default_strategy(),
+                repository.default_strategy,
             )
             .await?
         };

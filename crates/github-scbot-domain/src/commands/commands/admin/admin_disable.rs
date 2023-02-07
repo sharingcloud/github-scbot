@@ -28,7 +28,7 @@ impl BotCommand for AdminDisableCommand {
             .await?
             .unwrap();
 
-        if repo_model.manual_interaction() {
+        if repo_model.manual_interaction {
             StatusLogic::disable_validation_status(
                 ctx.api_adapter,
                 ctx.db_adapter,
