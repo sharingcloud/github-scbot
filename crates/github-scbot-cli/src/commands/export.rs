@@ -53,10 +53,23 @@ mod tests {
             let config = Config::from_env();
 
             let repo = db
-                .repositories_create(Repository { owner: "owner".into(), name: "name".into(), ..Default::default() }.with_config(&config))
+                .repositories_create(
+                    Repository {
+                        owner: "owner".into(),
+                        name: "name".into(),
+                        ..Default::default()
+                    }
+                    .with_config(&config),
+                )
                 .await?;
             let pr = db
-                .pull_requests_create(PullRequest { number: 1, ..Default::default() }.with_repository(&repo))
+                .pull_requests_create(
+                    PullRequest {
+                        number: 1,
+                        ..Default::default()
+                    }
+                    .with_repository(&repo),
+                )
                 .await?;
             db.merge_rules_create(MergeRule {
                 repository_id: repo.id,
@@ -70,12 +83,14 @@ mod tests {
             .await?;
             db.accounts_create(Account {
                 username: "me".into(),
-                is_admin: false
-            }).await?;
+                is_admin: false,
+            })
+            .await?;
             db.external_accounts_create(ExternalAccount {
                 username: "ext".into(),
                 ..Default::default()
-            }).await?;
+            })
+            .await?;
             db.external_account_rights_create(ExternalAccountRight {
                 repository_id: repo.id,
                 username: "ext".into(),

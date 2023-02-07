@@ -13,9 +13,9 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// Set merge rule for a repository
+/// Add merge rule for a repository
 #[derive(Parser)]
-pub(crate) struct RepositorySetMergeRuleCommand {
+pub(crate) struct RepositoryAddMergeRuleCommand {
     /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
     /// Base branch name
@@ -27,7 +27,7 @@ pub(crate) struct RepositorySetMergeRuleCommand {
 }
 
 #[async_trait(?Send)]
-impl Command for RepositorySetMergeRuleCommand {
+impl Command for RepositoryAddMergeRuleCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
         let repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;

@@ -9,28 +9,28 @@ use clap::{Parser, Subcommand};
 use super::{Command, CommandContext};
 
 mod add;
+mod add_merge_rule;
 mod list;
 mod list_merge_rules;
 mod remove_merge_rule;
-mod set_automerge;
-mod set_checks_status;
+mod set_default_automerge;
+mod set_default_checks_status;
+mod set_default_qa_status;
+mod set_default_reviewers_count;
+mod set_default_title_regex;
 mod set_manual_interaction;
-mod set_merge_rule;
-mod set_qa_status;
-mod set_reviewers_count;
-mod set_title_regex;
 mod show;
 
 use self::{
-    add::RepositoryAddCommand, list::RepositoryListCommand,
-    list_merge_rules::RepositoryListMergeRulesCommand,
+    add::RepositoryAddCommand, add_merge_rule::RepositoryAddMergeRuleCommand,
+    list::RepositoryListCommand, list_merge_rules::RepositoryListMergeRulesCommand,
     remove_merge_rule::RepositoryRemoveMergeRuleCommand,
-    set_automerge::RepositorySetAutomergeCommand,
-    set_checks_status::RepositorySetChecksStatusCommand,
-    set_manual_interaction::RepositorySetManualInteractionCommand,
-    set_merge_rule::RepositorySetMergeRuleCommand, set_qa_status::RepositorySetQAStatusCommand,
-    set_reviewers_count::RepositorySetReviewersCountCommand,
-    set_title_regex::RepositorySetTitleRegexCommand, show::RepositoryShowCommand,
+    set_default_automerge::RepositorySetDefaultAutomergeCommand,
+    set_default_checks_status::RepositorySetDefaultChecksStatusCommand,
+    set_default_qa_status::RepositorySetDefaultQaStatusCommand,
+    set_default_reviewers_count::RepositorySetDefaultReviewersCountCommand,
+    set_default_title_regex::RepositorySetDefaultTitleRegexCommand,
+    set_manual_interaction::RepositorySetManualInteractionCommand, show::RepositoryShowCommand,
 };
 
 /// Manage repositories
@@ -50,14 +50,14 @@ impl Command for RepositoryCommand {
 #[derive(Subcommand)]
 enum RepositorySubCommand {
     Add(RepositoryAddCommand),
-    SetTitleRegex(RepositorySetTitleRegexCommand),
+    SetDefaultTitleRegex(RepositorySetDefaultTitleRegexCommand),
     Show(RepositoryShowCommand),
-    SetReviewersCount(RepositorySetReviewersCountCommand),
-    SetMergeRule(RepositorySetMergeRuleCommand),
+    SetDefaultReviewersCount(RepositorySetDefaultReviewersCountCommand),
+    AddMergeRule(RepositoryAddMergeRuleCommand),
     SetManualInteraction(RepositorySetManualInteractionCommand),
-    SetQAStatus(RepositorySetQAStatusCommand),
-    SetChecksStatus(RepositorySetChecksStatusCommand),
-    SetAutomerge(RepositorySetAutomergeCommand),
+    SetDefaultQaStatus(RepositorySetDefaultQaStatusCommand),
+    SetDefaultChecksStatus(RepositorySetDefaultChecksStatusCommand),
+    SetDefaultAutomerge(RepositorySetDefaultAutomergeCommand),
     RemoveMergeRule(RepositoryRemoveMergeRuleCommand),
     ListMergeRules(RepositoryListMergeRulesCommand),
     List(RepositoryListCommand),
@@ -68,14 +68,14 @@ impl Command for RepositorySubCommand {
     async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
             Self::Add(sub) => sub.execute(ctx).await,
-            Self::SetTitleRegex(sub) => sub.execute(ctx).await,
+            Self::SetDefaultTitleRegex(sub) => sub.execute(ctx).await,
             Self::Show(sub) => sub.execute(ctx).await,
-            Self::SetReviewersCount(sub) => sub.execute(ctx).await,
-            Self::SetMergeRule(sub) => sub.execute(ctx).await,
+            Self::SetDefaultReviewersCount(sub) => sub.execute(ctx).await,
+            Self::AddMergeRule(sub) => sub.execute(ctx).await,
             Self::SetManualInteraction(sub) => sub.execute(ctx).await,
-            Self::SetQAStatus(sub) => sub.execute(ctx).await,
-            Self::SetChecksStatus(sub) => sub.execute(ctx).await,
-            Self::SetAutomerge(sub) => sub.execute(ctx).await,
+            Self::SetDefaultQaStatus(sub) => sub.execute(ctx).await,
+            Self::SetDefaultChecksStatus(sub) => sub.execute(ctx).await,
+            Self::SetDefaultAutomerge(sub) => sub.execute(ctx).await,
             Self::RemoveMergeRule(sub) => sub.execute(ctx).await,
             Self::ListMergeRules(sub) => sub.execute(ctx).await,
             Self::List(sub) => sub.execute(ctx).await,

@@ -2,18 +2,18 @@ use std::io::Write;
 
 use crate::{commands::CommandContext, Result};
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::ListAccountRightsUseCase;
+use github_scbot_domain::use_cases::auth::ListExternalAccountRightsUseCase;
 
 /// List rights for account
 #[derive(Parser)]
-pub(crate) struct AuthListAccountRightsCommand {
+pub(crate) struct AuthListExternalAccountRightsCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthListAccountRightsCommand {
+impl AuthListExternalAccountRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let repositories = ListAccountRightsUseCase {
+        let repositories = ListExternalAccountRightsUseCase {
             username: self.username.clone(),
             db_service: ctx.db_adapter.as_mut(),
         }

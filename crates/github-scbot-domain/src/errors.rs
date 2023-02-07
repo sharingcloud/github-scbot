@@ -7,23 +7,23 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum DomainError {
     /// Wraps [`regex::Error`].
-    #[error("Error while compiling regex,\n  caused by: {}", source)]
+    #[error("Error while compiling regex")]
     RegexError { source: regex::Error },
 
     /// Wraps [`github_scbot_ghapi::ApiError`].
-    #[error("API error,\n  caused by: {}", source)]
+    #[error("API error")]
     ApiError {
         source: github_scbot_ghapi::ApiError,
     },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[error("Database error,\n  caused by: {}", source)]
+    #[error("Database error")]
     DatabaseError {
         source: github_scbot_database::DatabaseError,
     },
 
     /// Wraps [`github_scbot_redis::RedisError`].
-    #[error("Redis error,\n  caused by: {}", source)]
+    #[error("Redis error")]
     RedisError {
         source: github_scbot_redis::RedisError,
     },

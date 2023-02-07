@@ -10,29 +10,29 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// Set PR title regex for a repository
+/// Set default reviewers count for a repository
 #[derive(Parser)]
-pub(crate) struct RepositorySetTitleRegexCommand {
+pub(crate) struct RepositorySetDefaultReviewersCountCommand {
     /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
     /// Regex value
-    value: String,
+    reviewers_count: u64,
 }
 
 #[async_trait(?Send)]
-impl Command for RepositorySetTitleRegexCommand {
+impl Command for RepositorySetDefaultReviewersCountCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
         let _repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;
 
         ctx.db_adapter
-            .repositories_set_pr_title_validation_regex(owner, name, &self.value)
+            .repositories_set_default_needed_reviewers_count(owner, name, self.reviewers_count)
             .await?;
 
         writeln!(
             ctx.writer,
-            "PR title regular expression set to '{}' for repository '{}'.",
-            self.value, self.repository_path
+            "Default reviewers count updated to {} for repository {}.",
+            self.reviewers_count, self.repository_path
         )?;
 
         Ok(())

@@ -12,7 +12,7 @@ use crate::{
 
 /// Set default automerge status for a repository
 #[derive(Parser)]
-pub(crate) struct RepositorySetAutomergeCommand {
+pub(crate) struct RepositorySetDefaultAutomergeCommand {
     /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
     /// Status
@@ -21,7 +21,7 @@ pub(crate) struct RepositorySetAutomergeCommand {
 }
 
 #[async_trait(?Send)]
-impl Command for RepositorySetAutomergeCommand {
+impl Command for RepositorySetDefaultAutomergeCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
         let _repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;

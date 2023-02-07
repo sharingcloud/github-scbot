@@ -2,25 +2,25 @@ use std::io::Write;
 
 use crate::{commands::CommandContext, Result};
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::CreateExternalTokenUseCase;
+use github_scbot_domain::use_cases::auth::AddExternalAccountUseCase;
 
-/// Create external token
+/// Create external account
 #[derive(Parser)]
-pub(crate) struct AuthCreateExternalTokenCommand {
+pub(crate) struct AuthAddExternalAccountCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthCreateExternalTokenCommand {
+impl AuthAddExternalAccountCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let token = CreateExternalTokenUseCase {
+        AddExternalAccountUseCase {
             username: self.username.clone(),
             db_service: ctx.db_adapter.as_mut(),
         }
         .run()
         .await?;
 
-        writeln!(ctx.writer, "{}", token)?;
+        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
 
         Ok(())
     }

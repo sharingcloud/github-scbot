@@ -2,12 +2,12 @@ use github_scbot_database::{DbServiceAll, Repository};
 
 use crate::Result;
 
-pub struct ListAccountRightsUseCase<'a> {
+pub struct ListExternalAccountRightsUseCase<'a> {
     pub username: String,
     pub db_service: &'a mut dyn DbServiceAll,
 }
 
-impl<'a> ListAccountRightsUseCase<'a> {
+impl<'a> ListExternalAccountRightsUseCase<'a> {
     pub async fn run(&mut self) -> Result<Vec<Repository>> {
         let rights = self
             .db_service

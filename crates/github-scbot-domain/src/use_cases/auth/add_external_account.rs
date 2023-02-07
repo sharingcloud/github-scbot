@@ -2,12 +2,12 @@ use github_scbot_database::{DbServiceAll, ExternalAccount};
 
 use crate::Result;
 
-pub struct CreateExternalAccountUseCase<'a> {
+pub struct AddExternalAccountUseCase<'a> {
     pub username: String,
     pub db_service: &'a mut dyn DbServiceAll,
 }
 
-impl<'a> CreateExternalAccountUseCase<'a> {
+impl<'a> AddExternalAccountUseCase<'a> {
     pub async fn run(&mut self) -> Result<()> {
         self.db_service
             .external_accounts_create(

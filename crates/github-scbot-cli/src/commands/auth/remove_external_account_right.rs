@@ -3,20 +3,20 @@ use std::io::Write;
 use crate::{commands::CommandContext, Result};
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_domain::use_cases::auth::RemoveAccountRightUseCase;
+use github_scbot_domain::use_cases::auth::RemoveExternalAccountRightUseCase;
 
 /// Remove right from account
 #[derive(Parser)]
-pub(crate) struct AuthRemoveAccountRightCommand {
+pub(crate) struct AuthRemoveExternalAccountRightCommand {
     /// Account username
     pub username: String,
     /// Repository path (e.g. `MyOrganization/my-project`)
     pub repository_path: RepositoryPath,
 }
 
-impl AuthRemoveAccountRightCommand {
+impl AuthRemoveExternalAccountRightCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        RemoveAccountRightUseCase {
+        RemoveExternalAccountRightUseCase {
             username: self.username.clone(),
             repository_path: self.repository_path.clone(),
             db_service: ctx.db_adapter.as_mut(),

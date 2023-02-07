@@ -10,7 +10,7 @@ use crate::{
     utils::CliDbExt,
 };
 
-/// List known pull request for a repository
+/// Set merge strategy for a pull request
 #[derive(Parser)]
 pub(crate) struct PullRequestSetMergeStrategyCommand {
     /// Repository path (e.g. 'MyOrganization/my-project')
