@@ -12,9 +12,9 @@ pub(crate) struct AuthAddAdminRightsCommand {
 }
 
 impl AuthAddAdminRightsCommand {
-    pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+    pub async fn run<W: Write>(self, ctx: &mut CommandContext<W>) -> Result<()> {
         AddAdminRightUseCase {
-            username: self.username.clone(),
+            username: &self.username,
             db_service: ctx.db_adapter.as_mut(),
         }
         .run()
@@ -25,6 +25,25 @@ impl AuthAddAdminRightsCommand {
             "Account '{}' added/edited with admin rights.",
             self.username
         )?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["auth", "add-admin-rights", "me"]).await,
+            "Account 'me' added/edited with admin rights.\n"
+        );
 
         Ok(())
     }

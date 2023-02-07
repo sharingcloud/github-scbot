@@ -41,7 +41,7 @@ mod tests {
     use crate::testutils::{test_command, CommandContextTest};
 
     #[actix_rt::test]
-    async fn command() {
+    async fn run() {
         let mut ctx = CommandContextTest::new();
         ctx.db_adapter
             .repositories_create(Repository {

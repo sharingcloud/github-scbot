@@ -14,13 +14,32 @@ pub(crate) struct AuthAddExternalAccountCommand {
 impl AuthAddExternalAccountCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddExternalAccountUseCase {
-            username: self.username.clone(),
+            username: &self.username,
             db_service: ctx.db_adapter.as_mut(),
         }
         .run()
         .await?;
 
         writeln!(ctx.writer, "External account '{}' created.", self.username)?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["auth", "add-external-account", "me"]).await,
+            "External account 'me' created.\n"
+        );
 
         Ok(())
     }

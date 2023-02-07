@@ -3,7 +3,7 @@ use github_scbot_database::{DbServiceAll, ExternalAccount};
 use crate::Result;
 
 pub struct AddExternalAccountUseCase<'a> {
-    pub username: String,
+    pub username: &'a str,
     pub db_service: &'a mut dyn DbServiceAll,
 }
 
@@ -12,12 +12,37 @@ impl<'a> AddExternalAccountUseCase<'a> {
         self.db_service
             .external_accounts_create(
                 ExternalAccount {
-                    username: self.username.clone(),
+                    username: self.username.into(),
                     ..Default::default()
                 }
                 .with_generated_keys(),
             )
             .await?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{DbServiceAll, MemoryDb};
+
+    use super::AddExternalAccountUseCase;
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut db = MemoryDb::new();
+
+        AddExternalAccountUseCase {
+            username: "me",
+            db_service: &mut db,
+        }
+        .run()
+        .await?;
+
+        assert!(db.external_accounts_get("me").await?.is_some());
 
         Ok(())
     }

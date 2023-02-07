@@ -28,3 +28,34 @@ impl<'a> RemoveAdminRightUseCase<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{Account, DbServiceAll, MemoryDb};
+
+    use super::RemoveAdminRightUseCase;
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut db = MemoryDb::new();
+
+        db.accounts_create(Account {
+            username: "acc".into(),
+            is_admin: true,
+        })
+        .await?;
+
+        RemoveAdminRightUseCase {
+            username: "acc".into(),
+            db_service: &mut db,
+        }
+        .run()
+        .await?;
+
+        assert!(!db.accounts_get_expect("acc").await?.is_admin);
+
+        Ok(())
+    }
+}

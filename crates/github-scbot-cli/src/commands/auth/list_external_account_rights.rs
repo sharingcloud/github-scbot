@@ -14,7 +14,7 @@ pub(crate) struct AuthListExternalAccountRightsCommand {
 impl AuthListExternalAccountRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let repositories = ListExternalAccountRightsUseCase {
-            username: self.username.clone(),
+            username: &self.username,
             db_service: ctx.db_adapter.as_mut(),
         }
         .run()

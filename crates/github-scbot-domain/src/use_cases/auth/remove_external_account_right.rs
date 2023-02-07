@@ -20,3 +20,56 @@ impl<'a> RemoveExternalAccountRightUseCase<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_core::types::repository::RepositoryPath;
+    use github_scbot_database::{
+        DbServiceAll, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
+    };
+
+    use super::RemoveExternalAccountRightUseCase;
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut db = MemoryDb::new();
+
+        let repo = db
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+
+        db.external_accounts_create(ExternalAccount {
+            username: "acc".into(),
+            ..Default::default()
+        })
+        .await?;
+
+        db.external_account_rights_create(ExternalAccountRight {
+            repository_id: repo.id,
+            username: "acc".into(),
+        })
+        .await?;
+
+        RemoveExternalAccountRightUseCase {
+            repository_path: RepositoryPath::new_from_components("owner", "name"),
+            username: "acc".into(),
+            db_service: &mut db,
+        }
+        .run()
+        .await?;
+
+        assert_eq!(
+            db.external_account_rights_get("owner", "name", "acc")
+                .await?,
+            None
+        );
+
+        Ok(())
+    }
+}

@@ -28,3 +28,42 @@ impl AuthListAdminAccountsCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{Account, DbServiceAll};
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run_no_accounts() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["auth", "list-admin-accounts"]).await,
+            "No admin account found.\n"
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        ctx.db_adapter
+            .accounts_create(Account {
+                username: "me".into(),
+                is_admin: true,
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(ctx, &["auth", "list-admin-accounts"]).await,
+            "Admin accounts:\n- me\n"
+        );
+
+        Ok(())
+    }
+}
