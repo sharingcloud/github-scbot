@@ -7,7 +7,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_core::types::status::QaStatus;
-use github_scbot_domain::external::set_qa_status_for_pull_requests;
+use github_scbot_domain::use_cases::status::SetPullRequestQaStatusUseCase;
 use serde::{Deserialize, Serialize};
 
 use crate::{external::validator::extract_account_from_auth, server::AppContext, ServerError};
@@ -44,17 +44,18 @@ pub(crate) async fn set_qa_status(
         Some(false) => QaStatus::Fail,
     };
 
-    set_qa_status_for_pull_requests(
-        &ctx.config,
-        ctx.api_adapter.as_ref(),
-        ctx.db_adapter.lock().await.as_mut(),
-        ctx.redis_adapter.as_ref(),
-        &target_account,
-        repo_path,
-        &data.pull_request_numbers,
-        &data.author,
+    SetPullRequestQaStatusUseCase {
+        config: &ctx.config,
+        api_service: ctx.api_adapter.as_ref(),
+        db_service: ctx.db_adapter.lock().await.as_mut(),
+        redis_service: ctx.redis_adapter.as_ref(),
+        external_account: &target_account,
+        repository_path: repo_path,
+        pull_request_numbers: &data.pull_request_numbers,
+        author: &data.author,
         status,
-    )
+    }
+    .run()
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
 

@@ -7,11 +7,10 @@ use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use tracing::info;
 
-use crate::commands::CommandContext;
+use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
     pulls::PullRequestLogic,
-    status::StatusLogic,
     Result,
 };
 
@@ -73,15 +72,16 @@ pub async fn handle_issue_comment_event(
                             message = "Manual activation on pull request",
                         );
 
-                        StatusLogic::update_pull_request_status(
-                            api_adapter,
-                            db_adapter,
-                            redis_adapter,
-                            repo_owner,
+                        UpdatePullRequestStatusUseCase {
+                            api_service: api_adapter,
+                            db_service: db_adapter,
+                            redis_service: redis_adapter,
                             repo_name,
+                            repo_owner,
                             pr_number,
-                            &upstream_pr,
-                        )
+                            upstream_pr: &upstream_pr,
+                        }
+                        .run()
                         .await?;
 
                         handled = true;

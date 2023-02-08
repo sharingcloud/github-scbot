@@ -11,7 +11,7 @@ use github_scbot_ghapi::comments::CommentApi;
 pub use parser::CommandParser;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
-use super::{errors::Result, status::StatusLogic};
+
 use crate::{
     commands::{
         command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
@@ -26,7 +26,11 @@ use crate::{
             SetRequiredReviewersCommand,
         },
     },
-    use_cases::auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
+    use_cases::{
+        auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
+        status::UpdatePullRequestStatusUseCase,
+    },
+    Result,
 };
 
 #[cfg(test)]
@@ -92,15 +96,16 @@ impl CommandExecutor {
                 .pulls_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
                 .await?;
 
-            StatusLogic::update_pull_request_status(
-                ctx.api_adapter,
-                ctx.db_adapter,
-                ctx.redis_adapter,
-                ctx.repo_owner,
-                ctx.repo_name,
-                ctx.pr_number,
-                &upstream_pr,
-            )
+            UpdatePullRequestStatusUseCase {
+                api_service: ctx.api_adapter,
+                db_service: ctx.db_adapter,
+                redis_service: ctx.redis_adapter,
+                repo_owner: ctx.repo_owner,
+                repo_name: ctx.repo_name,
+                pr_number: ctx.pr_number,
+                upstream_pr: &upstream_pr,
+            }
+            .run()
             .await?;
         }
 

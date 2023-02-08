@@ -3,10 +3,7 @@ use github_scbot_core::types::{
     status::{CheckStatus, QaStatus},
 };
 
-use crate::{
-    status::{PullRequestStatus, StatusLogic},
-    Result,
-};
+use crate::{status::PullRequestStatus, use_cases::status::GenerateStatusMessageUseCase, Result};
 
 /// Summary text generator.
 pub struct SummaryTextGenerator;
@@ -156,7 +153,10 @@ impl SummaryTextGenerator {
     }
 
     fn generate_status_comment_footer(pull_request_status: &PullRequestStatus) -> Result<String> {
-        let (state, _title, msg) = StatusLogic::generate_pr_status_message(pull_request_status)?;
+        let status_message = GenerateStatusMessageUseCase {
+            pr_status: pull_request_status,
+        }
+        .run()?;
 
         Ok(format!(
             ":scroll: &mdash; **Current status**\n\
@@ -165,8 +165,8 @@ impl SummaryTextGenerator {
             \n\
             [_See checks output by clicking this link :triangular_flag_on_post:_]({checks_url})",
             checks_url = pull_request_status.checks_url,
-            status_state = state,
-            status_msg = msg
+            status_state = status_message.state,
+            status_msg = status_message.message
         ))
     }
 }

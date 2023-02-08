@@ -7,7 +7,7 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    status::StatusLogic,
+    use_cases::status::DisablePullRequestStatusUseCase,
     Result,
 };
 
@@ -29,13 +29,14 @@ impl BotCommand for AdminDisableCommand {
             .unwrap();
 
         if repo_model.manual_interaction {
-            StatusLogic::disable_validation_status(
-                ctx.api_adapter,
-                ctx.db_adapter,
-                ctx.repo_owner,
-                ctx.repo_name,
-                ctx.pr_number,
-            )
+            DisablePullRequestStatusUseCase {
+                api_service: ctx.api_adapter,
+                db_service: ctx.db_adapter,
+                pr_number: ctx.pr_number,
+                repo_name: ctx.repo_name,
+                repo_owner: ctx.repo_owner,
+            }
+            .run()
             .await?;
 
             ctx.db_adapter

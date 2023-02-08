@@ -9,7 +9,7 @@ use crate::{
         BotCommand, CommandContext,
     },
     pulls::PullRequestLogic,
-    status::{PullRequestStatus, StatusLogic},
+    use_cases::status::{BuildPullRequestStatusUseCase, DetermineAutomaticStepUseCase},
     Result,
 };
 
@@ -30,16 +30,22 @@ impl MergeCommand {
 #[async_trait(?Send)]
 impl BotCommand for MergeCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        let pr_status = PullRequestStatus::from_database(
-            ctx.api_adapter,
-            ctx.db_adapter,
-            ctx.repo_owner,
-            ctx.repo_name,
-            ctx.pr_number,
-            ctx.upstream_pr,
-        )
+        let pr_status = BuildPullRequestStatusUseCase {
+            api_service: ctx.api_adapter,
+            db_service: ctx.db_adapter,
+            pr_number: ctx.pr_number,
+            repo_name: ctx.repo_name,
+            repo_owner: ctx.repo_owner,
+            upstream_pr: ctx.upstream_pr,
+        }
+        .run()
         .await?;
-        let step = StatusLogic::determine_automatic_step(&pr_status);
+
+        let step = DetermineAutomaticStepUseCase {
+            pr_status: &pr_status,
+        }
+        .run();
+
         let commit_title = PullRequestLogic::get_merge_commit_title(ctx.upstream_pr);
         let mut actions = vec![];
 

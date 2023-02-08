@@ -5,7 +5,7 @@ use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
-use crate::{status::StatusLogic, Result};
+use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 
 /// Handle GitHub check syite event.
 #[tracing::instrument(
@@ -57,15 +57,16 @@ pub async fn handle_check_suite_event(
                 .await?;
 
             // Update status
-            StatusLogic::update_pull_request_status(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
-                repo_owner,
+            UpdatePullRequestStatusUseCase {
+                api_service: api_adapter,
+                db_service: db_adapter,
+                redis_service: redis_adapter,
                 repo_name,
+                repo_owner,
                 pr_number,
-                &upstream_pr,
-            )
+                upstream_pr: &upstream_pr,
+            }
+            .run()
             .await?;
         }
     }

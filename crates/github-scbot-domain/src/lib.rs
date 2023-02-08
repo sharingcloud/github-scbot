@@ -7,7 +7,6 @@ pub mod checks;
 pub mod commands;
 pub mod comments;
 pub mod errors;
-pub mod external;
 pub mod gif;
 pub mod pulls;
 pub mod reviews;

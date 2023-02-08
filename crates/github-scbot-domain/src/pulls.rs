@@ -13,10 +13,10 @@ use github_scbot_database::{DbServiceAll, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::RedisService;
 
-use crate::commands::CommandContext;
+use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
-    status::{PullRequestStatus, StatusLogic},
+    status::PullRequestStatus,
     Result,
 };
 
@@ -79,15 +79,16 @@ pub async fn handle_pull_request_opened(
                     .pulls_get(&repo_model.owner, &repo_model.name, pr_model.number)
                     .await?;
 
-                StatusLogic::update_pull_request_status(
-                    api_adapter,
-                    db_adapter,
-                    redis_adapter,
-                    repo_owner,
+                UpdatePullRequestStatusUseCase {
+                    api_service: api_adapter,
+                    db_service: db_adapter,
+                    redis_service: redis_adapter,
                     repo_name,
+                    repo_owner,
                     pr_number,
-                    &upstream_pr,
-                )
+                    upstream_pr: &upstream_pr,
+                }
+                .run()
                 .await?;
 
                 if config.server_enable_welcome_comments {
@@ -191,15 +192,16 @@ pub async fn handle_pull_request_event(
             .pulls_get(repo_owner, repo_name, pr_number)
             .await?;
 
-        StatusLogic::update_pull_request_status(
-            api_adapter,
-            db_adapter,
-            redis_adapter,
-            repo_owner,
+        UpdatePullRequestStatusUseCase {
+            api_service: api_adapter,
+            db_service: db_adapter,
+            redis_service: redis_adapter,
             repo_name,
+            repo_owner,
             pr_number,
-            &upstream_pr,
-        )
+            upstream_pr: &upstream_pr,
+        }
+        .run()
         .await?;
     }
 

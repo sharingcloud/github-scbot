@@ -4,7 +4,9 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_domain::{pulls::PullRequestLogic, status::StatusLogic};
+use github_scbot_domain::{
+    pulls::PullRequestLogic, use_cases::status::UpdatePullRequestStatusUseCase,
+};
 
 use crate::commands::{Command, CommandContext};
 
@@ -38,15 +40,16 @@ impl Command for PullRequestSyncCommand {
             .pulls_get(repo_owner, repo_name, pr_number)
             .await?;
 
-        StatusLogic::update_pull_request_status(
-            ctx.api_adapter.as_ref(),
-            ctx.db_adapter.as_mut(),
-            ctx.redis_adapter.as_ref(),
+        UpdatePullRequestStatusUseCase {
+            api_service: ctx.api_adapter.as_ref(),
+            db_service: ctx.db_adapter.as_mut(),
+            redis_service: ctx.redis_adapter.as_ref(),
             repo_owner,
             repo_name,
             pr_number,
-            &upstream_pr,
-        )
+            upstream_pr: &upstream_pr,
+        }
+        .run()
         .await?;
 
         writeln!(
