@@ -2,7 +2,7 @@ use github_scbot_core::types::status::StatusState;
 use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 
-use crate::{summary::SummaryCommentSender, Result};
+use crate::{use_cases::summary::DeleteSummaryCommentUseCase, Result};
 
 use super::generate_status_message::VALIDATION_STATUS_MESSAGE;
 
@@ -34,13 +34,14 @@ impl<'a> DisablePullRequestStatusUseCase<'a> {
             )
             .await?;
 
-        SummaryCommentSender::delete(
-            self.api_service,
-            self.db_service,
-            self.repo_owner,
-            self.repo_name,
-            self.pr_number,
-        )
+        DeleteSummaryCommentUseCase {
+            api_service: self.api_service,
+            db_service: self.db_service,
+            pr_number: self.pr_number,
+            repo_name: self.repo_name,
+            repo_owner: self.repo_owner,
+        }
+        .run()
         .await
     }
 }

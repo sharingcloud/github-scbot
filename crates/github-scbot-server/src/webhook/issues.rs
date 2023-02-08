@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
 use github_scbot_database::DbServiceAll;
-use github_scbot_domain::comments::handle_issue_comment_event;
+use github_scbot_domain::use_cases::comments::HandleIssueCommentEventUseCase;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -22,8 +22,15 @@ pub(crate) async fn issue_comment_event(
     redis_adapter: &dyn RedisService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
-    handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event)
-        .await
-        .map_err(|e| ServerError::DomainError { source: e })?;
+    HandleIssueCommentEventUseCase {
+        config,
+        api_service: api_adapter,
+        db_service: db_adapter,
+        redis_service: redis_adapter,
+        event,
+    }
+    .run()
+    .await
+    .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

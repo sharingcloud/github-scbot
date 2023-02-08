@@ -2,8 +2,9 @@ use github_scbot_database::DbServiceAll;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
-use crate::status::PullRequestStatus;
-use crate::{summary::SummaryCommentSender, Result};
+use crate::{use_cases::status::PullRequestStatus, Result};
+
+use super::utils::sender::SummaryCommentSender;
 
 pub struct PostSummaryCommentUseCase<'a> {
     pub api_service: &'a dyn ApiService,

@@ -1,0 +1,3 @@
+mod handle_issue_comment_event;
+
+pub use handle_issue_comment_event::HandleIssueCommentEventUseCase;

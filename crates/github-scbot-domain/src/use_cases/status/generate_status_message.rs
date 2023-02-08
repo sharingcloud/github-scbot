@@ -1,7 +1,8 @@
 use github_scbot_core::types::status::{CheckStatus, QaStatus, StatusState};
 
-use crate::status::PullRequestStatus;
 use crate::Result;
+
+use super::PullRequestStatus;
 
 pub const VALIDATION_STATUS_MESSAGE: &str = "Validation";
 

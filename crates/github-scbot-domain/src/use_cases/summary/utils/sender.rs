@@ -3,8 +3,8 @@ use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::{LockStatus, RedisService};
 use tracing::{error, warn};
 
-use super::SummaryTextGenerator;
-use crate::{status::PullRequestStatus, Result};
+use super::text_generator::SummaryTextGenerator;
+use crate::{use_cases::status::PullRequestStatus, Result};
 
 /// Summary comment sender.
 pub struct SummaryCommentSender;

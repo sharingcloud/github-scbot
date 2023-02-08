@@ -9,7 +9,10 @@ use github_scbot_database::{DbServiceAll, PullRequest, Repository, RequiredRevie
 use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use regex::Regex;
 
-use crate::{errors::Result, pulls::PullRequestLogic};
+use crate::{
+    errors::Result, pulls::PullRequestLogic,
+    use_cases::pulls::DeterminePullRequestMergeStrategyUseCase,
+};
 
 /// Pull request status.
 #[derive(Debug)]
@@ -98,14 +101,15 @@ impl PullRequestStatus {
         } else {
             let base_branch = &upstream_pr.base.reference;
             let head_branch = &upstream_pr.head.reference;
-            Self::get_strategy_from_branches(
-                db_adapter,
+            DeterminePullRequestMergeStrategyUseCase {
+                db_service: db_adapter,
                 repo_owner,
                 repo_name,
-                base_branch,
                 head_branch,
-                repo_model.default_strategy,
-            )
+                base_branch,
+                default_strategy: repo_model.default_strategy,
+            }
+            .run()
             .await?
         };
 
@@ -190,24 +194,6 @@ impl PullRequestStatus {
     /// Check if a reviewer is required.
     pub fn is_required_reviewer(required_reviewers: &[RequiredReviewer], username: &str) -> bool {
         required_reviewers.iter().any(|r| r.username == username)
-    }
-
-    /// Get merge strategy for base and head branches.
-    pub async fn get_strategy_from_branches(
-        db_adapter: &mut dyn DbServiceAll,
-        owner: &str,
-        name: &str,
-        base_branch: &str,
-        head_branch: &str,
-        default_strategy: GhMergeStrategy,
-    ) -> Result<GhMergeStrategy> {
-        match db_adapter
-            .merge_rules_get(owner, name, base_branch.into(), head_branch.into())
-            .await?
-        {
-            Some(r) => Ok(r.strategy),
-            None => Ok(default_strategy),
-        }
     }
 
     /// Check if there are missing required reviews.

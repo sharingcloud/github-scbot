@@ -3,7 +3,7 @@ use github_scbot_core::types::{
     status::{CheckStatus, QaStatus},
 };
 
-use crate::status::PullRequestStatus;
+use super::PullRequestStatus;
 
 pub struct DetermineAutomaticStepUseCase<'a> {
     pub pr_status: &'a PullRequestStatus,

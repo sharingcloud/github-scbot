@@ -13,10 +13,14 @@ use github_scbot_database::{DbServiceAll, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::RedisService;
 
-use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
+use crate::{
+    commands::CommandContext,
+    use_cases::{
+        pulls::DeterminePullRequestMergeStrategyUseCase, status::UpdatePullRequestStatusUseCase,
+    },
+};
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
-    status::PullRequestStatus,
     Result,
 };
 
@@ -425,14 +429,15 @@ impl PullRequestLogic {
         let strategy = if let Some(s) = pull_request.strategy_override {
             s
         } else {
-            PullRequestStatus::get_strategy_from_branches(
-                db_adapter,
+            DeterminePullRequestMergeStrategyUseCase {
+                db_service: db_adapter,
                 repo_owner,
                 repo_name,
-                &upstream_pr.base.reference,
-                &upstream_pr.head.reference,
-                repository.default_strategy,
-            )
+                head_branch: &upstream_pr.base.reference,
+                base_branch: &upstream_pr.head.reference,
+                default_strategy: repository.default_strategy,
+            }
+            .run()
             .await?
         };
 

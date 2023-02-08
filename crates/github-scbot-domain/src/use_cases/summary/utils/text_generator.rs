@@ -3,7 +3,10 @@ use github_scbot_core::types::{
     status::{CheckStatus, QaStatus},
 };
 
-use crate::{status::PullRequestStatus, use_cases::status::GenerateStatusMessageUseCase, Result};
+use crate::{
+    use_cases::status::{GenerateStatusMessageUseCase, PullRequestStatus},
+    Result,
+};
 
 /// Summary text generator.
 pub struct SummaryTextGenerator;

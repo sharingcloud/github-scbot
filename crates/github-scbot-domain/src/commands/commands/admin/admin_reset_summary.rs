@@ -7,8 +7,7 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    status::PullRequestStatus,
-    summary::SummaryCommentSender,
+    use_cases::{status::BuildPullRequestStatusUseCase, summary::PostSummaryCommentUseCase},
     Result,
 };
 
@@ -23,14 +22,15 @@ impl AdminResetSummaryCommand {
 #[async_trait(?Send)]
 impl BotCommand for AdminResetSummaryCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        let status = PullRequestStatus::from_database(
-            ctx.api_adapter,
-            ctx.db_adapter,
-            ctx.repo_owner,
-            ctx.repo_name,
-            ctx.pr_number,
-            ctx.upstream_pr,
-        )
+        let pr_status = BuildPullRequestStatusUseCase {
+            api_service: ctx.api_adapter,
+            db_service: ctx.db_adapter,
+            repo_owner: ctx.repo_owner,
+            repo_name: ctx.repo_name,
+            pr_number: ctx.pr_number,
+            upstream_pr: ctx.upstream_pr,
+        }
+        .run()
         .await?;
 
         // Reset comment ID
@@ -38,15 +38,16 @@ impl BotCommand for AdminResetSummaryCommand {
             .pull_requests_set_status_comment_id(ctx.repo_owner, ctx.repo_name, ctx.pr_number, 0)
             .await?;
 
-        SummaryCommentSender::create_or_update(
-            ctx.api_adapter,
-            ctx.db_adapter,
-            ctx.redis_adapter,
-            ctx.repo_owner,
-            ctx.repo_name,
-            ctx.pr_number,
-            &status,
-        )
+        PostSummaryCommentUseCase {
+            api_service: ctx.api_adapter,
+            db_service: ctx.db_adapter,
+            redis_service: ctx.redis_adapter,
+            repo_owner: ctx.repo_owner,
+            repo_name: ctx.repo_name,
+            pr_number: ctx.pr_number,
+            pr_status: &pr_status,
+        }
+        .run()
         .await?;
 
         Ok(CommandExecutionResult::builder()

@@ -1228,8 +1228,6 @@ dependencies = [
  "futures",
  "futures-util",
  "github-scbot-core",
- "github-scbot-macros",
- "mockall",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -1278,15 +1276,6 @@ dependencies = [
  "serde_plain",
  "thiserror",
  "tracing",
-]
-
-[[package]]
-name = "github-scbot-macros"
-version = "0.23.0-dev"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
