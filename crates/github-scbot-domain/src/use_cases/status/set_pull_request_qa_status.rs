@@ -6,7 +6,7 @@ use github_scbot_core::{
 };
 use github_scbot_database::{DbService, ExternalAccount};
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use crate::{
     commands::{
@@ -21,7 +21,7 @@ pub struct SetPullRequestQaStatusUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn RedisService,
+    pub redis_service: &'a dyn LockService,
     pub external_account: &'a ExternalAccount,
     pub repository_path: RepositoryPath,
     pub pull_request_numbers: &'a [u64],

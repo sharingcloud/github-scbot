@@ -3,7 +3,7 @@ use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use redis_async::resp_array;
 
-use crate::{LockInstance, LockStatus, RedisError, RedisService};
+use crate::{LockError, LockInstance, LockService, LockStatus};
 
 /// Redis adapter.
 #[derive(Clone)]
@@ -15,25 +15,25 @@ impl RedisServiceImpl {
         Self(RedisActor::start(addr))
     }
 
-    async fn execute_command(&self, value: RespValue) -> Result<RespValue, RedisError> {
+    async fn execute_command(&self, value: RespValue) -> Result<RespValue, LockError> {
         let response = self
             .0
             .send(Command(value))
             .await
-            .map_err(|e| RedisError::MailboxError { source: e })?
-            .map_err(|e| RedisError::ActixError { source: e })?;
+            .map_err(|e| LockError::MailboxError { source: e })?
+            .map_err(|e| LockError::ActixError { source: e })?;
 
         match response {
-            RespValue::Error(e) => Err(RedisError::CommandError { result: e }),
+            RespValue::Error(e) => Err(LockError::CommandError { result: e }),
             v => Ok(v),
         }
     }
 }
 
 #[async_trait]
-impl RedisService for RedisServiceImpl {
+impl LockService for RedisServiceImpl {
     #[tracing::instrument(skip(self), ret)]
-    async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError> {
+    async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, LockError> {
         let response = self
             .execute_command(resp_array!["SET", name, "1", "NX", "PX", "30000"])
             .await?;
@@ -46,29 +46,29 @@ impl RedisService for RedisServiceImpl {
                         name: name.to_owned(),
                     }))
                 } else {
-                    Err(RedisError::CommandError {
+                    Err(LockError::CommandError {
                         result: format!("Unsupported response: {:?}", RespValue::SimpleString(s)),
                     })
                 }
             }
             RespValue::Nil => Ok(LockStatus::AlreadyLocked),
-            v => Err(RedisError::CommandError {
+            v => Err(LockError::CommandError {
                 result: format!("Unsupported response: {:?}", v),
             }),
         }
     }
 
-    async fn has_resource(&self, name: &str) -> Result<bool, RedisError> {
+    async fn has_resource(&self, name: &str) -> Result<bool, LockError> {
         let response = self.execute_command(resp_array!["GET", name]).await?;
         Ok(response != RespValue::Nil)
     }
 
-    async fn del_resource(&self, name: &str) -> Result<(), RedisError> {
+    async fn del_resource(&self, name: &str) -> Result<(), LockError> {
         self.execute_command(resp_array!["DEL", name]).await?;
         Ok(())
     }
 
-    async fn health_check(&self) -> Result<(), RedisError> {
+    async fn health_check(&self) -> Result<(), LockError> {
         self.execute_command(resp_array!["PING"]).await?;
         Ok(())
     }

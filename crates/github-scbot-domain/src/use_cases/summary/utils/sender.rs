@@ -1,6 +1,6 @@
 use github_scbot_database::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_redis::{LockStatus, RedisService};
+use github_scbot_redis::{LockService, LockStatus};
 use tracing::{error, warn};
 
 use super::text_generator::SummaryTextGenerator;
@@ -23,7 +23,7 @@ impl SummaryCommentSender {
     pub async fn create_or_update(
         api_adapter: &dyn ApiService,
         db_adapter: &mut dyn DbService,
-        redis_adapter: &dyn RedisService,
+        redis_adapter: &dyn LockService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,

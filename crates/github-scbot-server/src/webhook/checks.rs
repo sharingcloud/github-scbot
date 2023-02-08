@@ -5,7 +5,7 @@ use github_scbot_core::types::{checks::GhCheckSuiteEvent, events::EventType};
 use github_scbot_database::DbService;
 use github_scbot_domain::use_cases::checks::HandleCheckSuiteEventUseCase;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use super::parse_event_type;
 use crate::{Result, ServerError};
@@ -17,7 +17,7 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 pub(crate) async fn check_suite_event(
     api_adapter: &dyn ApiService,
     db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn RedisService,
+    redis_adapter: &dyn LockService,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {
     HandleCheckSuiteEventUseCase {

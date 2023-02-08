@@ -18,7 +18,7 @@ use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::events::EventType;
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 use serde::Deserialize;
 
 use self::{
@@ -31,7 +31,7 @@ async fn parse_event(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn RedisService,
+    redis_adapter: &dyn LockService,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {

@@ -1,7 +1,7 @@
 use github_scbot_core::types::{labels::StepLabel, pulls::GhPullRequest};
 use github_scbot_database::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
-use github_scbot_redis::{LockStatus, RedisService};
+use github_scbot_redis::{LockService, LockStatus};
 
 use crate::{
     pulls::PullRequestLogic,
@@ -20,7 +20,7 @@ use super::{
 pub struct UpdatePullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn RedisService,
+    pub redis_service: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,

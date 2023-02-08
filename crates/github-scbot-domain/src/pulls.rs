@@ -4,7 +4,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
 use github_scbot_database::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{
@@ -37,7 +37,7 @@ pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn RedisService,
+    redis_adapter: &dyn LockService,
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
     // Get or create repository
@@ -136,7 +136,7 @@ pub async fn handle_pull_request_opened(
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
     db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn RedisService,
+    redis_adapter: &dyn LockService,
     event: GhPullRequestEvent,
 ) -> Result<()> {
     let repo_owner = &event.repository.owner.login;

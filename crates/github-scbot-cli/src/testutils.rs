@@ -4,7 +4,7 @@ use clap::Parser;
 use github_scbot_core::config::Config;
 use github_scbot_database::MemoryDb;
 use github_scbot_ghapi::adapter::MockApiService;
-use github_scbot_redis::MockRedisService;
+use github_scbot_redis::MockLockService;
 
 use crate::{
     args::{Args, CommandExecutor},
@@ -15,7 +15,7 @@ pub(crate) struct CommandContextTest {
     pub config: Config,
     pub db_adapter: MemoryDb,
     pub api_adapter: MockApiService,
-    pub redis_adapter: MockRedisService,
+    pub redis_adapter: MockLockService,
 }
 
 impl CommandContextTest {
@@ -24,7 +24,7 @@ impl CommandContextTest {
             config: Config::from_env(),
             db_adapter: MemoryDb::new(),
             api_adapter: MockApiService::new(),
-            redis_adapter: MockRedisService::new(),
+            redis_adapter: MockLockService::new(),
         }
     }
 

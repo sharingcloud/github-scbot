@@ -1,4 +1,4 @@
-use crate::{RedisError, RedisService};
+use crate::{LockError, LockService};
 
 /// Lock status.
 #[derive(Clone, Debug)]
@@ -13,7 +13,7 @@ pub enum LockStatus<'a> {
 #[derive(Clone)]
 #[must_use]
 pub struct LockInstance<'a> {
-    pub(crate) lock: Option<&'a dyn RedisService>,
+    pub(crate) lock: Option<&'a dyn LockService>,
     pub(crate) name: String,
 }
 
@@ -35,7 +35,7 @@ impl<'a> LockInstance<'a> {
     }
 
     /// Release lock instance.
-    pub async fn release(self) -> Result<(), RedisError> {
+    pub async fn release(self) -> Result<(), LockError> {
         if let Some(lock) = self.lock {
             if lock.has_resource(&self.name).await? {
                 lock.del_resource(&self.name).await?;

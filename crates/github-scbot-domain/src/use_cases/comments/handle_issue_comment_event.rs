@@ -4,7 +4,7 @@ use github_scbot_core::{
 };
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 use tracing::info;
 
 use crate::{
@@ -18,7 +18,7 @@ pub struct HandleIssueCommentEventUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn RedisService,
+    pub redis_service: &'a dyn LockService,
     pub event: GhIssueCommentEvent,
 }
 

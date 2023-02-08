@@ -15,7 +15,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
 use github_scbot_database::{DbPool, DbService, PostgresDb};
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 
@@ -40,7 +40,7 @@ pub struct AppContext {
     /// API adapter
     pub api_adapter: Box<dyn ApiService>,
     /// Redis adapter
-    pub redis_adapter: Box<dyn RedisService>,
+    pub redis_adapter: Box<dyn LockService>,
 }
 
 impl AppContext {
@@ -59,7 +59,7 @@ impl AppContext {
         config: Config,
         db_adapter: Box<dyn DbService>,
         api_adapter: Box<dyn ApiService>,
-        redis_adapter: Box<dyn RedisService>,
+        redis_adapter: Box<dyn LockService>,
     ) -> Self {
         Self {
             config,

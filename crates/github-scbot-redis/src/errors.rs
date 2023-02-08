@@ -4,7 +4,7 @@ use thiserror::Error;
 /// Lock error.
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
-pub enum RedisError {
+pub enum LockError {
     /// Mailbox error.
     #[error("Actix mailbox error,\n  caused by: {}", source)]
     MailboxError { source: MailboxError },

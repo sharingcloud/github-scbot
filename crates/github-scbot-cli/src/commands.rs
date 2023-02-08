@@ -8,7 +8,7 @@ use clap::Subcommand;
 use github_scbot_core::config::Config;
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use self::{
     auth::AuthCommand, debug::DebugCommand, export::ExportCommand, import::ImportCommand,
@@ -29,7 +29,7 @@ pub(crate) struct CommandContext<W: Write> {
     pub config: Config,
     pub db_adapter: Box<dyn DbService>,
     pub api_adapter: Box<dyn ApiService>,
-    pub redis_adapter: Box<dyn RedisService>,
+    pub redis_adapter: Box<dyn LockService>,
     pub writer: W,
 }
 

@@ -2,7 +2,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::GhPullRequest;
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use async_trait::async_trait;
 
@@ -18,7 +18,7 @@ pub struct CommandContext<'a> {
     pub config: &'a Config,
     pub api_adapter: &'a dyn ApiService,
     pub db_adapter: &'a mut dyn DbService,
-    pub redis_adapter: &'a dyn RedisService,
+    pub redis_adapter: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,
@@ -37,7 +37,7 @@ pub(crate) mod tests {
     use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
     use github_scbot_database::MemoryDb;
     use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use github_scbot_redis::MockLockService;
 
     use super::CommandContext;
 
@@ -45,7 +45,7 @@ pub(crate) mod tests {
         pub config: Config,
         pub api_adapter: MockApiService,
         pub db_adapter: MemoryDb,
-        pub redis_adapter: MockRedisService,
+        pub redis_adapter: MockLockService,
         pub repo_owner: String,
         pub repo_name: String,
         pub pr_number: u64,
@@ -60,7 +60,7 @@ pub(crate) mod tests {
                 config: Config::from_env(),
                 api_adapter: MockApiService::new(),
                 db_adapter: MemoryDb::new(),
-                redis_adapter: MockRedisService::new(),
+                redis_adapter: MockLockService::new(),
                 repo_owner: "owner".into(),
                 repo_name: "name".into(),
                 pr_number: 1,

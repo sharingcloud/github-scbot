@@ -6,7 +6,7 @@ use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
 use github_scbot_database::DbService;
 use github_scbot_domain::use_cases::comments::HandleIssueCommentEventUseCase;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_redis::LockService;
 
 use super::parse_event_type;
 use crate::{Result, ServerError};
@@ -19,7 +19,7 @@ pub(crate) async fn issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,
     db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn RedisService,
+    redis_adapter: &dyn LockService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
     HandleIssueCommentEventUseCase {

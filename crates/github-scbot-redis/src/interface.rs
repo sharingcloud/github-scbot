@@ -4,18 +4,18 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 
-use crate::{LockStatus, RedisError};
+use crate::{LockError, LockStatus};
 
-/// Redis adapter trait.
+/// Cache adapter trait.
 #[mockall::automock]
 #[async_trait]
-pub trait RedisService: Send + Sync {
+pub trait LockService: Send + Sync {
     /// Tries to lock a resource.
-    async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, RedisError>;
+    async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, LockError>;
     /// Checks if resource exists.
-    async fn has_resource(&self, name: &str) -> Result<bool, RedisError>;
+    async fn has_resource(&self, name: &str) -> Result<bool, LockError>;
     /// Deletes a resource if it exists.
-    async fn del_resource(&self, name: &str) -> Result<(), RedisError>;
+    async fn del_resource(&self, name: &str) -> Result<(), LockError>;
 
     /// Wait for a resource lock, until timeout.
     #[tracing::instrument(skip(self), ret)]
@@ -23,7 +23,7 @@ pub trait RedisService: Send + Sync {
         &'a self,
         name: &str,
         timeout_ms: u64,
-    ) -> Result<LockStatus<'a>, RedisError> {
+    ) -> Result<LockStatus<'a>, LockError> {
         // Try each 100ms
         let mut elapsed_time = 0;
         let millis = 100;
@@ -44,5 +44,5 @@ pub trait RedisService: Send + Sync {
         }
     }
     /// Health check
-    async fn health_check(&self) -> Result<(), RedisError>;
+    async fn health_check(&self) -> Result<(), LockError>;
 }
