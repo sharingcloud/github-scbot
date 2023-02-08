@@ -2,12 +2,12 @@ use github_scbot_database::DbServiceAll;
 
 use crate::Result;
 
-pub struct GenerateExternalTokenUseCase<'a> {
+pub struct GenerateExternalAccountTokenUseCase<'a> {
     pub username: &'a str,
     pub db_service: &'a mut dyn DbServiceAll,
 }
 
-impl<'a> GenerateExternalTokenUseCase<'a> {
+impl<'a> GenerateExternalAccountTokenUseCase<'a> {
     pub async fn run(&mut self) -> Result<String> {
         let exa = self
             .db_service
@@ -24,7 +24,7 @@ mod tests {
 
     use github_scbot_database::{DbServiceAll, ExternalAccount, MemoryDb};
 
-    use super::GenerateExternalTokenUseCase;
+    use super::GenerateExternalAccountTokenUseCase;
 
     #[actix_rt::test]
     async fn run() -> Result<(), Box<dyn Error>> {
@@ -39,7 +39,7 @@ mod tests {
         )
         .await?;
 
-        assert!(GenerateExternalTokenUseCase {
+        assert!(GenerateExternalAccountTokenUseCase {
             username: "me",
             db_service: &mut db,
         }

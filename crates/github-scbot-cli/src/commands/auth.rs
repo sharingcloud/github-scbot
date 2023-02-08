@@ -11,7 +11,7 @@ use super::{Command, CommandContext};
 mod add_admin_rights;
 mod add_external_account;
 mod add_external_account_right;
-mod generate_external_token;
+mod generate_external_account_token;
 mod list_admin_accounts;
 mod list_external_account_rights;
 mod list_external_accounts;
@@ -24,7 +24,7 @@ use self::{
     add_admin_rights::AuthAddAdminRightsCommand,
     add_external_account::AuthAddExternalAccountCommand,
     add_external_account_right::AuthAddExternalAccountRightCommand,
-    generate_external_token::AuthGenerateExternalTokenCommand,
+    generate_external_account_token::AuthGenerateExternalAccountTokenCommand,
     list_admin_accounts::AuthListAdminAccountsCommand,
     list_external_account_rights::AuthListExternalAccountRightsCommand,
     list_external_accounts::AuthListExternalAccountsCommand,
@@ -53,7 +53,7 @@ enum AuthSubCommand {
     AddAdminRights(AuthAddAdminRightsCommand),
     AddExternalAccount(AuthAddExternalAccountCommand),
     AddExternalAccountRight(AuthAddExternalAccountRightCommand),
-    GenerateExternalToken(AuthGenerateExternalTokenCommand),
+    GenerateExternalAccountToken(AuthGenerateExternalAccountTokenCommand),
     ListAdminAccounts(AuthListAdminAccountsCommand),
     ListExternalAccounts(AuthListExternalAccountsCommand),
     ListExternalAccountRights(AuthListExternalAccountRightsCommand),
@@ -70,7 +70,7 @@ impl Command for AuthSubCommand {
             Self::AddAdminRights(sub) => sub.run(&mut ctx).await,
             Self::AddExternalAccount(sub) => sub.run(ctx).await,
             Self::AddExternalAccountRight(sub) => sub.run(ctx).await,
-            Self::GenerateExternalToken(sub) => sub.run(ctx).await,
+            Self::GenerateExternalAccountToken(sub) => sub.run(ctx).await,
             Self::RemoveExternalAccount(sub) => sub.run(ctx).await,
             Self::ListAdminAccounts(sub) => sub.run(ctx).await,
             Self::ListExternalAccounts(sub) => sub.run(ctx).await,

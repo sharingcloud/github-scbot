@@ -52,3 +52,72 @@ impl Command for PullRequestSetMergeStrategyCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{DbServiceAll, PullRequest, Repository};
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run_set() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_adapter
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+
+        ctx.db_adapter
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "set-merge-strategy", "owner/name", "1", "squash"]).await,
+            "Setting 'squash' as a merge strategy override for pull request #1 on repository 'owner/name'.\n"
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn run_unset() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_adapter
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+
+        ctx.db_adapter
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(
+                ctx,
+                &["pull-requests", "set-merge-strategy", "owner/name", "1"]
+            )
+            .await,
+            "Removing merge strategy override for pull request #1 on repository 'owner/name'.\n"
+        );
+
+        Ok(())
+    }
+}

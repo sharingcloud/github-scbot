@@ -2,25 +2,25 @@ use std::io::Write;
 
 use crate::{commands::CommandContext, Result};
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::RemoveExternalAccountUseCase;
+use github_scbot_domain::use_cases::auth::GenerateExternalAccountTokenUseCase;
 
-/// Remove external account
+/// Create external token
 #[derive(Parser)]
-pub(crate) struct AuthRemoveExternalAccountCommand {
+pub(crate) struct AuthGenerateExternalAccountTokenCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthRemoveExternalAccountCommand {
+impl AuthGenerateExternalAccountTokenCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        RemoveExternalAccountUseCase {
-            username: self.username.clone(),
+        let token = GenerateExternalAccountTokenUseCase {
+            username: &self.username,
             db_service: ctx.db_adapter.as_mut(),
         }
         .run()
         .await?;
 
-        writeln!(ctx.writer, "External account '{}' removed.", self.username)?;
+        writeln!(ctx.writer, "{}", token)?;
 
         Ok(())
     }
@@ -38,15 +38,19 @@ mod tests {
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         ctx.db_adapter
-            .external_accounts_create(ExternalAccount {
-                username: "me".into(),
-                ..Default::default()
-            })
+            .external_accounts_create(
+                ExternalAccount {
+                    username: "me".into(),
+                    ..Default::default()
+                }
+                .with_generated_keys(),
+            )
             .await?;
 
-        assert_eq!(
-            test_command(ctx, &["auth", "remove-external-account", "me"]).await,
-            "External account 'me' removed.\n"
+        assert!(
+            test_command(ctx, &["auth", "generate-external-account-token", "me"])
+                .await
+                .starts_with("ey")
         );
 
         Ok(())

@@ -29,3 +29,22 @@ impl AuthRemoveAdminRightsCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["auth", "remove-admin-rights", "me"]).await,
+            "Account 'me' added/edited without admin rights.\n"
+        );
+
+        Ok(())
+    }
+}

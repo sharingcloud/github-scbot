@@ -36,3 +36,52 @@ impl Command for PullRequestListCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{DbServiceAll, PullRequest, Repository};
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run_no_prs() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "list", "owner/name"]).await,
+            "No pull request found for repository 'owner/name'.\n"
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_adapter
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+
+        ctx.db_adapter
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "list", "owner/name"]).await,
+            "- #1\n"
+        );
+
+        Ok(())
+    }
+}

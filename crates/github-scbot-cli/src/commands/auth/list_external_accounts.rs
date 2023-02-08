@@ -28,3 +28,42 @@ impl AuthListExternalAccountsCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use github_scbot_database::{DbServiceAll, ExternalAccount};
+
+    use crate::testutils::{test_command, CommandContextTest};
+
+    #[actix_rt::test]
+    async fn run_no_accounts() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
+
+        assert_eq!(
+            test_command(ctx, &["auth", "list-external-accounts"]).await,
+            "No external account found.\n"
+        );
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        ctx.db_adapter
+            .external_accounts_create(ExternalAccount {
+                username: "me".into(),
+                ..Default::default()
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(ctx, &["auth", "list-external-accounts"]).await,
+            "External accounts:\n- me\n"
+        );
+
+        Ok(())
+    }
+}
