@@ -10,8 +10,10 @@ use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use regex::Regex;
 
 use crate::{
-    errors::Result, pulls::PullRequestLogic,
-    use_cases::pulls::DeterminePullRequestMergeStrategyUseCase,
+    errors::Result,
+    use_cases::{
+        checks::DetermineCheckStatusUseCase, pulls::DeterminePullRequestMergeStrategyUseCase,
+    },
 };
 
 /// Pull request status.
@@ -83,14 +85,15 @@ impl PullRequestStatus {
             .required_reviewers_list(repo_owner, repo_name, pr_number)
             .await?;
         let checks_status = if pr_model.checks_enabled {
-            PullRequestLogic::get_checks_status_from_github(
-                api_adapter,
+            DetermineCheckStatusUseCase {
+                api_service: api_adapter,
                 repo_owner,
                 repo_name,
-                &upstream_pr.head.sha,
-                pr_model.checks_enabled,
-                &[],
-            )
+                commit_sha: &upstream_pr.head.sha,
+                wait_for_initial_checks: pr_model.checks_enabled,
+                exclude_check_suite_ids: &[],
+            }
+            .run()
             .await?
         } else {
             CheckStatus::Skipped
