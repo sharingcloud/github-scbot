@@ -7,7 +7,6 @@ pub mod commands;
 pub mod errors;
 pub mod gif;
 pub mod pulls;
-pub mod reviews;
 pub mod use_cases;
 
 #[cfg(test)]

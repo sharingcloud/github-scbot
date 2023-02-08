@@ -3,7 +3,7 @@
 use actix_web::HttpResponse;
 use github_scbot_core::types::{events::EventType, reviews::GhReviewEvent};
 use github_scbot_database::DbServiceAll;
-use github_scbot_domain::reviews::handle_review_event;
+use github_scbot_domain::use_cases::reviews::HandleReviewEventUseCase;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -20,8 +20,14 @@ pub(crate) async fn review_event(
     redis_adapter: &dyn RedisService,
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
-    handle_review_event(api_adapter, db_adapter, redis_adapter, event)
-        .await
-        .map_err(|e| ServerError::DomainError { source: e })?;
+    HandleReviewEventUseCase {
+        api_service: api_adapter,
+        db_service: db_adapter,
+        redis_service: redis_adapter,
+        event,
+    }
+    .run()
+    .await
+    .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Pull request review."))
 }
