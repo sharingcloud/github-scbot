@@ -2,7 +2,7 @@
 
 use crossterm::event::KeyCode;
 use github_scbot_core::types::status::QaStatus;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -31,7 +31,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbServiceAll) -> Result<()> {
+    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbService) -> Result<()> {
         let repositories = db_adapter.repositories_all().await?;
         let mut pull_requests = db_adapter.pull_requests_all().await?;
         pull_requests.sort_by_key(|p| u64::MAX - p.number);

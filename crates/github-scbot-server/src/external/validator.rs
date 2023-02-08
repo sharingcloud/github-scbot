@@ -8,7 +8,7 @@ use actix_web::{dev::ServiceRequest, web, Error};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use github_scbot_core::crypto::{CryptoError, JwtUtils};
 use github_scbot_core::sentry::sentry;
-use github_scbot_database::{DatabaseError, DbServiceAll, ExternalAccount, ExternalJwtClaims};
+use github_scbot_database::{DatabaseError, DbService, ExternalAccount, ExternalJwtClaims};
 
 use crate::server::AppContext;
 use thiserror::Error;
@@ -74,14 +74,14 @@ async fn jwt_auth_validator_inner(
 
 /// Extract account from auth.
 pub async fn extract_account_from_auth(
-    db_service: &mut dyn DbServiceAll,
+    db_service: &mut dyn DbService,
     credentials: &BearerAuth,
 ) -> Result<ExternalAccount, ValidationError> {
     extract_account_from_token(db_service, credentials.token()).await
 }
 
 pub async fn extract_account_from_token(
-    db_service: &mut dyn DbServiceAll,
+    db_service: &mut dyn DbService,
     token: &str,
 ) -> Result<ExternalAccount, ValidationError> {
     let claims: ExternalJwtClaims =

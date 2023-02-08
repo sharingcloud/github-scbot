@@ -34,7 +34,7 @@ impl AuthRemoveAllExternalAccountRightsCommand {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, ExternalAccount, ExternalAccountRight, Repository};
+    use github_scbot_database::{DbService, ExternalAccount, ExternalAccountRight, Repository};
 
     use crate::testutils::{test_command, CommandContextTest};
 

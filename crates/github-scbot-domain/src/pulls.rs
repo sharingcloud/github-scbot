@@ -2,7 +2,7 @@
 
 use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
-use github_scbot_database::{DbServiceAll, PullRequest, Repository};
+use github_scbot_database::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::RedisService;
 
@@ -36,7 +36,7 @@ pub enum PullRequestOpenedStatus {
 pub async fn handle_pull_request_opened(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbServiceAll,
+    db_adapter: &mut dyn DbService,
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<PullRequestOpenedStatus> {
@@ -135,7 +135,7 @@ pub async fn handle_pull_request_opened(
 )]
 pub async fn handle_pull_request_event(
     api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbServiceAll,
+    db_adapter: &mut dyn DbService,
     redis_adapter: &dyn RedisService,
     event: GhPullRequestEvent,
 ) -> Result<()> {
@@ -229,7 +229,7 @@ impl PullRequestLogic {
     /// Get or create repository.
     pub async fn get_or_create_repository(
         config: &Config,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
     ) -> Result<Repository> {
@@ -254,7 +254,7 @@ impl PullRequestLogic {
 
     pub async fn synchronize_pull_request(
         config: &Config,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repository_owner: &str,
         repository_name: &str,
         pr_number: u64,

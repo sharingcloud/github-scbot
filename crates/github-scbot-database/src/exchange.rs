@@ -6,7 +6,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Account, DatabaseError, DbServiceAll, ExternalAccount, ExternalAccountRight, MergeRule,
+    Account, DatabaseError, DbService, ExternalAccount, ExternalAccountRight, MergeRule,
     PullRequest, Repository, RequiredReviewer, Result,
 };
 
@@ -25,7 +25,7 @@ pub struct Exchanger;
 
 impl Exchanger {
     pub async fn export_to_json<W: Write>(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         writer: &mut W,
     ) -> Result<()> {
         let data = ExchangeData {
@@ -45,7 +45,7 @@ impl Exchanger {
     }
 
     pub async fn import_from_json<R: Read>(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         reader: R,
     ) -> Result<()> {
         let data: ExchangeData = serde_json::from_reader(reader)
@@ -146,7 +146,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_repository(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         repository: Repository,
     ) -> Result<Repository> {
         match db_service
@@ -159,7 +159,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_pull_request(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         repository: &Repository,
         pull_request: PullRequest,
     ) -> Result<PullRequest> {
@@ -173,7 +173,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_merge_rule(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         repository: &Repository,
         merge_rule: MergeRule,
     ) -> Result<MergeRule> {
@@ -192,7 +192,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_account(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         account: Account,
     ) -> Result<Account> {
         match db_service.accounts_get(&account.username).await? {
@@ -202,7 +202,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_external_account(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         exa: ExternalAccount,
     ) -> Result<ExternalAccount> {
         match db_service.external_accounts_get(&exa.username).await? {
@@ -212,7 +212,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_reviewer(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         repository: &Repository,
         pull_request: &PullRequest,
         reviewer: RequiredReviewer,
@@ -232,7 +232,7 @@ impl Exchanger {
     }
 
     async fn create_or_update_external_account_right(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         repository: &Repository,
         right: ExternalAccountRight,
     ) -> Result<ExternalAccountRight> {

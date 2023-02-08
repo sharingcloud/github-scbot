@@ -1,10 +1,10 @@
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 
 use crate::Result;
 
 pub struct RemoveExternalAccountUseCase<'a> {
     pub username: String,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> RemoveExternalAccountUseCase<'a> {
@@ -21,7 +21,7 @@ impl<'a> RemoveExternalAccountUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, ExternalAccount, MemoryDb};
+    use github_scbot_database::{DbService, ExternalAccount, MemoryDb};
 
     use super::RemoveExternalAccountUseCase;
 

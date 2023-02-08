@@ -1,9 +1,9 @@
-use github_scbot_database::{DbServiceAll, ExternalAccount};
+use github_scbot_database::{DbService, ExternalAccount};
 
 use crate::Result;
 
 pub struct ListExternalAccountsUseCase<'a> {
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> ListExternalAccountsUseCase<'a> {
@@ -19,7 +19,7 @@ impl<'a> ListExternalAccountsUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, ExternalAccount, MemoryDb};
+    use github_scbot_database::{DbService, ExternalAccount, MemoryDb};
 
     use super::ListExternalAccountsUseCase;
 

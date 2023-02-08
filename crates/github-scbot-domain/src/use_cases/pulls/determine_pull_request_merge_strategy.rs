@@ -1,10 +1,10 @@
 use github_scbot_core::types::pulls::GhMergeStrategy;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 
 use crate::Result;
 
 pub struct DeterminePullRequestMergeStrategyUseCase<'a> {
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
     pub repo_name: &'a str,
     pub repo_owner: &'a str,
     pub base_branch: &'a str,

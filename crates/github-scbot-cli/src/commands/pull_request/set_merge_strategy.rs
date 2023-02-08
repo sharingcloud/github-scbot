@@ -57,7 +57,7 @@ impl Command for PullRequestSetMergeStrategyCommand {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, PullRequest, Repository};
+    use github_scbot_database::{DbService, PullRequest, Repository};
 
     use crate::testutils::{test_command, CommandContextTest};
 

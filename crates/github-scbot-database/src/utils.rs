@@ -4,7 +4,7 @@ use sqlx::{postgres::PgPoolOptions, Connection, PgConnection, PgPool};
 
 use crate::{errors::StdError, run_migrations};
 
-use crate::interface::DbServiceAll;
+use crate::interface::DbService;
 
 async fn create_postgres_connection(base_url: &str) -> PgConnection {
     create_connection(&create_db_url(base_url, "postgres")).await
@@ -96,7 +96,7 @@ fn create_db_url(base_url: &str, db_name: &str) -> String {
 #[allow(unused)]
 pub async fn db_test_case<F, Fut>(test_name: &str, block: F)
 where
-    F: Fn(Box<dyn DbServiceAll>) -> Fut,
+    F: Fn(Box<dyn DbService>) -> Fut,
     Fut: Future<Output = Result<(), StdError>>,
 {
     use crate::{memory::MemoryDb, postgres::PostgresDb};

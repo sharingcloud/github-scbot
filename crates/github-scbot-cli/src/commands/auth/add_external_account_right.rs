@@ -36,7 +36,7 @@ impl AuthAddExternalAccountRightCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_database::{DbServiceAll, ExternalAccount, Repository};
+    use github_scbot_database::{DbService, ExternalAccount, Repository};
 
     use crate::testutils::{test_command, CommandContextTest};
 

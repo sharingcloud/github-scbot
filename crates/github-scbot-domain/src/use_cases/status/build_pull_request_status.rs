@@ -1,5 +1,5 @@
 use github_scbot_core::types::pulls::GhPullRequest;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 
 use super::utils::PullRequestStatus;
@@ -7,7 +7,7 @@ use crate::Result;
 
 pub struct BuildPullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,

@@ -7,7 +7,7 @@ use crate::{
 };
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 
-use super::interface::DbServiceAll;
+use super::interface::DbService;
 
 #[derive(Debug, Default)]
 pub struct MemoryDb {
@@ -35,7 +35,7 @@ impl MemoryDb {
 }
 
 #[async_trait]
-impl DbServiceAll for MemoryDb {
+impl DbService for MemoryDb {
     async fn accounts_create(&mut self, instance: Account) -> Result<Account> {
         self.accounts
             .insert(instance.username.clone(), instance.clone());

@@ -12,14 +12,14 @@ use std::time::{Duration, Instant};
 
 use app::App;
 use crossterm::event::Event;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use terminal::TerminalWrapper;
 
 use self::errors::Result;
 pub use errors::UiError;
 
 /// Run TUI interface.
-pub async fn run_tui(db_adapter: &mut dyn DbServiceAll) -> Result<()> {
+pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
     let mut terminal = TerminalWrapper::new()?;
 
     let mut app = App::new("SC Bot");

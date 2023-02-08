@@ -20,7 +20,7 @@ pub use models::repository::Repository;
 pub use models::required_reviewer::RequiredReviewer;
 
 pub use errors::{DatabaseError, Result};
-pub use interface::DbServiceAll;
+pub use interface::DbService;
 pub use memory::MemoryDb;
 pub use postgres::PostgresDb;
 pub use utils::db_test_case;

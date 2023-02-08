@@ -13,7 +13,7 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::lock::Mutex;
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
-use github_scbot_database::{DbPool, DbServiceAll, PostgresDb};
+use github_scbot_database::{DbPool, DbService, PostgresDb};
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 use tracing::info;
@@ -36,7 +36,7 @@ pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_adapter: Mutex<Box<dyn DbServiceAll>>,
+    pub db_adapter: Mutex<Box<dyn DbService>>,
     /// API adapter
     pub api_adapter: Box<dyn ApiService>,
     /// Redis adapter
@@ -57,7 +57,7 @@ impl AppContext {
     /// Create new app context using adapters.
     pub fn new_with_adapters(
         config: Config,
-        db_adapter: Box<dyn DbServiceAll>,
+        db_adapter: Box<dyn DbService>,
         api_adapter: Box<dyn ApiService>,
         redis_adapter: Box<dyn RedisService>,
     ) -> Self {

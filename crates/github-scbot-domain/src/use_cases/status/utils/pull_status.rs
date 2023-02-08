@@ -5,7 +5,7 @@ use github_scbot_core::types::{
     reviews::{GhReview, GhReviewState},
     status::{CheckStatus, QaStatus},
 };
-use github_scbot_database::{DbServiceAll, PullRequest, Repository, RequiredReviewer};
+use github_scbot_database::{DbService, PullRequest, Repository, RequiredReviewer};
 use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
 use regex::Regex;
 
@@ -63,7 +63,7 @@ impl PullRequestStatus {
     )]
     pub async fn from_database(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,

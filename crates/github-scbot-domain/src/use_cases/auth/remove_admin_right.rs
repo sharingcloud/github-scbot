@@ -1,10 +1,10 @@
-use github_scbot_database::{Account, DbServiceAll};
+use github_scbot_database::{Account, DbService};
 
 use crate::Result;
 
 pub struct RemoveAdminRightUseCase<'a> {
     pub username: String,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> RemoveAdminRightUseCase<'a> {
@@ -33,7 +33,7 @@ impl<'a> RemoveAdminRightUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{Account, DbServiceAll, MemoryDb};
+    use github_scbot_database::{Account, DbService, MemoryDb};
 
     use super::RemoveAdminRightUseCase;
 

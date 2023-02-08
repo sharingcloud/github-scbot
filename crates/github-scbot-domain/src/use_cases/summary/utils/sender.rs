@@ -1,4 +1,4 @@
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::{LockStatus, RedisService};
 use tracing::{error, warn};
@@ -22,7 +22,7 @@ impl SummaryCommentSender {
     )]
     pub async fn create_or_update(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         redis_adapter: &dyn RedisService,
         repo_owner: &str,
         repo_name: &str,
@@ -92,7 +92,7 @@ impl SummaryCommentSender {
 
     async fn create(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -112,7 +112,7 @@ impl SummaryCommentSender {
 
     async fn update(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -156,7 +156,7 @@ impl SummaryCommentSender {
     /// Delete comment.
     pub async fn delete(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -175,7 +175,7 @@ impl SummaryCommentSender {
     }
 
     async fn get_status_comment_id(
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -193,7 +193,7 @@ impl SummaryCommentSender {
 
     async fn post_github_comment(
         api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
+        db_adapter: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         issue_number: u64,

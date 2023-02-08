@@ -3,7 +3,7 @@
 use actix_web::HttpResponse;
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use github_scbot_domain::use_cases::comments::HandleIssueCommentEventUseCase;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
@@ -18,7 +18,7 @@ pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEven
 pub(crate) async fn issue_comment_event(
     config: &Config,
     api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbServiceAll,
+    db_adapter: &mut dyn DbService,
     redis_adapter: &dyn RedisService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {

@@ -1,10 +1,10 @@
-use github_scbot_database::{DbServiceAll, Repository};
+use github_scbot_database::{DbService, Repository};
 
 use crate::Result;
 
 pub struct ListExternalAccountRightsUseCase<'a> {
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> ListExternalAccountRightsUseCase<'a> {
@@ -35,7 +35,7 @@ mod tests {
     use std::error::Error;
 
     use github_scbot_database::{
-        DbServiceAll, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
+        DbService, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
     };
 
     use super::ListExternalAccountRightsUseCase;

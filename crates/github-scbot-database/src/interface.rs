@@ -7,7 +7,7 @@ use crate::{
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 
 #[async_trait]
-pub trait DbServiceAll: Send + Sync {
+pub trait DbService: Send + Sync {
     async fn accounts_create(&mut self, instance: Account) -> Result<Account>;
     async fn accounts_update(&mut self, instance: Account) -> Result<Account>;
     async fn accounts_all(&mut self) -> Result<Vec<Account>>;

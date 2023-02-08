@@ -1,5 +1,5 @@
 use github_scbot_core::types::checks::GhCheckSuiteEvent;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
 use github_scbot_redis::RedisService;
 
@@ -7,7 +7,7 @@ use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 
 pub struct HandleCheckSuiteEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
     pub redis_service: &'a dyn RedisService,
     pub event: GhCheckSuiteEvent,
 }

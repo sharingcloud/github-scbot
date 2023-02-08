@@ -1,12 +1,12 @@
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::{DbServiceAll, ExternalAccountRight};
+use github_scbot_database::{DbService, ExternalAccountRight};
 
 use crate::Result;
 
 pub struct AddExternalAccountRightUseCase<'a> {
     pub repository_path: RepositoryPath,
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> AddExternalAccountRightUseCase<'a> {
@@ -33,7 +33,7 @@ mod tests {
     use std::error::Error;
 
     use super::AddExternalAccountRightUseCase;
-    use github_scbot_database::{DbServiceAll, ExternalAccount, MemoryDb, Repository};
+    use github_scbot_database::{DbService, ExternalAccount, MemoryDb, Repository};
 
     #[actix_rt::test]
     async fn run() -> Result<(), Box<dyn Error>> {

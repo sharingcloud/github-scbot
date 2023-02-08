@@ -1,10 +1,10 @@
-use github_scbot_database::{Account, DbServiceAll};
+use github_scbot_database::{Account, DbService};
 
 use crate::Result;
 
 pub struct AddAdminRightUseCase<'a> {
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> AddAdminRightUseCase<'a> {
@@ -33,7 +33,7 @@ impl<'a> AddAdminRightUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, MemoryDb};
+    use github_scbot_database::{DbService, MemoryDb};
 
     use super::AddAdminRightUseCase;
 

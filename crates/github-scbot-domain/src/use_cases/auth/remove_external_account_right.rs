@@ -1,12 +1,12 @@
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 
 use crate::Result;
 
 pub struct RemoveExternalAccountRightUseCase<'a> {
     pub username: String,
     pub repository_path: RepositoryPath,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> RemoveExternalAccountRightUseCase<'a> {
@@ -27,7 +27,7 @@ mod tests {
 
     use github_scbot_core::types::repository::RepositoryPath;
     use github_scbot_database::{
-        DbServiceAll, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
+        DbService, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
     };
 
     use super::RemoveExternalAccountRightUseCase;

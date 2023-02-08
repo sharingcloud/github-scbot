@@ -7,7 +7,7 @@ use crate::{
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use sqlx::{PgPool, Row};
 
-use super::interface::DbServiceAll;
+use super::interface::DbService;
 
 pub struct PostgresDb {
     pool: PgPool,
@@ -117,7 +117,7 @@ impl PostgresDb {
 }
 
 #[async_trait]
-impl DbServiceAll for PostgresDb {
+impl DbService for PostgresDb {
     #[tracing::instrument(skip(self))]
     async fn accounts_create(&mut self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(

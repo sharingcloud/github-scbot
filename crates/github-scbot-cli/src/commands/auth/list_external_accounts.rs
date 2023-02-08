@@ -33,7 +33,7 @@ impl AuthListExternalAccountsCommand {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbServiceAll, ExternalAccount};
+    use github_scbot_database::{DbService, ExternalAccount};
 
     use crate::testutils::{test_command, CommandContextTest};
 

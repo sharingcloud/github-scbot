@@ -6,7 +6,7 @@ pub mod commands;
 mod parser;
 
 use github_scbot_core::types::{common::GhUserPermission, issues::GhReactionType};
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 use github_scbot_ghapi::comments::CommentApi;
 pub use parser::CommandParser;
 
@@ -339,7 +339,7 @@ impl CommandExecutor {
 
     /// Validate user rights on command.
     pub async fn validate_user_rights_on_command(
-        db_service: &mut dyn DbServiceAll,
+        db_service: &mut dyn DbService,
         username: &str,
         user_permission: GhUserPermission,
         command: &Command,

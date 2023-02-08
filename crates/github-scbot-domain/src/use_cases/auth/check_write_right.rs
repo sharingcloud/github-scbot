@@ -1,5 +1,5 @@
 use github_scbot_core::types::common::GhUserPermission;
-use github_scbot_database::DbServiceAll;
+use github_scbot_database::DbService;
 
 use crate::Result;
 
@@ -8,7 +8,7 @@ use super::check_is_admin::CheckIsAdminUseCase;
 pub struct CheckWriteRightUseCase<'a> {
     pub username: &'a str,
     pub user_permission: GhUserPermission,
-    pub db_service: &'a mut dyn DbServiceAll,
+    pub db_service: &'a mut dyn DbService,
 }
 
 impl<'a> CheckWriteRightUseCase<'a> {
@@ -29,7 +29,7 @@ mod tests {
     use std::error::Error;
 
     use github_scbot_core::types::common::GhUserPermission;
-    use github_scbot_database::{Account, DbServiceAll, MemoryDb};
+    use github_scbot_database::{Account, DbService, MemoryDb};
 
     use super::CheckWriteRightUseCase;
 

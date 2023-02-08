@@ -33,7 +33,7 @@ impl AuthListAdminAccountsCommand {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{Account, DbServiceAll};
+    use github_scbot_database::{Account, DbService};
 
     use crate::testutils::{test_command, CommandContextTest};
 
