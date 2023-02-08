@@ -1,9 +1,15 @@
 use github_scbot_core::types::{labels::StepLabel, pulls::GhPullRequest};
 use github_scbot_database::DbServiceAll;
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
 use github_scbot_redis::{LockStatus, RedisService};
 
-use crate::{pulls::PullRequestLogic, use_cases::summary::PostSummaryCommentUseCase, Result};
+use crate::{
+    pulls::PullRequestLogic,
+    use_cases::{
+        pulls::DeterminePullRequestMergeStrategyUseCase, summary::PostSummaryCommentUseCase,
+    },
+    Result,
+};
 
 use super::{
     build_pull_request_status::BuildPullRequestStatusUseCase,
@@ -50,14 +56,7 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
         }
         .run();
 
-        PullRequestLogic::apply_pull_request_step(
-            self.api_service,
-            self.repo_owner,
-            self.repo_name,
-            self.pr_number,
-            Some(step_label),
-        )
-        .await?;
+        self.apply_pull_request_step(Some(step_label)).await?;
 
         // Post status.
         PostSummaryCommentUseCase {
@@ -108,16 +107,7 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
             if let LockStatus::SuccessfullyLocked(l) =
                 self.redis_service.try_lock_resource(&key).await?
             {
-                let result = PullRequestLogic::try_automerge_pull_request(
-                    self.api_service,
-                    self.db_service,
-                    self.repo_owner,
-                    self.repo_name,
-                    self.pr_number,
-                    self.upstream_pr,
-                )
-                .await?;
-                if !result {
+                if !self.try_automerge_pull_request().await? {
                     self.db_service
                         .pull_requests_set_automerge(
                             self.repo_owner,
@@ -146,5 +136,96 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
         }
 
         Ok(())
+    }
+
+    /// Apply pull request step.
+    #[tracing::instrument(skip(self))]
+    async fn apply_pull_request_step(&mut self, step: Option<StepLabel>) -> Result<()> {
+        LabelApi::set_step_label(
+            self.api_service,
+            self.repo_owner,
+            self.repo_name,
+            self.pr_number,
+            step,
+        )
+        .await
+        .map_err(Into::into)
+    }
+
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            repo_owner = %self.repo_owner,
+            repo_name = %self.repo_name,
+            pr_number = self.pr_number
+        ),
+        ret
+    )]
+    async fn try_automerge_pull_request(&mut self) -> Result<bool> {
+        let repository = self
+            .db_service
+            .repositories_get(self.repo_owner, self.repo_name)
+            .await?
+            .unwrap();
+        let pull_request = self
+            .db_service
+            .pull_requests_get(self.repo_owner, self.repo_name, self.pr_number)
+            .await?
+            .unwrap();
+
+        let commit_title = PullRequestLogic::get_merge_commit_title(self.upstream_pr);
+        let strategy = if let Some(s) = pull_request.strategy_override {
+            s
+        } else {
+            DeterminePullRequestMergeStrategyUseCase {
+                db_service: self.db_service,
+                repo_owner: self.repo_owner,
+                repo_name: self.repo_name,
+                head_branch: &self.upstream_pr.base.reference,
+                base_branch: &self.upstream_pr.head.reference,
+                default_strategy: repository.default_strategy,
+            }
+            .run()
+            .await?
+        };
+
+        if let Err(e) = self
+            .api_service
+            .pulls_merge(
+                self.repo_owner,
+                self.repo_name,
+                self.pr_number,
+                &commit_title,
+                "",
+                strategy,
+            )
+            .await
+        {
+            CommentApi::post_comment(
+                self.api_service,
+                self.repo_owner,
+                self.repo_name,
+                self.pr_number,
+                &format!(
+                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
+                    e
+                ),
+            )
+            .await?;
+            Ok(false)
+        } else {
+            CommentApi::post_comment(
+                self.api_service,
+                self.repo_owner,
+                self.repo_name,
+                self.pr_number,
+                &format!(
+                    "Pull request successfully auto-merged! (strategy: '{}')",
+                    strategy
+                ),
+            )
+            .await?;
+            Ok(true)
+        }
     }
 }

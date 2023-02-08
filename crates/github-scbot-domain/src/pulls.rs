@@ -1,20 +1,12 @@
 //! Pull requests logic.
 
 use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    labels::StepLabel,
-    pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent},
-};
+use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
 use github_scbot_database::{DbServiceAll, PullRequest, Repository};
-use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
+use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
 use github_scbot_redis::RedisService;
 
-use crate::{
-    commands::CommandContext,
-    use_cases::{
-        pulls::DeterminePullRequestMergeStrategyUseCase, status::UpdatePullRequestStatusUseCase,
-    },
-};
+use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
     Result,
@@ -295,104 +287,8 @@ impl PullRequestLogic {
         format!("{} (#{})", upstream_pr.title, upstream_pr.number)
     }
 
-    /// Try automerge pull request.
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            repo_owner = %repo_owner,
-            repo_name = %repo_name,
-            pr_number = pr_number
-        ),
-        ret
-    )]
-    pub async fn try_automerge_pull_request(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbServiceAll,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        upstream_pr: &GhPullRequest,
-    ) -> Result<bool> {
-        let repository = db_adapter
-            .repositories_get(repo_owner, repo_name)
-            .await?
-            .unwrap();
-        let pull_request = db_adapter
-            .pull_requests_get(repo_owner, repo_name, pr_number)
-            .await?
-            .unwrap();
-
-        let commit_title = Self::get_merge_commit_title(upstream_pr);
-        let strategy = if let Some(s) = pull_request.strategy_override {
-            s
-        } else {
-            DeterminePullRequestMergeStrategyUseCase {
-                db_service: db_adapter,
-                repo_owner,
-                repo_name,
-                head_branch: &upstream_pr.base.reference,
-                base_branch: &upstream_pr.head.reference,
-                default_strategy: repository.default_strategy,
-            }
-            .run()
-            .await?
-        };
-
-        if let Err(e) = api_adapter
-            .pulls_merge(
-                repo_owner,
-                repo_name,
-                pr_number,
-                &commit_title,
-                "",
-                strategy,
-            )
-            .await
-        {
-            CommentApi::post_comment(
-                api_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
-                &format!(
-                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
-                    e
-                ),
-            )
-            .await?;
-            Ok(false)
-        } else {
-            CommentApi::post_comment(
-                api_adapter,
-                repo_owner,
-                repo_name,
-                pr_number,
-                &format!(
-                    "Pull request successfully auto-merged! (strategy: '{}')",
-                    strategy
-                ),
-            )
-            .await?;
-            Ok(true)
-        }
-    }
-
-    /// Apply pull request step.
-    #[tracing::instrument(skip(api_adapter))]
-    pub async fn apply_pull_request_step(
-        api_adapter: &dyn ApiService,
-        owner: &str,
-        name: &str,
-        number: u64,
-        step: Option<StepLabel>,
-    ) -> Result<()> {
-        LabelApi::set_step_label(api_adapter, owner, name, number, step)
-            .await
-            .map_err(Into::into)
-    }
-
     /// Post welcome comment on a pull request.
-    pub async fn post_welcome_comment(
+    async fn post_welcome_comment(
         api_adapter: &dyn ApiService,
         repo_owner: &str,
         repo_name: &str,

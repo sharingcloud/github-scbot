@@ -7,7 +7,7 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    gif::GifPoster,
+    use_cases::comments::GenerateRandomGifCommentUseCase,
     Result,
 };
 
@@ -27,11 +27,12 @@ impl BotCommand for GifCommand {
         Ok(CommandExecutionResult::builder()
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(
-                GifPoster::generate_random_gif_comment(
-                    ctx.config,
-                    ctx.api_adapter,
-                    &self.search_terms,
-                )
+                GenerateRandomGifCommentUseCase {
+                    config: ctx.config,
+                    api_service: ctx.api_adapter,
+                    search_terms: &self.search_terms,
+                }
+                .run()
                 .await?,
             ))
             .build())
