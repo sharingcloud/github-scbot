@@ -7,7 +7,7 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    pulls::PullRequestLogic,
+    use_cases::pulls::SynchronizePullRequestUseCase,
     Result,
 };
 
@@ -22,13 +22,14 @@ impl AdminSyncCommand {
 #[async_trait(?Send)]
 impl BotCommand for AdminSyncCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        PullRequestLogic::synchronize_pull_request(
-            ctx.config,
-            ctx.db_adapter,
-            ctx.repo_owner,
-            ctx.repo_name,
-            ctx.pr_number,
-        )
+        SynchronizePullRequestUseCase {
+            config: ctx.config,
+            db_service: ctx.db_adapter,
+            repo_owner: ctx.repo_owner,
+            repo_name: ctx.repo_name,
+            pr_number: ctx.pr_number,
+        }
+        .run()
         .await?;
 
         Ok(CommandExecutionResult::builder()

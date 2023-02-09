@@ -4,8 +4,8 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_domain::{
-    pulls::PullRequestLogic, use_cases::status::UpdatePullRequestStatusUseCase,
+use github_scbot_domain::use_cases::{
+    pulls::SynchronizePullRequestUseCase, status::UpdatePullRequestStatusUseCase,
 };
 
 use crate::commands::{Command, CommandContext};
@@ -26,13 +26,14 @@ impl Command for PullRequestSyncCommand {
         let (repo_owner, repo_name) = self.repository_path.components();
         let pr_number = self.number;
 
-        PullRequestLogic::synchronize_pull_request(
-            &ctx.config,
-            ctx.db_adapter.as_mut(),
+        SynchronizePullRequestUseCase {
+            config: &ctx.config,
+            db_service: ctx.db_adapter.as_mut(),
             repo_owner,
             repo_name,
             pr_number,
-        )
+        }
+        .run()
         .await?;
 
         let upstream_pr = ctx

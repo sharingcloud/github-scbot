@@ -4,9 +4,10 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{PullRequest, Repository};
-use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
+use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
+use crate::use_cases::comments::PostWelcomeCommentUseCase;
 use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{
     commands::{AdminCommand, Command, CommandExecutor, CommandParser},
@@ -85,13 +86,14 @@ pub async fn handle_pull_request_opened(
                 .await?;
 
                 if config.server_enable_welcome_comments {
-                    PullRequestLogic::post_welcome_comment(
-                        api_adapter,
+                    PostWelcomeCommentUseCase {
+                        api_service: api_adapter,
                         repo_owner,
                         repo_name,
                         pr_number,
-                        &event.pull_request.user.login,
-                    )
+                        pr_author: &event.pull_request.user.login,
+                    }
+                    .run()
                     .await?;
                 }
 
@@ -253,62 +255,8 @@ impl PullRequestLogic {
         )
     }
 
-    pub async fn synchronize_pull_request(
-        config: &Config,
-        db_adapter: &mut dyn DbService,
-        repository_owner: &str,
-        repository_name: &str,
-        pr_number: u64,
-    ) -> Result<()> {
-        let repo =
-            Self::get_or_create_repository(config, db_adapter, repository_owner, repository_name)
-                .await?;
-
-        if db_adapter
-            .pull_requests_get(repository_owner, repository_name, pr_number)
-            .await?
-            .is_none()
-        {
-            db_adapter
-                .pull_requests_create(
-                    PullRequest {
-                        number: pr_number,
-                        ..Default::default()
-                    }
-                    .with_repository(&repo),
-                )
-                .await?;
-        }
-
-        Ok(())
-    }
-
     /// Get merge commit title.
     pub fn get_merge_commit_title(upstream_pr: &GhPullRequest) -> String {
         format!("{} (#{})", upstream_pr.title, upstream_pr.number)
-    }
-
-    /// Post welcome comment on a pull request.
-    async fn post_welcome_comment(
-        api_adapter: &dyn ApiService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
-        pr_author: &str,
-    ) -> Result<()> {
-        CommentApi::post_comment(
-            api_adapter,
-            repo_owner,
-            repo_name,
-            pr_number,
-            &format!(
-                ":tada: Welcome, _{}_ ! :tada:\n\
-            Thanks for your pull request, it will be reviewed soon. :clock2:",
-                pr_author
-            ),
-        )
-        .await?;
-
-        Ok(())
     }
 }

@@ -9,8 +9,7 @@ use tracing::info;
 
 use crate::{
     commands::{AdminCommand, Command, CommandContext, CommandExecutor, CommandParser},
-    pulls::PullRequestLogic,
-    use_cases::status::UpdatePullRequestStatusUseCase,
+    use_cases::{pulls::SynchronizePullRequestUseCase, status::UpdatePullRequestStatusUseCase},
     Result,
 };
 
@@ -73,13 +72,14 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                             .pulls_get(repo_owner, repo_name, pr_number)
                             .await?;
 
-                        PullRequestLogic::synchronize_pull_request(
-                            self.config,
-                            self.db_service,
+                        SynchronizePullRequestUseCase {
+                            config: self.config,
+                            db_service: self.db_service,
                             repo_owner,
                             repo_name,
                             pr_number,
-                        )
+                        }
+                        .run()
                         .await?;
 
                         info!(

@@ -1,3 +1,5 @@
 mod determine_pull_request_merge_strategy;
+mod synchronize_pull_request;
 
 pub use determine_pull_request_merge_strategy::DeterminePullRequestMergeStrategyUseCase;
+pub use synchronize_pull_request::SynchronizePullRequestUseCase;
