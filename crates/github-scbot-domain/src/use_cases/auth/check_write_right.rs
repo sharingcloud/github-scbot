@@ -1,5 +1,5 @@
 use github_scbot_core::types::common::GhUserPermission;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 
 use crate::Result;
 
@@ -29,7 +29,9 @@ mod tests {
     use std::error::Error;
 
     use github_scbot_core::types::common::GhUserPermission;
-    use github_scbot_database::{Account, DbService, MemoryDb};
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::Account;
 
     use super::CheckWriteRightUseCase;
 

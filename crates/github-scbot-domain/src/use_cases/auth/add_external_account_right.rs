@@ -1,5 +1,6 @@
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::{DbService, ExternalAccountRight};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::ExternalAccountRight;
 
 use crate::Result;
 
@@ -33,7 +34,9 @@ mod tests {
     use std::error::Error;
 
     use super::AddExternalAccountRightUseCase;
-    use github_scbot_database::{DbService, ExternalAccount, MemoryDb, Repository};
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{ExternalAccount, Repository};
 
     #[actix_rt::test]
     async fn run() -> Result<(), Box<dyn Error>> {

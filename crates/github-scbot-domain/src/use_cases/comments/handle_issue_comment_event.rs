@@ -2,7 +2,7 @@ use github_scbot_core::{
     config::Config,
     types::issues::{GhIssueCommentAction, GhIssueCommentEvent},
 };
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 use tracing::info;

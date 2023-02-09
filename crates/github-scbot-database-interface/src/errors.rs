@@ -2,22 +2,8 @@ use github_scbot_core::{crypto::CryptoError, types::rule_branch::RuleBranch};
 
 use thiserror::Error;
 
-pub type StdError = Box<dyn std::error::Error + Send + Sync>;
-
 #[derive(Debug, Error)]
 pub enum DatabaseError {
-    #[error("Database connection error")]
-    ConnectionError { source: sqlx::Error },
-
-    #[error("Migration error")]
-    MigrationError { source: sqlx::migrate::MigrateError },
-
-    #[error("SQL error")]
-    SqlError { source: sqlx::Error },
-
-    #[error("Transaction error")]
-    TransactionError { source: sqlx::Error },
-
     #[error("Import/Export JSON error")]
     ExchangeJsonError { source: serde_json::Error },
 
@@ -44,6 +30,11 @@ pub enum DatabaseError {
 
     #[error("Unknown pull request ID '{0}'")]
     UnknownPullRequestId(u64),
+
+    #[error(transparent)]
+    ImplementationError {
+        source: Box<dyn std::error::Error + Send + Sync + 'static>,
+    },
 }
 
 pub type Result<T, E = DatabaseError> = core::result::Result<T, E>;

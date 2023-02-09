@@ -1,6 +1,6 @@
 use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::GhPullRequest;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
@@ -35,7 +35,7 @@ pub trait BotCommand {
 #[cfg(test)]
 pub(crate) mod tests {
     use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
-    use github_scbot_database::MemoryDb;
+    use github_scbot_database_memory::MemoryDb;
     use github_scbot_ghapi_interface::MockApiService;
     use github_scbot_lock_interface::MockLockService;
 

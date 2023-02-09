@@ -1,5 +1,5 @@
 use github_scbot_core::types::reviews::GhReviewEvent;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 

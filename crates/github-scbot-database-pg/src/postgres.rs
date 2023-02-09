@@ -1,13 +1,17 @@
 use async_trait::async_trait;
 
-use crate::{
-    Account, DatabaseError, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest,
-    Repository, RequiredReviewer, Result,
-};
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
+use github_scbot_database_interface::{DatabaseError, DbService, Result};
+use github_scbot_domain_models::{
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
+    RequiredReviewer,
+};
 use sqlx::{PgPool, Row};
 
-use super::interface::DbService;
+use crate::row::{
+    AccountRow, ExternalAccountRightRow, ExternalAccountRow, MergeRuleRow, PullRequestRow,
+    RepositoryRow, RequiredReviewerRow,
+};
 
 pub struct PostgresDb {
     pool: PgPool,
@@ -22,7 +26,7 @@ impl PostgresDb {
         if let sqlx::Error::RowNotFound = e {
             target
         } else {
-            DatabaseError::SqlError { source: e }
+            DatabaseError::ImplementationError { source: e.into() }
         }
     }
 
@@ -66,7 +70,7 @@ impl PostgresDb {
         username: &str,
         repository_id: u64,
     ) -> Result<Option<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
+        let row = sqlx::query_as::<_, ExternalAccountRightRow>(
             r#"
             SELECT *
             FROM external_account_right
@@ -78,11 +82,13 @@ impl PostgresDb {
         .bind(repository_id as i32)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     async fn merge_rules_get_from_id(&mut self, id: i32) -> Result<Option<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
+        let row = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT *
             FROM merge_rule
@@ -92,7 +98,9 @@ impl PostgresDb {
         .bind(id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     async fn required_reviewers_get_from_pull_request_id(
@@ -100,7 +108,7 @@ impl PostgresDb {
         pull_request_id: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>> {
-        sqlx::query_as::<_, RequiredReviewer>(
+        let row = sqlx::query_as::<_, RequiredReviewerRow>(
             r#"
                 SELECT *
                 FROM required_reviewer
@@ -112,7 +120,9 @@ impl PostgresDb {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 }
 
@@ -140,7 +150,7 @@ impl DbService for PostgresDb {
         .bind(instance.is_admin)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?
         .get(0);
 
         self.accounts_get_expect(&username).await
@@ -168,7 +178,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn accounts_all(&mut self) -> Result<Vec<Account>> {
-        sqlx::query_as::<_, Account>(
+        let rows = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
                 FROM account
@@ -177,12 +187,14 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
     async fn accounts_get(&mut self, username: &str) -> Result<Option<Account>> {
-        sqlx::query_as::<_, Account>(
+        let row = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
                 FROM account
@@ -192,7 +204,9 @@ impl DbService for PostgresDb {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -207,12 +221,12 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
     async fn accounts_list_admins(&mut self) -> Result<Vec<Account>> {
-        sqlx::query_as::<_, Account>(
+        let rows = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
                 FROM account
@@ -223,7 +237,9 @@ impl DbService for PostgresDb {
         .bind(true)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
@@ -276,7 +292,7 @@ impl DbService for PostgresDb {
         .bind(instance.repository_id as i32)
         .execute(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?;
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
 
         self.external_accounts_get_from_id(&instance.username, instance.repository_id)
             .await
@@ -290,7 +306,7 @@ impl DbService for PostgresDb {
         name: &str,
         username: &str,
     ) -> Result<Option<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
+        let row = sqlx::query_as::<_, ExternalAccountRightRow>(
             r#"
                 SELECT external_account_right.*
                 FROM external_account_right
@@ -305,7 +321,9 @@ impl DbService for PostgresDb {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -331,7 +349,7 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
@@ -346,7 +364,7 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
@@ -354,7 +372,7 @@ impl DbService for PostgresDb {
         &mut self,
         username: &str,
     ) -> Result<Vec<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
+        let rows = sqlx::query_as::<_, ExternalAccountRightRow>(
             r#"
             SELECT *
             FROM external_account_right
@@ -365,12 +383,14 @@ impl DbService for PostgresDb {
         .bind(username)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
     async fn external_account_rights_all(&mut self) -> Result<Vec<ExternalAccountRight>> {
-        sqlx::query_as::<_, ExternalAccountRight>(
+        let rows = sqlx::query_as::<_, ExternalAccountRightRow>(
             r#"
             SELECT *
             FROM external_account_right
@@ -379,7 +399,9 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     ////////////////////
@@ -410,7 +432,7 @@ impl DbService for PostgresDb {
         .bind(instance.private_key)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?
         .get(0);
 
         self.external_accounts_get(&username)
@@ -445,7 +467,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_accounts_get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
-        sqlx::query_as::<_, ExternalAccount>(
+        let row = sqlx::query_as::<_, ExternalAccountRow>(
             r#"
                 SELECT *
                 FROM external_account
@@ -455,7 +477,9 @@ impl DbService for PostgresDb {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -470,12 +494,12 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
     async fn external_accounts_all(&mut self) -> Result<Vec<ExternalAccount>> {
-        sqlx::query_as::<_, ExternalAccount>(
+        let rows = sqlx::query_as::<_, ExternalAccountRow>(
             r#"
             SELECT *
             FROM external_account
@@ -484,7 +508,9 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
@@ -521,7 +547,7 @@ impl DbService for PostgresDb {
         sqlx::query("SELECT 1;")
             .execute(&self.pool)
             .await
-            .map_err(|e| DatabaseError::SqlError { source: e })?;
+            .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
 
         Ok(())
     }
@@ -560,7 +586,7 @@ impl DbService for PostgresDb {
         .bind(instance.strategy.to_string())
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?
         .get(0);
 
         self.merge_rules_get_from_id(new_id)
@@ -605,7 +631,7 @@ impl DbService for PostgresDb {
         base_branch: RuleBranch,
         head_branch: RuleBranch,
     ) -> Result<Option<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
+        let row = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT merge_rule.*
             FROM merge_rule
@@ -620,7 +646,9 @@ impl DbService for PostgresDb {
         .bind(head_branch.to_string())
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -650,12 +678,12 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_all(&mut self) -> Result<Vec<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
+        let rows = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT *
             FROM merge_rule
@@ -664,12 +692,14 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
-        sqlx::query_as::<_, MergeRule>(
+        let rows = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT merge_rule.*
             FROM merge_rule
@@ -681,7 +711,9 @@ impl DbService for PostgresDb {
         .bind(name)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     ////////////////
@@ -732,7 +764,7 @@ impl DbService for PostgresDb {
         .bind(instance.strategy_override.map(|x| x.to_string()))
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?
         .get(0);
 
         self.pull_requests_get_from_id_expect(new_id as u64).await
@@ -783,7 +815,7 @@ impl DbService for PostgresDb {
         name: &str,
         number: u64,
     ) -> Result<Option<PullRequest>> {
-        sqlx::query_as::<_, PullRequest>(
+        let row = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT pull_request.*
             FROM pull_request
@@ -798,12 +830,14 @@ impl DbService for PostgresDb {
         .bind(number as i32)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_get_from_id(&mut self, id: u64) -> Result<Option<PullRequest>> {
-        sqlx::query_as::<_, PullRequest>(
+        let row = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT *
             FROM pull_request
@@ -813,7 +847,9 @@ impl DbService for PostgresDb {
         .bind(id as i32)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -834,12 +870,12 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_list(&mut self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
-        sqlx::query_as::<_, PullRequest>(
+        let rows = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT pull_request.*
             FROM pull_request
@@ -853,12 +889,14 @@ impl DbService for PostgresDb {
         .bind(name)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_all(&mut self) -> Result<Vec<PullRequest>> {
-        sqlx::query_as::<_, PullRequest>(
+        let rows = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT *
             FROM pull_request
@@ -867,7 +905,9 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
@@ -1154,7 +1194,7 @@ impl DbService for PostgresDb {
         .bind(instance.default_enable_checks)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?
         .get(0);
 
         self.repositories_get_from_id(new_id as u64)
@@ -1203,7 +1243,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_all(&mut self) -> Result<Vec<Repository>> {
-        sqlx::query_as::<_, Repository>(
+        let rows = sqlx::query_as::<_, RepositoryRow>(
             r#"
                 SELECT *
                 FROM repository
@@ -1212,12 +1252,14 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
     async fn repositories_get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>> {
-        sqlx::query_as::<_, Repository>(
+        let row = sqlx::query_as::<_, RepositoryRow>(
             r#"
             SELECT *
             FROM repository
@@ -1229,12 +1271,14 @@ impl DbService for PostgresDb {
         .bind(name)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
     async fn repositories_get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
-        sqlx::query_as::<_, Repository>(
+        let row = sqlx::query_as::<_, RepositoryRow>(
             r#"
             SELECT *
             FROM repository
@@ -1244,7 +1288,9 @@ impl DbService for PostgresDb {
         .bind(id as i32)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -1260,7 +1306,7 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
@@ -1495,7 +1541,7 @@ impl DbService for PostgresDb {
         .bind(instance.username.clone())
         .execute(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })?;
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
 
         self.required_reviewers_get_from_pull_request_id(
             instance.pull_request_id,
@@ -1512,7 +1558,7 @@ impl DbService for PostgresDb {
         name: &str,
         number: u64,
     ) -> Result<Vec<RequiredReviewer>> {
-        sqlx::query_as::<_, RequiredReviewer>(
+        let rows = sqlx::query_as::<_, RequiredReviewerRow>(
                 r#"
                     SELECT required_reviewer.*
                     FROM required_reviewer
@@ -1526,7 +1572,9 @@ impl DbService for PostgresDb {
             .bind(number as i32)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| DatabaseError::SqlError { source: e })
+            .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     #[tracing::instrument(skip(self))]
@@ -1537,7 +1585,7 @@ impl DbService for PostgresDb {
         number: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>> {
-        sqlx::query_as::<_, RequiredReviewer>(
+        let row = sqlx::query_as::<_, RequiredReviewerRow>(
             r#"
                 SELECT required_reviewer.*
                 FROM required_reviewer
@@ -1552,7 +1600,9 @@ impl DbService for PostgresDb {
         .bind(username)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(row.map(Into::into))
     }
 
     #[tracing::instrument(skip(self))]
@@ -1582,12 +1632,12 @@ impl DbService for PostgresDb {
         .execute(&self.pool)
         .await
         .map(|x| x.rows_affected() > 0)
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })
     }
 
     #[tracing::instrument(skip(self))]
     async fn required_reviewers_all(&mut self) -> Result<Vec<RequiredReviewer>> {
-        sqlx::query_as::<_, RequiredReviewer>(
+        let rows = sqlx::query_as::<_, RequiredReviewerRow>(
             r#"
                 SELECT *
                 FROM required_reviewer
@@ -1596,6 +1646,8 @@ impl DbService for PostgresDb {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DatabaseError::SqlError { source: e })
+        .map_err(|e| DatabaseError::ImplementationError { source: e.into() })?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }

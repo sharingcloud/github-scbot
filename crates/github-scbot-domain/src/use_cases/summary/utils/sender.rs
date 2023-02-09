@@ -1,4 +1,4 @@
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
 use github_scbot_lock_interface::{LockService, LockStatus};
 use tracing::{error, warn};

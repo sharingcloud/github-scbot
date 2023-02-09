@@ -1,5 +1,5 @@
 use github_scbot_core::types::issues::GhReactionType;
-use github_scbot_database::{PullRequest, RequiredReviewer};
+use github_scbot_domain_models::{PullRequest, RequiredReviewer};
 use std::fmt::Write;
 
 use async_trait::async_trait;

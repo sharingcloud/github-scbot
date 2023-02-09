@@ -16,15 +16,20 @@ pub enum DomainError {
         source: github_scbot_ghapi_interface::ApiError,
     },
 
-    /// Wraps [`github_scbot_database::DatabaseError`].
+    /// Wraps [`github_scbot_database_interface::DatabaseError`].
     #[error("Database error")]
     DatabaseError {
-        source: github_scbot_database::DatabaseError,
+        source: github_scbot_database_interface::DatabaseError,
     },
 
     #[error("Lock error")]
     LockError {
         source: github_scbot_lock_interface::LockError,
+    },
+
+    #[error("Crypto error")]
+    CryptoError {
+        source: github_scbot_core::crypto::CryptoError,
     },
 }
 
@@ -40,8 +45,8 @@ impl From<github_scbot_ghapi_interface::ApiError> for DomainError {
     }
 }
 
-impl From<github_scbot_database::DatabaseError> for DomainError {
-    fn from(e: github_scbot_database::DatabaseError) -> Self {
+impl From<github_scbot_database_interface::DatabaseError> for DomainError {
+    fn from(e: github_scbot_database_interface::DatabaseError) -> Self {
         Self::DatabaseError { source: e }
     }
 }
@@ -49,6 +54,12 @@ impl From<github_scbot_database::DatabaseError> for DomainError {
 impl From<github_scbot_lock_interface::LockError> for DomainError {
     fn from(e: github_scbot_lock_interface::LockError) -> Self {
         Self::LockError { source: e }
+    }
+}
+
+impl From<github_scbot_core::crypto::CryptoError> for DomainError {
+    fn from(e: github_scbot_core::crypto::CryptoError) -> Self {
+        Self::CryptoError { source: e }
     }
 }
 

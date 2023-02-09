@@ -1,5 +1,5 @@
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 
 use crate::Result;
 
@@ -26,9 +26,9 @@ mod tests {
     use std::error::Error;
 
     use github_scbot_core::types::repository::RepositoryPath;
-    use github_scbot_database::{
-        DbService, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
-    };
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{ExternalAccount, ExternalAccountRight, Repository};
 
     use super::RemoveExternalAccountRightUseCase;
 

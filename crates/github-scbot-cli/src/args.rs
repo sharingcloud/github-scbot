@@ -1,7 +1,7 @@
 use crate::Result;
 use clap::Parser;
 use github_scbot_core::config::Config;
-use github_scbot_database::{establish_pool_connection, run_migrations, PostgresDb};
+use github_scbot_database_pg::{establish_pool_connection, run_migrations, PostgresDb};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
 use std::io::Write;
 

@@ -5,9 +5,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Account, DatabaseError, DbService, ExternalAccount, ExternalAccountRight, MergeRule,
-    PullRequest, Repository, RequiredReviewer, Result,
+use crate::{DatabaseError, DbService, Result};
+use github_scbot_domain_models::{
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
+    RequiredReviewer,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,5 +1,5 @@
 use github_scbot_core::types::pulls::GhMergeStrategy;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 
 use crate::Result;
 

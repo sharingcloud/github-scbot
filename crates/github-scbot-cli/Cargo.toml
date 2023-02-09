@@ -7,8 +7,10 @@ edition = "2021"
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
 github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
-github-scbot-database = { path = "../github-scbot-database" }
+github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-database-pg = { path = "../github-scbot-database-pg" }
 github-scbot-domain = { path = "../github-scbot-domain" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
@@ -22,6 +24,8 @@ tokio = { version = "1.20.1", features = ["full"] }
 clap = { version = "3.2.15", features = ["derive"] }
 
 [dev-dependencies]
+github-scbot-database-tests = { path = "../github-scbot-database-tests" }
+github-scbot-database-memory = { path = "../github-scbot-database-memory" }
 futures-util = "0.3.21"
 indoc = "1.0.6"
 mockall = "0.11.2"

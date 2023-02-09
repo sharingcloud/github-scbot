@@ -3,7 +3,7 @@
 use actix_web::HttpResponse;
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use github_scbot_domain::use_cases::comments::HandleIssueCommentEventUseCase;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;

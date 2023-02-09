@@ -4,7 +4,7 @@ use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_database::Repository;
+use github_scbot_domain_models::Repository;
 
 use crate::commands::{Command, CommandContext};
 

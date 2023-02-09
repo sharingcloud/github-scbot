@@ -1,4 +1,5 @@
-use github_scbot_database::{DbService, ExternalAccount};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::ExternalAccount;
 
 use crate::Result;
 
@@ -19,7 +20,9 @@ impl<'a> ListExternalAccountsUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbService, ExternalAccount, MemoryDb};
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::ExternalAccount;
 
     use super::ListExternalAccountsUseCase;
 

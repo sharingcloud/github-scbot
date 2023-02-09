@@ -1,13 +1,12 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
 
-use crate::{
-    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
-    RequiredReviewer, Result,
-};
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
-
-use super::interface::DbService;
+use github_scbot_database_interface::{DbService, Result};
+use github_scbot_domain_models::{
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
+    RequiredReviewer,
+};
 
 #[derive(Debug, Default)]
 pub struct MemoryDb {

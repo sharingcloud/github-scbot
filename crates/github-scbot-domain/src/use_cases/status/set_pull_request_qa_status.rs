@@ -4,7 +4,8 @@ use github_scbot_core::{
     config::Config,
     types::{repository::RepositoryPath, status::QaStatus},
 };
-use github_scbot_database::{DbService, ExternalAccount};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::ExternalAccount;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 

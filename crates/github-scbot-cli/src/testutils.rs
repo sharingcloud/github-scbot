@@ -2,7 +2,7 @@ use std::io::Write;
 
 use clap::Parser;
 use github_scbot_core::config::Config;
-use github_scbot_database::MemoryDb;
+use github_scbot_database_memory::MemoryDb;
 use github_scbot_ghapi_interface::MockApiService;
 use github_scbot_lock_interface::MockLockService;
 

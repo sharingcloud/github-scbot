@@ -7,7 +7,7 @@ use std::{
 use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_database::Exchanger;
+use github_scbot_database_interface::Exchanger;
 
 use super::{Command, CommandContext};
 
@@ -42,9 +42,11 @@ mod tests {
     use std::io::{BufWriter, Cursor};
 
     use github_scbot_core::config::Config;
-    use github_scbot_database::{
-        db_test_case, Account, Exchanger, ExternalAccount, ExternalAccountRight, MergeRule,
-        PullRequest, Repository, RequiredReviewer,
+    use github_scbot_database_interface::Exchanger;
+    use github_scbot_database_tests::db_test_case;
+    use github_scbot_domain_models::{
+        Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
+        RequiredReviewer,
     };
 
     #[actix_rt::test]

@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 
-use crate::{
-    Account, DatabaseError, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest,
-    Repository, RequiredReviewer, Result,
-};
+use crate::{DatabaseError, Result};
+
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
+use github_scbot_domain_models::{
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
+    RequiredReviewer,
+};
 
 #[async_trait]
 pub trait DbService: Send + Sync {

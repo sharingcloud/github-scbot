@@ -1,4 +1,5 @@
-use github_scbot_database::{Account, DbService};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::Account;
 
 use crate::Result;
 
@@ -19,7 +20,9 @@ impl<'a> ListAdminAccountsUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{Account, DbService, MemoryDb};
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::Account;
 
     use super::ListAdminAccountsUseCase;
 

@@ -17,7 +17,7 @@ pub enum UiError {
     /// Wraps [`github_scbot_database::DatabaseError`].
     #[error("Database error,\n  caused by: {}", source)]
     Database {
-        source: github_scbot_database::DatabaseError,
+        source: github_scbot_database_interface::DatabaseError,
     },
 }
 
@@ -33,8 +33,8 @@ impl From<std::sync::mpsc::RecvError> for UiError {
     }
 }
 
-impl From<github_scbot_database::DatabaseError> for UiError {
-    fn from(e: github_scbot_database::DatabaseError) -> Self {
+impl From<github_scbot_database_interface::DatabaseError> for UiError {
+    fn from(e: github_scbot_database_interface::DatabaseError) -> Self {
         Self::Database { source: e }
     }
 }

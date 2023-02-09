@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use app::App;
 use crossterm::event::Event;
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 use terminal::TerminalWrapper;
 
 use self::errors::Result;

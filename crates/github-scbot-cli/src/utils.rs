@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use github_scbot_database::{DbService, PullRequest, Repository};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::{PullRequest, Repository};
 
 pub struct CliDbExt;
 

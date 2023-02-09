@@ -6,7 +6,9 @@ edition = "2021"
 
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-database = { path = "../github-scbot-database" }
+github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-database-pg = { path = "../github-scbot-database-pg" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 crossterm = "0.25.0"
 tui = "0.19.0"
 thiserror = "1.0.37"

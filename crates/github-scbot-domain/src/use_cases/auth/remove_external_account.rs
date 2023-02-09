@@ -1,4 +1,4 @@
-use github_scbot_database::DbService;
+use github_scbot_database_interface::DbService;
 
 use crate::Result;
 
@@ -21,7 +21,9 @@ impl<'a> RemoveExternalAccountUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{DbService, ExternalAccount, MemoryDb};
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::ExternalAccount;
 
     use super::RemoveExternalAccountUseCase;
 

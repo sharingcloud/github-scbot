@@ -1,4 +1,5 @@
-use github_scbot_database::{DbService, Repository};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::Repository;
 
 use crate::Result;
 
@@ -34,9 +35,9 @@ impl<'a> ListExternalAccountRightsUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_database::{
-        DbService, ExternalAccount, ExternalAccountRight, MemoryDb, Repository,
-    };
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{ExternalAccount, ExternalAccountRight, Repository};
 
     use super::ListExternalAccountRightsUseCase;
 

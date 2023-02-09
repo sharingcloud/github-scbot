@@ -8,8 +8,10 @@ edition = "2021"
 github-scbot-core = { path = "../github-scbot-core" }
 github-scbot-ghapi-impl = { path = "../github-scbot-ghapi-impl" }
 github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
-github-scbot-database = { path = "../github-scbot-database" }
+github-scbot-database-pg = { path = "../github-scbot-database-pg" }
+github-scbot-database-interface = { path = "../github-scbot-database-interface" }
 github-scbot-domain = { path = "../github-scbot-domain" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 github-scbot-lock-redis = { path = "../github-scbot-lock-redis" }
 

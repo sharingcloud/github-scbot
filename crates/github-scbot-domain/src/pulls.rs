@@ -2,7 +2,8 @@
 
 use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
-use github_scbot_database::{DbService, PullRequest, Repository};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::{PullRequest, Repository};
 use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
 use github_scbot_lock_interface::LockService;
 

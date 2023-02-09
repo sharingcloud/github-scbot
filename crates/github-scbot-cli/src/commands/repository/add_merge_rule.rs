@@ -6,7 +6,7 @@ use clap::Parser;
 use github_scbot_core::types::{
     pulls::GhMergeStrategy, repository::RepositoryPath, rule_branch::RuleBranch,
 };
-use github_scbot_database::MergeRule;
+use github_scbot_domain_models::MergeRule;
 
 use crate::{
     commands::{Command, CommandContext},

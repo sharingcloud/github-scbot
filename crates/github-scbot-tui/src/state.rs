@@ -1,7 +1,7 @@
 //! UI state utils.
 
 use crossterm::event::KeyCode;
-use github_scbot_database::{PullRequest, Repository};
+use github_scbot_domain_models::{PullRequest, Repository};
 use tui::widgets::ListState;
 
 pub enum SelectionMode {
