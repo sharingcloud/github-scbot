@@ -12,7 +12,7 @@ github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
-github-scbot-redis = { path = "../github-scbot-redis" }
+github-scbot-lock-redis = { path = "../github-scbot-lock-redis" }
 
 actix-rt = "2.7.0"
 anyhow = { version = "1.0", features = ["backtrace"] }

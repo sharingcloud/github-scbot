@@ -5,4 +5,4 @@
 
 mod redis;
 
-pub use redis::RedisServiceImpl;
+pub use redis::RedisLockService;

@@ -4,20 +4,20 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use github_scbot_lock_interface::{LockError, LockService, LockStatus};
-use github_scbot_redis::RedisServiceImpl;
+use github_scbot_lock_redis::RedisLockService;
 
 use crate::metrics::REDIS_CALLS;
 
 /// Redis service with metrics.
 pub struct MetricsRedisService {
-    inner: RedisServiceImpl,
+    inner: RedisLockService,
 }
 
 impl MetricsRedisService {
     /// Creates a new service.
     pub fn new<T: Into<String>>(addr: T) -> Self {
         Self {
-            inner: RedisServiceImpl::new(addr),
+            inner: RedisLockService::new(addr),
         }
     }
 }

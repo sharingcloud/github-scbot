@@ -1185,7 +1185,7 @@ dependencies = [
  "github-scbot-domain",
  "github-scbot-ghapi",
  "github-scbot-lock-interface",
- "github-scbot-redis",
+ "github-scbot-lock-redis",
  "github-scbot-server",
  "github-scbot-tui",
  "indoc",
@@ -1290,7 +1290,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-redis"
+name = "github-scbot-lock-redis"
 version = "0.23.0-dev"
 dependencies = [
  "actix",
@@ -1318,7 +1318,7 @@ dependencies = [
  "github-scbot-domain",
  "github-scbot-ghapi",
  "github-scbot-lock-interface",
- "github-scbot-redis",
+ "github-scbot-lock-redis",
  "lazy_static",
  "pretty_assertions",
  "prometheus",
