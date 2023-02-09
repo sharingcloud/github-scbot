@@ -7,7 +7,7 @@ mod parser;
 
 use github_scbot_core::types::{common::GhUserPermission, issues::GhReactionType};
 use github_scbot_database::DbService;
-use github_scbot_ghapi::comments::CommentApi;
+use github_scbot_ghapi_interface::comments::CommentApi;
 pub use parser::CommandParser;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};

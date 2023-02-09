@@ -17,7 +17,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::sentry::sentry;
 use github_scbot_core::types::events::EventType;
 use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 use serde::Deserialize;
 

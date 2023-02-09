@@ -1,121 +1,13 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
-use github_scbot_core::{
-    time::OffsetDateTime,
-    types::{
-        checks::GhCheckSuite,
-        common::{GhUser, GhUserPermission},
-        issues::GhReactionType,
-        pulls::{GhMergeStrategy, GhPullRequest},
-        reviews::GhReviewState,
-        status::StatusState,
-    },
+use github_scbot_core::types::{
+    checks::GhCheckSuite,
+    common::GhUserPermission,
+    issues::GhReactionType,
+    pulls::{GhMergeStrategy, GhPullRequest},
+    status::StatusState,
 };
-use heck::ToSnakeCase;
-use serde::{Deserialize, Serialize};
 
-use crate::Result;
-
-/// Review state (API version)
-#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum GhReviewStateApi {
-    /// Approved.
-    Approved,
-    /// Changes requested.
-    ChangesRequested,
-    /// Commented.
-    Commented,
-    /// Dismissed.
-    Dismissed,
-    /// Pending.
-    Pending,
-}
-
-impl From<GhReviewStateApi> for GhReviewState {
-    fn from(state_api: GhReviewStateApi) -> Self {
-        let str_value = serde_plain::to_string(&state_api).unwrap();
-        let snake_case_value = str_value.to_snake_case();
-        serde_plain::from_str(&snake_case_value).unwrap()
-    }
-}
-
-/// Review (API version)
-#[derive(Deserialize, Clone, Debug)]
-pub struct GhReviewApi {
-    /// User.
-    pub user: GhUser,
-    /// Submitted at.
-    #[serde(with = "github_scbot_core::time::serde::rfc3339")]
-    pub submitted_at: OffsetDateTime,
-    /// State.
-    pub state: GhReviewStateApi,
-}
-
-impl Default for GhReviewApi {
-    fn default() -> Self {
-        Self {
-            user: GhUser::default(),
-            submitted_at: OffsetDateTime::now_utc(),
-            state: GhReviewStateApi::Pending,
-        }
-    }
-}
-
-/// Gif format.
-#[allow(non_camel_case_types)]
-#[derive(Deserialize, PartialEq, Eq, Hash, Clone, Copy, Debug)]
-#[serde(rename_all = "lowercase")]
-pub enum GifFormat {
-    /// Standard GIF.
-    Gif,
-    /// Medium GIF.
-    MediumGif,
-    /// Tiny GIF.
-    TinyGif,
-    /// Nano GIF.
-    NanoGif,
-    /// MP4.
-    Mp4,
-    /// Looped MP4.
-    LoopedMp4,
-    /// Tiny MP4.
-    TinyMp4,
-    /// Nano MP4.
-    NanoMp4,
-    /// WebM.
-    WebM,
-    /// Tiny WebM.
-    TinyWebM,
-    /// Nano WebM.
-    NanoWebM,
-    /// Transparent WebP.
-    WebP_Transparent,
-}
-
-/// Media object.
-#[derive(Deserialize, Clone, Debug)]
-pub struct MediaObject {
-    /// Media URL.
-    pub url: String,
-    /// Media size.
-    pub size: Option<usize>,
-}
-
-/// Gif object.
-#[derive(Deserialize, Clone, Default, Debug)]
-pub struct GifObject {
-    /// Media dict.
-    pub media: Vec<HashMap<GifFormat, MediaObject>>,
-}
-
-/// Gif response.
-#[derive(Deserialize, Clone, Default, Debug)]
-pub struct GifResponse {
-    /// Results.
-    pub results: Vec<GifObject>,
-}
+use crate::{gif::GifResponse, review::GhReviewApi, Result};
 
 /// GitHub API Adapter interface
 #[mockall::automock]

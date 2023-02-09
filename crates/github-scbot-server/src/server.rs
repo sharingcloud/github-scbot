@@ -14,7 +14,7 @@ use futures::lock::Mutex;
 use github_scbot_core::config::Config;
 use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
 use github_scbot_database::{DbPool, DbService, PostgresDb};
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 use tracing::info;
 use tracing_actix_web::TracingLogger;

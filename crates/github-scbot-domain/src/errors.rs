@@ -10,10 +10,10 @@ pub enum DomainError {
     #[error("Error while compiling regex")]
     RegexError { source: regex::Error },
 
-    /// Wraps [`github_scbot_ghapi::ApiError`].
+    /// Wraps [`github_scbot_ghapi_interface::ApiError`].
     #[error("API error")]
     ApiError {
-        source: github_scbot_ghapi::ApiError,
+        source: github_scbot_ghapi_interface::ApiError,
     },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
@@ -34,8 +34,8 @@ impl From<regex::Error> for DomainError {
     }
 }
 
-impl From<github_scbot_ghapi::ApiError> for DomainError {
-    fn from(e: github_scbot_ghapi::ApiError) -> Self {
+impl From<github_scbot_ghapi_interface::ApiError> for DomainError {
+    fn from(e: github_scbot_ghapi_interface::ApiError) -> Self {
         Self::ApiError { source: e }
     }
 }

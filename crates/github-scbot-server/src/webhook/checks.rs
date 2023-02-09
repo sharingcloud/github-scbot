@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use github_scbot_core::types::{checks::GhCheckSuiteEvent, events::EventType};
 use github_scbot_database::DbService;
 use github_scbot_domain::use_cases::checks::HandleCheckSuiteEventUseCase;
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
 use super::parse_event_type;

@@ -5,7 +5,7 @@ use github_scbot_core::{
     types::{repository::RepositoryPath, status::QaStatus},
 };
 use github_scbot_database::{DbService, ExternalAccount};
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
 use crate::{

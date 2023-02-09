@@ -4,7 +4,7 @@ use github_scbot_core::types::{
     checks::{GhCheckConclusion, GhCheckSuite},
     status::CheckStatus,
 };
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 
 use crate::Result;
 

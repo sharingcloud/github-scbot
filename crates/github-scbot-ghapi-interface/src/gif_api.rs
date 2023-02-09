@@ -3,10 +3,8 @@
 use github_scbot_core::config::Config;
 use rand::prelude::*;
 
-use crate::{
-    adapter::{ApiService, GifFormat, GifResponse},
-    Result,
-};
+use crate::gif::{GifFormat, GifResponse};
+use crate::{ApiService, Result};
 
 const MAX_GIF_SIZE_BYTES: usize = 2_000_000;
 
@@ -66,7 +64,7 @@ mod tests {
     use maplit::hashmap;
 
     use super::*;
-    use crate::adapter::{GifObject, MediaObject};
+    use crate::gif::{GifObject, MediaObject};
 
     #[test]
     fn test_get_first_matching_gif() {

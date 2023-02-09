@@ -6,7 +6,7 @@ use github_scbot_core::types::{
     status::{CheckStatus, QaStatus},
 };
 use github_scbot_database::{DbService, PullRequest, Repository, RequiredReviewer};
-use github_scbot_ghapi::{adapter::ApiService, reviews::ReviewApi};
+use github_scbot_ghapi_interface::{reviews::ReviewApi, ApiService};
 use regex::Regex;
 
 use crate::{

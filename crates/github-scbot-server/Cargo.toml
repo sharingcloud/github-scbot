@@ -6,7 +6,8 @@ edition = "2021"
 
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-ghapi = { path = "../github-scbot-ghapi" }
+github-scbot-ghapi-impl = { path = "../github-scbot-ghapi-impl" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }

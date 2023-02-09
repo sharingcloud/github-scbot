@@ -7,7 +7,9 @@ use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
 
-use crate::{adapter::ApiService, ApiError, Result};
+use github_scbot_ghapi_interface::{ApiService, Result};
+
+use crate::errors::GitHubError;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -26,7 +28,7 @@ struct InstallationTokenResponse {
 pub async fn get_authenticated_client_builder(
     config: &Config,
     api_adapter: &dyn ApiService,
-) -> Result<ClientBuilder> {
+) -> Result<ClientBuilder, GitHubError> {
     let builder = get_anonymous_client_builder(config)?;
     let token = get_authentication_credentials(config, api_adapter).await?;
 
@@ -44,7 +46,7 @@ pub async fn get_authenticated_client_builder(
 }
 
 /// Get anonymous GitHub client builder.
-pub fn get_anonymous_client_builder(config: &Config) -> Result<ClientBuilder> {
+pub fn get_anonymous_client_builder(config: &Config) -> Result<ClientBuilder, GitHubError> {
     const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
     let mut headers = HeaderMap::new();
@@ -67,7 +69,7 @@ pub fn build_github_url<T: Into<String>>(config: &Config, path: T) -> String {
 async fn get_authentication_credentials(
     config: &Config,
     api_adapter: &dyn ApiService,
-) -> Result<String> {
+) -> Result<String, GitHubError> {
     if config.github_api_token.is_empty() {
         create_installation_access_token(config, api_adapter).await
     } else {
@@ -75,7 +77,7 @@ async fn get_authentication_credentials(
     }
 }
 
-fn create_app_token(config: &Config) -> Result<String> {
+fn create_app_token(config: &Config) -> Result<String, GitHubError> {
     // GitHub App authentication documentation
     // https://docs.github.com/en/developers/apps/authenticating-with-github-apps#authenticating-as-a-github-app
 
@@ -90,24 +92,24 @@ fn create_app_token(config: &Config) -> Result<String> {
     };
 
     JwtUtils::create_jwt(&config.github_app_private_key, &claims)
-        .map_err(|e| ApiError::JwtError { source: e })
+        .map_err(|e| GitHubError::ImplementationError { source: e.into() })
 }
 
 async fn create_installation_access_token(
     config: &Config,
     api_adapter: &dyn ApiService,
-) -> Result<String> {
+) -> Result<String, GitHubError> {
     let auth_token = create_app_token(config)?;
     api_adapter
         .installations_create_token(&auth_token, config.github_app_installation_id)
         .await
+        .map_err(|e| GitHubError::ImplementationError { source: e.into() })
 }
 
 #[cfg(test)]
 mod tests {
     use github_scbot_core::crypto::{JwtUtils, RsaUtils};
-
-    use crate::adapter::MockApiService;
+    use github_scbot_ghapi_interface::MockApiService;
 
     use super::*;
 

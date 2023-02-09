@@ -2,7 +2,7 @@
 
 use github_scbot_core::types::issues::GhReactionType;
 
-use crate::{adapter::ApiService, Result};
+use crate::{ApiService, Result};
 
 const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 

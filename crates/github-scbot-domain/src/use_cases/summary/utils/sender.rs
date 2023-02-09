@@ -1,5 +1,5 @@
 use github_scbot_database::DbService;
-use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
+use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
 use github_scbot_lock_interface::{LockService, LockStatus};
 use tracing::{error, warn};
 

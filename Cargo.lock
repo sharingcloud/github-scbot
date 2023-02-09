@@ -1183,9 +1183,8 @@ dependencies = [
  "github-scbot-core",
  "github-scbot-database",
  "github-scbot-domain",
- "github-scbot-ghapi",
+ "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
- "github-scbot-lock-redis",
  "github-scbot-server",
  "github-scbot-tui",
  "indoc",
@@ -1246,7 +1245,7 @@ dependencies = [
  "futures-util",
  "github-scbot-core",
  "github-scbot-database",
- "github-scbot-ghapi",
+ "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
  "maplit",
  "mockall",
@@ -1258,7 +1257,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-ghapi"
+name = "github-scbot-ghapi-impl"
 version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
@@ -1266,14 +1265,27 @@ dependencies = [
  "backoff",
  "futures-util",
  "github-scbot-core",
- "heck 0.4.0",
+ "github-scbot-ghapi-interface",
  "http",
- "maplit",
- "mockall",
- "rand",
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "github-scbot-ghapi-interface"
+version = "0.23.0-dev"
+dependencies = [
+ "actix-rt",
+ "async-trait",
+ "github-scbot-core",
+ "heck 0.4.0",
+ "maplit",
+ "mockall",
+ "rand",
+ "serde",
  "serde_plain",
  "thiserror",
  "tracing",
@@ -1316,7 +1328,8 @@ dependencies = [
  "github-scbot-core",
  "github-scbot-database",
  "github-scbot-domain",
- "github-scbot-ghapi",
+ "github-scbot-ghapi-impl",
+ "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
  "github-scbot-lock-redis",
  "lazy_static",

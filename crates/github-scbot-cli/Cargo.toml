@@ -6,13 +6,12 @@ edition = "2021"
 
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-ghapi = { path = "../github-scbot-ghapi" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
-github-scbot-lock-redis = { path = "../github-scbot-lock-redis" }
 
 actix-rt = "2.7.0"
 anyhow = { version = "1.0", features = ["backtrace"] }

@@ -1,5 +1,5 @@
 use github_scbot_core::config::Config;
-use github_scbot_ghapi::{adapter::ApiService, gif::GifApi};
+use github_scbot_ghapi_interface::{gif_api::GifApi, ApiService};
 
 use crate::Result;
 

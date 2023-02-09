@@ -41,10 +41,10 @@ impl BotCommand for GifCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_ghapi::adapter::GifFormat;
-    use github_scbot_ghapi::adapter::GifObject;
-    use github_scbot_ghapi::adapter::GifResponse;
-    use github_scbot_ghapi::adapter::MediaObject;
+    use github_scbot_ghapi_interface::gif::GifFormat;
+    use github_scbot_ghapi_interface::gif::GifObject;
+    use github_scbot_ghapi_interface::gif::GifResponse;
+    use github_scbot_ghapi_interface::gif::MediaObject;
     use maplit::hashmap;
 
     use super::*;

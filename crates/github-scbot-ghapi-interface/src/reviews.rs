@@ -4,10 +4,8 @@ use std::collections::HashMap;
 
 use github_scbot_core::types::reviews::GhReview;
 
-use crate::{
-    adapter::{ApiService, GhReviewApi, GhReviewStateApi},
-    Result,
-};
+use crate::review::{GhReviewApi, GhReviewStateApi};
+use crate::{ApiService, Result};
 
 /// Review API.
 pub struct ReviewApi;
@@ -68,7 +66,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::adapter::GhReviewStateApi;
+    use crate::review::GhReviewStateApi;
 
     fn new_review(username: &str, state: GhReviewStateApi) -> GhReviewApi {
         GhReviewApi {

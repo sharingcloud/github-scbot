@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 
 use github_scbot_core::types::labels::StepLabel;
 
-use crate::{adapter::ApiService, Result};
+use crate::{ApiService, Result};
 
 /// Label API.
 pub struct LabelApi;
@@ -58,7 +58,7 @@ mod tests {
     use github_scbot_core::types::labels::StepLabel;
 
     use super::*;
-    use crate::{adapter::MockApiService, Result};
+    use crate::{MockApiService, Result};
 
     #[test]
     fn test_add_step_in_existing_labels() {

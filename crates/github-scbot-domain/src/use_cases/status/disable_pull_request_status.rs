@@ -1,6 +1,6 @@
 use github_scbot_core::types::status::StatusState;
 use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
+use github_scbot_ghapi_interface::ApiService;
 
 use crate::{use_cases::summary::DeleteSummaryCommentUseCase, Result};
 

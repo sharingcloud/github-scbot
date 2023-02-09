@@ -15,11 +15,14 @@ use serde::{Deserialize, Serialize};
 use std::{future::Future, time::Duration};
 use tracing::{debug, info};
 
-use crate::{
-    adapter::{ApiService, GhReviewApi, GifResponse},
-    auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
-    ApiError, Result,
+use github_scbot_ghapi_interface::gif::GifResponse;
+use github_scbot_ghapi_interface::review::GhReviewApi;
+use github_scbot_ghapi_interface::{ApiService, Result};
+
+use crate::auth::{
+    build_github_url, get_anonymous_client_builder, get_authenticated_client_builder,
 };
+use crate::errors::GitHubError;
 
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 const GIF_API_URL: &str = "https://g.tenor.com/v1";
@@ -36,11 +39,11 @@ impl GithubApiService {
         Self { config }
     }
 
-    async fn get_client(&self) -> Result<Client> {
+    async fn get_client(&self) -> Result<Client, GitHubError> {
         get_authenticated_client_builder(&self.config, self)
             .await?
             .build()
-            .map_err(|e| ApiError::HttpError { source: e })
+            .map_err(|e| GitHubError::HttpError { source: e })
     }
 
     fn build_url(&self, path: String) -> String {
@@ -50,7 +53,7 @@ impl GithubApiService {
     async fn call_with_retry<F, Fut, T>(&self, f: F) -> Result<T>
     where
         F: Fn() -> Fut,
-        Fut: Future<Output = Result<T>>,
+        Fut: Future<Output = Result<T, GitHubError>>,
     {
         let conf = ExponentialBackoffBuilder::default()
             .with_max_elapsed_time(Some(Duration::from_secs(30)))
@@ -58,7 +61,7 @@ impl GithubApiService {
 
         backoff::future::retry(conf, || async {
             f().await.map_err(|e| match e {
-                ApiError::HttpError { .. } => {
+                GitHubError::HttpError { .. } => {
                     info!("Will retry API call ...");
                     backoff::Error::transient(e)
                 }
@@ -411,7 +414,7 @@ impl ApiService for GithubApiService {
                 .send()
                 .await?
                 .error_for_status()
-                .map_err(|_| ApiError::MergeError {
+                .map_err(|_| GitHubError::MergeError {
                     pr_number: issue_number,
                     repository_path: format!("{owner}/{name}"),
                 })?;
@@ -589,7 +592,7 @@ impl ApiService for GithubApiService {
                 .await?
                 .json()
                 .await
-                .map_err(ApiError::from)
+                .map_err(Into::into)
         })
         .await
     }
