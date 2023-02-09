@@ -4,7 +4,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent};
 use github_scbot_database::{DbService, PullRequest, Repository};
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi};
-use github_scbot_redis::LockService;
+use github_scbot_lock_interface::LockService;
 
 use crate::{commands::CommandContext, use_cases::status::UpdatePullRequestStatusUseCase};
 use crate::{

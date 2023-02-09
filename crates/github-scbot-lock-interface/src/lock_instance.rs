@@ -34,6 +34,14 @@ impl<'a> LockInstance<'a> {
         }
     }
 
+    /// Create a new lock.
+    pub fn new<T: Into<String>>(lock: &'a dyn LockService, name: T) -> Self {
+        Self {
+            lock: Some(lock),
+            name: name.into(),
+        }
+    }
+
     /// Release lock instance.
     pub async fn release(self) -> Result<(), LockError> {
         if let Some(lock) = self.lock {

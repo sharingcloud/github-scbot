@@ -4,7 +4,7 @@ use github_scbot_core::{
 };
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::LockService;
+use github_scbot_lock_interface::LockService;
 use tracing::info;
 
 use crate::{

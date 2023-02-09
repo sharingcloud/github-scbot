@@ -2,7 +2,7 @@ use github_scbot_core::config::Config;
 use github_scbot_core::types::pulls::GhPullRequest;
 use github_scbot_database::DbService;
 use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::LockService;
+use github_scbot_lock_interface::LockService;
 
 use async_trait::async_trait;
 
@@ -37,7 +37,7 @@ pub(crate) mod tests {
     use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
     use github_scbot_database::MemoryDb;
     use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockLockService;
+    use github_scbot_lock_interface::MockLockService;
 
     use super::CommandContext;
 

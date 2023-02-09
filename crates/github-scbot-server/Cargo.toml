@@ -9,6 +9,7 @@ github-scbot-core = { path = "../github-scbot-core" }
 github-scbot-ghapi = { path = "../github-scbot-ghapi" }
 github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-domain = { path = "../github-scbot-domain" }
+github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
 actix-cors = "0.6.1"

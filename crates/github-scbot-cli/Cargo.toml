@@ -11,6 +11,7 @@ github-scbot-database = { path = "../github-scbot-database" }
 github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
+github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 github-scbot-redis = { path = "../github-scbot-redis" }
 
 actix-rt = "2.7.0"

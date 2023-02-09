@@ -1,7 +1,10 @@
 //! Redis wrappers.
 
+use std::time::Duration;
+
 use async_trait::async_trait;
-use github_scbot_redis::{LockError, LockService, LockStatus, RedisServiceImpl};
+use github_scbot_lock_interface::{LockError, LockService, LockStatus};
+use github_scbot_redis::RedisServiceImpl;
 
 use crate::metrics::REDIS_CALLS;
 
@@ -39,5 +42,9 @@ impl LockService for MetricsRedisService {
     async fn health_check(&self) -> Result<(), LockError> {
         REDIS_CALLS.inc_by(2);
         self.inner.health_check().await
+    }
+
+    async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError> {
+        self.inner.sleep_for_duration(duration).await
     }
 }

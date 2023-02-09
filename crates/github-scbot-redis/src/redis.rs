@@ -1,11 +1,12 @@
+use std::time::Duration;
+
 use actix::Addr;
 use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
+use github_scbot_lock_interface::{LockError, LockInstance, LockService, LockStatus};
 use redis_async::resp_array;
 
-use crate::{LockError, LockInstance, LockService, LockStatus};
-
-/// Redis adapter.
+/// Redis lock service.
 #[derive(Clone)]
 pub struct RedisServiceImpl(Addr<RedisActor>);
 
@@ -20,11 +21,11 @@ impl RedisServiceImpl {
             .0
             .send(Command(value))
             .await
-            .map_err(|e| LockError::MailboxError { source: e })?
-            .map_err(|e| LockError::ActixError { source: e })?;
+            .map_err(|e| LockError::ImplementationError { source: e.into() })?
+            .map_err(|e| LockError::ImplementationError { source: e.into() })?;
 
         match response {
-            RespValue::Error(e) => Err(LockError::CommandError { result: e }),
+            RespValue::Error(e) => Err(LockError::ImplementationError { source: e.into() }),
             v => Ok(v),
         }
     }
@@ -41,19 +42,19 @@ impl LockService for RedisServiceImpl {
         match response {
             RespValue::SimpleString(s) => {
                 if &s == "OK" {
-                    Ok(LockStatus::SuccessfullyLocked(LockInstance {
-                        lock: Some(self),
-                        name: name.to_owned(),
-                    }))
+                    Ok(LockStatus::SuccessfullyLocked(LockInstance::new(
+                        self, name,
+                    )))
                 } else {
-                    Err(LockError::CommandError {
-                        result: format!("Unsupported response: {:?}", RespValue::SimpleString(s)),
+                    Err(LockError::ImplementationError {
+                        source: format!("Unsupported response: {:?}", RespValue::SimpleString(s))
+                            .into(),
                     })
                 }
             }
             RespValue::Nil => Ok(LockStatus::AlreadyLocked),
-            v => Err(LockError::CommandError {
-                result: format!("Unsupported response: {:?}", v),
+            v => Err(LockError::ImplementationError {
+                source: format!("Unsupported response: {:?}", v).into(),
             }),
         }
     }
@@ -70,6 +71,11 @@ impl LockService for RedisServiceImpl {
 
     async fn health_check(&self) -> Result<(), LockError> {
         self.execute_command(resp_array!["PING"]).await?;
+        Ok(())
+    }
+
+    async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError> {
+        actix::clock::sleep(duration).await;
         Ok(())
     }
 }

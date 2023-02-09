@@ -16,6 +16,8 @@ pub trait LockService: Send + Sync {
     async fn has_resource(&self, name: &str) -> Result<bool, LockError>;
     /// Deletes a resource if it exists.
     async fn del_resource(&self, name: &str) -> Result<(), LockError>;
+    /// Sleep for duration.
+    async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError>;
 
     /// Wait for a resource lock, until timeout.
     #[tracing::instrument(skip(self), ret)]
@@ -38,7 +40,7 @@ pub trait LockService: Send + Sync {
             if elapsed_time > timeout_ms {
                 return Ok(LockStatus::AlreadyLocked);
             } else {
-                actix::clock::sleep(duration).await;
+                self.sleep_for_duration(duration).await?;
                 elapsed_time += millis;
             }
         }

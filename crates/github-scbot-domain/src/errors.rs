@@ -22,10 +22,9 @@ pub enum DomainError {
         source: github_scbot_database::DatabaseError,
     },
 
-    /// Wraps [`github_scbot_redis::RedisError`].
-    #[error("Redis error")]
-    RedisError {
-        source: github_scbot_redis::LockError,
+    #[error("Lock error")]
+    LockError {
+        source: github_scbot_lock_interface::LockError,
     },
 }
 
@@ -47,9 +46,9 @@ impl From<github_scbot_database::DatabaseError> for DomainError {
     }
 }
 
-impl From<github_scbot_redis::LockError> for DomainError {
-    fn from(e: github_scbot_redis::LockError) -> Self {
-        Self::RedisError { source: e }
+impl From<github_scbot_lock_interface::LockError> for DomainError {
+    fn from(e: github_scbot_lock_interface::LockError) -> Self {
+        Self::LockError { source: e }
     }
 }
 

@@ -1,7 +1,7 @@
 use github_scbot_core::types::{labels::StepLabel, pulls::GhPullRequest};
 use github_scbot_database::DbService;
 use github_scbot_ghapi::{adapter::ApiService, comments::CommentApi, labels::LabelApi};
-use github_scbot_redis::{LockService, LockStatus};
+use github_scbot_lock_interface::{LockService, LockStatus};
 
 use crate::{
     pulls::PullRequestLogic,
