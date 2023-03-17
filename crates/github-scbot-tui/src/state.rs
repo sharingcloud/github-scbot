@@ -60,6 +60,10 @@ impl AppState {
     }
 
     pub fn next_repository(&mut self) {
+        if self.data.is_empty() {
+            return;
+        }
+
         let i = match self.repositories_state.selected() {
             Some(i) => {
                 if i >= self.data.len() - 1 {
@@ -75,6 +79,10 @@ impl AppState {
     }
 
     pub fn previous_repository(&mut self) {
+        if self.data.is_empty() {
+            return;
+        }
+
         let i = match self.repositories_state.selected() {
             Some(i) => {
                 if i == 0 {

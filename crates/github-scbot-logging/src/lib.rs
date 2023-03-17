@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use github_scbot_config::Config;
 use thiserror::Error;
+use tracing::subscriber::{DefaultGuard, NoSubscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
@@ -79,4 +80,8 @@ pub fn configure_logging(config: &Config) -> Result<(), LoggingError> {
         .map_err(|e| LoggingError::TracingSetGlobalDefaultError { source: e })?;
 
     Ok(())
+}
+
+pub fn temporarily_disable_logging() -> DefaultGuard {
+    tracing::subscriber::set_default(NoSubscriber::default())
 }
