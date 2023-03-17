@@ -1169,7 +1169,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-scbot-ghapi-impl"
+name = "github-scbot-ghapi-github"
 version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
@@ -1262,7 +1262,7 @@ dependencies = [
  "github-scbot-database-pg",
  "github-scbot-domain",
  "github-scbot-domain-models",
- "github-scbot-ghapi-impl",
+ "github-scbot-ghapi-github",
  "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
  "github-scbot-lock-redis",

@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use github_scbot_config::Config;
-use github_scbot_ghapi_impl::GithubApiService;
+use github_scbot_ghapi_github::GithubApiService;
 use github_scbot_ghapi_interface::{
     gif::GifResponse,
     review::GhReviewApi,
