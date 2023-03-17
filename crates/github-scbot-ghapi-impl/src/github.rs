@@ -1,28 +1,28 @@
 //! GitHub adapter
 
+use std::{future::Future, time::Duration};
+
 use async_trait::async_trait;
 use backoff::ExponentialBackoffBuilder;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    checks::GhCheckSuite,
-    common::GhUserPermission,
-    issues::GhReactionType,
-    pulls::{GhMergeStrategy, GhPullRequest},
-    status::StatusState,
+use github_scbot_core::{
+    config::Config,
+    types::{
+        checks::GhCheckSuite,
+        common::GhUserPermission,
+        issues::GhReactionType,
+        pulls::{GhMergeStrategy, GhPullRequest},
+        status::StatusState,
+    },
 };
+use github_scbot_ghapi_interface::{gif::GifResponse, review::GhReviewApi, ApiService, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, time::Duration};
 use tracing::{debug, info};
 
-use github_scbot_ghapi_interface::gif::GifResponse;
-use github_scbot_ghapi_interface::review::GhReviewApi;
-use github_scbot_ghapi_interface::{ApiService, Result};
-
-use crate::auth::{
-    build_github_url, get_anonymous_client_builder, get_authenticated_client_builder,
+use crate::{
+    auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
+    errors::GitHubError,
 };
-use crate::errors::GitHubError;
 
 const MAX_STATUS_DESCRIPTION_LEN: usize = 139;
 const GIF_API_URL: &str = "https://g.tenor.com/v1";

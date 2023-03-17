@@ -1,10 +1,10 @@
-use sqlx::{postgres::PgRow, FromRow, Row};
-
-use crate::fields::{GhMergeStrategyDecode, QaStatusDecode, RuleBranchDecode};
 use github_scbot_domain_models::{
     Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
     RequiredReviewer,
 };
+use sqlx::{postgres::PgRow, FromRow, Row};
+
+use crate::fields::{GhMergeStrategyDecode, QaStatusDecode, RuleBranchDecode};
 
 pub(crate) struct AccountRow(Account);
 pub(crate) struct ExternalAccountRow(ExternalAccount);

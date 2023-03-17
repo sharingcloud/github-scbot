@@ -6,11 +6,9 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
-
 use tracing_tree::HierarchicalLayer;
 
-use super::errors::ConfError;
-use super::{Config, Result};
+use super::{errors::ConfError, Config, Result};
 
 const DEFAULT_ENV_CONFIG: &str = "info,sqlx=error,github_scbot=debug";
 

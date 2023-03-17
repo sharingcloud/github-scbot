@@ -11,11 +11,8 @@ mod tests;
 
 use std::{convert::TryFrom, sync::Arc};
 
-use crate::{Result, ServerError};
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
-use github_scbot_core::config::Config;
-use github_scbot_core::sentry::sentry;
-use github_scbot_core::types::events::EventType;
+use github_scbot_core::{config::Config, sentry::sentry, types::events::EventType};
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
@@ -25,7 +22,10 @@ use self::{
     checks::parse_check_suite_event, issues::parse_issue_comment_event, ping::parse_ping_event,
     pulls::parse_pull_request_event, reviews::parse_review_event,
 };
-use crate::{constants::GITHUB_EVENT_HEADER, server::AppContext, utils::convert_payload_to_string};
+use crate::{
+    constants::GITHUB_EVENT_HEADER, server::AppContext, utils::convert_payload_to_string, Result,
+    ServerError,
+};
 
 async fn parse_event(
     config: &Config,

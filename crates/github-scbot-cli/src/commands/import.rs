@@ -4,12 +4,12 @@ use std::{
     path::PathBuf,
 };
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_database_interface::Exchanger;
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 /// Import all data
 #[derive(Parser)]

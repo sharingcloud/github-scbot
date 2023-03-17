@@ -2,9 +2,8 @@ use github_scbot_core::types::status::StatusState;
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 
-use crate::{use_cases::summary::DeleteSummaryCommentUseCase, Result};
-
 use super::generate_status_message::VALIDATION_STATUS_MESSAGE;
+use crate::{use_cases::summary::DeleteSummaryCommentUseCase, Result};
 
 pub struct DisablePullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,

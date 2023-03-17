@@ -1,6 +1,5 @@
-use github_scbot_core::types::issues::GhReactionType;
-
 use async_trait::async_trait;
+use github_scbot_core::types::issues::GhReactionType;
 
 use crate::{
     commands::{
@@ -31,9 +30,8 @@ impl BotCommand for PingCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::commands::CommandContextTest;
-
     use super::*;
+    use crate::commands::CommandContextTest;
 
     #[actix_rt::test]
     async fn test_command() -> Result<()> {

@@ -1,10 +1,12 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    Result,
+};
 
 /// List known repositories
 #[derive(Parser)]

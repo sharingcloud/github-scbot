@@ -1,8 +1,8 @@
-use github_scbot_core::types::issues::GhReactionType;
-use github_scbot_domain_models::{PullRequest, RequiredReviewer};
 use std::fmt::Write;
 
 use async_trait::async_trait;
+use github_scbot_core::types::issues::GhReactionType;
+use github_scbot_domain_models::{PullRequest, RequiredReviewer};
 
 use crate::{
     commands::{

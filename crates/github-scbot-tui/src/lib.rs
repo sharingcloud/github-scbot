@@ -12,11 +12,11 @@ use std::time::{Duration, Instant};
 
 use app::App;
 use crossterm::event::Event;
+pub use errors::UiError;
 use github_scbot_database_interface::DbService;
 use terminal::TerminalWrapper;
 
 use self::errors::Result;
-pub use errors::UiError;
 
 /// Run TUI interface.
 pub async fn run_tui(db_service: &mut dyn DbService) -> Result<()> {

@@ -5,13 +5,14 @@ mod jwt;
 mod rsa;
 mod sig;
 
+pub use jwt::JwtUtils;
+pub use rand;
+
 pub use self::{
     errors::{CryptoError, Result},
     rsa::RsaUtils,
     sig::is_valid_signature,
 };
-pub use jwt::JwtUtils;
-pub use rand;
 
 #[cfg(test)]
 mod tests {

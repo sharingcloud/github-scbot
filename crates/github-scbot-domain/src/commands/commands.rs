@@ -1,13 +1,10 @@
-use github_scbot_core::config::Config;
-use github_scbot_core::types::pulls::GhPullRequest;
+use async_trait::async_trait;
+use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
-use async_trait::async_trait;
-
-use crate::commands::command::CommandExecutionResult;
-use crate::Result;
+use crate::{commands::command::CommandExecutionResult, Result};
 
 mod admin;
 mod user;

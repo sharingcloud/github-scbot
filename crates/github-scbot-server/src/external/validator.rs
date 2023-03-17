@@ -2,17 +2,17 @@
 
 use std::sync::Arc;
 
-use actix_web::http::StatusCode;
-use actix_web::ResponseError;
-use actix_web::{dev::ServiceRequest, web, Error};
+use actix_web::{dev::ServiceRequest, http::StatusCode, web, Error, ResponseError};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_core::crypto::{CryptoError, JwtUtils};
-use github_scbot_core::sentry::sentry;
+use github_scbot_core::{
+    crypto::{CryptoError, JwtUtils},
+    sentry::sentry,
+};
 use github_scbot_database_interface::{DatabaseError, DbService};
 use github_scbot_domain_models::{ExternalAccount, ExternalJwtClaims};
+use thiserror::Error;
 
 use crate::server::AppContext;
-use thiserror::Error;
 
 /// Validation error.
 #[derive(Debug, Error)]

@@ -1,8 +1,9 @@
 use std::io::Write;
 
-use crate::{commands::CommandContext, Result};
 use clap::Parser;
 use github_scbot_domain::use_cases::auth::ListExternalAccountRightsUseCase;
+
+use crate::{commands::CommandContext, Result};
 
 /// List rights for account
 #[derive(Parser)]

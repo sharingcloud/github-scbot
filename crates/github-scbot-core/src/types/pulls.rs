@@ -1,14 +1,16 @@
 //! Pull types.
 
 use std::{convert::TryFrom, str::FromStr};
-use time::OffsetDateTime;
 
 use serde::{Deserialize, Serialize};
 use serde_plain;
 use smart_default::SmartDefault;
+use time::OffsetDateTime;
 
-use super::common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser};
-use super::errors::TypeError;
+use super::{
+    common::{GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser},
+    errors::TypeError,
+};
 
 /// GitHub Merge strategy.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]

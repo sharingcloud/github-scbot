@@ -1,12 +1,14 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_domain_models::Repository;
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    Result,
+};
 
 /// Add repository
 #[derive(Parser)]

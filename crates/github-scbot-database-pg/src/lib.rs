@@ -3,12 +3,10 @@ mod postgres;
 mod row;
 mod utils;
 
-use std::ops::Deref;
-use std::time::Duration;
+use std::{ops::Deref, time::Duration};
 
 use github_scbot_core::config::Config;
 use github_scbot_database_interface::{DatabaseError, Result};
-
 use sqlx::{migrate::Migrate, postgres::PgPoolOptions, Acquire};
 
 pub type DbPool = sqlx::postgres::PgPool;

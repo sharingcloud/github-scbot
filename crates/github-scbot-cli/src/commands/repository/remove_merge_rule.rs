@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
@@ -9,6 +8,7 @@ use github_scbot_core::types::{repository::RepositoryPath, rule_branch::RuleBran
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
+    Result,
 };
 
 /// Remove merge rule for a repository

@@ -1,9 +1,8 @@
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 
-use crate::Result;
-
 use super::utils::sender::SummaryCommentSender;
+use crate::Result;
 
 pub struct DeleteSummaryCommentUseCase<'a> {
     pub api_service: &'a dyn ApiService,

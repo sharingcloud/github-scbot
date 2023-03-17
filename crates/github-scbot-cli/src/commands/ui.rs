@@ -1,11 +1,11 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_tui::run_tui;
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 /// Start TUI
 #[derive(Parser)]

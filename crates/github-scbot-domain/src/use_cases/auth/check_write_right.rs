@@ -1,9 +1,8 @@
 use github_scbot_core::types::common::GhUserPermission;
 use github_scbot_database_interface::DbService;
 
-use crate::Result;
-
 use super::check_is_admin::CheckIsAdminUseCase;
+use crate::Result;
 
 pub struct CheckWriteRightUseCase<'a> {
     pub username: &'a str,

@@ -1,5 +1,7 @@
-use github_scbot_core::crypto::{CryptoError, JwtUtils, RsaUtils};
-use github_scbot_core::utils::TimeUtils;
+use github_scbot_core::{
+    crypto::{CryptoError, JwtUtils, RsaUtils},
+    utils::TimeUtils,
+};
 use serde::{Deserialize, Serialize};
 
 /// External Jwt claims.

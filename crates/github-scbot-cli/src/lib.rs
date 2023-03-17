@@ -1,7 +1,6 @@
 //! CLI module.
 
 use anyhow::Result;
-
 use args::{Args, CommandExecutor};
 use clap::Parser;
 use github_scbot_core::config::configure_startup;

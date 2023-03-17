@@ -6,7 +6,11 @@ _default:
 
 # Check code style
 fmt:
-	cargo fmt --all
+	cargo +nightly fmt --all -- \
+		--unstable-features \
+		--config \
+			imports_granularity=Crate,\
+			group_imports=StdExternalCrate
 
 # Check code style and error if changes are needed
 fmt-check:

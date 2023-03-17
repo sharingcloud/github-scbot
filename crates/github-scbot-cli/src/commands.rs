@@ -2,7 +2,6 @@
 
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Subcommand;
 use github_scbot_core::config::Config;
@@ -15,6 +14,7 @@ use self::{
     pull_request::PullRequestCommand, repository::RepositoryCommand, server::ServerCommand,
     ui::UiCommand,
 };
+use crate::Result;
 
 mod auth;
 mod debug;

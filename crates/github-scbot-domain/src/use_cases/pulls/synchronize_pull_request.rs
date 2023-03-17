@@ -2,9 +2,8 @@ use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::PullRequest;
 
-use crate::Result;
-
 use super::GetOrCreateRepositoryUseCase;
+use crate::Result;
 
 pub struct SynchronizePullRequestUseCase<'a> {
     pub config: &'a Config,

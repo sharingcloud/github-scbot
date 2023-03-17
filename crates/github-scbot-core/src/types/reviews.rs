@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 use serde_plain;
 use time::OffsetDateTime;
 
-use super::common::{GhRepository, GhUser};
-use super::pulls::GhPullRequest;
+use super::{
+    common::{GhRepository, GhUser},
+    pulls::GhPullRequest,
+};
 
 /// GitHub Review action.
 #[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]

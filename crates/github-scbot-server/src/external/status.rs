@@ -4,9 +4,10 @@ use std::{str::FromStr, sync::Arc};
 
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_core::sentry::sentry;
-use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_core::types::status::QaStatus;
+use github_scbot_core::{
+    sentry::sentry,
+    types::{repository::RepositoryPath, status::QaStatus},
+};
 use github_scbot_domain::use_cases::status::SetPullRequestQaStatusUseCase;
 use serde::{Deserialize, Serialize};
 

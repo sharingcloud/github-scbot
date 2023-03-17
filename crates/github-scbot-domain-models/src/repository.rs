@@ -1,5 +1,7 @@
-use github_scbot_core::types::pulls::GhMergeStrategy;
-use github_scbot_core::{config::Config, types::repository::RepositoryPath};
+use github_scbot_core::{
+    config::Config,
+    types::{pulls::GhMergeStrategy, repository::RepositoryPath},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

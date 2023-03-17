@@ -2,9 +2,8 @@ use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
-use crate::{use_cases::status::PullRequestStatus, Result};
-
 use super::utils::sender::SummaryCommentSender;
+use crate::{use_cases::status::PullRequestStatus, Result};
 
 pub struct PostSummaryCommentUseCase<'a> {
     pub api_service: &'a dyn ApiService,

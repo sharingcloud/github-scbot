@@ -4,13 +4,12 @@ use github_scbot_domain_models::{PullRequest, Repository};
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
+use super::GetOrCreateRepositoryUseCase;
 use crate::{
     commands::{AdminCommand, Command, CommandContext, CommandExecutor, CommandParser},
     use_cases::{comments::PostWelcomeCommentUseCase, status::UpdatePullRequestStatusUseCase},
     Result,
 };
-
-use super::GetOrCreateRepositoryUseCase;
 
 /// Pull request opened status.
 #[derive(Debug, PartialEq, Eq)]

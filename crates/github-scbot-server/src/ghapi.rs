@@ -1,18 +1,18 @@
 //! GitHub Api wrappers.
 
 use async_trait::async_trait;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    checks::GhCheckSuite,
-    common::GhUserPermission,
-    issues::GhReactionType,
-    pulls::{GhMergeStrategy, GhPullRequest},
-    status::StatusState,
+use github_scbot_core::{
+    config::Config,
+    types::{
+        checks::GhCheckSuite,
+        common::GhUserPermission,
+        issues::GhReactionType,
+        pulls::{GhMergeStrategy, GhPullRequest},
+        status::StatusState,
+    },
 };
 use github_scbot_ghapi_impl::GithubApiService;
-use github_scbot_ghapi_interface::gif::GifResponse;
-use github_scbot_ghapi_interface::review::GhReviewApi;
-use github_scbot_ghapi_interface::{ApiService, Result};
+use github_scbot_ghapi_interface::{gif::GifResponse, review::GhReviewApi, ApiService, Result};
 
 use crate::metrics::{GITHUB_API_CALLS, TENOR_API_CALLS};
 

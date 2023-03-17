@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
@@ -8,6 +7,7 @@ use github_scbot_core::types::repository::RepositoryPath;
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
+    Result,
 };
 
 /// Set default QA status for a repository

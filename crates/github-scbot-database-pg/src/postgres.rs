@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-
 use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use github_scbot_database_interface::{DatabaseError, DbService, Result};
 use github_scbot_domain_models::{

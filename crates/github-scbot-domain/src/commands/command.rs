@@ -1,7 +1,9 @@
 use std::convert::TryFrom;
 
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
+use github_scbot_core::{
+    config::Config,
+    types::{issues::GhReactionType, pulls::GhMergeStrategy},
+};
 use thiserror::Error;
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;

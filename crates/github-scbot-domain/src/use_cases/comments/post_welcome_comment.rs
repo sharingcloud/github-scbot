@@ -1,5 +1,6 @@
-use crate::Result;
 use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
+
+use crate::Result;
 
 pub struct PostWelcomeCommentUseCase<'a> {
     pub api_service: &'a dyn ApiService,

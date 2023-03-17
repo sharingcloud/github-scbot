@@ -1,12 +1,12 @@
 use std::io::Write;
 
-use crate::Result;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::sentry::send_test_event;
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 /// Send a test message to Sentry
 #[derive(Parser)]

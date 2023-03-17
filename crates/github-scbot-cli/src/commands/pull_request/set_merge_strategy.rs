@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::{pulls::GhMergeStrategy, repository::RepositoryPath};
@@ -8,6 +7,7 @@ use github_scbot_core::types::{pulls::GhMergeStrategy, repository::RepositoryPat
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
+    Result,
 };
 
 /// Set merge strategy for a pull request

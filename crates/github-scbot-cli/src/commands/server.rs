@@ -1,11 +1,11 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_server::server::{run_bot_server, AppContext};
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 /// Start server
 #[derive(Parser)]

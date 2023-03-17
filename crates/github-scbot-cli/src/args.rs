@@ -1,11 +1,14 @@
-use crate::Result;
+use std::io::Write;
+
 use clap::Parser;
 use github_scbot_core::config::Config;
 use github_scbot_database_pg::{establish_pool_connection, run_migrations, PostgresDb};
 use github_scbot_server::{ghapi::MetricsApiService, redis::MetricsRedisService};
-use std::io::Write;
 
-use crate::commands::{Command, CommandContext, SubCommand};
+use crate::{
+    commands::{Command, CommandContext, SubCommand},
+    Result,
+};
 
 /// SharingCloud PR Bot
 #[derive(Parser)]

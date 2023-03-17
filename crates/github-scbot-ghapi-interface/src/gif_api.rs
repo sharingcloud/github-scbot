@@ -3,8 +3,10 @@
 use github_scbot_core::config::Config;
 use rand::prelude::*;
 
-use crate::gif::{GifFormat, GifResponse};
-use crate::{ApiService, Result};
+use crate::{
+    gif::{GifFormat, GifResponse},
+    ApiService, Result,
+};
 
 const MAX_GIF_SIZE_BYTES: usize = 2_000_000;
 

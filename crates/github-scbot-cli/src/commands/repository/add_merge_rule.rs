@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::{
@@ -11,6 +10,7 @@ use github_scbot_domain_models::MergeRule;
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
+    Result,
 };
 
 /// Add merge rule for a repository

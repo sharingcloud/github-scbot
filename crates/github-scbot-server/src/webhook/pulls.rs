@@ -1,10 +1,12 @@
 //! Pull webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    events::EventType,
-    pulls::{GhPullRequestAction, GhPullRequestEvent},
+use github_scbot_core::{
+    config::Config,
+    types::{
+        events::EventType,
+        pulls::{GhPullRequestAction, GhPullRequestEvent},
+    },
 };
 use github_scbot_database_interface::DbService;
 use github_scbot_domain::use_cases::pulls::{

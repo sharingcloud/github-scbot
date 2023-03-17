@@ -1,9 +1,10 @@
 use std::io::Write;
 
-use crate::{commands::CommandContext, Result};
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_domain::use_cases::auth::RemoveExternalAccountRightUseCase;
+
+use crate::{commands::CommandContext, Result};
 
 /// Remove right from account
 #[derive(Parser)]

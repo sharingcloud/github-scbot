@@ -1,8 +1,9 @@
 use std::io::Write;
 
-use crate::{commands::CommandContext, Result};
 use clap::Parser;
 use github_scbot_domain::use_cases::auth::RemoveExternalAccountUseCase;
+
+use crate::{commands::CommandContext, Result};
 
 /// Remove external account
 #[derive(Parser)]

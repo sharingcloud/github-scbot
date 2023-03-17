@@ -1,10 +1,10 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 mod list;
 mod set_merge_strategy;

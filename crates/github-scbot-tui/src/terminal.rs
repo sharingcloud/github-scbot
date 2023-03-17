@@ -1,12 +1,15 @@
-use std::io::{self, Stdout};
-use std::ops::{Deref, DerefMut};
+use std::{
+    io::{self, Stdout},
+    ops::{Deref, DerefMut},
+};
+
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+};
+use tui::{backend::CrosstermBackend, Terminal};
 
 use crate::Result;
-
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
 
 pub struct TerminalWrapper {
     terminal: Terminal<CrosstermBackend<Stdout>>,

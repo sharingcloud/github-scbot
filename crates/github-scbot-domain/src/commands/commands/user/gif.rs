@@ -1,6 +1,5 @@
-use github_scbot_core::types::issues::GhReactionType;
-
 use async_trait::async_trait;
+use github_scbot_core::types::issues::GhReactionType;
 
 use crate::{
     commands::{
@@ -41,10 +40,7 @@ impl BotCommand for GifCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_ghapi_interface::gif::GifFormat;
-    use github_scbot_ghapi_interface::gif::GifObject;
-    use github_scbot_ghapi_interface::gif::GifResponse;
-    use github_scbot_ghapi_interface::gif::MediaObject;
+    use github_scbot_ghapi_interface::gif::{GifFormat, GifObject, GifResponse, MediaObject};
     use maplit::hashmap;
 
     use super::*;

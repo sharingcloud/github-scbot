@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_core::types::repository::RepositoryPath;
@@ -8,7 +7,10 @@ use github_scbot_domain::use_cases::{
     pulls::SynchronizePullRequestUseCase, status::UpdatePullRequestStatusUseCase,
 };
 
-use crate::commands::{Command, CommandContext};
+use crate::{
+    commands::{Command, CommandContext},
+    Result,
+};
 
 /// Synchronize pull request from upstream
 #[derive(Parser)]

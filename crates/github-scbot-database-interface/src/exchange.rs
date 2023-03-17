@@ -3,13 +3,13 @@ use std::{
     io::{Read, Write},
 };
 
-use serde::{Deserialize, Serialize};
-
-use crate::{DatabaseError, DbService, Result};
 use github_scbot_domain_models::{
     Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
     RequiredReviewer,
 };
+use serde::{Deserialize, Serialize};
+
+use crate::{DatabaseError, DbService, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ExchangeData {

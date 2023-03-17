@@ -11,9 +11,8 @@ pub mod validation;
 pub use self::{
     config::Config,
     errors::{ConfError, Result},
+    logging::configure_logging,
 };
-
-pub use self::logging::configure_logging;
 
 /// Configure application startup.
 pub fn configure_startup() -> Result<Config> {

@@ -4,8 +4,10 @@ use std::collections::HashMap;
 
 use github_scbot_core::types::reviews::GhReview;
 
-use crate::review::{GhReviewApi, GhReviewStateApi};
-use crate::{ApiService, Result};
+use crate::{
+    review::{GhReviewApi, GhReviewStateApi},
+    ApiService, Result,
+};
 
 /// Review API.
 pub struct ReviewApi;

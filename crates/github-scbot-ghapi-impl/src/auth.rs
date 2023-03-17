@@ -3,11 +3,10 @@
 use std::time::Duration;
 
 use github_scbot_core::{config::Config, crypto::JwtUtils, utils::TimeUtils};
+use github_scbot_ghapi_interface::{ApiService, Result};
 use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
-
-use github_scbot_ghapi_interface::{ApiService, Result};
 
 use crate::errors::GitHubError;
 

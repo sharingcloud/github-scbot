@@ -1,6 +1,7 @@
+use std::sync::Arc;
+
 use actix_http::StatusCode;
 use actix_web::{web, HttpResponse, Responder};
-use std::sync::Arc;
 
 use crate::server::AppContext;
 

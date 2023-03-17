@@ -1,5 +1,4 @@
 use github_scbot_core::{crypto::CryptoError, types::rule_branch::RuleBranch};
-
 use thiserror::Error;
 
 #[derive(Debug, Error)]

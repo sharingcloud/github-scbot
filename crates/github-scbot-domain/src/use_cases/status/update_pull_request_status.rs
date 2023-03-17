@@ -3,18 +3,17 @@ use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::{comments::CommentApi, labels::LabelApi, ApiService};
 use github_scbot_lock_interface::{LockService, LockStatus};
 
+use super::{
+    build_pull_request_status::BuildPullRequestStatusUseCase,
+    determine_automatic_step::DetermineAutomaticStepUseCase,
+    generate_status_message::GenerateStatusMessageUseCase,
+};
 use crate::{
     use_cases::{
         pulls::{DeterminePullRequestMergeStrategyUseCase, MergePullRequestUseCase},
         summary::PostSummaryCommentUseCase,
     },
     Result,
-};
-
-use super::{
-    build_pull_request_status::BuildPullRequestStatusUseCase,
-    determine_automatic_step::DetermineAutomaticStepUseCase,
-    generate_status_message::GenerateStatusMessageUseCase,
 };
 
 pub struct UpdatePullRequestStatusUseCase<'a> {

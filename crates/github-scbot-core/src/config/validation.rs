@@ -2,9 +2,8 @@
 
 use std::fmt::Write;
 
-use crate::{config::ConfError, crypto::JwtUtils};
-
 use super::{config::Config, Result};
+use crate::{config::ConfError, crypto::JwtUtils};
 
 enum ApiConfigError {
     MissingToken,
