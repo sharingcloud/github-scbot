@@ -5,16 +5,17 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
 github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 
 async-trait = "0.1.56"
+backoff = { version = "0.4.0", features = ["tokio"] }
 http = "0.2.8"
 reqwest = { version = "0.11.11", features = ["json"] }
 serde = { version = "1.0.140", features = ["derive"] }
-tracing = "0.1.35"
-backoff = { version = "0.4.0", features = ["tokio"] }
 thiserror = "1.0.37"
+tracing = "0.1.35"
 
 [dev-dependencies]
 actix-rt = "2.7.0"

@@ -1,4 +1,4 @@
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use serde::{Deserialize, Serialize};
 
 use crate::{MergeStrategy, RepositoryPath};

@@ -1,5 +1,5 @@
 [package]
-name = "github-scbot-lock-interface"
+name = "github-scbot-config"
 version = "0.23.0-dev"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
@@ -7,7 +7,3 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.56"
-mockall = "0.11.2"
-thiserror = "1.0.37"
-tracing = "0.1.35"

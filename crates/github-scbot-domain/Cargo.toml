@@ -5,22 +5,23 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
-github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 
 async-trait = "0.1.56"
-regex = "1.6.0"
-tracing = "0.1.35"
-thiserror = "1.0.37"
 rand = "0.8.5"
+regex = "1.6.0"
+thiserror = "1.0.37"
+tracing = "0.1.35"
 
 [dev-dependencies]
 github-scbot-database-memory = { path = "../github-scbot-database-memory" }
+
 actix-rt = "2.7.0"
-futures-util = "0.3.21"
 maplit = "1.0.2"
 pretty_assertions = "1.2.1"
 time = { version = "0.3.11" }

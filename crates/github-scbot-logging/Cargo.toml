@@ -1,5 +1,5 @@
 [package]
-name = "github-scbot-core"
+name = "github-scbot-logging"
 version = "0.23.0-dev"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
@@ -7,21 +7,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dotenv = "0.15.0"
-hmac = "0.12.1"
-jsonwebtoken = "8.1.1"
-rand = "0.8.5"
-rsa = "0.6.1"
-serde = { version = "1.0.140", features = ["derive"] }
-serde_plain = "1.0.0"
-sha2 = "0.10.2"
-smart-default = "0.6.0"
+github-scbot-config = { path = "../github-scbot-config" }
+
+thiserror = "1.0.37"
 tracing = "0.1.35"
 tracing-bunyan-formatter = "0.3.3"
 tracing-error = "0.2.0"
 tracing-log = "0.1.3"
 tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
 tracing-tree = "0.2.1"
-time = { version = "0.3.11", features = ["serde", "serde-well-known"] }
-hex = "0.4.3"
-thiserror = "1.0.37"

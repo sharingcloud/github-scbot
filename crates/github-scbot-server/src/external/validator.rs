@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use actix_web::{dev::ServiceRequest, http::StatusCode, web, Error, ResponseError};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_core::crypto::{CryptoError, JwtUtils};
+use github_scbot_crypto::{CryptoError, JwtUtils};
 use github_scbot_database_interface::{DatabaseError, DbService};
 use github_scbot_domain_models::{ExternalAccount, ExternalJwtClaims};
 use github_scbot_sentry::sentry;

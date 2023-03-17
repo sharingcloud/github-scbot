@@ -5,7 +5,7 @@ mod utils;
 
 use std::{ops::Deref, time::Duration};
 
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use github_scbot_database_interface::{DatabaseError, Result};
 use sqlx::{migrate::Migrate, postgres::PgPoolOptions, Acquire};
 

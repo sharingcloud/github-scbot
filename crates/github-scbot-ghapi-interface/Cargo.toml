@@ -13,9 +13,8 @@ mockall = "0.11.2"
 serde = { version = "1.0.140", features = ["derive"] }
 serde_plain = "1.0.0"
 smart-default = "0.6.0"
-time = { version = "0.3.11", features = ["serde", "serde-well-known"] }
 thiserror = "1.0.37"
+time = { version = "0.3.11", features = ["serde", "serde-well-known"] }
 
 [dev-dependencies]
-maplit = "1.0.2"
 actix-rt = "2.7.0"

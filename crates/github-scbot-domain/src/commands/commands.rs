@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::LockService;

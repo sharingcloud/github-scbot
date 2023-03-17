@@ -1,7 +1,6 @@
-use github_scbot_core::{
-    crypto::{CryptoError, JwtUtils, RsaUtils},
-    utils::TimeUtils,
-};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use github_scbot_crypto::{CryptoError, JwtUtils, RsaUtils};
 use serde::{Deserialize, Serialize};
 
 /// External Jwt claims.
@@ -21,8 +20,15 @@ pub struct ExternalAccount {
 }
 
 impl ExternalAccount {
+    fn now_timestamp() -> u64 {
+        let start = SystemTime::now();
+        let duration = start.duration_since(UNIX_EPOCH).expect("time collapsed");
+
+        duration.as_secs()
+    }
+
     pub fn generate_access_token(&self) -> Result<String, CryptoError> {
-        let now_ts = TimeUtils::now_timestamp();
+        let now_ts = Self::now_timestamp();
         let claims = ExternalJwtClaims {
             // Issued at time
             iat: now_ts,

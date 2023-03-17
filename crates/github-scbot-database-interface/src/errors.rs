@@ -1,4 +1,4 @@
-use github_scbot_core::crypto::CryptoError;
+use github_scbot_crypto::CryptoError;
 use github_scbot_domain_models::RuleBranch;
 use thiserror::Error;
 

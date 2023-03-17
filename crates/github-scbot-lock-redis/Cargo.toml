@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
+
 actix = "0.13.0"
 actix-redis = "0.12.0"
 async-trait = "0.1.56"

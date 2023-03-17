@@ -1,5 +1,5 @@
 use futures::Future;
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_database_memory::MemoryDb;
 use github_scbot_database_pg::{

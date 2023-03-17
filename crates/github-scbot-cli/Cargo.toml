@@ -5,26 +5,27 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
 github-scbot-database-pg = { path = "../github-scbot-database-pg" }
 github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-domain-models = { path = "../github-scbot-domain-models" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
+github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
+github-scbot-logging = { path = "../github-scbot-logging" }
+github-scbot-sentry = { path = "../github-scbot-sentry" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
-github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
-github-scbot-sentry = { path = "../github-scbot-sentry" }
 
 actix-rt = "2.7.0"
 anyhow = { version = "1.0", features = ["backtrace"] }
 async-trait = "0.1.56"
-tokio = { version = "1.20.1", features = ["full"] }
 clap = { version = "3.2.15", features = ["derive"] }
+dotenv = "0.15.0"
+thiserror = "1.0.37"
+tokio = { version = "1.20.1", features = ["full"] }
 
 [dev-dependencies]
-github-scbot-database-tests = { path = "../github-scbot-database-tests" }
 github-scbot-database-memory = { path = "../github-scbot-database-memory" }
-futures-util = "0.3.21"
-indoc = "1.0.6"
-mockall = "0.11.2"
+github-scbot-database-tests = { path = "../github-scbot-database-tests" }

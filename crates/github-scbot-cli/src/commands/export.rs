@@ -41,7 +41,7 @@ impl Command for ExportCommand {
 mod tests {
     use std::io::{BufWriter, Cursor};
 
-    use github_scbot_core::config::Config;
+    use github_scbot_config::Config;
     use github_scbot_database_interface::Exchanger;
     use github_scbot_database_tests::db_test_case;
     use github_scbot_domain_models::{

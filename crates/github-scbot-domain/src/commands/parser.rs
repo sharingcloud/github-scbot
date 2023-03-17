@@ -1,4 +1,4 @@
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 
 use super::command::{Command, CommandResult};
 
@@ -59,7 +59,7 @@ impl CommandParser {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
+    use github_scbot_config::Config;
     use pretty_assertions::assert_eq;
 
     use crate::commands::{

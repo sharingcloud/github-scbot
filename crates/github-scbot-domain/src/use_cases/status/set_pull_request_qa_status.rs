@@ -1,6 +1,6 @@
 //! External module.
 
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{ExternalAccount, QaStatus, RepositoryPath};
 use github_scbot_ghapi_interface::ApiService;

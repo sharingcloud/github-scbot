@@ -1,4 +1,4 @@
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use sqlx::{postgres::PgPoolOptions, Connection, PgConnection, PgPool};
 
 use crate::run_migrations;

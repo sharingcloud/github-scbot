@@ -29,7 +29,7 @@ pub enum DomainError {
 
     #[error("Crypto error")]
     CryptoError {
-        source: github_scbot_core::crypto::CryptoError,
+        source: github_scbot_crypto::CryptoError,
     },
 }
 
@@ -57,8 +57,8 @@ impl From<github_scbot_lock_interface::LockError> for DomainError {
     }
 }
 
-impl From<github_scbot_core::crypto::CryptoError> for DomainError {
-    fn from(e: github_scbot_core::crypto::CryptoError) -> Self {
+impl From<github_scbot_crypto::CryptoError> for DomainError {
+    fn from(e: github_scbot_crypto::CryptoError) -> Self {
         Self::CryptoError { source: e }
     }
 }

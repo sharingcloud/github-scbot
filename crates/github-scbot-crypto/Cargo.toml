@@ -1,13 +1,17 @@
 [package]
-name = "github-scbot-domain-models"
+name = "github-scbot-crypto"
 version = "0.23.0-dev"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-github-scbot-config = { path = "../github-scbot-config" }
-github-scbot-crypto = { path = "../github-scbot-crypto" }
-
+hex = "0.4.3"
+hmac = "0.12.1"
+jsonwebtoken = "8.1.1"
+rand = "0.8.5"
+rsa = "0.6.1"
+sha2 = "0.10.2"
 serde = { version = "1.0.140", features = ["derive"] }
 thiserror = "1.0.37"

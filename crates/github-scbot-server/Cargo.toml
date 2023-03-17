@@ -5,13 +5,14 @@ authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-ghapi-impl = { path = "../github-scbot-ghapi-impl" }
-github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
-github-scbot-database-pg = { path = "../github-scbot-database-pg" }
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-database-pg = { path = "../github-scbot-database-pg" }
 github-scbot-domain = { path = "../github-scbot-domain" }
 github-scbot-domain-models = { path = "../github-scbot-domain-models" }
+github-scbot-ghapi-impl = { path = "../github-scbot-ghapi-impl" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 github-scbot-lock-redis = { path = "../github-scbot-lock-redis" }
 github-scbot-sentry = { path = "../github-scbot-sentry" }
@@ -23,15 +24,15 @@ actix-web-httpauth = "0.8.0"
 actix-web-prom = "0.6.0"
 async-trait = "0.1.56"
 futures = "0.3.21"
+lazy_static = "1.4.0"
+prometheus = { version = "0.13.1", features = ["process"] }
+sentry-actix = "0.27.0"
 serde = { version = "1.0.140", features = ["derive"] }
 serde_json = "1.0.82"
+thiserror = "1.0.37"
+time = { version = "0.3.11" }
 tracing = "0.1.35"
 tracing-actix-web = "0.6.0"
-prometheus = { version = "0.13.1", features = ["process"] }
-lazy_static = "1.4.0"
-time = { version = "0.3.11" }
-thiserror = "1.0.37"
-sentry-actix = "0.27.0"
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"

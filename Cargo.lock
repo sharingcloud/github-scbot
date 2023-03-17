@@ -1050,8 +1050,9 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
- "futures-util",
- "github-scbot-core",
+ "dotenv",
+ "github-scbot-config",
+ "github-scbot-crypto",
  "github-scbot-database-interface",
  "github-scbot-database-memory",
  "github-scbot-database-pg",
@@ -1060,36 +1061,30 @@ dependencies = [
  "github-scbot-domain-models",
  "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
+ "github-scbot-logging",
  "github-scbot-sentry",
  "github-scbot-server",
  "github-scbot-tui",
- "indoc",
- "mockall",
+ "thiserror",
  "tokio",
 ]
 
 [[package]]
-name = "github-scbot-core"
+name = "github-scbot-config"
+version = "0.23.0-dev"
+
+[[package]]
+name = "github-scbot-crypto"
 version = "0.23.0-dev"
 dependencies = [
- "dotenv",
  "hex",
  "hmac",
  "jsonwebtoken",
  "rand",
  "rsa",
  "serde",
- "serde_plain",
  "sha2",
- "smart-default",
  "thiserror",
- "time",
- "tracing",
- "tracing-bunyan-formatter",
- "tracing-error",
- "tracing-log",
- "tracing-subscriber",
- "tracing-tree",
 ]
 
 [[package]]
@@ -1097,7 +1092,7 @@ name = "github-scbot-database-interface"
 version = "0.23.0-dev"
 dependencies = [
  "async-trait",
- "github-scbot-core",
+ "github-scbot-crypto",
  "github-scbot-domain-models",
  "serde",
  "serde_json",
@@ -1109,7 +1104,6 @@ name = "github-scbot-database-memory"
 version = "0.23.0-dev"
 dependencies = [
  "async-trait",
- "github-scbot-core",
  "github-scbot-database-interface",
  "github-scbot-domain-models",
 ]
@@ -1120,7 +1114,7 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
- "github-scbot-core",
+ "github-scbot-config",
  "github-scbot-database-interface",
  "github-scbot-domain-models",
  "pretty_assertions",
@@ -1134,7 +1128,7 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "futures",
- "github-scbot-core",
+ "github-scbot-config",
  "github-scbot-database-interface",
  "github-scbot-database-memory",
  "github-scbot-database-pg",
@@ -1148,8 +1142,8 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
- "futures-util",
- "github-scbot-core",
+ "github-scbot-config",
+ "github-scbot-crypto",
  "github-scbot-database-interface",
  "github-scbot-database-memory",
  "github-scbot-domain-models",
@@ -1168,7 +1162,8 @@ dependencies = [
 name = "github-scbot-domain-models"
 version = "0.23.0-dev"
 dependencies = [
- "github-scbot-core",
+ "github-scbot-config",
+ "github-scbot-crypto",
  "serde",
  "thiserror",
 ]
@@ -1180,7 +1175,8 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "backoff",
- "github-scbot-core",
+ "github-scbot-config",
+ "github-scbot-crypto",
  "github-scbot-ghapi-interface",
  "http",
  "reqwest",
@@ -1196,7 +1192,6 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "heck",
- "maplit",
  "mockall",
  "serde",
  "serde_plain",
@@ -1229,6 +1224,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-logging"
+version = "0.23.0-dev"
+dependencies = [
+ "github-scbot-config",
+ "thiserror",
+ "tracing",
+ "tracing-bunyan-formatter",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-tree",
+]
+
+[[package]]
 name = "github-scbot-sentry"
 version = "0.23.0-dev"
 dependencies = [
@@ -1247,7 +1256,8 @@ dependencies = [
  "actix-web-prom",
  "async-trait",
  "futures",
- "github-scbot-core",
+ "github-scbot-config",
+ "github-scbot-crypto",
  "github-scbot-database-interface",
  "github-scbot-database-pg",
  "github-scbot-domain",
@@ -1274,7 +1284,6 @@ name = "github-scbot-tui"
 version = "0.23.0-dev"
 dependencies = [
  "crossterm",
- "github-scbot-core",
  "github-scbot-database-interface",
  "github-scbot-domain-models",
  "thiserror",
@@ -1468,12 +1477,6 @@ dependencies = [
  "autocfg",
  "hashbrown 0.11.2",
 ]
-
-[[package]]
-name = "indoc"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
 
 [[package]]
 name = "instant"

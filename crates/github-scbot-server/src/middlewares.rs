@@ -15,7 +15,8 @@ use futures::{
     stream::StreamExt,
     Future,
 };
-use github_scbot_core::{config::Config, crypto::is_valid_signature};
+use github_scbot_config::Config;
+use github_scbot_crypto::is_valid_signature;
 use tracing::warn;
 
 use super::constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH};

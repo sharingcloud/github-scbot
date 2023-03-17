@@ -1,8 +1,9 @@
 //! Auth.
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use github_scbot_core::{config::Config, crypto::JwtUtils, utils::TimeUtils};
+use github_scbot_config::Config;
+use github_scbot_crypto::JwtUtils;
 use github_scbot_ghapi_interface::{ApiService, Result};
 use http::{header, HeaderMap};
 use reqwest::ClientBuilder;
@@ -76,11 +77,17 @@ async fn get_authentication_credentials(
     }
 }
 
+fn now_timestamp() -> u64 {
+    let start = SystemTime::now();
+    let duration = start.duration_since(UNIX_EPOCH).expect("time collapsed");
+    duration.as_secs()
+}
+
 fn create_app_token(config: &Config) -> Result<String, GitHubError> {
     // GitHub App authentication documentation
     // https://docs.github.com/en/developers/apps/authenticating-with-github-apps#authenticating-as-a-github-app
 
-    let now_ts = TimeUtils::now_timestamp();
+    let now_ts = now_timestamp();
     let claims = JwtClaims {
         // Issued at time
         iat: now_ts,
@@ -107,7 +114,7 @@ async fn create_installation_access_token(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::crypto::{JwtUtils, RsaUtils};
+    use github_scbot_crypto::RsaUtils;
     use github_scbot_ghapi_interface::MockApiService;
 
     use super::*;

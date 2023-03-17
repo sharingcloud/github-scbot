@@ -2,8 +2,9 @@
 
 use std::fmt::Write;
 
-use super::{config::Config, Result};
-use crate::{config::ConfError, crypto::JwtUtils};
+use github_scbot_config::Config;
+use github_scbot_crypto::JwtUtils;
+use thiserror::Error;
 
 enum ApiConfigError {
     MissingToken,
@@ -13,7 +14,13 @@ enum ApiConfigError {
     InvalidPrivateKey,
 }
 
-fn validate_env_vars(config: &Config) -> Result<()> {
+#[derive(Debug, Error)]
+pub enum ValidationError {
+    #[error("Errors on environment variables:\n{}", errors)]
+    EnvVarsError { errors: String },
+}
+
+fn validate_env_vars(config: &Config) -> Result<(), ValidationError> {
     #[inline]
     fn _missing(error: &mut String, name: &str) {
         error.push('\n');
@@ -67,7 +74,7 @@ fn validate_env_vars(config: &Config) -> Result<()> {
     if error.is_empty() {
         Ok(())
     } else {
-        Err(ConfError::EnvVarsError { errors: error })
+        Err(ValidationError::EnvVarsError { errors: error })
     }
 }
 
@@ -106,7 +113,7 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
 }
 
 /// Validate configuration.
-pub fn validate_configuration(config: &Config) -> Result<()> {
+pub fn validate_configuration(config: &Config) -> Result<(), ValidationError> {
     validate_env_vars(config)
 }
 

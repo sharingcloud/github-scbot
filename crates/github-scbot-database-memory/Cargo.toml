@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
-github-scbot-core = { path = "../github-scbot-core" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
+
 async-trait = "0.1.56"

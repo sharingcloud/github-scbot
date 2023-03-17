@@ -1,4 +1,4 @@
-use github_scbot_core::config::Config;
+use github_scbot_config::Config;
 use github_scbot_domain_models::MergeStrategy;
 use github_scbot_ghapi_interface::types::GhReactionType;
 use thiserror::Error;

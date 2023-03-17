@@ -1,4 +1,4 @@
-// use github_scbot_core::config::Config;
+// use github_scbot_config::Config;
 // use github_scbot_core::types::{
 //     checks::{GhCheckConclusion, GhChecksStatus, GhCheckSuite},
 //     common::{GhApplication, GhRepository, GhUser},
