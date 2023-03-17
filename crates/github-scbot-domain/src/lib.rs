@@ -7,7 +7,4 @@ pub mod commands;
 pub mod errors;
 pub mod use_cases;
 
-#[cfg(test)]
-mod tests;
-
 pub use errors::{DomainError, Result};

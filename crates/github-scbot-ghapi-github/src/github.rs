@@ -9,14 +9,14 @@ use github_scbot_ghapi_interface::{
     gif::GifResponse,
     review::GhReviewApi,
     types::{
-        GhCheckSuite, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhCheckRun, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
         GhUserPermission,
     },
     ApiService, Result,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::{
     auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
@@ -61,6 +61,10 @@ impl GithubApiService {
         backoff::future::retry(conf, || async {
             f().await.map_err(|e| match e {
                 GitHubError::HttpError { .. } => {
+                    error!(
+                        message = "Error while calling API",
+                        error = %e
+                    );
                     info!("Will retry API call ...");
                     backoff::Error::transient(e)
                 }
@@ -195,15 +199,15 @@ impl ApiService for GithubApiService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn check_suites_list(
+    async fn check_runs_list(
         &self,
         owner: &str,
         name: &str,
         git_ref: &str,
-    ) -> Result<Vec<GhCheckSuite>> {
+    ) -> Result<Vec<GhCheckRun>> {
         #[derive(Deserialize)]
         struct Response {
-            check_suites: Vec<GhCheckSuite>,
+            check_runs: Vec<GhCheckRun>,
         }
 
         let mut responses = vec![];
@@ -211,24 +215,28 @@ impl ApiService for GithubApiService {
         let max_per_page = 100;
 
         loop {
-            debug!(current = curr_page, message = "Fetching check suites page");
+            debug!(current = curr_page, message = "Fetching check runs page");
 
-            let results: Vec<GhCheckSuite> = self
+            let results: Vec<GhCheckRun> = self
                 .call_with_retry(|| async move {
                     let response = self
                         .get_client()
                         .await?
                         .get(&self.build_url(format!(
-                            "/repos/{owner}/{name}/commits/{git_ref}/check-suites"
+                            "/repos/{owner}/{name}/commits/{git_ref}/check-runs"
                         )))
-                        .query(&[("per_page", max_per_page), ("page", curr_page)])
+                        .query(&[
+                            ("per_page", max_per_page.to_string()),
+                            ("page", curr_page.to_string()),
+                            ("filter", "latest".into()),
+                        ])
                         .send()
                         .await?
                         .error_for_status()?
                         .json::<Response>()
                         .await?;
 
-                    Ok(response.check_suites)
+                    Ok(response.check_runs)
                 })
                 .await?;
 

@@ -7,7 +7,7 @@ use github_scbot_ghapi_interface::{
     gif::GifResponse,
     review::GhReviewApi,
     types::{
-        GhCheckSuite, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhCheckRun, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
         GhUserPermission,
     },
     ApiService, Result,
@@ -79,14 +79,14 @@ impl ApiService for MetricsApiService {
         self.inner.user_permissions_get(owner, name, username).await
     }
 
-    async fn check_suites_list(
+    async fn check_runs_list(
         &self,
         owner: &str,
         name: &str,
         git_ref: &str,
-    ) -> Result<Vec<GhCheckSuite>> {
+    ) -> Result<Vec<GhCheckRun>> {
         GITHUB_API_CALLS.inc();
-        self.inner.check_suites_list(owner, name, git_ref).await
+        self.inner.check_runs_list(owner, name, git_ref).await
     }
 
     async fn comments_post(

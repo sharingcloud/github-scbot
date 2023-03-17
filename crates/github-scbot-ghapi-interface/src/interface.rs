@@ -4,7 +4,7 @@ use crate::{
     gif::GifResponse,
     review::GhReviewApi,
     types::{
-        GhCheckSuite, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhCheckRun, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
         GhUserPermission,
     },
     Result,
@@ -60,13 +60,13 @@ pub trait ApiService: Send + Sync {
         name: &str,
         username: &str,
     ) -> Result<GhUserPermission>;
-    /// List check suites from a repository.
-    async fn check_suites_list(
+    /// List latest check runs from a repository.
+    async fn check_runs_list(
         &self,
         owner: &str,
         name: &str,
         git_ref: &str,
-    ) -> Result<Vec<GhCheckSuite>>;
+    ) -> Result<Vec<GhCheckRun>>;
     /// Post a comment on a pull request.
     async fn comments_post(
         &self,

@@ -93,7 +93,6 @@ impl PullRequestStatus {
                 repo_name,
                 commit_sha: &upstream_pr.head.sha,
                 wait_for_initial_checks: pr_model.checks_enabled,
-                exclude_check_suite_ids: &[],
             }
             .run()
             .await?
