@@ -1,6 +1,6 @@
 // use github_scbot_core::config::Config;
 // use github_scbot_core::types::{
-//     checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
+//     checks::{GhCheckConclusion, GhChecksStatus, GhCheckSuite},
 //     common::{GhApplication, GhRepository, GhUser},
 //     pulls::{GhPullRequest, GhPullRequestAction, GhPullRequestEvent, GhPullRequestShort},
 // };
@@ -216,7 +216,7 @@
 //                 .times(1)
 //                 .return_once(|_, _, _| {
 //                     Ok(vec![GhCheckSuite {
-//                         status: GhCheckStatus::Completed,
+//                         status: GhChecksStatus::Completed,
 //                         conclusion: Some(GhCheckConclusion::Success),
 //                         pull_requests: vec![GhPullRequestShort {
 //                             number: 1,

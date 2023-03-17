@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use github_scbot_database_interface::{DatabaseError, DbService, Result};
 use github_scbot_domain_models::{
-    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
-    RequiredReviewer,
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, MergeStrategy, PullRequest,
+    QaStatus, Repository, RequiredReviewer, RuleBranch,
 };
 use sqlx::{PgPool, Row};
 
@@ -1119,7 +1118,7 @@ impl DbService for PostgresDb {
         owner: &str,
         name: &str,
         number: u64,
-        strategy: Option<GhMergeStrategy>,
+        strategy: Option<MergeStrategy>,
     ) -> Result<PullRequest> {
         self.repositories_get_expect(owner, name).await?;
 
@@ -1371,7 +1370,7 @@ impl DbService for PostgresDb {
         &mut self,
         owner: &str,
         name: &str,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
     ) -> Result<Repository> {
         let id: i32 = sqlx::query(
             r#"

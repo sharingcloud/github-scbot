@@ -1,7 +1,7 @@
-use github_scbot_core::{config::Config, types::pulls::GhPullRequestEvent};
+use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{PullRequest, Repository};
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{types::GhPullRequestEvent, ApiService};
 use github_scbot_lock_interface::LockService;
 
 use super::GetOrCreateRepositoryUseCase;

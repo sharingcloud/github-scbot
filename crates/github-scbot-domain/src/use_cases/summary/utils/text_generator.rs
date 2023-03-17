@@ -1,7 +1,4 @@
-use github_scbot_core::types::{
-    pulls::GhMergeStrategy,
-    status::{CheckStatus, QaStatus},
-};
+use github_scbot_domain_models::{ChecksStatus, MergeStrategy, QaStatus};
 
 use crate::{
     use_cases::status::{GenerateStatusMessageUseCase, PullRequestStatus},
@@ -39,7 +36,7 @@ impl SummaryTextGenerator {
     fn generate_status_comment_rule_section(
         valid_pull_request_title: bool,
         pull_request_title_regex: &str,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
     ) -> String {
         let validation_regex = if pull_request_title_regex.is_empty() {
             "None".to_owned()
@@ -67,10 +64,10 @@ impl SummaryTextGenerator {
 
     fn generate_status_comment_checks_section(pull_request_status: &PullRequestStatus) -> String {
         let checks_message = match pull_request_status.checks_status {
-            CheckStatus::Pass => "_passed!_ :heavy_check_mark:",
-            CheckStatus::Waiting => "_running..._ :clock2:",
-            CheckStatus::Fail => "_failed._ :x:",
-            CheckStatus::Skipped => "_skipped._ :heavy_check_mark:",
+            ChecksStatus::Pass => "_passed!_ :heavy_check_mark:",
+            ChecksStatus::Waiting => "_running..._ :clock2:",
+            ChecksStatus::Fail => "_failed._ :x:",
+            ChecksStatus::Skipped => "_skipped._ :heavy_check_mark:",
         };
 
         let qa_message = match pull_request_status.qa_status {

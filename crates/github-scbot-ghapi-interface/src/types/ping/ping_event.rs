@@ -1,8 +1,6 @@
-//! Ping types.
-
 use serde::Deserialize;
 
-use super::common::{GhRepository, GhUser};
+use crate::types::common::{GhRepository, GhUser};
 
 /// GitHub Ping event.
 #[derive(Debug, Deserialize, Default, PartialEq, Eq)]

@@ -4,17 +4,16 @@ use std::{future::Future, time::Duration};
 
 use async_trait::async_trait;
 use backoff::ExponentialBackoffBuilder;
-use github_scbot_core::{
-    config::Config,
+use github_scbot_core::config::Config;
+use github_scbot_ghapi_interface::{
+    gif::GifResponse,
+    review::GhReviewApi,
     types::{
-        checks::GhCheckSuite,
-        common::GhUserPermission,
-        issues::GhReactionType,
-        pulls::{GhMergeStrategy, GhPullRequest},
-        status::StatusState,
+        GhCheckSuite, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhUserPermission,
     },
+    ApiService, Result,
 };
-use github_scbot_ghapi_interface::{gif::GifResponse, review::GhReviewApi, ApiService, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
@@ -541,7 +540,7 @@ impl ApiService for GithubApiService {
         owner: &str,
         name: &str,
         git_ref: &str,
-        status: StatusState,
+        status: GhCommitStatus,
         title: &str,
         body: &str,
     ) -> Result<()> {

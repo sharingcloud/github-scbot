@@ -8,9 +8,11 @@ mod parser;
 #[cfg(test)]
 pub(crate) use commands::tests::CommandContextTest;
 pub use commands::{BotCommand, CommandContext};
-use github_scbot_core::types::{common::GhUserPermission, issues::GhReactionType};
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::comments::CommentApi;
+use github_scbot_ghapi_interface::{
+    comments::CommentApi,
+    types::{GhReactionType, GhUserPermission},
+};
 pub use parser::CommandParser;
 
 pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};

@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use github_scbot_database_interface::{DbService, Result};
 use github_scbot_domain_models::{
-    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
-    RequiredReviewer,
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, MergeStrategy, PullRequest,
+    QaStatus, Repository, RequiredReviewer, RuleBranch,
 };
 
 #[derive(Debug, Default)]
@@ -535,7 +534,7 @@ impl DbService for MemoryDb {
         owner: &str,
         name: &str,
         number: u64,
-        strategy: Option<GhMergeStrategy>,
+        strategy: Option<MergeStrategy>,
     ) -> Result<PullRequest> {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
@@ -647,7 +646,7 @@ impl DbService for MemoryDb {
         &mut self,
         owner: &str,
         name: &str,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_strategy = strategy;

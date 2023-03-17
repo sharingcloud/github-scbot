@@ -2,7 +2,16 @@
 
 use std::str::FromStr;
 
-use super::errors::TypeError;
+use thiserror::Error;
+
+/// Type error.
+#[allow(missing_docs)]
+#[derive(Debug, Error)]
+pub enum RepositoryPathError {
+    /// Invalid repository path.
+    #[error("Invalid repository path: {}", path)]
+    InvalidRepositoryPath { path: String },
+}
 
 /// Repository path.
 #[derive(Debug, Clone)]
@@ -13,7 +22,7 @@ pub struct RepositoryPath {
 
 impl RepositoryPath {
     /// Creates a new repository path.
-    pub fn new(path: &str) -> Result<Self, TypeError> {
+    pub fn new(path: &str) -> Result<Self, RepositoryPathError> {
         let (owner, name) = Self::split_repo_path(path)?;
 
         Ok(Self {
@@ -50,13 +59,13 @@ impl RepositoryPath {
         format!("{}/{}", self.owner, self.name)
     }
 
-    fn split_repo_path(repo_path: &str) -> Result<(&str, &str), TypeError> {
+    fn split_repo_path(repo_path: &str) -> Result<(&str, &str), RepositoryPathError> {
         let split: Vec<_> = repo_path.split('/').collect();
 
         if split.len() == 2 {
             Ok((split[0], split[1]))
         } else {
-            Err(TypeError::InvalidRepositoryPath {
+            Err(RepositoryPathError::InvalidRepositoryPath {
                 path: repo_path.to_string(),
             })
         }
@@ -64,7 +73,7 @@ impl RepositoryPath {
 }
 
 impl FromStr for RepositoryPath {
-    type Err = TypeError;
+    type Err = RepositoryPathError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.try_into()
@@ -72,7 +81,7 @@ impl FromStr for RepositoryPath {
 }
 
 impl TryFrom<&str> for RepositoryPath {
-    type Error = TypeError;
+    type Error = RepositoryPathError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::new(value)

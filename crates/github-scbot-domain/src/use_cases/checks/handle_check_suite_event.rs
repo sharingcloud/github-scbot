@@ -1,6 +1,5 @@
-use github_scbot_core::types::checks::GhCheckSuiteEvent;
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{types::GhCheckSuiteEvent, ApiService};
 use github_scbot_lock_interface::LockService;
 
 use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};

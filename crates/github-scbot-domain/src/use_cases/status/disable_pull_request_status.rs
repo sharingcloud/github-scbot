@@ -1,6 +1,5 @@
-use github_scbot_core::types::status::StatusState;
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{types::GhCommitStatus, ApiService};
 
 use super::generate_status_message::VALIDATION_STATUS_MESSAGE;
 use crate::{use_cases::summary::DeleteSummaryCommentUseCase, Result};
@@ -27,7 +26,7 @@ impl<'a> DisablePullRequestStatusUseCase<'a> {
                 self.repo_owner,
                 self.repo_name,
                 &sha,
-                StatusState::Success,
+                GhCommitStatus::Success,
                 VALIDATION_STATUS_MESSAGE,
                 "Bot disabled.",
             )

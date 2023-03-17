@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
+use github_scbot_domain_models::MergeStrategy;
+use github_scbot_ghapi_interface::types::GhReactionType;
 
 use crate::{
     commands::{
@@ -10,11 +11,11 @@ use crate::{
 };
 
 pub struct AdminSetDefaultMergeStrategyCommand {
-    strategy: GhMergeStrategy,
+    strategy: MergeStrategy,
 }
 
 impl AdminSetDefaultMergeStrategyCommand {
-    pub fn new(strategy: GhMergeStrategy) -> Self {
+    pub fn new(strategy: MergeStrategy) -> Self {
         Self { strategy }
     }
 }

@@ -22,3 +22,4 @@ actix-rt = "2.7.0"
 futures-util = "0.3.21"
 maplit = "1.0.2"
 pretty_assertions = "1.2.1"
+time = { version = "0.3.11" }

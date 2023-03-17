@@ -1,5 +1,5 @@
-use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::RepositoryPath;
 
 use crate::Result;
 
@@ -25,10 +25,11 @@ impl<'a> RemoveExternalAccountRightUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_core::types::repository::RepositoryPath;
     use github_scbot_database_interface::DbService;
     use github_scbot_database_memory::MemoryDb;
-    use github_scbot_domain_models::{ExternalAccount, ExternalAccountRight, Repository};
+    use github_scbot_domain_models::{
+        ExternalAccount, ExternalAccountRight, Repository, RepositoryPath,
+    };
 
     use super::RemoveExternalAccountRightUseCase;
 

@@ -1,19 +1,20 @@
 use std::collections::HashSet;
 
-use github_scbot_core::types::{
-    pulls::{GhMergeStrategy, GhPullRequest},
-    reviews::{GhReview, GhReviewState},
-    status::{CheckStatus, QaStatus},
-};
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::{PullRequest, Repository, RequiredReviewer};
-use github_scbot_ghapi_interface::{reviews::ReviewApi, ApiService};
+use github_scbot_domain_models::{
+    ChecksStatus, MergeStrategy, PullRequest, QaStatus, Repository, RequiredReviewer,
+};
+use github_scbot_ghapi_interface::{
+    reviews::ReviewApi,
+    types::{GhPullRequest, GhReview, GhReviewState},
+    ApiService,
+};
 use regex::Regex;
 
 use crate::{
     errors::Result,
     use_cases::{
-        checks::DetermineCheckStatusUseCase, pulls::DeterminePullRequestMergeStrategyUseCase,
+        checks::DetermineChecksStatusUseCase, pulls::DeterminePullRequestMergeStrategyUseCase,
     },
 };
 
@@ -27,7 +28,7 @@ pub struct PullRequestStatus {
     /// Automerge enabled?
     pub automerge: bool,
     /// Checks status.
-    pub checks_status: CheckStatus,
+    pub checks_status: ChecksStatus,
     /// Checks URL.
     pub checks_url: String,
     /// Needed reviewers count.
@@ -49,7 +50,7 @@ pub struct PullRequestStatus {
     /// PR is merged?,
     pub merged: bool,
     /// Merge strategy
-    pub merge_strategy: GhMergeStrategy,
+    pub merge_strategy: MergeStrategy,
 }
 
 impl PullRequestStatus {
@@ -86,7 +87,7 @@ impl PullRequestStatus {
             .required_reviewers_list(repo_owner, repo_name, pr_number)
             .await?;
         let checks_status = if pr_model.checks_enabled {
-            DetermineCheckStatusUseCase {
+            DetermineChecksStatusUseCase {
                 api_service,
                 repo_owner,
                 repo_name,
@@ -97,7 +98,7 @@ impl PullRequestStatus {
             .run()
             .await?
         } else {
-            CheckStatus::Skipped
+            ChecksStatus::Skipped
         };
 
         let strategy = if let Some(s) = pr_model.strategy_override {
@@ -131,9 +132,9 @@ impl PullRequestStatus {
     fn from_pull_request(
         repo_model: &Repository,
         pr_model: &PullRequest,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
         required_reviewers: Vec<RequiredReviewer>,
-        checks_status: CheckStatus,
+        checks_status: ChecksStatus,
         upstream_reviews: Vec<GhReview>,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {

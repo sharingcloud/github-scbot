@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
+use github_scbot_domain_models::{MergeStrategy, QaStatus, RuleBranch};
 use sqlx::{
     postgres::{PgTypeInfo, PgValueRef},
     Decode, Postgres, Type,
@@ -30,32 +30,32 @@ impl Deref for RuleBranchDecode {
     }
 }
 
-pub struct GhMergeStrategyDecode(GhMergeStrategy);
-impl<'r> Decode<'r, Postgres> for GhMergeStrategyDecode {
+pub struct MergeStrategyDecode(MergeStrategy);
+impl<'r> Decode<'r, Postgres> for MergeStrategyDecode {
     fn decode(value: PgValueRef) -> core::result::Result<Self, sqlx::error::BoxDynError> {
         let str_value = <&str as Decode<Postgres>>::decode(value)?;
-        GhMergeStrategy::try_from(str_value)
+        MergeStrategy::try_from(str_value)
             .map(Self)
             .map_err(Into::into)
     }
 }
 
-impl Type<Postgres> for GhMergeStrategyDecode {
+impl Type<Postgres> for MergeStrategyDecode {
     fn type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("varchar")
     }
 }
 
-impl Deref for GhMergeStrategyDecode {
-    type Target = GhMergeStrategy;
+impl Deref for MergeStrategyDecode {
+    type Target = MergeStrategy;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<GhMergeStrategyDecode> for GhMergeStrategy {
-    fn from(v: GhMergeStrategyDecode) -> Self {
+impl From<MergeStrategyDecode> for MergeStrategy {
+    fn from(v: MergeStrategyDecode) -> Self {
         v.0
     }
 }

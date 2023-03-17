@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use github_scbot_core::types::issues::GhReactionType;
+use github_scbot_ghapi_interface::types::GhReactionType;
 
 use crate::{
     commands::{

@@ -2,7 +2,7 @@ use std::io::Write;
 
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::{pulls::GhMergeStrategy, repository::RepositoryPath};
+use github_scbot_domain_models::{MergeStrategy, RepositoryPath};
 
 use crate::{
     commands::{Command, CommandContext},
@@ -20,7 +20,7 @@ pub(crate) struct PullRequestSetMergeStrategyCommand {
     number: u64,
 
     /// Merge strategy
-    strategy: Option<GhMergeStrategy>,
+    strategy: Option<MergeStrategy>,
 }
 
 #[async_trait(?Send)]

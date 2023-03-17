@@ -4,7 +4,7 @@ use github_scbot_domain_models::{
 };
 use sqlx::{postgres::PgRow, FromRow, Row};
 
-use crate::fields::{GhMergeStrategyDecode, QaStatusDecode, RuleBranchDecode};
+use crate::fields::{MergeStrategyDecode, QaStatusDecode, RuleBranchDecode};
 
 pub(crate) struct AccountRow(Account);
 pub(crate) struct ExternalAccountRow(ExternalAccount);
@@ -90,7 +90,7 @@ impl<'r> FromRow<'r, PgRow> for MergeRuleRow {
             repository_id: row.try_get::<i32, _>("repository_id")? as u64,
             base_branch: row.try_get::<RuleBranchDecode, _>("base_branch")?.clone(),
             head_branch: row.try_get::<RuleBranchDecode, _>("head_branch")?.clone(),
-            strategy: *row.try_get::<GhMergeStrategyDecode, _>("strategy")?,
+            strategy: *row.try_get::<MergeStrategyDecode, _>("strategy")?,
         }))
     }
 }
@@ -108,7 +108,7 @@ impl<'r> FromRow<'r, PgRow> for PullRequestRow {
             automerge: row.try_get("automerge")?,
             locked: row.try_get("locked")?,
             strategy_override: row
-                .try_get::<Option<GhMergeStrategyDecode>, _>("strategy_override")?
+                .try_get::<Option<MergeStrategyDecode>, _>("strategy_override")?
                 .map(Into::into),
         }))
     }
@@ -122,7 +122,7 @@ impl<'r> FromRow<'r, PgRow> for RepositoryRow {
             name: row.try_get("name")?,
             manual_interaction: row.try_get("manual_interaction")?,
             pr_title_validation_regex: row.try_get("pr_title_validation_regex")?,
-            default_strategy: *row.try_get::<GhMergeStrategyDecode, _>("default_strategy")?,
+            default_strategy: *row.try_get::<MergeStrategyDecode, _>("default_strategy")?,
             default_needed_reviewers_count: row
                 .try_get::<i32, _>("default_needed_reviewers_count")?
                 as u64,

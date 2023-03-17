@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{issues::GhReactionType, labels::StepLabel, pulls::GhMergeStrategy};
+use github_scbot_domain_models::{MergeStrategy, StepLabel};
+use github_scbot_ghapi_interface::types::GhReactionType;
 use tracing::error;
 
 use crate::{
@@ -15,11 +16,11 @@ use crate::{
 };
 
 pub struct MergeCommand {
-    strategy: Option<GhMergeStrategy>,
+    strategy: Option<MergeStrategy>,
 }
 
 impl MergeCommand {
-    pub fn new(strategy: Option<GhMergeStrategy>) -> Self {
+    pub fn new(strategy: Option<MergeStrategy>) -> Self {
         Self { strategy }
     }
 

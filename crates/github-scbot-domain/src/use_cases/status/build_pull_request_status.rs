@@ -1,6 +1,5 @@
-use github_scbot_core::types::pulls::GhPullRequest;
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 
 use super::utils::PullRequestStatus;
 use crate::Result;

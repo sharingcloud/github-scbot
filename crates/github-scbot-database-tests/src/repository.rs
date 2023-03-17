@@ -1,6 +1,5 @@
-use github_scbot_core::types::pulls::GhMergeStrategy;
 use github_scbot_database_interface::DatabaseError;
-use github_scbot_domain_models::Repository;
+use github_scbot_domain_models::{MergeStrategy, Repository};
 
 use crate::testcase::db_test_case;
 
@@ -174,7 +173,7 @@ async fn set_pr_title_validation_regex() {
 async fn set_default_strategy() {
     db_test_case("repository_set_default_strategy", |mut db| async move {
         assert!(matches!(
-            db.repositories_set_default_strategy("me", "repo", GhMergeStrategy::Squash)
+            db.repositories_set_default_strategy("me", "repo", MergeStrategy::Squash)
                 .await,
             Err(DatabaseError::UnknownRepository(_))
         ));
@@ -182,15 +181,15 @@ async fn set_default_strategy() {
         db.repositories_create(Repository {
             owner: "me".into(),
             name: "repo".into(),
-            default_strategy: GhMergeStrategy::Merge,
+            default_strategy: MergeStrategy::Merge,
             ..Default::default()
         })
         .await?;
 
         let repo = db
-            .repositories_set_default_strategy("me", "repo", GhMergeStrategy::Squash)
+            .repositories_set_default_strategy("me", "repo", MergeStrategy::Squash)
             .await?;
-        assert_eq!(repo.default_strategy, GhMergeStrategy::Squash);
+        assert_eq!(repo.default_strategy, MergeStrategy::Squash);
 
         Ok(())
     })

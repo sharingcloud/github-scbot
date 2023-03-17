@@ -28,6 +28,7 @@ tracing = "0.1.35"
 tracing-actix-web = "0.6.0"
 prometheus = { version = "0.13.1", features = ["process"] }
 lazy_static = "1.4.0"
+time = { version = "0.3.11" }
 thiserror = "1.0.37"
 
 [dev-dependencies]

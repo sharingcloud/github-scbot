@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
+use github_scbot_domain_models::MergeStrategy;
+use github_scbot_ghapi_interface::types::GhReactionType;
 
 use crate::{
     commands::{
@@ -10,11 +11,11 @@ use crate::{
 };
 
 pub struct SetMergeStrategyCommand {
-    strategy: Option<GhMergeStrategy>,
+    strategy: Option<MergeStrategy>,
 }
 
 impl SetMergeStrategyCommand {
-    pub fn new(status: GhMergeStrategy) -> Self {
+    pub fn new(status: MergeStrategy) -> Self {
         Self {
             strategy: Some(status),
         }
@@ -27,7 +28,7 @@ impl SetMergeStrategyCommand {
     async fn _handle_set_strategy<'a>(
         &self,
         ctx: &mut CommandContext<'a>,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
     ) -> Result<CommandExecutionResult> {
         ctx.db_service
             .pull_requests_set_strategy_override(

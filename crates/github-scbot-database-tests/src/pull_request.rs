@@ -1,6 +1,5 @@
-use github_scbot_core::types::{pulls::GhMergeStrategy, status::QaStatus};
 use github_scbot_database_interface::DatabaseError;
-use github_scbot_domain_models::{PullRequest, Repository};
+use github_scbot_domain_models::{MergeStrategy, PullRequest, QaStatus, Repository};
 
 use crate::testcase::db_test_case;
 
@@ -499,7 +498,7 @@ async fn set_locked() {
 async fn set_strategy_override() {
     db_test_case("pull_request_set_strategy_override", |mut db| async move {
         assert!(matches!(
-            db.pull_requests_set_strategy_override("me", "repo", 1, Some(GhMergeStrategy::Squash))
+            db.pull_requests_set_strategy_override("me", "repo", 1, Some(MergeStrategy::Squash))
                 .await,
             Err(DatabaseError::UnknownRepository(_))
         ));
@@ -513,7 +512,7 @@ async fn set_strategy_override() {
             .await?;
 
         assert!(matches!(
-            db.pull_requests_set_strategy_override("me", "repo", 1, Some(GhMergeStrategy::Squash))
+            db.pull_requests_set_strategy_override("me", "repo", 1, Some(MergeStrategy::Squash))
                 .await,
             Err(DatabaseError::UnknownPullRequest(_, _))
         ));
@@ -527,9 +526,9 @@ async fn set_strategy_override() {
         .await?;
 
         let pr = db
-            .pull_requests_set_strategy_override("me", "repo", 1, Some(GhMergeStrategy::Squash))
+            .pull_requests_set_strategy_override("me", "repo", 1, Some(MergeStrategy::Squash))
             .await?;
-        assert_eq!(pr.strategy_override, Some(GhMergeStrategy::Squash));
+        assert_eq!(pr.strategy_override, Some(MergeStrategy::Squash));
 
         Ok(())
     })

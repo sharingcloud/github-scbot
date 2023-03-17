@@ -2,10 +2,7 @@ use std::io::Write;
 
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::{
-    pulls::GhMergeStrategy, repository::RepositoryPath, rule_branch::RuleBranch,
-};
-use github_scbot_domain_models::MergeRule;
+use github_scbot_domain_models::{MergeRule, MergeStrategy, RepositoryPath, RuleBranch};
 
 use crate::{
     commands::{Command, CommandContext},
@@ -23,7 +20,7 @@ pub(crate) struct RepositoryAddMergeRuleCommand {
     /// Head branch name
     head_branch: RuleBranch,
     /// Merge strategy
-    strategy: GhMergeStrategy,
+    strategy: MergeStrategy,
 }
 
 #[async_trait(?Send)]

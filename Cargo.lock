@@ -1160,6 +1160,7 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "thiserror",
+ "time",
  "tracing",
 ]
 
@@ -1169,6 +1170,7 @@ version = "0.23.0-dev"
 dependencies = [
  "github-scbot-core",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -1200,7 +1202,9 @@ dependencies = [
  "rand",
  "serde",
  "serde_plain",
+ "smart-default",
  "thiserror",
+ "time",
 ]
 
 [[package]]
@@ -1252,6 +1256,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "time",
  "tracing",
  "tracing-actix-web",
 ]

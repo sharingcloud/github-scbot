@@ -3,7 +3,7 @@ use std::io::Write;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::{repository::RepositoryPath, rule_branch::RuleBranch};
+use github_scbot_domain_models::{RepositoryPath, RuleBranch};
 
 use crate::{
     commands::{Command, CommandContext},

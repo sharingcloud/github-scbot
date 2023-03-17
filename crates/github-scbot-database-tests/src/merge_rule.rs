@@ -1,6 +1,5 @@
-use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch};
 use github_scbot_database_interface::DatabaseError;
-use github_scbot_domain_models::{MergeRule, Repository};
+use github_scbot_domain_models::{MergeRule, MergeStrategy, Repository, RuleBranch};
 
 use crate::testcase::db_test_case;
 
@@ -12,7 +11,7 @@ async fn create() {
                 repository_id: 1,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge
+                strategy: MergeStrategy::Merge
             })
             .await,
             Err(DatabaseError::UnknownRepositoryId(1))
@@ -31,14 +30,14 @@ async fn create() {
                 repository_id: repo.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
 
         assert_eq!(rule.repository_id, repo.id);
         assert_eq!(rule.base_branch, RuleBranch::Wildcard);
         assert_eq!(rule.head_branch, RuleBranch::Named("hello".to_owned()));
-        assert_eq!(rule.strategy, GhMergeStrategy::Merge);
+        assert_eq!(rule.strategy, MergeStrategy::Merge);
 
         Ok(())
     })
@@ -53,7 +52,7 @@ async fn update() {
                 repository_id: 1,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge
+                strategy: MergeStrategy::Merge
             },)
                 .await,
             Err(DatabaseError::UnknownRepositoryId(1))
@@ -72,7 +71,7 @@ async fn update() {
                 repository_id: repo.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge
+                strategy: MergeStrategy::Merge
             },)
                 .await,
             Err(DatabaseError::UnknownMergeRule(_, _))
@@ -82,7 +81,7 @@ async fn update() {
             repository_id: repo.id,
             base_branch: RuleBranch::Wildcard,
             head_branch: RuleBranch::Named("hello".to_owned()),
-            strategy: GhMergeStrategy::Merge,
+            strategy: MergeStrategy::Merge,
         })
         .await?;
 
@@ -91,14 +90,14 @@ async fn update() {
                 repository_id: 1,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Squash,
+                strategy: MergeStrategy::Squash,
             })
             .await?;
 
         assert_eq!(rule.repository_id, repo.id);
         assert_eq!(rule.base_branch, RuleBranch::Wildcard);
         assert_eq!(rule.head_branch, RuleBranch::Named("hello".to_owned()));
-        assert_eq!(rule.strategy, GhMergeStrategy::Squash);
+        assert_eq!(rule.strategy, MergeStrategy::Squash);
         assert_eq!(
             db.merge_rules_get(
                 "me",
@@ -142,7 +141,7 @@ async fn get() {
                 repository_id: repo.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
 
@@ -186,7 +185,7 @@ async fn delete() {
             repository_id: repo.id,
             base_branch: RuleBranch::Wildcard,
             head_branch: RuleBranch::Named("hello".to_owned()),
-            strategy: GhMergeStrategy::Merge,
+            strategy: MergeStrategy::Merge,
         })
         .await?;
 
@@ -241,7 +240,7 @@ async fn all() {
                 repository_id: repo1.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
         let rule2 = db
@@ -249,7 +248,7 @@ async fn all() {
                 repository_id: repo1.id,
                 base_branch: RuleBranch::Named("hi".to_owned()),
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
         let rule3 = db
@@ -257,7 +256,7 @@ async fn all() {
                 repository_id: repo2.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
         let rule4 = db
@@ -265,7 +264,7 @@ async fn all() {
                 repository_id: repo2.id,
                 base_branch: RuleBranch::Named("hi".to_owned()),
                 head_branch: RuleBranch::Named("hello2".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
 
@@ -297,7 +296,7 @@ async fn list() {
                 repository_id: repo.id,
                 base_branch: RuleBranch::Wildcard,
                 head_branch: RuleBranch::Named("hello".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
         let rule2 = db
@@ -305,7 +304,7 @@ async fn list() {
                 repository_id: repo.id,
                 base_branch: RuleBranch::Named("hi".to_owned()),
                 head_branch: RuleBranch::Named("hello2".to_owned()),
-                strategy: GhMergeStrategy::Merge,
+                strategy: MergeStrategy::Merge,
             })
             .await?;
 
@@ -331,7 +330,7 @@ async fn cascade_repository() {
             repository_id: repo.id,
             base_branch: RuleBranch::Wildcard,
             head_branch: RuleBranch::Named("hello".to_owned()),
-            strategy: GhMergeStrategy::Merge,
+            strategy: MergeStrategy::Merge,
         })
         .await?;
 

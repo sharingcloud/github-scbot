@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use clap::Parser;
-use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_domain::use_cases::auth::RemoveExternalAccountRightUseCase;
+use github_scbot_domain_models::RepositoryPath;
 
 use crate::{commands::CommandContext, Result};
 

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
+use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::LockService;
 
 use crate::{commands::command::CommandExecutionResult, Result};
@@ -31,12 +31,11 @@ pub trait BotCommand {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use github_scbot_core::{config::Config, types::pulls::GhPullRequest};
     use github_scbot_database_memory::MemoryDb;
     use github_scbot_ghapi_interface::MockApiService;
     use github_scbot_lock_interface::MockLockService;
 
-    use super::CommandContext;
+    use super::*;
 
     pub(crate) struct CommandContextTest {
         pub config: Config,

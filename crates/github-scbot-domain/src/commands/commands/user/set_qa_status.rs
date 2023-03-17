@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{issues::GhReactionType, status::QaStatus};
+use github_scbot_domain_models::QaStatus;
+use github_scbot_ghapi_interface::types::GhReactionType;
 
 use crate::{
     commands::{

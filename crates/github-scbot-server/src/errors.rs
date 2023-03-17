@@ -2,8 +2,9 @@
 
 use actix_http::StatusCode;
 use actix_web::ResponseError;
-use github_scbot_core::types::events::EventType;
 use thiserror::Error;
+
+use crate::event_type::EventType;
 
 /// Webhook error.
 #[allow(missing_docs)]

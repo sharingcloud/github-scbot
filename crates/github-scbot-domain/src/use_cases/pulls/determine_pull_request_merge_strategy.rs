@@ -1,5 +1,5 @@
-use github_scbot_core::types::pulls::GhMergeStrategy;
 use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::MergeStrategy;
 
 use crate::Result;
 
@@ -9,11 +9,11 @@ pub struct DeterminePullRequestMergeStrategyUseCase<'a> {
     pub repo_owner: &'a str,
     pub base_branch: &'a str,
     pub head_branch: &'a str,
-    pub default_strategy: GhMergeStrategy,
+    pub default_strategy: MergeStrategy,
 }
 
 impl<'a> DeterminePullRequestMergeStrategyUseCase<'a> {
-    pub async fn run(&mut self) -> Result<GhMergeStrategy> {
+    pub async fn run(&mut self) -> Result<MergeStrategy> {
         match self
             .db_service
             .merge_rules_get(

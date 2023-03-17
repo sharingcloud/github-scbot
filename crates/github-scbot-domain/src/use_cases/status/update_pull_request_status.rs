@@ -1,6 +1,6 @@
-use github_scbot_core::types::{labels::StepLabel, pulls::GhPullRequest};
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::{comments::CommentApi, labels::LabelApi, ApiService};
+use github_scbot_domain_models::StepLabel;
+use github_scbot_ghapi_interface::{comments::CommentApi, types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::{LockService, LockStatus};
 
 use super::{
@@ -10,7 +10,9 @@ use super::{
 };
 use crate::{
     use_cases::{
-        pulls::{DeterminePullRequestMergeStrategyUseCase, MergePullRequestUseCase},
+        pulls::{
+            DeterminePullRequestMergeStrategyUseCase, MergePullRequestUseCase, SetStepLabelUseCase,
+        },
         summary::PostSummaryCommentUseCase,
     },
     Result,
@@ -140,13 +142,14 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
     /// Apply pull request step.
     #[tracing::instrument(skip(self))]
     async fn apply_pull_request_step(&mut self, step: Option<StepLabel>) -> Result<()> {
-        LabelApi::set_step_label(
-            self.api_service,
-            self.repo_owner,
-            self.repo_name,
-            self.pr_number,
-            step,
-        )
+        SetStepLabelUseCase {
+            api_service: self.api_service,
+            repo_owner: self.repo_owner,
+            repo_name: self.repo_name,
+            pr_number: self.pr_number,
+            label: step,
+        }
+        .run()
         .await
         .map_err(Into::into)
     }

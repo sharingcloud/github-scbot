@@ -1,22 +1,19 @@
 //! Pull webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::{
-    config::Config,
-    types::{
-        events::EventType,
-        pulls::{GhPullRequestAction, GhPullRequestEvent},
-    },
-};
+use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain::use_cases::pulls::{
     HandlePullRequestEventUseCase, ProcessPullRequestOpenedUseCase,
 };
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{
+    types::{GhPullRequestAction, GhPullRequestEvent},
+    ApiService,
+};
 use github_scbot_lock_interface::LockService;
 
 use super::parse_event_type;
-use crate::{Result, ServerError};
+use crate::{event_type::EventType, Result, ServerError};
 
 pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent> {
     parse_event_type(EventType::PullRequest, body)

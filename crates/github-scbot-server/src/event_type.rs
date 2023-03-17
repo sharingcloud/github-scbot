@@ -2,7 +2,14 @@
 
 use std::convert::TryFrom;
 
-use super::errors::TypeError;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum EventTypeError {
+    /// Unsupported event.
+    #[error("Unsupported event: {}", event)]
+    UnsupportedEvent { event: String },
+}
 
 /// Event type.
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +40,7 @@ impl std::fmt::Display for EventType {
 }
 
 impl TryFrom<&str> for EventType {
-    type Error = TypeError;
+    type Error = EventTypeError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -42,7 +49,7 @@ impl TryFrom<&str> for EventType {
             "ping" => Ok(Self::Ping),
             "pull_request" => Ok(Self::PullRequest),
             "pull_request_review" => Ok(Self::PullRequestReview),
-            name => Err(TypeError::UnsupportedEvent {
+            name => Err(EventTypeError::UnsupportedEvent {
                 event: name.to_owned(),
             }),
         }

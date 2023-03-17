@@ -1,7 +1,4 @@
-use github_scbot_core::types::{
-    labels::StepLabel,
-    status::{CheckStatus, QaStatus},
-};
+use github_scbot_domain_models::{ChecksStatus, QaStatus, StepLabel};
 
 use super::PullRequestStatus;
 
@@ -16,7 +13,7 @@ impl<'a> DetermineAutomaticStepUseCase<'a> {
             StepLabel::Wip
         } else if self.pr_status.valid_pr_title {
             match self.pr_status.checks_status {
-                CheckStatus::Pass | CheckStatus::Skipped => {
+                ChecksStatus::Pass | ChecksStatus::Skipped => {
                     if self.pr_status.changes_required()
                         || !self.pr_status.mergeable && !self.pr_status.merged
                     {
@@ -39,8 +36,8 @@ impl<'a> DetermineAutomaticStepUseCase<'a> {
                         }
                     }
                 }
-                CheckStatus::Waiting => StepLabel::AwaitingChecks,
-                CheckStatus::Fail => StepLabel::AwaitingChanges,
+                ChecksStatus::Waiting => StepLabel::AwaitingChecks,
+                ChecksStatus::Fail => StepLabel::AwaitingChanges,
             }
         } else {
             StepLabel::AwaitingChanges

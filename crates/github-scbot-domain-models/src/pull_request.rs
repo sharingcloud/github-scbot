@@ -1,7 +1,6 @@
-use github_scbot_core::types::{pulls::GhMergeStrategy, status::QaStatus};
 use serde::{Deserialize, Serialize};
 
-use crate::Repository;
+use crate::{MergeStrategy, QaStatus, Repository};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PullRequest {
@@ -14,7 +13,7 @@ pub struct PullRequest {
     pub checks_enabled: bool,
     pub automerge: bool,
     pub locked: bool,
-    pub strategy_override: Option<GhMergeStrategy>,
+    pub strategy_override: Option<MergeStrategy>,
 }
 
 impl PullRequest {

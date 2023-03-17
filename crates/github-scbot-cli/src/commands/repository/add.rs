@@ -2,8 +2,7 @@ use std::io::Write;
 
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::repository::RepositoryPath;
-use github_scbot_domain_models::Repository;
+use github_scbot_domain_models::{Repository, RepositoryPath};
 
 use crate::{
     commands::{Command, CommandContext},

@@ -1,9 +1,6 @@
-use std::convert::TryFrom;
-
-use github_scbot_core::{
-    config::Config,
-    types::{issues::GhReactionType, pulls::GhMergeStrategy},
-};
+use github_scbot_core::config::Config;
+use github_scbot_domain_models::MergeStrategy;
+use github_scbot_ghapi_interface::types::GhReactionType;
 use thiserror::Error;
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;
@@ -56,7 +53,7 @@ pub enum UserCommand {
     /// Unassign required reviewers.
     UnassignRequiredReviewers(Vec<String>),
     /// Set merge strategy.
-    SetMergeStrategy(GhMergeStrategy),
+    SetMergeStrategy(MergeStrategy),
     /// Unset merge strategy.
     UnsetMergeStrategy,
     /// Set labels.
@@ -68,7 +65,7 @@ pub enum UserCommand {
     /// Post a random gif.
     Gif(String),
     /// Merge pull request.
-    Merge(Option<GhMergeStrategy>),
+    Merge(Option<MergeStrategy>),
     /// Ping the bot.
     Ping,
     /// Show help message.
@@ -93,7 +90,7 @@ pub enum AdminCommand {
     /// Set default needed reviewers count.
     SetDefaultNeededReviewers(u64),
     /// Set default merge strategy.
-    SetDefaultMergeStrategy(GhMergeStrategy),
+    SetDefaultMergeStrategy(MergeStrategy),
     /// Set default PR title validation regex.
     SetDefaultPRTitleRegex(String),
     /// Set default automerge status.
@@ -368,18 +365,18 @@ impl Command {
             .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
-    fn parse_merge_strategy(args: &[&str]) -> CommandResult<GhMergeStrategy> {
-        GhMergeStrategy::try_from(&args.join(" ")[..])
+    fn parse_merge_strategy(args: &[&str]) -> CommandResult<MergeStrategy> {
+        MergeStrategy::try_from(&args.join(" ")[..])
             .map_err(|_e| CommandError::ArgumentParsingError)
     }
 
-    fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<GhMergeStrategy>> {
+    fn parse_optional_merge_strategy(args: &[&str]) -> CommandResult<Option<MergeStrategy>> {
         let args = &args.join(" ");
         if args.trim().is_empty() {
             Ok(None)
         } else {
             Ok(Some(
-                GhMergeStrategy::try_from(&args[..])
+                MergeStrategy::try_from(&args[..])
                     .map_err(|_e| CommandError::ArgumentParsingError)?,
             ))
         }
@@ -460,7 +457,7 @@ mod tests {
     fn test_parse_merge_strategy() {
         assert!(matches!(
             Command::parse_merge_strategy(&["merge"]),
-            Ok(GhMergeStrategy::Merge)
+            Ok(MergeStrategy::Merge)
         ));
         assert!(matches!(
             Command::parse_merge_strategy(&["what"]),

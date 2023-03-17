@@ -1,13 +1,14 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{
-    checks::GhCheckSuite,
-    common::GhUserPermission,
-    issues::GhReactionType,
-    pulls::{GhMergeStrategy, GhPullRequest},
-    status::StatusState,
-};
 
-use crate::{gif::GifResponse, review::GhReviewApi, Result};
+use crate::{
+    gif::GifResponse,
+    review::GhReviewApi,
+    types::{
+        GhCheckSuite, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhUserPermission,
+    },
+    Result,
+};
 
 /// GitHub API Adapter interface
 #[mockall::automock]
@@ -133,7 +134,7 @@ pub trait ApiService: Send + Sync {
         owner: &str,
         name: &str,
         git_ref: &str,
-        status: StatusState,
+        status: GhCommitStatus,
         title: &str,
         body: &str,
     ) -> Result<()>;

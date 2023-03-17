@@ -1,8 +1,8 @@
 //! Application module.
 
 use crossterm::event::KeyCode;
-use github_scbot_core::types::status::QaStatus;
 use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::QaStatus;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},

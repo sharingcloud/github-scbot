@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 github-scbot-core = { path = "../github-scbot-core" }
 serde = { version = "1.0.140", features = ["derive"] }
+thiserror = "1.0.37"

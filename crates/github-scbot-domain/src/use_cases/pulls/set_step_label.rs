@@ -1,15 +1,17 @@
-//! Labels API module.
+use github_scbot_domain_models::StepLabel;
+use github_scbot_ghapi_interface::ApiService;
 
-use std::convert::TryFrom;
+use crate::Result;
 
-use github_scbot_core::types::labels::StepLabel;
+pub struct SetStepLabelUseCase<'a> {
+    pub api_service: &'a dyn ApiService,
+    pub repo_owner: &'a str,
+    pub repo_name: &'a str,
+    pub pr_number: u64,
+    pub label: Option<StepLabel>,
+}
 
-use crate::{ApiService, Result};
-
-/// Label API.
-pub struct LabelApi;
-
-impl LabelApi {
+impl<'a> SetStepLabelUseCase<'a> {
     /// Add pull request step label in existing labels by returning a new vector.
     pub fn add_step_in_existing_labels(
         existing_labels: &[String],
@@ -28,23 +30,17 @@ impl LabelApi {
         preserved_labels
     }
 
-    /// Apply or remove a step label on a pull request.
-    pub async fn set_step_label(
-        adapter: &dyn ApiService,
-        repository_owner: &str,
-        repository_name: &str,
-        pr_number: u64,
-        label: Option<StepLabel>,
-    ) -> Result<()> {
-        let existing_labels = adapter
-            .issue_labels_list(repository_owner, repository_name, pr_number)
+    pub async fn run(&mut self) -> Result<()> {
+        let existing_labels = self
+            .api_service
+            .issue_labels_list(self.repo_owner, self.repo_name, self.pr_number)
             .await?;
-        let existing_labels = Self::add_step_in_existing_labels(&existing_labels, label);
-        adapter
+        let existing_labels = Self::add_step_in_existing_labels(&existing_labels, self.label);
+        self.api_service
             .issue_labels_replace_all(
-                repository_owner,
-                repository_name,
-                pr_number,
+                self.repo_owner,
+                self.repo_name,
+                self.pr_number,
                 &existing_labels,
             )
             .await?;
@@ -55,16 +51,15 @@ impl LabelApi {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::types::labels::StepLabel;
+    use github_scbot_ghapi_interface::MockApiService;
 
     use super::*;
-    use crate::{MockApiService, Result};
 
     #[test]
     fn test_add_step_in_existing_labels() {
         // A step label remove existing step labels.
         assert_eq!(
-            LabelApi::add_step_in_existing_labels(
+            SetStepLabelUseCase::add_step_in_existing_labels(
                 &[
                     "label1".into(),
                     "label2".into(),
@@ -81,7 +76,7 @@ mod tests {
 
         // No step label remove existing step labels.
         assert_eq!(
-            LabelApi::add_step_in_existing_labels(
+            SetStepLabelUseCase::add_step_in_existing_labels(
                 &[
                     "label1".into(),
                     "label2".into(),
@@ -105,7 +100,15 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _| Ok(()));
 
-        LabelApi::set_step_label(&adapter, "owner", "name", 1, None).await?;
+        SetStepLabelUseCase {
+            api_service: &adapter,
+            repo_owner: "owner",
+            repo_name: "name",
+            pr_number: 1,
+            label: None,
+        }
+        .run()
+        .await?;
 
         Ok(())
     }

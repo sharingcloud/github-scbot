@@ -1,6 +1,5 @@
-use github_scbot_core::types::repository::RepositoryPath;
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::ExternalAccountRight;
+use github_scbot_domain_models::{ExternalAccountRight, RepositoryPath};
 
 use crate::Result;
 

@@ -1,11 +1,11 @@
 //! Ping webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::types::{events::EventType, ping::GhPingEvent};
+use github_scbot_ghapi_interface::types::GhPingEvent;
 use tracing::info;
 
 use super::parse_event_type;
-use crate::errors::Result;
+use crate::{errors::Result, event_type::EventType};
 
 pub(crate) fn parse_ping_event(body: &str) -> Result<GhPingEvent> {
     parse_event_type(EventType::Ping, body)

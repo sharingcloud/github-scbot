@@ -1,8 +1,6 @@
 //! Comments API module.
 
-use github_scbot_core::types::issues::GhReactionType;
-
-use crate::{ApiService, Result};
+use crate::{types::GhReactionType, ApiService, Result};
 
 const BOT_COMMENT_SIGNATURE: &str = "_Beep boop, i'm a bot!_ :robot:";
 

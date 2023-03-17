@@ -1,16 +1,27 @@
-use github_scbot_core::types::pulls::{GhMergeStrategy, GhPullRequest};
-use github_scbot_ghapi_interface::{ApiError, ApiService};
+use github_scbot_domain_models::MergeStrategy;
+use github_scbot_ghapi_interface::{
+    types::{GhMergeStrategy, GhPullRequest},
+    ApiError, ApiService,
+};
 
 pub struct MergePullRequestUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub repo_name: &'a str,
     pub repo_owner: &'a str,
     pub pr_number: u64,
-    pub merge_strategy: GhMergeStrategy,
+    pub merge_strategy: MergeStrategy,
     pub upstream_pr: &'a GhPullRequest,
 }
 
 impl<'a> MergePullRequestUseCase<'a> {
+    fn convert_strategy_for_github(strategy: MergeStrategy) -> GhMergeStrategy {
+        match strategy {
+            MergeStrategy::Merge => GhMergeStrategy::Merge,
+            MergeStrategy::Rebase => GhMergeStrategy::Rebase,
+            MergeStrategy::Squash => GhMergeStrategy::Squash,
+        }
+    }
+
     pub async fn run(&mut self) -> Result<(), ApiError> {
         let commit_title = format!("{} (#{})", self.upstream_pr.title, self.upstream_pr.number);
 
@@ -21,7 +32,7 @@ impl<'a> MergePullRequestUseCase<'a> {
                 self.pr_number,
                 &commit_title,
                 "",
-                self.merge_strategy,
+                Self::convert_strategy_for_github(self.merge_strategy),
             )
             .await
     }

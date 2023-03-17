@@ -1,6 +1,8 @@
-use github_scbot_core::types::pulls::{GhPullRequestAction, GhPullRequestEvent};
 use github_scbot_database_interface::DbService;
-use github_scbot_ghapi_interface::ApiService;
+use github_scbot_ghapi_interface::{
+    types::{GhPullRequestAction, GhPullRequestEvent},
+    ApiService,
+};
 use github_scbot_lock_interface::LockService;
 
 use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};

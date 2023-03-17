@@ -1,8 +1,7 @@
-use github_scbot_core::{
-    config::Config,
-    types::{pulls::GhMergeStrategy, repository::RepositoryPath},
-};
+use github_scbot_core::config::Config;
 use serde::{Deserialize, Serialize};
+
+use crate::{MergeStrategy, RepositoryPath};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Repository {
@@ -11,7 +10,7 @@ pub struct Repository {
     pub name: String,
     pub manual_interaction: bool,
     pub pr_title_validation_regex: String,
-    pub default_strategy: GhMergeStrategy,
+    pub default_strategy: MergeStrategy,
     pub default_needed_reviewers_count: u64,
     pub default_automerge: bool,
     pub default_enable_qa: bool,
@@ -26,7 +25,7 @@ impl Default for Repository {
             name: String::new(),
             manual_interaction: false,
             pr_title_validation_regex: String::new(),
-            default_strategy: GhMergeStrategy::Merge,
+            default_strategy: MergeStrategy::Merge,
             default_needed_reviewers_count: 0,
             default_automerge: false,
             default_enable_qa: false,

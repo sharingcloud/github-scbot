@@ -1,9 +1,8 @@
-use github_scbot_core::{
-    time::OffsetDateTime,
-    types::{common::GhUser, reviews::GhReviewState},
-};
 use heck::ToSnakeCase;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
+
+use crate::types::{GhReviewState, GhUser};
 
 /// Review state (API version)
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]

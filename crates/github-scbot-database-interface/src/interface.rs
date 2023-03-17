@@ -1,8 +1,7 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{pulls::GhMergeStrategy, rule_branch::RuleBranch, status::QaStatus};
 use github_scbot_domain_models::{
-    Account, ExternalAccount, ExternalAccountRight, MergeRule, PullRequest, Repository,
-    RequiredReviewer,
+    Account, ExternalAccount, ExternalAccountRight, MergeRule, MergeStrategy, PullRequest,
+    QaStatus, Repository, RequiredReviewer, RuleBranch,
 };
 
 use crate::{DatabaseError, Result};
@@ -169,7 +168,7 @@ pub trait DbService: Send + Sync {
         owner: &str,
         name: &str,
         number: u64,
-        strategy: Option<GhMergeStrategy>,
+        strategy: Option<MergeStrategy>,
     ) -> Result<PullRequest>;
     async fn repositories_create(&mut self, instance: Repository) -> Result<Repository>;
     async fn repositories_update(&mut self, instance: Repository) -> Result<Repository>;
@@ -203,7 +202,7 @@ pub trait DbService: Send + Sync {
         &mut self,
         owner: &str,
         name: &str,
-        strategy: GhMergeStrategy,
+        strategy: MergeStrategy,
     ) -> Result<Repository>;
     async fn repositories_set_default_needed_reviewers_count(
         &mut self,

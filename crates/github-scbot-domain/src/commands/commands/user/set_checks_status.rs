@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use github_scbot_core::types::{issues::GhReactionType, status::CheckStatus};
+use github_scbot_domain_models::ChecksStatus;
+use github_scbot_ghapi_interface::types::GhReactionType;
 
 use crate::{
     commands::{
@@ -10,16 +11,16 @@ use crate::{
 };
 
 pub struct SetChecksStatusCommand {
-    status: CheckStatus,
+    status: ChecksStatus,
 }
 
 impl SetChecksStatusCommand {
     pub fn new_skip_or_wait(status: bool) -> Self {
         Self {
             status: if status {
-                CheckStatus::Skipped
+                ChecksStatus::Skipped
             } else {
-                CheckStatus::Waiting
+                ChecksStatus::Waiting
             },
         }
     }
@@ -28,7 +29,7 @@ impl SetChecksStatusCommand {
 #[async_trait(?Send)]
 impl BotCommand for SetChecksStatusCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        let value = !matches!(self.status, CheckStatus::Skipped);
+        let value = !matches!(self.status, ChecksStatus::Skipped);
 
         ctx.db_service
             .pull_requests_set_checks_enabled(ctx.repo_owner, ctx.repo_name, ctx.pr_number, value)

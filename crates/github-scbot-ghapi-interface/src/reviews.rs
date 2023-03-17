@@ -2,10 +2,9 @@
 
 use std::collections::HashMap;
 
-use github_scbot_core::types::reviews::GhReview;
-
 use crate::{
     review::{GhReviewApi, GhReviewStateApi},
+    types::GhReview,
     ApiService, Result,
 };
 
@@ -62,13 +61,13 @@ impl ReviewApi {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::{
-        time::OffsetDateTime,
-        types::{common::GhUser, reviews::GhReviewState},
-    };
+    use time::OffsetDateTime;
 
     use super::*;
-    use crate::review::GhReviewStateApi;
+    use crate::{
+        review::GhReviewStateApi,
+        types::{GhReviewState, GhUser},
+    };
 
     fn new_review(username: &str, state: GhReviewStateApi) -> GhReviewApi {
         GhReviewApi {

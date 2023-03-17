@@ -2,7 +2,16 @@
 
 use std::convert::TryFrom;
 
-use super::errors::TypeError;
+use thiserror::Error;
+
+/// Type error.
+#[allow(missing_docs)]
+#[derive(Debug, Error)]
+pub enum StepLabelError {
+    /// Unknown step label.
+    #[error("Unknown step label: {}", label)]
+    UnknownStepLabel { label: String },
+}
 
 /// Step label.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -39,7 +48,7 @@ impl ToString for StepLabel {
 }
 
 impl TryFrom<&str> for StepLabel {
-    type Error = TypeError;
+    type Error = StepLabelError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -51,7 +60,7 @@ impl TryFrom<&str> for StepLabel {
             "step/awaiting-qa" => Ok(Self::AwaitingQa),
             "step/awaiting-merge" => Ok(Self::AwaitingMerge),
             "step/locked" => Ok(Self::Locked),
-            name => Err(TypeError::UnknownStepLabel {
+            name => Err(StepLabelError::UnknownStepLabel {
                 label: name.to_string(),
             }),
         }
@@ -59,7 +68,7 @@ impl TryFrom<&str> for StepLabel {
 }
 
 impl TryFrom<&String> for StepLabel {
-    type Error = TypeError;
+    type Error = StepLabelError;
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         Self::try_from(&value[..])

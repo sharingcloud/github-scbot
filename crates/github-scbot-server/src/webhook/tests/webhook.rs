@@ -1,24 +1,14 @@
 //! Webhook handler tests
 
-use github_scbot_core::{
-    time::{format_description::well_known::Rfc3339, OffsetDateTime},
-    types::{
-        checks::{
-            GhCheckConclusion, GhCheckStatus, GhCheckSuite, GhCheckSuiteAction, GhCheckSuiteEvent,
-        },
-        common::{GhApplication, GhBranch, GhBranchShort, GhLabel, GhRepository, GhUser},
-        issues::{
-            GhIssue, GhIssueComment, GhIssueCommentAction, GhIssueCommentEvent, GhIssueState,
-        },
-        ping::GhPingEvent,
-        pulls::{
-            GhPullRequest, GhPullRequestAction, GhPullRequestEvent, GhPullRequestShort,
-            GhPullRequestState,
-        },
-        reviews::{GhReview, GhReviewAction, GhReviewEvent, GhReviewState},
-    },
+use github_scbot_ghapi_interface::types::{
+    GhApplication, GhBranch, GhBranchShort, GhCheckConclusion, GhCheckStatus, GhCheckSuite,
+    GhCheckSuiteAction, GhCheckSuiteEvent, GhIssue, GhIssueComment, GhIssueCommentAction,
+    GhIssueCommentEvent, GhIssueState, GhLabel, GhPingEvent, GhPullRequest, GhPullRequestAction,
+    GhPullRequestEvent, GhPullRequestShort, GhPullRequestState, GhRepository, GhReview,
+    GhReviewAction, GhReviewEvent, GhReviewState, GhUser,
 };
 use pretty_assertions::assert_eq;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 use super::fixtures;
 use crate::{

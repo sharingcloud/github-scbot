@@ -1,14 +1,14 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use github_scbot_core::types::{
-    checks::{GhCheckConclusion, GhCheckSuite},
-    status::CheckStatus,
+use github_scbot_domain_models::ChecksStatus;
+use github_scbot_ghapi_interface::{
+    types::{GhCheckConclusion, GhCheckSuite},
+    ApiService,
 };
-use github_scbot_ghapi_interface::ApiService;
 
 use crate::Result;
 
-pub struct DetermineCheckStatusUseCase<'a> {
+pub struct DetermineChecksStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
@@ -23,9 +23,9 @@ struct FilterCheckSuitesUseCase<'a> {
     exclude_check_suite_ids: &'a [u64],
 }
 
-impl<'a> DetermineCheckStatusUseCase<'a> {
+impl<'a> DetermineChecksStatusUseCase<'a> {
     #[tracing::instrument(skip(self), ret)]
-    pub async fn run(&mut self) -> Result<CheckStatus> {
+    pub async fn run(&mut self) -> Result<ChecksStatus> {
         // Get upstream checks
         let check_suites = self
             .api_service
@@ -35,9 +35,9 @@ impl<'a> DetermineCheckStatusUseCase<'a> {
         // Extract status
         if check_suites.is_empty() {
             if self.wait_for_initial_checks {
-                Ok(CheckStatus::Waiting)
+                Ok(ChecksStatus::Waiting)
             } else {
-                Ok(CheckStatus::Skipped)
+                Ok(ChecksStatus::Skipped)
             }
         } else {
             let filtered = FilterCheckSuitesUseCase {
@@ -54,7 +54,7 @@ impl<'a> DetermineCheckStatusUseCase<'a> {
 
 impl<'a> FilterCheckSuitesUseCase<'a> {
     /// Filter and merge check suites.
-    pub fn run(&mut self) -> CheckStatus {
+    pub fn run(&mut self) -> ChecksStatus {
         let filtered = self.filter_last_check_suites();
         self.merge_check_suite_statuses(&filtered)
     }
@@ -80,26 +80,26 @@ impl<'a> FilterCheckSuitesUseCase<'a> {
     }
 
     /// Merge check suite statuses.
-    fn merge_check_suite_statuses(&mut self, check_suites: &[GhCheckSuite]) -> CheckStatus {
+    fn merge_check_suite_statuses(&mut self, check_suites: &[GhCheckSuite]) -> ChecksStatus {
         let initial = if self.wait_for_initial_checks {
-            CheckStatus::Waiting
+            ChecksStatus::Waiting
         } else {
-            CheckStatus::Skipped
+            ChecksStatus::Skipped
         };
 
         check_suites
             .iter()
             .fold(None, |acc, s| match (&acc, &s.conclusion) {
                 // Already failed, or current check suite is failing
-                (Some(CheckStatus::Fail), _) | (_, Some(GhCheckConclusion::Failure)) => {
-                    Some(CheckStatus::Fail)
+                (Some(ChecksStatus::Fail), _) | (_, Some(GhCheckConclusion::Failure)) => {
+                    Some(ChecksStatus::Fail)
                 }
                 // No status or checks already pass, and current check suite pass
-                (None | Some(CheckStatus::Pass), Some(GhCheckConclusion::Success)) => {
-                    Some(CheckStatus::Pass)
+                (None | Some(ChecksStatus::Pass), Some(GhCheckConclusion::Success)) => {
+                    Some(ChecksStatus::Pass)
                 }
                 // No conclusion for current check suite
-                (_, None) => Some(CheckStatus::Waiting),
+                (_, None) => Some(ChecksStatus::Waiting),
                 // Keep same status
                 (_, _) => acc,
             })
@@ -109,14 +109,11 @@ impl<'a> FilterCheckSuitesUseCase<'a> {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::{
-        time::{Duration, OffsetDateTime},
-        types::{
-            checks::{GhCheckConclusion, GhCheckStatus, GhCheckSuite},
-            common::GhApplication,
-            status::CheckStatus,
-        },
+    use github_scbot_domain_models::ChecksStatus;
+    use github_scbot_ghapi_interface::types::{
+        GhApplication, GhCheckConclusion, GhCheckStatus, GhCheckSuite,
     };
+    use time::{Duration, OffsetDateTime};
 
     use super::FilterCheckSuitesUseCase;
 
@@ -131,7 +128,7 @@ mod tests {
                 wait_for_initial_checks: false
             }
             .run(),
-            CheckStatus::Skipped
+            ChecksStatus::Skipped
         );
 
         // No check suite, but with initial checks wait
@@ -142,7 +139,7 @@ mod tests {
                 wait_for_initial_checks: true
             }
             .run(),
-            CheckStatus::Waiting
+            ChecksStatus::Waiting
         );
 
         let base_suite = GhCheckSuite {
@@ -165,7 +162,7 @@ mod tests {
                 wait_for_initial_checks: false
             }
             .run(),
-            CheckStatus::Waiting
+            ChecksStatus::Waiting
         );
 
         // Suite should be skipped
@@ -181,7 +178,7 @@ mod tests {
                 exclude_check_suite_ids: &[1]
             }
             .run(),
-            CheckStatus::Skipped
+            ChecksStatus::Skipped
         );
 
         // Ignore unsupported apps
@@ -199,7 +196,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Skipped
+            ChecksStatus::Skipped
         );
 
         // Success
@@ -214,7 +211,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Pass
+            ChecksStatus::Pass
         );
 
         // Success with skipped
@@ -238,7 +235,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Pass
+            ChecksStatus::Pass
         );
 
         // Success with queued
@@ -262,7 +259,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Waiting
+            ChecksStatus::Waiting
         );
 
         // One failing check make the status fail
@@ -286,7 +283,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Fail
+            ChecksStatus::Fail
         );
 
         // Two GitHub actions at different moments
@@ -319,7 +316,7 @@ mod tests {
                 exclude_check_suite_ids: &[]
             }
             .run(),
-            CheckStatus::Pass
+            ChecksStatus::Pass
         );
     }
 }

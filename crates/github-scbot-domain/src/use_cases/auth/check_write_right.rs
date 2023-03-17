@@ -1,5 +1,5 @@
-use github_scbot_core::types::common::GhUserPermission;
 use github_scbot_database_interface::DbService;
+use github_scbot_ghapi_interface::types::GhUserPermission;
 
 use super::check_is_admin::CheckIsAdminUseCase;
 use crate::Result;
@@ -27,10 +27,10 @@ impl<'a> CheckWriteRightUseCase<'a> {
 mod tests {
     use std::error::Error;
 
-    use github_scbot_core::types::common::GhUserPermission;
     use github_scbot_database_interface::DbService;
     use github_scbot_database_memory::MemoryDb;
     use github_scbot_domain_models::Account;
+    use github_scbot_ghapi_interface::types::GhUserPermission;
 
     use super::CheckWriteRightUseCase;
 
