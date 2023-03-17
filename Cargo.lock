@@ -365,35 +365,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "argh"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7e7e4aa7e40747e023c0761dafcb42333a9517575bbf1241747f68dd3177a62"
-dependencies = [
- "argh_derive",
- "argh_shared",
-]
-
-[[package]]
-name = "argh_derive"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f2bd7ff6ed6414f4e5521bd509bae46454bbd513801767ced3f21a751ab4bc"
-dependencies = [
- "argh_shared",
- "heck 0.3.3",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "argh_shared"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47253b98986dafc7a3e1cf3259194f1f47ac61abb57a57f46ec09e48d004ecda"
-
-[[package]]
 name = "async-trait"
 version = "0.1.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -578,7 +549,7 @@ version = "3.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ba52acd3b0a5c33aeada5cdaa3267cdc7c594a98731d4268cdc1532f4264cb4"
 dependencies = [
- "heck 0.4.0",
+ "heck",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -592,21 +563,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
-]
-
-[[package]]
-name = "console"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a28b32d32ca44b70c3e4acd7db1babf555fa026e385fb95f18028f88848b3c31"
-dependencies = [
- "encode_unicode",
- "libc",
- "once_cell",
- "regex",
- "terminal_size",
- "unicode-width",
- "winapi",
 ]
 
 [[package]]
@@ -801,17 +757,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dialoguer"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8c8ae48e400addc32a8710c8d62d55cb84249a7d58ac4cd959daecfbaddc545"
-dependencies = [
- "console",
- "tempfile",
- "zeroize",
-]
-
-[[package]]
 name = "diff"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -871,12 +816,6 @@ name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
-
-[[package]]
-name = "encode_unicode"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "encoding_rs"
@@ -1109,10 +1048,8 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "anyhow",
- "argh",
  "async-trait",
  "clap",
- "dialoguer",
  "futures-util",
  "github-scbot-core",
  "github-scbot-database-interface",
@@ -1166,7 +1103,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -1185,16 +1121,11 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
- "futures",
- "futures-util",
  "github-scbot-core",
  "github-scbot-database-interface",
  "github-scbot-domain-models",
  "pretty_assertions",
- "serde",
- "serde_json",
  "sqlx",
- "thiserror",
  "tracing",
 ]
 
@@ -1226,10 +1157,8 @@ dependencies = [
  "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
  "maplit",
- "mockall",
  "pretty_assertions",
  "regex",
- "smart-default",
  "thiserror",
  "tracing",
 ]
@@ -1249,13 +1178,11 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "backoff",
- "futures-util",
  "github-scbot-core",
  "github-scbot-ghapi-interface",
  "http",
  "reqwest",
  "serde",
- "serde_json",
  "thiserror",
  "tracing",
 ]
@@ -1267,14 +1194,13 @@ dependencies = [
  "actix-rt",
  "async-trait",
  "github-scbot-core",
- "heck 0.4.0",
+ "heck",
  "maplit",
  "mockall",
  "rand",
  "serde",
  "serde_plain",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -1323,7 +1249,6 @@ dependencies = [
  "lazy_static",
  "pretty_assertions",
  "prometheus",
- "regex",
  "serde",
  "serde_json",
  "thiserror",
@@ -1338,7 +1263,6 @@ dependencies = [
  "crossterm",
  "github-scbot-core",
  "github-scbot-database-interface",
- "github-scbot-database-pg",
  "github-scbot-domain-models",
  "thiserror",
  "tui",
@@ -1385,15 +1309,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d452c155cb93fecdfb02a73dd57b5d8e442c2063bd7aac72f1bc5e4263a43086"
 dependencies = [
  "hashbrown 0.12.3",
-]
-
-[[package]]
-name = "heck"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
-dependencies = [
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -2839,7 +2754,7 @@ checksum = "f40c63177cf23d356b159b60acd27c54af7423f1736988502e36bae9a712118f"
 dependencies = [
  "dotenv",
  "either",
- "heck 0.4.0",
+ "heck",
  "once_cell",
  "proc-macro2",
  "quote",
@@ -2917,16 +2832,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "terminal_size"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633c1a546cee861a1a6d0dc69ebeca693bf4296661ba7852b9d21d159e0506df"
-dependencies = [
- "libc",
- "winapi",
 ]
 
 [[package]]
