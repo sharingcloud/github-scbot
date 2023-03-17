@@ -23,7 +23,7 @@ impl AdminSetDefaultAutomergeCommand {
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultAutomergeCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .repositories_set_default_automerge(ctx.repo_owner, ctx.repo_name, self.enabled)
             .await?;
 

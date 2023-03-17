@@ -20,7 +20,7 @@ use super::{
 pub struct UpdatePullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn LockService,
+    pub lock_service: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,
@@ -62,7 +62,7 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
         PostSummaryCommentUseCase {
             api_service: self.api_service,
             db_service: self.db_service,
-            redis_service: self.redis_service,
+            lock_service: self.lock_service,
             repo_name: self.repo_name,
             repo_owner: self.repo_owner,
             pr_number: self.pr_number,
@@ -105,7 +105,7 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
                 self.repo_owner, self.repo_name, self.pr_number
             );
             if let LockStatus::SuccessfullyLocked(l) =
-                self.redis_service.try_lock_resource(&key).await?
+                self.lock_service.try_lock_resource(&key).await?
             {
                 if !self.try_automerge_pull_request().await? {
                     self.db_service
@@ -121,7 +121,7 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
                     PostSummaryCommentUseCase {
                         api_service: self.api_service,
                         db_service: self.db_service,
-                        redis_service: self.redis_service,
+                        lock_service: self.lock_service,
                         repo_name: self.repo_name,
                         repo_owner: self.repo_owner,
                         pr_number: self.pr_number,

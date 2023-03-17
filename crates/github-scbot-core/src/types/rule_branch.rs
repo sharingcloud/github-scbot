@@ -5,11 +5,12 @@ use std::{convert::Infallible, str::FromStr};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 /// Rule branch.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub enum RuleBranch {
     /// Named.
     Named(String),
     /// Wildcard.
+    #[default]
     Wildcard,
 }
 
@@ -89,12 +90,6 @@ impl RuleBranch {
             RuleBranch::Named(s) => s.clone(),
             RuleBranch::Wildcard => "*".into(),
         }
-    }
-}
-
-impl Default for RuleBranch {
-    fn default() -> Self {
-        RuleBranch::Wildcard
     }
 }
 

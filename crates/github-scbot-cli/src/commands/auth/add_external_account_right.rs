@@ -19,7 +19,7 @@ impl AuthAddExternalAccountRightCommand {
         AddExternalAccountRightUseCase {
             username: &self.username,
             repository_path: self.repository_path.clone(),
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
         }
         .run()
         .await?;
@@ -44,7 +44,7 @@ mod tests {
     #[actix_rt::test]
     async fn run() {
         let mut ctx = CommandContextTest::new();
-        ctx.db_adapter
+        ctx.db_service
             .repositories_create(Repository {
                 owner: "me".into(),
                 name: "repo".into(),
@@ -53,7 +53,7 @@ mod tests {
             .await
             .unwrap();
 
-        ctx.db_adapter
+        ctx.db_service
             .external_accounts_create(ExternalAccount {
                 username: "me".into(),
                 ..Default::default()

@@ -23,7 +23,7 @@ impl AdminSetDefaultReviewersCommand {
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultReviewersCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .repositories_set_default_needed_reviewers_count(
                 ctx.repo_owner,
                 ctx.repo_name,

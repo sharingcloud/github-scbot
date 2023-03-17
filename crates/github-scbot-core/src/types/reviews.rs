@@ -2,14 +2,13 @@
 
 use serde::{Deserialize, Serialize};
 use serde_plain;
-use smart_default::SmartDefault;
 use time::OffsetDateTime;
 
 use super::common::{GhRepository, GhUser};
 use super::pulls::GhPullRequest;
 
 /// GitHub Review action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhReviewAction {
     /// Submitted.
@@ -22,7 +21,7 @@ pub enum GhReviewAction {
 }
 
 /// GitHub Review state.
-#[derive(Debug, Deserialize, Serialize, PartialEq, SmartDefault, Eq, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum GhReviewState {
     /// Approved.
@@ -51,7 +50,7 @@ impl From<&str> for GhReviewState {
 }
 
 /// GitHub Review.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct GhReview {
     /// User.
     pub user: GhUser,

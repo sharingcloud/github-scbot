@@ -92,14 +92,14 @@ impl CommandExecutor {
         if command_result.should_update_status {
             // Make sure the upstream is up to date
             let upstream_pr = ctx
-                .api_adapter
+                .api_service
                 .pulls_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
                 .await?;
 
             UpdatePullRequestStatusUseCase {
-                api_service: ctx.api_adapter,
-                db_service: ctx.db_adapter,
-                redis_service: ctx.redis_adapter,
+                api_service: ctx.api_service,
+                db_service: ctx.db_service,
+                lock_service: ctx.lock_service,
                 repo_owner: ctx.repo_owner,
                 repo_name: ctx.repo_name,
                 pr_number: ctx.pr_number,
@@ -113,7 +113,7 @@ impl CommandExecutor {
             match action {
                 ResultAction::AddReaction(reaction) => {
                     CommentApi::add_reaction_to_comment(
-                        ctx.api_adapter,
+                        ctx.api_service,
                         ctx.repo_owner,
                         ctx.repo_name,
                         ctx.comment_id,
@@ -123,7 +123,7 @@ impl CommandExecutor {
                 }
                 ResultAction::PostComment(comment) => {
                     CommentApi::post_comment(
-                        ctx.api_adapter,
+                        ctx.api_service,
                         ctx.repo_owner,
                         ctx.repo_name,
                         ctx.pr_number,
@@ -208,12 +208,12 @@ impl CommandExecutor {
         let mut command_result: CommandExecutionResult;
 
         let permission = ctx
-            .api_adapter
+            .api_service
             .user_permissions_get(ctx.repo_owner, ctx.repo_name, ctx.comment_author)
             .await?;
 
         if Self::validate_user_rights_on_command(
-            ctx.db_adapter,
+            ctx.db_service,
             ctx.comment_author,
             permission,
             &command,

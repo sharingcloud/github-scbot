@@ -17,7 +17,7 @@ pub struct HandleIssueCommentEventUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn LockService,
+    pub lock_service: &'a dyn LockService,
     pub event: GhIssueCommentEvent,
 }
 
@@ -49,9 +49,9 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
 
                 let mut ctx = CommandContext {
                     config: self.config,
-                    api_adapter: self.api_service,
-                    db_adapter: self.db_service,
-                    redis_adapter: self.redis_service,
+                    api_service: self.api_service,
+                    db_service: self.db_service,
+                    lock_service: self.lock_service,
                     repo_owner,
                     repo_name,
                     pr_number,
@@ -91,7 +91,7 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                         UpdatePullRequestStatusUseCase {
                             api_service: self.api_service,
                             db_service: self.db_service,
-                            redis_service: self.redis_service,
+                            lock_service: self.lock_service,
                             repo_name,
                             repo_owner,
                             pr_number,

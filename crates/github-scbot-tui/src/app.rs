@@ -31,9 +31,9 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbService) -> Result<()> {
-        let repositories = db_adapter.repositories_all().await?;
-        let mut pull_requests = db_adapter.pull_requests_all().await?;
+    pub async fn load_from_db(&mut self, db_service: &mut dyn DbService) -> Result<()> {
+        let repositories = db_service.repositories_all().await?;
+        let mut pull_requests = db_service.pull_requests_all().await?;
         pull_requests.sort_by_key(|p| u64::MAX - p.number);
 
         let mut pr_kvs = Vec::new();

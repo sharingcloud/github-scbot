@@ -27,9 +27,9 @@ mod ui;
 
 pub(crate) struct CommandContext<W: Write> {
     pub config: Config,
-    pub db_adapter: Box<dyn DbService>,
-    pub api_adapter: Box<dyn ApiService>,
-    pub redis_adapter: Box<dyn LockService>,
+    pub db_service: Box<dyn DbService>,
+    pub api_service: Box<dyn ApiService>,
+    pub lock_service: Box<dyn LockService>,
     pub writer: W,
 }
 

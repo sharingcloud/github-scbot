@@ -24,14 +24,14 @@ impl CommandExecutor {
             let pool = establish_pool_connection(&config).await?;
             run_migrations(&pool).await?;
 
-            let db_adapter = PostgresDb::new(pool);
-            let api_adapter = MetricsApiService::new(config.clone());
-            let redis_adapter = MetricsRedisService::new(&config.redis_address);
+            let db_service = PostgresDb::new(pool);
+            let api_service = MetricsApiService::new(config.clone());
+            let lock_service = MetricsRedisService::new(&config.redis_address);
             let ctx = CommandContext {
                 config,
-                db_adapter: Box::new(db_adapter),
-                api_adapter: Box::new(api_adapter),
-                redis_adapter: Box::new(redis_adapter),
+                db_service: Box::new(db_service),
+                api_service: Box::new(api_service),
+                lock_service: Box::new(lock_service),
                 writer: Box::new(std::io::stdout()),
             };
 

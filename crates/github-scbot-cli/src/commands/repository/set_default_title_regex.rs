@@ -23,9 +23,9 @@ pub(crate) struct RepositorySetDefaultTitleRegexCommand {
 impl Command for RepositorySetDefaultTitleRegexCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        let _repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;
+        let _repo = CliDbExt::get_existing_repository(ctx.db_service.as_mut(), owner, name).await?;
 
-        ctx.db_adapter
+        ctx.db_service
             .repositories_set_pr_title_validation_regex(owner, name, &self.value)
             .await?;
 

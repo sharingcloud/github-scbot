@@ -2,7 +2,6 @@ use std::convert::TryFrom;
 
 use github_scbot_core::config::Config;
 use github_scbot_core::types::{issues::GhReactionType, pulls::GhMergeStrategy};
-use smart_default::SmartDefault;
 use thiserror::Error;
 
 const MAX_REVIEWERS_PER_COMMAND: usize = 16;
@@ -28,7 +27,7 @@ pub enum CommandError {
 pub type CommandResult<T> = core::result::Result<T, CommandError>;
 
 /// Command handling status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, SmartDefault)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CommandHandlingStatus {
     /// Command handled.
     #[default]

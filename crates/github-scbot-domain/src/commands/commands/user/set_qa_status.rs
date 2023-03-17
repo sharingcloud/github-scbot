@@ -39,7 +39,7 @@ impl SetQaStatusCommand {
         }
     }
 
-    fn _create_status_message<'a>(&self, ctx: &mut CommandContext<'a>) -> String {
+    fn _create_status_message(&self, ctx: &mut CommandContext) -> String {
         let status = match self.status {
             QaStatus::Fail => "failed",
             QaStatus::Pass => "passed",
@@ -57,7 +57,7 @@ impl SetQaStatusCommand {
 #[async_trait(?Send)]
 impl BotCommand for SetQaStatusCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_qa_status(ctx.repo_owner, ctx.repo_name, ctx.pr_number, self.status)
             .await?;
 

@@ -30,7 +30,7 @@ impl SetMergeStrategyCommand {
         ctx: &mut CommandContext<'a>,
         strategy: GhMergeStrategy,
     ) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_strategy_override(
                 ctx.repo_owner,
                 ctx.repo_name,
@@ -55,7 +55,7 @@ impl SetMergeStrategyCommand {
         &self,
         ctx: &mut CommandContext<'a>,
     ) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_strategy_override(ctx.repo_owner, ctx.repo_name, ctx.pr_number, None)
             .await?;
 

@@ -29,7 +29,7 @@ impl BotCommand for GifCommand {
             .with_action(ResultAction::PostComment(
                 GenerateRandomGifCommentUseCase {
                     config: ctx.config,
-                    api_service: ctx.api_adapter,
+                    api_service: ctx.api_service,
                     search_terms: &self.search_terms,
                 }
                 .run()
@@ -54,7 +54,7 @@ mod tests {
     async fn test_valid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
 
-        ctx.api_adapter
+        ctx.api_service
             .expect_gif_search()
             .times(1)
             .returning(|_, _| {
@@ -91,7 +91,7 @@ mod tests {
     async fn test_invalid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
 
-        ctx.api_adapter
+        ctx.api_service
             .expect_gif_search()
             .times(1)
             .returning(|_, _| Ok(GifResponse { results: vec![] }));

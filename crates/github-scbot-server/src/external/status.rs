@@ -25,7 +25,7 @@ pub(crate) async fn set_qa_status(
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
-    let target_account = extract_account_from_auth(ctx.db_adapter.lock().await.as_mut(), &auth)
+    let target_account = extract_account_from_auth(ctx.db_service.lock().await.as_mut(), &auth)
         .await
         .map_err(actix_web::Error::from)?;
 
@@ -46,9 +46,9 @@ pub(crate) async fn set_qa_status(
 
     SetPullRequestQaStatusUseCase {
         config: &ctx.config,
-        api_service: ctx.api_adapter.as_ref(),
-        db_service: ctx.db_adapter.lock().await.as_mut(),
-        redis_service: ctx.redis_adapter.as_ref(),
+        api_service: ctx.api_service.as_ref(),
+        db_service: ctx.db_service.lock().await.as_mut(),
+        lock_service: ctx.lock_service.as_ref(),
         external_account: &target_account,
         repository_path: repo_path,
         pull_request_numbers: &data.pull_request_numbers,

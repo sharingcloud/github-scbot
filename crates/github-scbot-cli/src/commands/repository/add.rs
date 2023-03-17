@@ -19,7 +19,7 @@ pub(crate) struct RepositoryAddCommand {
 impl Command for RepositoryAddCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        ctx.db_adapter
+        ctx.db_service
             .repositories_create(
                 Repository {
                     owner: owner.to_owned(),

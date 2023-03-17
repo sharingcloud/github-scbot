@@ -21,20 +21,20 @@ impl SummaryCommentSender {
         ret
     )]
     pub async fn create_or_update(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
-        redis_adapter: &dyn LockService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
+        lock_service: &dyn LockService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
         pull_request_status: &PullRequestStatus,
     ) -> Result<u64> {
         let comment_id =
-            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
+            Self::get_status_comment_id(db_service, repo_owner, repo_name, pr_number).await?;
         if comment_id > 0 {
             Self::update(
-                api_adapter,
-                db_adapter,
+                api_service,
+                db_service,
                 repo_owner,
                 repo_name,
                 pr_number,
@@ -45,15 +45,15 @@ impl SummaryCommentSender {
         } else {
             // Not the smartest strategy, let's lock with a 10 seconds timeout
             let lock_name = format!("summary-{repo_owner}-{repo_name}-{pr_number}");
-            match redis_adapter.wait_lock_resource(&lock_name, 10_000).await? {
+            match lock_service.wait_lock_resource(&lock_name, 10_000).await? {
                 LockStatus::SuccessfullyLocked(l) => {
                     let comment_id =
-                        Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number)
+                        Self::get_status_comment_id(db_service, repo_owner, repo_name, pr_number)
                             .await?;
                     let result = if comment_id == 0 {
                         Self::create(
-                            api_adapter,
-                            db_adapter,
+                            api_service,
+                            db_service,
                             repo_owner,
                             repo_name,
                             pr_number,
@@ -62,8 +62,8 @@ impl SummaryCommentSender {
                         .await
                     } else {
                         Self::update(
-                            api_adapter,
-                            db_adapter,
+                            api_service,
+                            db_service,
                             repo_owner,
                             repo_name,
                             pr_number,
@@ -91,8 +91,8 @@ impl SummaryCommentSender {
     }
 
     async fn create(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -100,8 +100,8 @@ impl SummaryCommentSender {
     ) -> Result<u64> {
         let status_comment = Self::generate_comment(pull_request_status)?;
         Self::post_github_comment(
-            api_adapter,
-            db_adapter,
+            api_service,
+            db_service,
             repo_owner,
             repo_name,
             pr_number,
@@ -111,8 +111,8 @@ impl SummaryCommentSender {
     }
 
     async fn update(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -122,7 +122,7 @@ impl SummaryCommentSender {
         let status_comment = Self::generate_comment(pull_request_status)?;
 
         if let Ok(comment_id) = CommentApi::update_comment(
-            api_adapter,
+            api_service,
             repo_owner,
             repo_name,
             comment_id,
@@ -142,8 +142,8 @@ impl SummaryCommentSender {
 
             // Comment ID is no more used on GitHub, recreate a new status
             Self::post_github_comment(
-                api_adapter,
-                db_adapter,
+                api_service,
+                db_service,
                 repo_owner,
                 repo_name,
                 pr_number,
@@ -155,18 +155,18 @@ impl SummaryCommentSender {
 
     /// Delete comment.
     pub async fn delete(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
     ) -> Result<()> {
         // Re-fetch comment ID
         let comment_id =
-            Self::get_status_comment_id(db_adapter, repo_owner, repo_name, pr_number).await?;
+            Self::get_status_comment_id(db_service, repo_owner, repo_name, pr_number).await?;
 
         if comment_id > 0 {
-            api_adapter
+            api_service
                 .comments_delete(repo_owner, repo_name, comment_id)
                 .await?;
         }
@@ -175,12 +175,12 @@ impl SummaryCommentSender {
     }
 
     async fn get_status_comment_id(
-        db_adapter: &mut dyn DbService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
     ) -> Result<u64> {
-        Ok(db_adapter
+        Ok(db_service
             .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .map(|pr| pr.status_comment_id)
@@ -192,18 +192,18 @@ impl SummaryCommentSender {
     }
 
     async fn post_github_comment(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         issue_number: u64,
         comment: &str,
     ) -> Result<u64> {
         let comment_id =
-            CommentApi::post_comment(api_adapter, repo_owner, repo_name, issue_number, comment)
+            CommentApi::post_comment(api_service, repo_owner, repo_name, issue_number, comment)
                 .await?;
 
-        db_adapter
+        db_service
             .pull_requests_set_status_comment_id(repo_owner, repo_name, issue_number, comment_id)
             .await?;
 

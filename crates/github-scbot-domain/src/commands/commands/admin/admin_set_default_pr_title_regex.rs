@@ -23,7 +23,7 @@ impl AdminSetDefaultPrTitleRegexCommand {
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultPrTitleRegexCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .repositories_set_pr_title_validation_regex(ctx.repo_owner, ctx.repo_name, &self.regex)
             .await?;
 

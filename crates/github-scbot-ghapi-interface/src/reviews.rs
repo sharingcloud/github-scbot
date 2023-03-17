@@ -52,7 +52,7 @@ impl ReviewApi {
             }
         }
 
-        let mut res: Vec<_> = output.into_iter().map(|(_k, v)| v).collect();
+        let mut res: Vec<_> = output.into_values().collect();
         res.sort_by_key(|x| x.submitted_at);
         res
     }

@@ -25,7 +25,7 @@ impl Command for PullRequestShowCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
         let pr =
-            CliDbExt::get_existing_pull_request(ctx.db_adapter.as_mut(), owner, name, self.number)
+            CliDbExt::get_existing_pull_request(ctx.db_service.as_mut(), owner, name, self.number)
                 .await?;
 
         writeln!(

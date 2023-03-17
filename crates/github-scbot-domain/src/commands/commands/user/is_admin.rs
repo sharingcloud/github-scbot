@@ -24,7 +24,7 @@ impl BotCommand for IsAdminCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let is_admin = CheckIsAdminUseCase {
             username: ctx.comment_author,
-            db_service: ctx.db_adapter,
+            db_service: ctx.db_service,
         }
         .run()
         .await?;

@@ -28,7 +28,7 @@ impl Command for PullRequestSyncCommand {
 
         SynchronizePullRequestUseCase {
             config: &ctx.config,
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
             repo_owner,
             repo_name,
             pr_number,
@@ -37,14 +37,14 @@ impl Command for PullRequestSyncCommand {
         .await?;
 
         let upstream_pr = ctx
-            .api_adapter
+            .api_service
             .pulls_get(repo_owner, repo_name, pr_number)
             .await?;
 
         UpdatePullRequestStatusUseCase {
-            api_service: ctx.api_adapter.as_ref(),
-            db_service: ctx.db_adapter.as_mut(),
-            redis_service: ctx.redis_adapter.as_ref(),
+            api_service: ctx.api_service.as_ref(),
+            db_service: ctx.db_service.as_mut(),
+            lock_service: ctx.lock_service.as_ref(),
             repo_owner,
             repo_name,
             pr_number,

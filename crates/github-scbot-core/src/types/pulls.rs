@@ -62,7 +62,7 @@ impl Default for GhMergeStrategy {
 }
 
 /// GitHub Pull request action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhPullRequestAction {
     /// Assigned.
@@ -99,7 +99,7 @@ pub enum GhPullRequestAction {
 }
 
 /// GitHub Pull request state.
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhPullRequestState {
     /// Open.

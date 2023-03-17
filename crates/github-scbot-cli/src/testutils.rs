@@ -13,27 +13,27 @@ use crate::{
 
 pub(crate) struct CommandContextTest {
     pub config: Config,
-    pub db_adapter: MemoryDb,
-    pub api_adapter: MockApiService,
-    pub redis_adapter: MockLockService,
+    pub db_service: MemoryDb,
+    pub api_service: MockApiService,
+    pub lock_service: MockLockService,
 }
 
 impl CommandContextTest {
     pub fn new() -> Self {
         Self {
             config: Config::from_env(),
-            db_adapter: MemoryDb::new(),
-            api_adapter: MockApiService::new(),
-            redis_adapter: MockLockService::new(),
+            db_service: MemoryDb::new(),
+            api_service: MockApiService::new(),
+            lock_service: MockLockService::new(),
         }
     }
 
     pub fn into_context<W: Write>(self, writer: W) -> CommandContext<W> {
         CommandContext {
             config: self.config,
-            db_adapter: Box::new(self.db_adapter),
-            api_adapter: Box::new(self.api_adapter),
-            redis_adapter: Box::new(self.redis_adapter),
+            db_service: Box::new(self.db_service),
+            api_service: Box::new(self.api_service),
+            lock_service: Box::new(self.lock_service),
             writer,
         }
     }

@@ -63,31 +63,31 @@ impl PullRequestStatus {
         )
     )]
     pub async fn from_database(
-        api_adapter: &dyn ApiService,
-        db_adapter: &mut dyn DbService,
+        api_service: &dyn ApiService,
+        db_service: &mut dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
-        let repo_model = db_adapter
+        let repo_model = db_service
             .repositories_get(repo_owner, repo_name)
             .await?
             .unwrap();
-        let pr_model = db_adapter
+        let pr_model = db_service
             .pull_requests_get(repo_owner, repo_name, pr_number)
             .await?
             .unwrap();
 
         let upstream_reviews =
-            ReviewApi::list_reviews_for_pull_request(api_adapter, repo_owner, repo_name, pr_number)
+            ReviewApi::list_reviews_for_pull_request(api_service, repo_owner, repo_name, pr_number)
                 .await?;
-        let required_reviewers = db_adapter
+        let required_reviewers = db_service
             .required_reviewers_list(repo_owner, repo_name, pr_number)
             .await?;
         let checks_status = if pr_model.checks_enabled {
             DetermineCheckStatusUseCase {
-                api_service: api_adapter,
+                api_service,
                 repo_owner,
                 repo_name,
                 commit_sha: &upstream_pr.head.sha,
@@ -106,7 +106,7 @@ impl PullRequestStatus {
             let base_branch = &upstream_pr.base.reference;
             let head_branch = &upstream_pr.head.reference;
             DeterminePullRequestMergeStrategyUseCase {
-                db_service: db_adapter,
+                db_service,
                 repo_owner,
                 repo_name,
                 head_branch,

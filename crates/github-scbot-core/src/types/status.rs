@@ -100,10 +100,11 @@ impl From<CheckStatus> for &'static str {
 }
 
 /// QA status.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Copy, Clone, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum QaStatus {
     /// Waiting.
+    #[default]
     Waiting,
     /// Skipped.
     Skipped,
@@ -111,12 +112,6 @@ pub enum QaStatus {
     Pass,
     /// Fail.
     Fail,
-}
-
-impl Default for QaStatus {
-    fn default() -> Self {
-        QaStatus::Waiting
-    }
 }
 
 impl QaStatus {

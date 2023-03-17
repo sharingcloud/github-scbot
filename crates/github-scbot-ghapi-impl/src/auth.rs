@@ -27,10 +27,10 @@ struct InstallationTokenResponse {
 /// Get an authenticated GitHub client builder.
 pub async fn get_authenticated_client_builder(
     config: &Config,
-    api_adapter: &dyn ApiService,
+    api_service: &dyn ApiService,
 ) -> Result<ClientBuilder, GitHubError> {
     let builder = get_anonymous_client_builder(config)?;
-    let token = get_authentication_credentials(config, api_adapter).await?;
+    let token = get_authentication_credentials(config, api_service).await?;
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -68,10 +68,10 @@ pub fn build_github_url<T: Into<String>>(config: &Config, path: T) -> String {
 
 async fn get_authentication_credentials(
     config: &Config,
-    api_adapter: &dyn ApiService,
+    api_service: &dyn ApiService,
 ) -> Result<String, GitHubError> {
     if config.github_api_token.is_empty() {
-        create_installation_access_token(config, api_adapter).await
+        create_installation_access_token(config, api_service).await
     } else {
         Ok(config.github_api_token.clone())
     }
@@ -97,10 +97,10 @@ fn create_app_token(config: &Config) -> Result<String, GitHubError> {
 
 async fn create_installation_access_token(
     config: &Config,
-    api_adapter: &dyn ApiService,
+    api_service: &dyn ApiService,
 ) -> Result<String, GitHubError> {
     let auth_token = create_app_token(config)?;
-    api_adapter
+    api_service
         .installations_create_token(&auth_token, config.github_app_installation_id)
         .await
         .map_err(|e| GitHubError::ImplementationError { source: e.into() })

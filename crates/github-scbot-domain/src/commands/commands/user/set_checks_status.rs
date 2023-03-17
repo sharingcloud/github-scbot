@@ -31,7 +31,7 @@ impl BotCommand for SetChecksStatusCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let value = !matches!(self.status, CheckStatus::Skipped);
 
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_checks_enabled(ctx.repo_owner, ctx.repo_name, ctx.pr_number, value)
             .await?;
 

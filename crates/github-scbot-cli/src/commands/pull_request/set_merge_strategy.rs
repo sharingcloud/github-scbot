@@ -29,9 +29,9 @@ impl Command for PullRequestSetMergeStrategyCommand {
         let (owner, name) = self.repository_path.components();
 
         let _pr =
-            CliDbExt::get_existing_pull_request(ctx.db_adapter.as_mut(), owner, name, self.number)
+            CliDbExt::get_existing_pull_request(ctx.db_service.as_mut(), owner, name, self.number)
                 .await?;
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_strategy_override(owner, name, self.number, self.strategy)
             .await?;
 
@@ -66,7 +66,7 @@ mod tests {
     async fn run_set() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         let repo = ctx
-            .db_adapter
+            .db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
                 name: "name".into(),
@@ -74,7 +74,7 @@ mod tests {
             })
             .await?;
 
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_create(PullRequest {
                 repository_id: repo.id,
                 number: 1,
@@ -94,7 +94,7 @@ mod tests {
     async fn run_unset() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         let repo = ctx
-            .db_adapter
+            .db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
                 name: "name".into(),
@@ -102,7 +102,7 @@ mod tests {
             })
             .await?;
 
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_create(PullRequest {
                 repository_id: repo.id,
                 number: 1,

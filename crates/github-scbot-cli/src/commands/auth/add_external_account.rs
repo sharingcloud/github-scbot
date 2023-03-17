@@ -15,7 +15,7 @@ impl AuthAddExternalAccountCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddExternalAccountUseCase {
             username: &self.username,
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
         }
         .run()
         .await?;

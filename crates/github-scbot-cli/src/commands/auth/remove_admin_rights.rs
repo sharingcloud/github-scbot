@@ -15,7 +15,7 @@ impl AuthRemoveAdminRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveAdminRightUseCase {
             username: self.username.clone(),
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
         }
         .run()
         .await?;

@@ -19,7 +19,7 @@ impl Command for PullRequestListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let prs = ctx.db_adapter.pull_requests_list(owner, name).await?;
+        let prs = ctx.db_service.pull_requests_list(owner, name).await?;
 
         if prs.is_empty() {
             writeln!(
@@ -62,7 +62,7 @@ mod tests {
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         let repo = ctx
-            .db_adapter
+            .db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
                 name: "name".into(),
@@ -70,7 +70,7 @@ mod tests {
             })
             .await?;
 
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_create(PullRequest {
                 repository_id: repo.id,
                 number: 1,

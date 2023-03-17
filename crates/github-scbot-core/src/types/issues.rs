@@ -50,7 +50,7 @@ impl From<GhReactionType> for &'static str {
 }
 
 /// GitHub Issue comment action.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, SmartDefault)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum GhIssueCommentAction {
     /// Created.
@@ -63,7 +63,7 @@ pub enum GhIssueCommentAction {
 }
 
 /// GitHub Issue state.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhIssueState {
     /// Open.

@@ -15,15 +15,15 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 }
 
 pub(crate) async fn check_suite_event(
-    api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn LockService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {
     HandleCheckSuiteEventUseCase {
-        api_service: api_adapter,
-        db_service: db_adapter,
-        redis_service: redis_adapter,
+        api_service,
+        db_service,
+        lock_service,
         event,
     }
     .run()

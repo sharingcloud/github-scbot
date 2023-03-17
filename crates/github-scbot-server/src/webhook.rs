@@ -29,18 +29,18 @@ use crate::{constants::GITHUB_EVENT_HEADER, server::AppContext, utils::convert_p
 
 async fn parse_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn LockService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckSuite => {
             checks::check_suite_event(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_check_suite_event(body)?,
             )
             .await
@@ -48,9 +48,9 @@ async fn parse_event(
         EventType::IssueComment => {
             issues::issue_comment_event(
                 config,
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_issue_comment_event(body)?,
             )
             .await
@@ -59,18 +59,18 @@ async fn parse_event(
         EventType::PullRequest => {
             pulls::pull_request_event(
                 config,
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_pull_request_event(body)?,
             )
             .await
         }
         EventType::PullRequestReview => {
             reviews::review_event(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_review_event(body)?,
             )
             .await
@@ -110,9 +110,9 @@ pub(crate) async fn event_handler(
 
             parse_event(
                 &ctx.config,
-                ctx.api_adapter.as_ref(),
-                ctx.db_adapter.lock().await.as_mut(),
-                ctx.redis_adapter.as_ref(),
+                ctx.api_service.as_ref(),
+                ctx.db_service.lock().await.as_mut(),
+                ctx.lock_service.as_ref(),
                 event_type,
                 &body,
             )

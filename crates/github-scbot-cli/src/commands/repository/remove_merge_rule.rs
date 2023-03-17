@@ -26,13 +26,13 @@ pub(crate) struct RepositoryRemoveMergeRuleCommand {
 impl Command for RepositoryRemoveMergeRuleCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        let _repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;
+        let _repo = CliDbExt::get_existing_repository(ctx.db_service.as_mut(), owner, name).await?;
 
         if self.base_branch == RuleBranch::Wildcard && self.head_branch == RuleBranch::Wildcard {
             return Err(anyhow!("Cannot remove default strategy"));
         } else {
             let found = ctx
-                .db_adapter
+                .db_service
                 .merge_rules_delete(
                     owner,
                     name,

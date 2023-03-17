@@ -23,8 +23,8 @@ impl AdminResetSummaryCommand {
 impl BotCommand for AdminResetSummaryCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let pr_status = BuildPullRequestStatusUseCase {
-            api_service: ctx.api_adapter,
-            db_service: ctx.db_adapter,
+            api_service: ctx.api_service,
+            db_service: ctx.db_service,
             repo_owner: ctx.repo_owner,
             repo_name: ctx.repo_name,
             pr_number: ctx.pr_number,
@@ -34,14 +34,14 @@ impl BotCommand for AdminResetSummaryCommand {
         .await?;
 
         // Reset comment ID
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_status_comment_id(ctx.repo_owner, ctx.repo_name, ctx.pr_number, 0)
             .await?;
 
         PostSummaryCommentUseCase {
-            api_service: ctx.api_adapter,
-            db_service: ctx.db_adapter,
-            redis_service: ctx.redis_adapter,
+            api_service: ctx.api_service,
+            db_service: ctx.db_service,
+            lock_service: ctx.lock_service,
             repo_owner: ctx.repo_owner,
             repo_name: ctx.repo_name,
             pr_number: ctx.pr_number,

@@ -16,9 +16,9 @@ pub use user::*;
 
 pub struct CommandContext<'a> {
     pub config: &'a Config,
-    pub api_adapter: &'a dyn ApiService,
-    pub db_adapter: &'a mut dyn DbService,
-    pub redis_adapter: &'a dyn LockService,
+    pub api_service: &'a dyn ApiService,
+    pub db_service: &'a mut dyn DbService,
+    pub lock_service: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,
@@ -43,9 +43,9 @@ pub(crate) mod tests {
 
     pub(crate) struct CommandContextTest {
         pub config: Config,
-        pub api_adapter: MockApiService,
-        pub db_adapter: MemoryDb,
-        pub redis_adapter: MockLockService,
+        pub api_service: MockApiService,
+        pub db_service: MemoryDb,
+        pub lock_service: MockLockService,
         pub repo_owner: String,
         pub repo_name: String,
         pub pr_number: u64,
@@ -58,9 +58,9 @@ pub(crate) mod tests {
         pub fn new() -> Self {
             Self {
                 config: Config::from_env(),
-                api_adapter: MockApiService::new(),
-                db_adapter: MemoryDb::new(),
-                redis_adapter: MockLockService::new(),
+                api_service: MockApiService::new(),
+                db_service: MemoryDb::new(),
+                lock_service: MockLockService::new(),
                 repo_owner: "owner".into(),
                 repo_name: "name".into(),
                 pr_number: 1,
@@ -73,9 +73,9 @@ pub(crate) mod tests {
         pub fn as_context(&mut self) -> CommandContext {
             CommandContext {
                 config: &self.config,
-                api_adapter: &self.api_adapter,
-                db_adapter: &mut self.db_adapter,
-                redis_adapter: &self.redis_adapter,
+                api_service: &self.api_service,
+                db_service: &mut self.db_service,
+                lock_service: &self.lock_service,
                 repo_owner: &self.repo_owner,
                 repo_name: &self.repo_name,
                 pr_number: self.pr_number,

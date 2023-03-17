@@ -33,8 +33,8 @@ impl MergeCommand {
 impl BotCommand for MergeCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let pr_status = BuildPullRequestStatusUseCase {
-            api_service: ctx.api_adapter,
-            db_service: ctx.db_adapter,
+            api_service: ctx.api_service,
+            db_service: ctx.db_service,
             pr_number: ctx.pr_number,
             repo_name: ctx.repo_name,
             repo_owner: ctx.repo_owner,
@@ -54,7 +54,7 @@ impl BotCommand for MergeCommand {
         if step == StepLabel::AwaitingMerge {
             let strategy = self.strategy.unwrap_or(pr_status.merge_strategy);
             let merge_result = MergePullRequestUseCase {
-                api_service: ctx.api_adapter,
+                api_service: ctx.api_service,
                 repo_name: ctx.repo_name,
                 repo_owner: ctx.repo_owner,
                 pr_number: ctx.pr_number,

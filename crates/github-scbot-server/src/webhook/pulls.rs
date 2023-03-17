@@ -22,17 +22,17 @@ pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent>
 
 pub(crate) async fn pull_request_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn LockService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
     if matches!(event.action, GhPullRequestAction::Opened) {
         ProcessPullRequestOpenedUseCase {
-            api_service: api_adapter,
-            db_service: db_adapter,
+            api_service,
+            db_service,
             config,
-            lock_service: redis_adapter,
+            lock_service,
             event,
         }
         .run()
@@ -40,9 +40,9 @@ pub(crate) async fn pull_request_event(
         .map_err(|e| ServerError::DomainError { source: e })?;
     } else {
         HandlePullRequestEventUseCase {
-            api_service: api_adapter,
-            db_service: db_adapter,
-            lock_service: redis_adapter,
+            api_service,
+            db_service,
+            lock_service,
             event,
         }
         .run()

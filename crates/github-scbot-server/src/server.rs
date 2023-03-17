@@ -37,11 +37,11 @@ pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_adapter: Mutex<Box<dyn DbService>>,
+    pub db_service: Mutex<Box<dyn DbService>>,
     /// API adapter
-    pub api_adapter: Box<dyn ApiService>,
+    pub api_service: Box<dyn ApiService>,
     /// Redis adapter
-    pub redis_adapter: Box<dyn LockService>,
+    pub lock_service: Box<dyn LockService>,
 }
 
 impl AppContext {
@@ -49,24 +49,24 @@ impl AppContext {
     pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
-            db_adapter: Mutex::new(Box::new(PostgresDb::new(pool))),
-            api_adapter: Box::new(MetricsApiService::new(config.clone())),
-            redis_adapter: Box::new(MetricsRedisService::new(&config.redis_address)),
+            db_service: Mutex::new(Box::new(PostgresDb::new(pool))),
+            api_service: Box::new(MetricsApiService::new(config.clone())),
+            lock_service: Box::new(MetricsRedisService::new(&config.redis_address)),
         }
     }
 
     /// Create new app context using adapters.
     pub fn new_with_adapters(
         config: Config,
-        db_adapter: Box<dyn DbService>,
-        api_adapter: Box<dyn ApiService>,
-        redis_adapter: Box<dyn LockService>,
+        db_service: Box<dyn DbService>,
+        api_service: Box<dyn ApiService>,
+        lock_service: Box<dyn LockService>,
     ) -> Self {
         Self {
             config,
-            db_adapter: Mutex::new(db_adapter),
-            api_adapter,
-            redis_adapter,
+            db_service: Mutex::new(db_service),
+            api_service,
+            lock_service,
         }
     }
 }

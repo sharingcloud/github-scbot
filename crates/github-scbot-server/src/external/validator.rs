@@ -57,7 +57,7 @@ async fn jwt_auth_validator_inner(
 ) -> Result<ServiceRequest, (ValidationError, ServiceRequest)> {
     let ctx = req.app_data::<web::Data<Arc<AppContext>>>().unwrap();
     let target_account =
-        extract_account_from_auth(ctx.db_adapter.lock().await.as_mut(), &credentials).await;
+        extract_account_from_auth(ctx.db_service.lock().await.as_mut(), &credentials).await;
     let target_account = match target_account {
         Ok(acc) => acc,
         Err(e) => return Err((e, req)),

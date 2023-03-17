@@ -15,7 +15,7 @@ impl AuthRemoveAllExternalAccountRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveAllExternalAccountRightsUseCase {
             username: self.username.clone(),
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
         }
         .run()
         .await?;
@@ -42,7 +42,7 @@ mod tests {
     #[actix_rt::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
-        ctx.db_adapter
+        ctx.db_service
             .external_accounts_create(ExternalAccount {
                 username: "me".into(),
                 ..Default::default()
@@ -50,7 +50,7 @@ mod tests {
             .await?;
 
         let repo = ctx
-            .db_adapter
+            .db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
                 name: "name".into(),
@@ -58,7 +58,7 @@ mod tests {
             })
             .await?;
 
-        ctx.db_adapter
+        ctx.db_service
             .external_account_rights_create(ExternalAccountRight {
                 repository_id: repo.id,
                 username: "me".into(),

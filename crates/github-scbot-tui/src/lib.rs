@@ -19,11 +19,11 @@ use self::errors::Result;
 pub use errors::UiError;
 
 /// Run TUI interface.
-pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
+pub async fn run_tui(db_service: &mut dyn DbService) -> Result<()> {
     let mut terminal = TerminalWrapper::new()?;
 
     let mut app = App::new("SC Bot");
-    app.load_from_db(db_adapter).await?;
+    app.load_from_db(db_service).await?;
 
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();

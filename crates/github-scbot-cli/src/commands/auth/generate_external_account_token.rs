@@ -15,7 +15,7 @@ impl AuthGenerateExternalAccountTokenCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let token = GenerateExternalAccountTokenUseCase {
             username: &self.username,
-            db_service: ctx.db_adapter.as_mut(),
+            db_service: ctx.db_service.as_mut(),
         }
         .run()
         .await?;
@@ -38,7 +38,7 @@ mod tests {
     #[actix_rt::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
-        ctx.db_adapter
+        ctx.db_service
             .external_accounts_create(
                 ExternalAccount {
                     username: "me".into(),

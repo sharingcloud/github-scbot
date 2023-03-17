@@ -25,12 +25,12 @@ impl Command for ExportCommand {
         if let Some(file_path) = self.output_file {
             let file = File::create(file_path.clone())?;
             let mut writer = BufWriter::new(file);
-            Exchanger::export_to_json(ctx.db_adapter.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
                 .await
                 .map_err(Into::into)
         } else {
             let mut writer = std::io::stdout();
-            Exchanger::export_to_json(ctx.db_adapter.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
                 .await
                 .map_err(Into::into)
         }

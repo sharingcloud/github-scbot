@@ -24,7 +24,7 @@ impl BotCommand for AdminSyncCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         SynchronizePullRequestUseCase {
             config: ctx.config,
-            db_service: ctx.db_adapter,
+            db_service: ctx.db_service,
             repo_owner: ctx.repo_owner,
             repo_name: ctx.repo_name,
             pr_number: ctx.pr_number,

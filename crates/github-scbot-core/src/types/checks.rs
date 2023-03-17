@@ -10,7 +10,7 @@ use super::{
 };
 
 /// GitHub Check suite action.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckSuiteAction {
     /// Completed.
@@ -23,7 +23,7 @@ pub enum GhCheckSuiteAction {
 }
 
 /// GitHub Check status.
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, SmartDefault, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckStatus {
     /// Completed.
@@ -40,7 +40,7 @@ pub enum GhCheckStatus {
 }
 
 /// GitHub Check conclusion.
-#[derive(Debug, Deserialize, Serialize, SmartDefault, PartialEq, Eq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GhCheckConclusion {
     /// Action required.

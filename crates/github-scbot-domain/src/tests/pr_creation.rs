@@ -18,7 +18,7 @@
 //         config,
 //         "test_should_create_pull_request_manual_no_activation",
 //         |config, pool| async move {
-//             let db_adapter = DbServiceImplPool::new(pool);
+//             let db_service = DbServiceImplPool::new(pool);
 //             let repository = Repository::builder()
 //                 .with_config(&config)
 //                 .name("name")
@@ -26,7 +26,7 @@
 //                 .manual_interaction(true)
 //                 .build()
 //                 .unwrap();
-//             let repository = db_adapter.repositories().create(repository).await?;
+//             let repository = db_service.repositories().create(repository).await?;
 
 //             let event = GhPullRequestEvent {
 //                 action: GhPullRequestAction::Opened,
@@ -64,7 +64,7 @@
 //         config,
 //         "test_should_create_pull_request_manual_with_activation",
 //         |config, pool| async move {
-//             let db_adapter = DbServiceImplPool::new(pool);
+//             let db_service = DbServiceImplPool::new(pool);
 //             let repository = Repository::builder()
 //                 .with_config(&config)
 //                 .name("name")
@@ -72,7 +72,7 @@
 //                 .manual_interaction(true)
 //                 .build()
 //                 .unwrap();
-//             let repository = db_adapter.repositories().create(repository).await?;
+//             let repository = db_service.repositories().create(repository).await?;
 
 //             let event = GhPullRequestEvent {
 //                 action: GhPullRequestAction::Opened,
@@ -111,7 +111,7 @@
 //         config,
 //         "test_should_create_pull_request_automatic",
 //         |config, pool| async move {
-//             let db_adapter = DbServiceImplPool::new(pool);
+//             let db_service = DbServiceImplPool::new(pool);
 //             let repository = Repository::builder()
 //                 .with_config(&config)
 //                 .name("name")
@@ -119,7 +119,7 @@
 //                 .manual_interaction(false)
 //                 .build()
 //                 .unwrap();
-//             let repository = db_adapter.repositories().create(repository).await?;
+//             let repository = db_service.repositories().create(repository).await?;
 
 //             let event = GhPullRequestEvent {
 //                 action: GhPullRequestAction::Opened,
@@ -157,7 +157,7 @@
 //         config,
 //         "test_qa_disabled_repository",
 //         |config, pool| async move {
-//             let db_adapter = DbServiceImplPool::new(pool);
+//             let db_service = DbServiceImplPool::new(pool);
 //             let repository = Repository::builder()
 //                 .with_config(&config)
 //                 .name("name")
@@ -167,7 +167,7 @@
 //                 .default_enable_checks(true)
 //                 .build()
 //                 .unwrap();
-//             db_adapter.repositories().create(repository).await?;
+//             db_service.repositories().create(repository).await?;
 
 //             let event = GhPullRequestEvent {
 //                 action: GhPullRequestAction::Opened,
@@ -185,9 +185,9 @@
 //                 ..GhPullRequestEvent::default()
 //             };
 
-//             let mut api_adapter = MockApiService::new();
-//             let mut redis_adapter = MockRedisService::new();
-//             redis_adapter
+//             let mut api_service = MockApiService::new();
+//             let mut lock_service = MockRedisService::new();
+//             lock_service
 //                 .expect_wait_lock_resource()
 //                 .times(1)
 //                 .returning(|_, _| {
@@ -196,7 +196,7 @@
 //                     )))
 //                 });
 
-//             api_adapter
+//             api_service
 //                 .expect_pulls_get()
 //                 .times(1)
 //                 .return_once(|_, _, _| {
@@ -206,12 +206,12 @@
 //                     })
 //                 });
 
-//             api_adapter
+//             api_service
 //                 .expect_pull_reviews_list()
 //                 .times(1)
 //                 .return_once(|_, _, _| Ok(vec![]));
 
-//             api_adapter
+//             api_service
 //                 .expect_check_suites_list()
 //                 .times(1)
 //                 .return_once(|_, _, _| {
@@ -230,12 +230,12 @@
 //                     }])
 //                 });
 
-//             api_adapter
+//             api_service
 //                 .expect_issue_labels_list()
 //                 .times(1)
 //                 .return_once(|_, _, _| Ok(vec![]));
 
-//             api_adapter
+//             api_service
 //                 .expect_issue_labels_replace_all()
 //                 .withf(|owner, name, pr_number, labels| {
 //                     owner == "owner"
@@ -246,21 +246,21 @@
 //                 .times(1)
 //                 .return_once(|_, _, _, _| Ok(()));
 
-//             api_adapter
+//             api_service
 //                 .expect_comments_post()
 //                 .times(1)
 //                 .return_once(|_, _, _, _| Ok(1));
 
-//             api_adapter
+//             api_service
 //                 .expect_commit_statuses_update()
 //                 .times(1)
 //                 .return_once(|_, _, _, _, _, _| Ok(()));
 
 //             let result = handle_pull_request_opened(
 //                 &config,
-//                 &api_adapter,
-//                 &db_adapter,
-//                 &redis_adapter,
+//                 &api_service,
+//                 &db_service,
+//                 &lock_service,
 //                 event,
 //             )
 //             .await?;

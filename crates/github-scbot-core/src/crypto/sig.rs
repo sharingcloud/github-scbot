@@ -4,11 +4,7 @@ use sha2::Sha256;
 use super::errors::CryptoError;
 
 /// Check if a signature is valid.
-pub fn is_valid_signature<'a>(
-    signature: &str,
-    body: &'a [u8],
-    secret: &str,
-) -> Result<bool, CryptoError> {
+pub fn is_valid_signature(signature: &str, body: &[u8], secret: &str) -> Result<bool, CryptoError> {
     let decoded_signature =
         &hex::decode(signature).map_err(|e| CryptoError::InvalidSignatureFormat {
             sig: signature.to_string(),

@@ -37,7 +37,7 @@ impl FilteredReviewers {
 
         for reviewer in reviewers {
             let permission = ctx
-                .api_adapter
+                .api_service
                 .user_permissions_get(ctx.repo_owner, ctx.repo_name, reviewer)
                 .await?
                 .can_write();
@@ -63,7 +63,7 @@ impl FilteredReviewers {
         reviewer_username: &str,
     ) -> Result<()> {
         match ctx
-            .db_adapter
+            .db_service
             .required_reviewers_get(
                 ctx.repo_owner,
                 ctx.repo_name,
@@ -74,7 +74,7 @@ impl FilteredReviewers {
         {
             Some(_s) => Ok(()),
             None => {
-                ctx.db_adapter
+                ctx.db_service
                     .required_reviewers_create(RequiredReviewer {
                         pull_request_id: pr_model.id,
                         username: reviewer_username.into(),
@@ -114,7 +114,7 @@ impl AssignRequiredReviewersCommand {
 
     async fn _get_pull_request<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<PullRequest> {
         Ok(ctx
-            .db_adapter
+            .db_service
             .pull_requests_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
             .await?
             .unwrap())
@@ -125,7 +125,7 @@ impl AssignRequiredReviewersCommand {
         ctx: &CommandContext<'a>,
         reviewers: &[String],
     ) -> Result<()> {
-        ctx.api_adapter
+        ctx.api_service
             .pull_reviewer_requests_add(ctx.repo_owner, ctx.repo_name, ctx.pr_number, reviewers)
             .await?;
 
@@ -199,7 +199,7 @@ impl UnassignRequiredReviewersCommand {
     }
 
     async fn _remove_reviewer_from_pull_request<'a>(&self, ctx: &CommandContext<'a>) -> Result<()> {
-        ctx.api_adapter
+        ctx.api_service
             .pull_reviewer_requests_remove(
                 ctx.repo_owner,
                 ctx.repo_name,
@@ -216,7 +216,7 @@ impl UnassignRequiredReviewersCommand {
         ctx: &mut CommandContext<'a>,
         reviewer_username: &str,
     ) -> Result<()> {
-        ctx.db_adapter
+        ctx.db_service
             .required_reviewers_delete(
                 ctx.repo_owner,
                 ctx.repo_name,

@@ -23,15 +23,15 @@ impl AdminDisableCommand {
 impl BotCommand for AdminDisableCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         let repo_model = ctx
-            .db_adapter
+            .db_service
             .repositories_get(ctx.repo_owner, ctx.repo_name)
             .await?
             .unwrap();
 
         if repo_model.manual_interaction {
             DisablePullRequestStatusUseCase {
-                api_service: ctx.api_adapter,
-                db_service: ctx.db_adapter,
+                api_service: ctx.api_service,
+                db_service: ctx.db_service,
                 pr_number: ctx.pr_number,
                 repo_name: ctx.repo_name,
                 repo_owner: ctx.repo_owner,
@@ -39,7 +39,7 @@ impl BotCommand for AdminDisableCommand {
             .run()
             .await?;
 
-            ctx.db_adapter
+            ctx.db_service
                 .pull_requests_delete(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
                 .await?;
 

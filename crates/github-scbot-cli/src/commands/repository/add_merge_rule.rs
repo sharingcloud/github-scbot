@@ -30,11 +30,11 @@ pub(crate) struct RepositoryAddMergeRuleCommand {
 impl Command for RepositoryAddMergeRuleCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        let repo = CliDbExt::get_existing_repository(ctx.db_adapter.as_mut(), owner, name).await?;
+        let repo = CliDbExt::get_existing_repository(ctx.db_service.as_mut(), owner, name).await?;
 
         if self.base_branch == RuleBranch::Wildcard && self.head_branch == RuleBranch::Wildcard {
             // Update default strategy
-            ctx.db_adapter
+            ctx.db_service
                 .repositories_set_default_strategy(owner, name, self.strategy)
                 .await?;
 
@@ -44,7 +44,7 @@ impl Command for RepositoryAddMergeRuleCommand {
                 self.strategy, self.repository_path
             )?;
         } else {
-            ctx.db_adapter
+            ctx.db_service
                 .merge_rules_delete(
                     owner,
                     name,
@@ -52,7 +52,7 @@ impl Command for RepositoryAddMergeRuleCommand {
                     self.head_branch.clone(),
                 )
                 .await?;
-            ctx.db_adapter
+            ctx.db_service
                 .merge_rules_create(MergeRule {
                     repository_id: repo.id,
                     base_branch: self.base_branch.clone(),

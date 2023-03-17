@@ -35,13 +35,13 @@ impl SetLabelsCommand {
 impl BotCommand for SetLabelsCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
         if !self.added.is_empty() {
-            ctx.api_adapter
+            ctx.api_service
                 .issue_labels_add(ctx.repo_owner, ctx.repo_name, ctx.pr_number, &self.added)
                 .await?;
         }
 
         if !self.removed.is_empty() {
-            ctx.api_adapter
+            ctx.api_service
                 .issue_labels_remove(ctx.repo_owner, ctx.repo_name, ctx.pr_number, &self.removed)
                 .await?;
         }

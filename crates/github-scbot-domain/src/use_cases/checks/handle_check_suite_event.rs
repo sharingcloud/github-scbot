@@ -8,7 +8,7 @@ use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 pub struct HandleCheckSuiteEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a mut dyn DbService,
-    pub redis_service: &'a dyn LockService,
+    pub lock_service: &'a dyn LockService,
     pub event: GhCheckSuiteEvent,
 }
 
@@ -62,7 +62,7 @@ impl<'a> HandleCheckSuiteEventUseCase<'a> {
                 UpdatePullRequestStatusUseCase {
                     api_service: self.api_service,
                     db_service: self.db_service,
-                    redis_service: self.redis_service,
+                    lock_service: self.lock_service,
                     repo_name,
                     repo_owner,
                     pr_number,

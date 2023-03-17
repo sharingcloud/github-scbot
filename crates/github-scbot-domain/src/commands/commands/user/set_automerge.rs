@@ -31,7 +31,7 @@ impl SetAutomergeCommand {
 #[async_trait(?Send)]
 impl BotCommand for SetAutomergeCommand {
     async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
-        ctx.db_adapter
+        ctx.db_service
             .pull_requests_set_automerge(ctx.repo_owner, ctx.repo_name, ctx.pr_number, self.enabled)
             .await?;
 

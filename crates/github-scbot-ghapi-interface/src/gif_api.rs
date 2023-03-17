@@ -22,11 +22,11 @@ impl GifApi {
     /// Get random GIF from query.
     pub async fn random_gif_from_query(
         config: &Config,
-        api_adapter: &dyn ApiService,
+        api_service: &dyn ApiService,
         search: &str,
     ) -> Result<Option<String>> {
         Ok(Self::random_gif_from_response(
-            api_adapter
+            api_service
                 .gif_search(&config.tenor_api_key, search)
                 .await?,
         ))

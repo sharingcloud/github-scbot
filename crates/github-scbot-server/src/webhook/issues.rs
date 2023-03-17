@@ -17,16 +17,16 @@ pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEven
 
 pub(crate) async fn issue_comment_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &mut dyn DbService,
-    redis_adapter: &dyn LockService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
     HandleIssueCommentEventUseCase {
         config,
-        api_service: api_adapter,
-        db_service: db_adapter,
-        redis_service: redis_adapter,
+        api_service,
+        db_service,
+        lock_service,
         event,
     }
     .run()
