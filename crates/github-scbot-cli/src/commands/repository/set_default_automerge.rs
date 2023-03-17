@@ -16,7 +16,7 @@ pub(crate) struct RepositorySetDefaultAutomergeCommand {
     /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
     /// Status
-    #[clap(parse(try_from_str))]
+    #[clap(value_parser)]
     status: bool,
 }
 

@@ -9,9 +9,9 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 hmac = "0.12.1"
-jsonwebtoken = "8.1.1"
+jsonwebtoken = "8.3.0"
 rand = "0.8.5"
-rsa = "0.6.1"
-sha2 = "0.10.2"
-serde = { version = "1.0.140", features = ["derive"] }
-thiserror = "1.0.37"
+rsa = "0.8.2"
+sha2 = "0.10.6"
+serde = { version = "1.0.156", features = ["derive"] }
+thiserror = "1.0.39"

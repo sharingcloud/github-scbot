@@ -9,13 +9,13 @@ github-scbot-config = { path = "../github-scbot-config" }
 github-scbot-crypto = { path = "../github-scbot-crypto" }
 github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
 
-async-trait = "0.1.56"
+async-trait = "0.1.66"
 backoff = { version = "0.4.0", features = ["tokio"] }
-http = "0.2.8"
-reqwest = { version = "0.11.11", features = ["json"] }
-serde = { version = "1.0.140", features = ["derive"] }
-thiserror = "1.0.37"
-tracing = "0.1.35"
+http = "0.2.9"
+reqwest = { version = "0.11.14", features = ["json"] }
+serde = { version = "1.0.156", features = ["derive"] }
+thiserror = "1.0.39"
+tracing = "0.1.37"
 
 [dev-dependencies]
-actix-rt = "2.7.0"
+actix-rt = "2.8.0"

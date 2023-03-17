@@ -7,5 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sentry = { version = "0.27.0", features = ["tracing"] }
-tracing = "0.1.35"
+sentry = { version = "0.30.0", features = ["tracing"] }
+tracing = "0.1.37"

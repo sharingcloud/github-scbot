@@ -8,6 +8,6 @@ edition = "2021"
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
 github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 
-crossterm = "0.25.0"
-thiserror = "1.0.37"
+crossterm = "0.26.1"
+thiserror = "1.0.39"
 tui = "0.19.0"

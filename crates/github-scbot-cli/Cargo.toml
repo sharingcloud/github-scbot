@@ -18,13 +18,13 @@ github-scbot-sentry = { path = "../github-scbot-sentry" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
 
-actix-rt = "2.7.0"
+actix-rt = "2.8.0"
 anyhow = { version = "1.0", features = ["backtrace"] }
-async-trait = "0.1.56"
-clap = { version = "3.2.15", features = ["derive"] }
+async-trait = "0.1.66"
+clap = { version = "4.1.9", features = ["derive"] }
 dotenv = "0.15.0"
-thiserror = "1.0.37"
-tokio = { version = "1.20.1", features = ["full"] }
+thiserror = "1.0.39"
+tokio = { version = "1.26.0", features = ["full"] }
 
 [dev-dependencies]
 github-scbot-database-memory = { path = "../github-scbot-database-memory" }

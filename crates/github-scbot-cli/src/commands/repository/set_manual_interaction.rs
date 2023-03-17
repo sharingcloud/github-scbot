@@ -16,7 +16,7 @@ pub(crate) struct RepositorySetManualInteractionCommand {
     /// Repository path (e.g. `MyOrganization/my-project`)
     repository_path: RepositoryPath,
     /// Manual interaction mode
-    #[clap(parse(try_from_str))]
+    #[clap(value_parser)]
     manual_interaction: bool,
 }
 
