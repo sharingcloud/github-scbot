@@ -8,8 +8,10 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    pulls::PullRequestLogic,
-    use_cases::status::{BuildPullRequestStatusUseCase, DetermineAutomaticStepUseCase},
+    use_cases::{
+        pulls::MergePullRequestUseCase,
+        status::{BuildPullRequestStatusUseCase, DetermineAutomaticStepUseCase},
+    },
     Result,
 };
 
@@ -46,42 +48,44 @@ impl BotCommand for MergeCommand {
         }
         .run();
 
-        let commit_title = PullRequestLogic::get_merge_commit_title(ctx.upstream_pr);
         let mut actions = vec![];
 
         // Use step to determine merge possibility
         if step == StepLabel::AwaitingMerge {
             let strategy = self.strategy.unwrap_or(pr_status.merge_strategy);
-            if let Err(e) = ctx
-                .api_adapter
-                .pulls_merge(
-                    ctx.repo_owner,
-                    ctx.repo_name,
-                    ctx.pr_number,
-                    &commit_title,
-                    "",
-                    strategy,
-                )
-                .await
-            {
-                error!(
-                    owner = %ctx.repo_owner,
-                    name = %ctx.repo_name,
-                    pr_number = ctx.pr_number,
-                    error = %e,
-                    message = "Error while merging pull request"
-                );
+            let merge_result = MergePullRequestUseCase {
+                api_service: ctx.api_adapter,
+                repo_name: ctx.repo_name,
+                repo_owner: ctx.repo_owner,
+                pr_number: ctx.pr_number,
+                merge_strategy: strategy,
+                upstream_pr: ctx.upstream_pr,
+            }
+            .run()
+            .await;
 
-                actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));
-                actions.push(ResultAction::PostComment(
-                    "Error while merging this pull request.".to_string(),
-                ));
-            } else {
-                actions.push(ResultAction::AddReaction(GhReactionType::PlusOne));
-                actions.push(ResultAction::PostComment(format!(
-                    "Pull request successfully merged by **{}**! (strategy: **{}**)",
-                    ctx.comment_author, strategy
-                )));
+            match merge_result {
+                Ok(()) => {
+                    actions.push(ResultAction::AddReaction(GhReactionType::PlusOne));
+                    actions.push(ResultAction::PostComment(format!(
+                        "Pull request successfully merged by **{}**! (strategy: **{}**)",
+                        ctx.comment_author, strategy
+                    )));
+                }
+                Err(e) => {
+                    error!(
+                        owner = %ctx.repo_owner,
+                        name = %ctx.repo_name,
+                        pr_number = ctx.pr_number,
+                        error = %e,
+                        message = "Error while merging pull request"
+                    );
+
+                    actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));
+                    actions.push(ResultAction::PostComment(
+                        "Error while merging this pull request.".to_string(),
+                    ));
+                }
             }
         } else {
             actions.push(ResultAction::AddReaction(GhReactionType::MinusOne));

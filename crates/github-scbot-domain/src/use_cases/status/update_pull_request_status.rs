@@ -4,9 +4,9 @@ use github_scbot_ghapi_interface::{comments::CommentApi, labels::LabelApi, ApiSe
 use github_scbot_lock_interface::{LockService, LockStatus};
 
 use crate::{
-    pulls::PullRequestLogic,
     use_cases::{
-        pulls::DeterminePullRequestMergeStrategyUseCase, summary::PostSummaryCommentUseCase,
+        pulls::{DeterminePullRequestMergeStrategyUseCase, MergePullRequestUseCase},
+        summary::PostSummaryCommentUseCase,
     },
     Result,
 };
@@ -173,7 +173,6 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
             .await?
             .unwrap();
 
-        let commit_title = PullRequestLogic::get_merge_commit_title(self.upstream_pr);
         let strategy = if let Some(s) = pull_request.strategy_override {
             s
         } else {
@@ -189,43 +188,46 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
             .await?
         };
 
-        if let Err(e) = self
-            .api_service
-            .pulls_merge(
-                self.repo_owner,
-                self.repo_name,
-                self.pr_number,
-                &commit_title,
-                "",
-                strategy,
-            )
-            .await
-        {
-            CommentApi::post_comment(
-                self.api_service,
-                self.repo_owner,
-                self.repo_name,
-                self.pr_number,
-                &format!(
-                    "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
-                    e
-                ),
-            )
-            .await?;
-            Ok(false)
-        } else {
-            CommentApi::post_comment(
-                self.api_service,
-                self.repo_owner,
-                self.repo_name,
-                self.pr_number,
-                &format!(
-                    "Pull request successfully auto-merged! (strategy: '{}')",
-                    strategy
-                ),
-            )
-            .await?;
-            Ok(true)
+        let merge_result = MergePullRequestUseCase {
+            api_service: self.api_service,
+            repo_name: self.repo_name,
+            repo_owner: self.repo_owner,
+            pr_number: self.pr_number,
+            merge_strategy: strategy,
+            upstream_pr: self.upstream_pr,
+        }
+        .run()
+        .await;
+
+        match merge_result {
+            Ok(()) => {
+                CommentApi::post_comment(
+                    self.api_service,
+                    self.repo_owner,
+                    self.repo_name,
+                    self.pr_number,
+                    &format!(
+                        "Pull request successfully auto-merged! (strategy: '{}')",
+                        strategy
+                    ),
+                )
+                .await?;
+                Ok(true)
+            }
+            Err(e) => {
+                CommentApi::post_comment(
+                    self.api_service,
+                    self.repo_owner,
+                    self.repo_name,
+                    self.pr_number,
+                    &format!(
+                        "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
+                        e
+                    ),
+                )
+                .await?;
+                Ok(false)
+            }
         }
     }
 }

@@ -2,7 +2,9 @@ use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::PullRequest;
 
-use crate::{pulls::PullRequestLogic, Result};
+use crate::Result;
+
+use super::GetOrCreateRepositoryUseCase;
 
 pub struct SynchronizePullRequestUseCase<'a> {
     pub config: &'a Config,
@@ -14,12 +16,13 @@ pub struct SynchronizePullRequestUseCase<'a> {
 
 impl<'a> SynchronizePullRequestUseCase<'a> {
     pub async fn run(&mut self) -> Result<()> {
-        let repo = PullRequestLogic::get_or_create_repository(
-            self.config,
-            self.db_service,
-            self.repo_owner,
-            self.repo_name,
-        )
+        let repo = GetOrCreateRepositoryUseCase {
+            db_service: self.db_service,
+            config: self.config,
+            repo_name: self.repo_name,
+            repo_owner: self.repo_owner,
+        }
+        .run()
         .await?;
 
         if self

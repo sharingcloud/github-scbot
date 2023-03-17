@@ -5,7 +5,6 @@
 
 pub mod commands;
 pub mod errors;
-pub mod pulls;
 pub mod use_cases;
 
 #[cfg(test)]

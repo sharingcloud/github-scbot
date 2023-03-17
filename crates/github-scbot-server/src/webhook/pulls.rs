@@ -7,7 +7,9 @@ use github_scbot_core::types::{
     pulls::{GhPullRequestAction, GhPullRequestEvent},
 };
 use github_scbot_database_interface::DbService;
-use github_scbot_domain::pulls::{handle_pull_request_event, handle_pull_request_opened};
+use github_scbot_domain::use_cases::pulls::{
+    HandlePullRequestEventUseCase, ProcessPullRequestOpenedUseCase,
+};
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
 
@@ -26,13 +28,26 @@ pub(crate) async fn pull_request_event(
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
     if matches!(event.action, GhPullRequestAction::Opened) {
-        handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event)
-            .await
-            .map_err(|e| ServerError::DomainError { source: e })?;
+        ProcessPullRequestOpenedUseCase {
+            api_service: api_adapter,
+            db_service: db_adapter,
+            config,
+            lock_service: redis_adapter,
+            event,
+        }
+        .run()
+        .await
+        .map_err(|e| ServerError::DomainError { source: e })?;
     } else {
-        handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event)
-            .await
-            .map_err(|e| ServerError::DomainError { source: e })?;
+        HandlePullRequestEventUseCase {
+            api_service: api_adapter,
+            db_service: db_adapter,
+            lock_service: redis_adapter,
+            event,
+        }
+        .run()
+        .await
+        .map_err(|e| ServerError::DomainError { source: e })?;
     }
 
     Ok(HttpResponse::Ok().body("Pull request."))
