@@ -1060,6 +1060,7 @@ dependencies = [
  "github-scbot-domain-models",
  "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
+ "github-scbot-sentry",
  "github-scbot-server",
  "github-scbot-tui",
  "indoc",
@@ -1077,8 +1078,6 @@ dependencies = [
  "jsonwebtoken",
  "rand",
  "rsa",
- "sentry",
- "sentry-actix",
  "serde",
  "serde_plain",
  "sha2",
@@ -1158,6 +1157,7 @@ dependencies = [
  "github-scbot-lock-interface",
  "maplit",
  "pretty_assertions",
+ "rand",
  "regex",
  "thiserror",
  "time",
@@ -1195,11 +1195,9 @@ version = "0.23.0-dev"
 dependencies = [
  "actix-rt",
  "async-trait",
- "github-scbot-core",
  "heck",
  "maplit",
  "mockall",
- "rand",
  "serde",
  "serde_plain",
  "smart-default",
@@ -1231,6 +1229,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-scbot-sentry"
+version = "0.23.0-dev"
+dependencies = [
+ "sentry",
+ "tracing",
+]
+
+[[package]]
 name = "github-scbot-server"
 version = "0.23.0-dev"
 dependencies = [
@@ -1250,9 +1256,11 @@ dependencies = [
  "github-scbot-ghapi-interface",
  "github-scbot-lock-interface",
  "github-scbot-lock-redis",
+ "github-scbot-sentry",
  "lazy_static",
  "pretty_assertions",
  "prometheus",
+ "sentry-actix",
  "serde",
  "serde_json",
  "thiserror",

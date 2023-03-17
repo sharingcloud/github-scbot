@@ -1,0 +1,11 @@
+[package]
+name = "github-scbot-sentry"
+version = "0.23.0-dev"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sentry = { version = "0.27.0", features = ["tracing"] }
+tracing = "0.1.35"

@@ -1,5 +1,5 @@
-use github_scbot_core::time::OffsetDateTime;
 use serde::Deserialize;
+use time::OffsetDateTime;
 
 use super::GhCommitUser;
 

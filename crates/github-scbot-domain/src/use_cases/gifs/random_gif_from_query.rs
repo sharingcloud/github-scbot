@@ -1,12 +1,11 @@
-//! GIF module.
-
 use github_scbot_core::config::Config;
+use github_scbot_ghapi_interface::{
+    gif::{GifFormat, GifResponse},
+    ApiService,
+};
 use rand::prelude::*;
 
-use crate::{
-    gif::{GifFormat, GifResponse},
-    ApiService, Result,
-};
+use crate::Result;
 
 const MAX_GIF_SIZE_BYTES: usize = 2_000_000;
 
@@ -17,23 +16,13 @@ const GIF_KEYS: &[GifFormat] = &[
     GifFormat::NanoGif,
 ];
 
-/// Gif API.
-pub struct GifApi;
+pub struct RandomGifFromQueryUseCase<'a> {
+    pub config: &'a Config,
+    pub api_service: &'a dyn ApiService,
+    pub search: &'a str,
+}
 
-impl GifApi {
-    /// Get random GIF from query.
-    pub async fn random_gif_from_query(
-        config: &Config,
-        api_service: &dyn ApiService,
-        search: &str,
-    ) -> Result<Option<String>> {
-        Ok(Self::random_gif_from_response(
-            api_service
-                .gif_search(&config.tenor_api_key, search)
-                .await?,
-        ))
-    }
-
+impl<'a> RandomGifFromQueryUseCase<'a> {
     fn get_first_matching_gif(response: &GifResponse) -> Option<String> {
         if !response.results.is_empty() {
             // Get first media found
@@ -59,14 +48,22 @@ impl GifApi {
         response.results.shuffle(&mut thread_rng());
         Self::get_first_matching_gif(&response)
     }
+
+    pub async fn run(&mut self) -> Result<Option<String>> {
+        Ok(Self::random_gif_from_response(
+            self.api_service
+                .gif_search(&self.config.tenor_api_key, self.search)
+                .await?,
+        ))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use github_scbot_ghapi_interface::gif::{GifObject, MediaObject};
     use maplit::hashmap;
 
     use super::*;
-    use crate::gif::{GifObject, MediaObject};
 
     #[test]
     fn test_get_first_matching_gif() {
@@ -85,7 +82,7 @@ mod tests {
             }],
         };
         assert_eq!(
-            GifApi::get_first_matching_gif(&response),
+            RandomGifFromQueryUseCase::get_first_matching_gif(&response),
             Some("http://aaa".into())
         );
 
@@ -103,6 +100,9 @@ mod tests {
                 }],
             }],
         };
-        assert_eq!(GifApi::get_first_matching_gif(&response), None);
+        assert_eq!(
+            RandomGifFromQueryUseCase::get_first_matching_gif(&response),
+            None
+        );
     }
 }

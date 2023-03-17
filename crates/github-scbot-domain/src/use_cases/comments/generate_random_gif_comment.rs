@@ -1,7 +1,7 @@
 use github_scbot_core::config::Config;
-use github_scbot_ghapi_interface::{gif_api::GifApi, ApiService};
+use github_scbot_ghapi_interface::ApiService;
 
-use crate::Result;
+use crate::{use_cases::gifs::RandomGifFromQueryUseCase, Result};
 
 pub struct GenerateRandomGifCommentUseCase<'a> {
     pub config: &'a Config,
@@ -11,8 +11,13 @@ pub struct GenerateRandomGifCommentUseCase<'a> {
 
 impl<'a> GenerateRandomGifCommentUseCase<'a> {
     pub async fn run(&mut self) -> Result<String> {
-        let random_gif =
-            GifApi::random_gif_from_query(self.config, self.api_service, self.search_terms).await?;
+        let random_gif = RandomGifFromQueryUseCase {
+            config: self.config,
+            api_service: self.api_service,
+            search: self.search_terms,
+        }
+        .run()
+        .await?;
 
         match random_gif {
             None => Ok(format!(

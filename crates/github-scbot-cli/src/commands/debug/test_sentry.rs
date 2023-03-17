@@ -3,7 +3,7 @@ use std::io::Write;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::sentry::send_test_event;
+use github_scbot_sentry::send_test_event;
 
 use super::{Command, CommandContext};
 use crate::Result;

@@ -14,8 +14,6 @@ rand = "0.8.5"
 rsa = "0.6.1"
 serde = { version = "1.0.140", features = ["derive"] }
 serde_plain = "1.0.0"
-sentry = { version = "0.27.0", features = ["tracing"] }
-sentry-actix = "0.27.0"
 sha2 = "0.10.2"
 smart-default = "0.6.0"
 tracing = "0.1.35"

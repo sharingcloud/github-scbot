@@ -11,14 +11,13 @@ use actix_web::{
 };
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::lock::Mutex;
-use github_scbot_core::{
-    config::Config,
-    sentry::{actix::Sentry, with_sentry_configuration},
-};
+use github_scbot_core::config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_database_pg::{DbPool, PostgresDb};
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
+use github_scbot_sentry::with_sentry_configuration;
+use sentry_actix::Sentry;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 

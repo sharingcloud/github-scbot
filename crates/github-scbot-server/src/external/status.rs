@@ -4,9 +4,9 @@ use std::{str::FromStr, sync::Arc};
 
 use actix_web::{web, HttpResponse, Result};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use github_scbot_core::sentry::sentry;
 use github_scbot_domain::use_cases::status::SetPullRequestQaStatusUseCase;
 use github_scbot_domain_models::{QaStatus, RepositoryPath};
+use github_scbot_sentry::sentry;
 use serde::{Deserialize, Serialize};
 
 use crate::{external::validator::extract_account_from_auth, server::AppContext, ServerError};
