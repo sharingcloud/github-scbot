@@ -39,6 +39,8 @@ pub struct Config {
     pub redis_address: String,
     /// Sentry URL.
     pub sentry_url: String,
+    /// Traces sample rate (between 0 and 1) for Sentry
+    pub sentry_traces_sample_rate: f32,
     /// Server bind IP.
     pub server_bind_ip: String,
     /// Server bind port.
@@ -79,6 +81,7 @@ impl Config {
             logging_use_bunyan: env_to_bool("BOT_LOGGING_USE_BUNYAN", false),
             redis_address: env_to_str("BOT_REDIS_ADDRESS", ""),
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
+            sentry_traces_sample_rate: env_to_f32("BOT_SENTRY_TRACES_SAMPLE_RATE", 0.0),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),
             server_bind_port: env_to_u16("BOT_SERVER_BIND_IP", 8008),
             server_workers_count: env_to_optional_u16("BOT_SERVER_WORKERS_COUNT", None),
@@ -115,6 +118,12 @@ fn env_to_u64(name: &str, default: u64) -> u64 {
 }
 
 fn env_to_u32(name: &str, default: u32) -> u32 {
+    env::var(name)
+        .map(|e| e.parse().unwrap_or(default))
+        .unwrap_or(default)
+}
+
+fn env_to_f32(name: &str, default: f32) -> f32 {
     env::var(name)
         .map(|e| e.parse().unwrap_or(default))
         .unwrap_or(default)

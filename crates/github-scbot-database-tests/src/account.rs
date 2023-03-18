@@ -3,7 +3,7 @@ use github_scbot_domain_models::Account;
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn default_account_is_not_admin() {
     db_test_case(
         "account_default_account_is_not_admin",
@@ -23,7 +23,7 @@ async fn default_account_is_not_admin() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("account_create", |mut db| async move {
         let account = db
@@ -39,7 +39,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn update() {
     db_test_case("account_update", |mut db| async move {
         db.accounts_create(Account {
@@ -61,7 +61,7 @@ async fn update() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("account_get", |mut db| async move {
         assert_eq!(db.accounts_get("me").await?, None);
@@ -81,7 +81,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("account_delete", |mut db| async move {
         assert!(!db.accounts_delete("me").await?);
@@ -100,7 +100,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn list_admins() {
     db_test_case("account_list_admins", |mut db| async move {
         assert_eq!(db.accounts_list_admins().await?, vec![]);
@@ -131,7 +131,7 @@ async fn list_admins() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("account_all", |mut db| async move {
         assert_eq!(db.accounts_all().await?, vec![]);
@@ -163,7 +163,7 @@ async fn all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_is_admin() {
     db_test_case("account_set_is_admin", |mut db| async move {
         assert!(matches!(

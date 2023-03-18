@@ -3,7 +3,7 @@ use github_scbot_domain_models::{ExternalAccount, ExternalAccountRight, Reposito
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("external_account_right_create", |mut db| async move {
         assert!(matches!(
@@ -54,7 +54,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("external_account_right_get", |mut db| async move {
         assert_eq!(
@@ -91,7 +91,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("external_account_right_delete", |mut db| async move {
         assert!(
@@ -133,7 +133,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete_all() {
     db_test_case("external_account_right_delete_all", |mut db| async move {
         assert!(!db.external_account_rights_delete_all("me").await?);
@@ -191,7 +191,7 @@ async fn delete_all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn list() {
     db_test_case("external_account_right_list", |mut db| async move {
         assert_eq!(db.external_account_rights_list("me").await?, vec![]);
@@ -240,7 +240,7 @@ async fn list() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("external_account_right_all", |mut db| async move {
         assert_eq!(db.external_account_rights_all().await?, vec![]);
@@ -307,7 +307,7 @@ async fn all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn cascade_external_account() {
     db_test_case(
         "external_account_right_cascade_external_account",
@@ -341,7 +341,7 @@ async fn cascade_external_account() {
     .await
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn cascade_repository() {
     db_test_case(
         "external_account_right_cascade_repository",

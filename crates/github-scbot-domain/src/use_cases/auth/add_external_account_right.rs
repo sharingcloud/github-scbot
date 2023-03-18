@@ -38,7 +38,7 @@ mod tests {
 
     use super::AddExternalAccountRightUseCase;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut db_service = MemoryDb::new();
         let repository = db_service

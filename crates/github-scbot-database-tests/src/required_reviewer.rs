@@ -3,7 +3,7 @@ use github_scbot_domain_models::{PullRequest, Repository, RequiredReviewer};
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("required_reviewer_create", |mut db| async move {
         let repo = db
@@ -46,7 +46,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn list() {
     db_test_case("required_reviewer_list", |mut db| async move {
         assert_eq!(db.required_reviewers_list("me", "repo", 1).await?, vec![]);
@@ -89,7 +89,7 @@ async fn list() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("required_reviewer_all", |mut db| async move {
         assert_eq!(db.required_reviewers_all().await?, vec![]);
@@ -142,7 +142,7 @@ async fn all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("required_reviewer_get", |mut db| async move {
         assert_eq!(
@@ -182,7 +182,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("required_reviewer_delete", |mut db| async move {
         assert!(
@@ -225,7 +225,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn cascade_pull_request() {
     db_test_case(
         "required_reviewer_cascade_pull_request",
@@ -260,7 +260,7 @@ async fn cascade_pull_request() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn cascade_repository() {
     db_test_case(
         "required_reviewer_cascade_repository",

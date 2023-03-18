@@ -25,7 +25,7 @@ mod tests {
 
     use super::CheckIsAdminUseCase;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 
@@ -47,7 +47,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_not_admin() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 

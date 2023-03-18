@@ -3,7 +3,7 @@ use github_scbot_domain_models::{MergeStrategy, Repository};
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("repository_create", |mut db| async move {
         let repo = db
@@ -22,7 +22,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn update() {
     db_test_case("repository_update", |mut db| async move {
         let repo = db
@@ -50,7 +50,7 @@ async fn update() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("repository_get", |mut db| async move {
         assert_eq!(db.repositories_get("me", "repo").await?, None);
@@ -71,7 +71,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get_from_id() {
     db_test_case("repository_get_from_id", |mut db| async move {
         assert_eq!(db.repositories_get_from_id(1).await?, None);
@@ -92,7 +92,7 @@ async fn get_from_id() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("repository_delete", |mut db| async move {
         assert!(!db.repositories_delete("me", "repo").await?);
@@ -112,7 +112,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_manual_interaction() {
     db_test_case("repository_set_manual_interaction", |mut db| async move {
         assert!(matches!(
@@ -139,7 +139,7 @@ async fn set_manual_interaction() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_pr_title_validation_regex() {
     db_test_case(
         "repository_set_pr_title_validation_regex",
@@ -169,7 +169,7 @@ async fn set_pr_title_validation_regex() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_default_strategy() {
     db_test_case("repository_set_default_strategy", |mut db| async move {
         assert!(matches!(
@@ -196,7 +196,7 @@ async fn set_default_strategy() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_default_needed_reviewers_count() {
     db_test_case(
         "repository_set_default_needed_reviewers_count",
@@ -226,7 +226,7 @@ async fn set_default_needed_reviewers_count() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_default_automerge() {
     db_test_case("repository_set_default_automerge", |mut db| async move {
         assert!(matches!(
@@ -253,7 +253,7 @@ async fn set_default_automerge() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_default_enable_qa() {
     db_test_case("repository_set_default_enable_qa", |mut db| async move {
         assert!(matches!(
@@ -280,7 +280,7 @@ async fn set_default_enable_qa() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_default_enable_checks() {
     db_test_case(
         "repository_set_default_enable_checks",
@@ -310,7 +310,7 @@ async fn set_default_enable_checks() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("repository_all", |mut db| async move {
         assert_eq!(db.repositories_all().await?, vec![]);

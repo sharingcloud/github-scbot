@@ -88,7 +88,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn remove_step_labels() -> Result<()> {
         let mut adapter = MockApiService::new();
         adapter
@@ -127,7 +127,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn replace_step_label_with_another() -> Result<()> {
         let mut adapter = MockApiService::new();
         adapter

@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-sentry = { path = "../github-scbot-sentry" }
 
 thiserror = "1.0.39"
 tracing = "0.1.37"

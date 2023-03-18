@@ -49,7 +49,7 @@ mod tests {
         RequiredReviewer,
     };
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test() {
         db_test_case("command_export", |mut db| async move {
             let config = Config::from_env();

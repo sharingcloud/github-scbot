@@ -240,7 +240,7 @@ mod tests {
 
     use super::*;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn blank_no_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
         let mut db_service = MemoryDb::new();
@@ -311,7 +311,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn blank_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
         let mut db_service = MemoryDb::new();
@@ -393,7 +393,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn blank_checks_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
         let mut db_service = MemoryDb::new();
@@ -475,7 +475,7 @@ mod tests {
         )
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn blank_checks_qa_reviewers() {
         let mut api_service = MockApiService::new();
         let mut db_service = MemoryDb::new();

@@ -62,7 +62,7 @@ mod tests {
 
     use crate::testutils::{test_command, CommandContextTest};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_set() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         let repo = ctx
@@ -90,7 +90,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_unset() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         let repo = ctx

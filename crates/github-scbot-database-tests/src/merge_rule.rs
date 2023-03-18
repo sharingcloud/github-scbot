@@ -3,7 +3,7 @@ use github_scbot_domain_models::{MergeRule, MergeStrategy, Repository, RuleBranc
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("merge_rule_create", |mut db| async move {
         assert!(matches!(
@@ -44,7 +44,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn update() {
     db_test_case("merge_rule_update", |mut db| async move {
         assert!(matches!(
@@ -114,7 +114,7 @@ async fn update() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("merge_rule_get", |mut db| async move {
         assert_eq!(
@@ -160,7 +160,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("merge_rule_delete", |mut db| async move {
         assert!(
@@ -215,7 +215,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("merge_rule_all", |mut db| async move {
         assert_eq!(db.merge_rules_all().await?, vec![]);
@@ -278,7 +278,7 @@ async fn all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn list() {
     db_test_case("merge_rule_list", |mut db| async move {
         assert_eq!(db.merge_rules_list("me", "repo").await?, vec![]);
@@ -315,7 +315,7 @@ async fn list() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn cascade_repository() {
     db_test_case("merge_rule_cascade_repository", |mut db| async move {
         let repo = db

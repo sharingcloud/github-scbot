@@ -1165,7 +1165,6 @@ dependencies = [
 name = "github-scbot-database-pg"
 version = "0.23.0-dev"
 dependencies = [
- "actix-rt",
  "async-trait",
  "github-scbot-config",
  "github-scbot-database-interface",
@@ -1179,7 +1178,6 @@ dependencies = [
 name = "github-scbot-database-tests"
 version = "0.23.0-dev"
 dependencies = [
- "actix-rt",
  "futures",
  "github-scbot-config",
  "github-scbot-database-interface",
@@ -1187,13 +1185,13 @@ dependencies = [
  "github-scbot-database-pg",
  "github-scbot-domain-models",
  "pretty_assertions",
+ "tokio",
 ]
 
 [[package]]
 name = "github-scbot-domain"
 version = "0.23.0-dev"
 dependencies = [
- "actix-rt",
  "async-trait",
  "github-scbot-config",
  "github-scbot-crypto",
@@ -1208,6 +1206,7 @@ dependencies = [
  "regex",
  "thiserror",
  "time",
+ "tokio",
  "tracing",
 ]
 
@@ -1225,7 +1224,6 @@ dependencies = [
 name = "github-scbot-ghapi-github"
 version = "0.23.0-dev"
 dependencies = [
- "actix-rt",
  "async-trait",
  "backoff",
  "github-scbot-config",
@@ -1235,6 +1233,7 @@ dependencies = [
  "reqwest",
  "serde",
  "thiserror",
+ "tokio",
  "tracing",
 ]
 
@@ -1242,7 +1241,6 @@ dependencies = [
 name = "github-scbot-ghapi-interface"
 version = "0.23.0-dev"
 dependencies = [
- "actix-rt",
  "async-trait",
  "heck",
  "mockall",
@@ -1281,6 +1279,7 @@ name = "github-scbot-logging"
 version = "0.23.0-dev"
 dependencies = [
  "github-scbot-config",
+ "github-scbot-sentry",
  "thiserror",
  "tracing",
  "tracing-bunyan-formatter",
@@ -1294,6 +1293,7 @@ dependencies = [
 name = "github-scbot-sentry"
 version = "0.23.0-dev"
 dependencies = [
+ "github-scbot-config",
  "sentry",
  "tracing",
 ]

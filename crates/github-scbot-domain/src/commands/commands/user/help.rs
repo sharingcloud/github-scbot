@@ -62,7 +62,7 @@ mod tests {
     use super::*;
     use crate::commands::CommandContextTest;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_command() -> Result<()> {
         let mut ctx = CommandContextTest::new();
         let cmd = HelpCommand::new();

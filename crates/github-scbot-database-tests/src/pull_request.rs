@@ -3,7 +3,7 @@ use github_scbot_domain_models::{MergeStrategy, PullRequest, QaStatus, Repositor
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create() {
     db_test_case("pull_request_create", |mut db| async move {
         assert!(matches!(
@@ -37,7 +37,7 @@ async fn create() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn update() {
     db_test_case("pull_request_update", |mut db| async move {
         assert!(matches!(
@@ -93,7 +93,7 @@ async fn update() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("pull_request_get", |mut db| async move {
         assert_eq!(db.pull_requests_get("me", "repo", 1).await?, None);
@@ -122,7 +122,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get_from_id() {
     db_test_case("pull_request_get_from_id", |mut db| async move {
         assert_eq!(db.pull_requests_get_from_id(1).await?, None);
@@ -151,7 +151,7 @@ async fn get_from_id() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("pull_request_delete", |mut db| async move {
         assert!(!db.pull_requests_delete("me", "repo", 1).await?);
@@ -179,7 +179,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn list() {
     db_test_case("pull_request_list", |mut db| async move {
         assert_eq!(db.pull_requests_list("me", "repo").await?, vec![]);
@@ -215,7 +215,7 @@ async fn list() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("pull_request_all", |mut db| async move {
         assert_eq!(db.pull_requests_all().await?, vec![]);
@@ -251,7 +251,7 @@ async fn all() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_qa_status() {
     db_test_case("pull_request_set_qa_status", |mut db| async move {
         assert!(matches!(
@@ -292,7 +292,7 @@ async fn set_qa_status() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_needed_reviewers_count() {
     db_test_case(
         "pull_request_set_needed_reviewers_count",
@@ -336,7 +336,7 @@ async fn set_needed_reviewers_count() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_status_comment_id() {
     db_test_case("pull_request_set_status_comment_id", |mut db| async move {
         assert!(matches!(
@@ -377,7 +377,7 @@ async fn set_status_comment_id() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_checks_enabled() {
     db_test_case("pull_request_set_checks_enabled", |mut db| async move {
         assert!(matches!(
@@ -418,7 +418,7 @@ async fn set_checks_enabled() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_automerge() {
     db_test_case("pull_request_set_automerge", |mut db| async move {
         assert!(matches!(
@@ -457,7 +457,7 @@ async fn set_automerge() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_locked() {
     db_test_case("pull_request_set_locked", |mut db| async move {
         assert!(matches!(
@@ -494,7 +494,7 @@ async fn set_locked() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_strategy_override() {
     db_test_case("pull_request_set_strategy_override", |mut db| async move {
         assert!(matches!(

@@ -140,7 +140,7 @@ mod tests {
         assert_eq!(decoded_token.iss, 1234);
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_create_installation_access_token() {
         let config = arrange_config();
 
@@ -159,7 +159,7 @@ mod tests {
         );
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_get_authentication_credentials() {
         let mut config = arrange_config();
         let adapter = MockApiService::new();
@@ -190,7 +190,7 @@ mod tests {
         );
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_get_authenticated_client_builder() {
         let config = arrange_config();
         let adapter = MockApiService::new();

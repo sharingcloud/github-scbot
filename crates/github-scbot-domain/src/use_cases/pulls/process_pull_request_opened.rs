@@ -253,7 +253,7 @@ mod tests {
         api_service
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn no_manual_interaction() {
         let config = Config::from_env();
         let api_service = prepare_api_service_calls();
@@ -284,7 +284,7 @@ mod tests {
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Created)))
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn already_created() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
@@ -336,7 +336,7 @@ mod tests {
         ))
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn manual_interaction_without_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
@@ -377,7 +377,7 @@ mod tests {
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn manual_interaction_with_wrong_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
@@ -419,7 +419,7 @@ mod tests {
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn manual_interaction_with_enable_comment_non_admin_user() {
         let config = Config::from_env();
         let mut api_service = prepare_api_service_calls();

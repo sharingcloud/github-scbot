@@ -46,7 +46,7 @@ mod tests {
     use super::*;
     use crate::commands::CommandContextTest;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_valid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
         ctx.config.tenor_api_key = "gifkey".into();
@@ -85,7 +85,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_invalid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
         ctx.config.tenor_api_key = "gifkey".into();

@@ -34,7 +34,7 @@ mod tests {
 
     use super::CheckWriteRightUseCase;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_read_not_admin() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 
@@ -57,7 +57,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_read_admin() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 
@@ -80,7 +80,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_write_admin() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 
@@ -103,7 +103,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_write_not_admin() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 

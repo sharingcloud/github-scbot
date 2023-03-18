@@ -3,7 +3,7 @@ use github_scbot_domain_models::ExternalAccount;
 
 use crate::testcase::db_test_case;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create_no_keys() {
     db_test_case("external_account_create_no_keys", |mut db| async move {
         let exa = db
@@ -21,7 +21,7 @@ async fn create_no_keys() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn create_keys() {
     db_test_case("external_account_create_keys", |mut db| async move {
         let exa = db
@@ -42,7 +42,7 @@ async fn create_keys() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn update() {
     db_test_case("external_account_update", |mut db| async move {
         assert!(matches!(
@@ -77,7 +77,7 @@ async fn update() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn set_keys() {
     db_test_case("external_account_set_keys", |mut db| async move {
         assert!(matches!(
@@ -101,7 +101,7 @@ async fn set_keys() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn get() {
     db_test_case("external_account_get", |mut db| async move {
         assert_eq!(db.external_accounts_get("me").await?, None);
@@ -121,7 +121,7 @@ async fn get() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn delete() {
     db_test_case("external_account_delete", |mut db| async move {
         assert!(!db.external_accounts_delete("me").await?);
@@ -142,7 +142,7 @@ async fn delete() {
     .await;
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn all() {
     db_test_case("external_account_all", |mut db| async move {
         assert_eq!(db.external_accounts_all().await?, vec![]);

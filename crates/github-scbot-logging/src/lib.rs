@@ -3,6 +3,7 @@
 use std::str::FromStr;
 
 use github_scbot_config::Config;
+use github_scbot_sentry::sentry;
 use thiserror::Error;
 use tracing::subscriber::{DefaultGuard, NoSubscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -68,13 +69,21 @@ pub fn configure_logging(config: &Config) -> Result<(), LoggingError> {
             None
         }
     };
+    let sentry_layer = {
+        if !config.sentry_url.is_empty() {
+            Some(sentry::integrations::tracing::layer())
+        } else {
+            None
+        }
+    };
 
     let subscriber = tracing_subscriber::registry()
         .with(error_layer)
         .with(hierarchical_layer)
         .with(filter_layer)
         .with(json_storage_layer)
-        .with(bunyan_layer);
+        .with(bunyan_layer)
+        .with(sentry_layer);
 
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| LoggingError::TracingSetGlobalDefaultError { source: e })?;

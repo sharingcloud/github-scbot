@@ -33,7 +33,7 @@ mod tests {
 
     use crate::testutils::{test_command, CommandContextTest};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let ctx = CommandContextTest::new();
 

@@ -39,7 +39,7 @@ mod tests {
 
     use crate::testutils::{test_command, CommandContextTest};
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run_no_accounts() -> Result<(), Box<dyn Error>> {
         let ctx = CommandContextTest::new();
 
@@ -51,7 +51,7 @@ mod tests {
         Ok(())
     }
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut ctx = CommandContextTest::new();
         ctx.db_service

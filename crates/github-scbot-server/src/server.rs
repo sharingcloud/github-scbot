@@ -82,7 +82,7 @@ pub async fn run_bot_server(context: AppContext) -> Result<()> {
         message = "Starting bot server",
     );
 
-    with_sentry_configuration(&context.config.sentry_url.clone(), || async {
+    with_sentry_configuration(&context.config.clone(), || async {
         run_bot_server_internal(address, context).await
     })
     .await

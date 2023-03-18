@@ -41,7 +41,7 @@ mod tests {
 
     use super::ListExternalAccountRightsUseCase;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
         let mut db = MemoryDb::new();
 
