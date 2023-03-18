@@ -23,7 +23,7 @@ impl PullRequest {
         self.checks_enabled = repository.default_enable_checks;
         self.needed_reviewers_count = repository.default_needed_reviewers_count;
         self.qa_status = if repository.default_enable_qa {
-            Default::default()
+            QaStatus::Waiting
         } else {
             QaStatus::Skipped
         };

@@ -9,12 +9,13 @@ pub enum ChecksStatusError {
 }
 
 /// Checks status.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ChecksStatus {
     /// Waiting.
     Waiting,
     /// Skipped.
+    #[default]
     Skipped,
     /// Pass.
     Pass,

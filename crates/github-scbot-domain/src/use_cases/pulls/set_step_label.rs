@@ -89,16 +89,30 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn test_set_step_label() -> Result<()> {
+    async fn remove_step_labels() -> Result<()> {
         let mut adapter = MockApiService::new();
         adapter
             .expect_issue_labels_list()
-            .times(1)
-            .returning(|_, _, _| Ok(vec![]));
+            .once()
+            .withf(|owner, name, pr_number| owner == "owner" && name == "name" && pr_number == &1)
+            .return_once(|_, _, _| {
+                Ok(vec![
+                    "dummy".into(),
+                    "step/awaiting-changes".into(),
+                    "step/awaiting-review".into(),
+                ])
+            });
+
         adapter
             .expect_issue_labels_replace_all()
-            .times(1)
-            .returning(|_, _, _, _| Ok(()));
+            .once()
+            .withf(|owner, name, pr_number, labels| {
+                owner == "owner"
+                    && name == "name"
+                    && pr_number == &1
+                    && labels == ["dummy".to_string()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
 
         SetStepLabelUseCase {
             api_service: &adapter,
@@ -106,6 +120,45 @@ mod tests {
             repo_name: "name",
             pr_number: 1,
             label: None,
+        }
+        .run()
+        .await?;
+
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn replace_step_label_with_another() -> Result<()> {
+        let mut adapter = MockApiService::new();
+        adapter
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, pr_number| owner == "owner" && name == "name" && pr_number == &1)
+            .return_once(|_, _, _| {
+                Ok(vec![
+                    "dummy".into(),
+                    "step/awaiting-changes".into(),
+                    "step/awaiting-review".into(),
+                ])
+            });
+
+        adapter
+            .expect_issue_labels_replace_all()
+            .once()
+            .withf(|owner, name, pr_number, labels| {
+                owner == "owner"
+                    && name == "name"
+                    && pr_number == &1
+                    && labels == ["dummy".to_string(), "step/wip".into()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
+
+        SetStepLabelUseCase {
+            api_service: &adapter,
+            repo_owner: "owner",
+            repo_name: "name",
+            pr_number: 1,
+            label: Some(StepLabel::Wip),
         }
         .run()
         .await?;

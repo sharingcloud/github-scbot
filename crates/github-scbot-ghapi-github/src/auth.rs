@@ -122,7 +122,8 @@ mod tests {
     fn arrange_config() -> Config {
         let mut config = Config::from_env();
         config.github_app_id = 1234;
-        config.github_api_token = "123456".into();
+        config.github_api_token = "abcdef".into();
+        config.github_app_installation_id = 1234;
 
         let (pri_key, _) = RsaUtils::generate_rsa_keys();
         config.github_app_private_key = pri_key.to_string();
@@ -146,7 +147,8 @@ mod tests {
         let mut adapter = MockApiService::new();
         adapter
             .expect_installations_create_token()
-            .times(1)
+            .once()
+            .withf(|auth_token, installation_id| !auth_token.is_empty() && installation_id == &1234)
             .returning(|_, _| Ok("this-is-a-token".into()));
 
         assert_eq!(
@@ -160,19 +162,14 @@ mod tests {
     #[actix_rt::test]
     async fn test_get_authentication_credentials() {
         let mut config = arrange_config();
-
-        let mut adapter = MockApiService::new();
-        adapter
-            .expect_installations_create_token()
-            .times(0)
-            .returning(|_, _| Ok("token".into()));
+        let adapter = MockApiService::new();
 
         // Should use api token
         assert_eq!(
             get_authentication_credentials(&config, &adapter)
                 .await
                 .unwrap(),
-            "123456"
+            "abcdef"
         );
 
         config.github_api_token = "".into();
@@ -180,7 +177,8 @@ mod tests {
         let mut adapter = MockApiService::new();
         adapter
             .expect_installations_create_token()
-            .times(1)
+            .once()
+            .withf(|auth_token, installation_id| !auth_token.is_empty() && installation_id == &1234)
             .returning(|_, _| Ok("token".into()));
 
         // Should create installation access token
@@ -195,12 +193,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_get_authenticated_client_builder() {
         let config = arrange_config();
-
-        let mut adapter = MockApiService::new();
-        adapter
-            .expect_installations_create_token()
-            .times(0)
-            .returning(|_, _| Ok("token".into()));
+        let adapter = MockApiService::new();
 
         get_authenticated_client_builder(&config, &adapter)
             .await

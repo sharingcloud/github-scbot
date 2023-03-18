@@ -49,10 +49,12 @@ mod tests {
     #[actix_rt::test]
     async fn test_valid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
+        ctx.config.tenor_api_key = "gifkey".into();
 
         ctx.api_service
             .expect_gif_search()
-            .times(1)
+            .once()
+            .withf(|key, search| key == "gifkey" && search == "what")
             .returning(|_, _| {
                 Ok(GifResponse {
                     results: vec![GifObject {
@@ -86,10 +88,12 @@ mod tests {
     #[actix_rt::test]
     async fn test_invalid() -> Result<()> {
         let mut ctx = CommandContextTest::new();
+        ctx.config.tenor_api_key = "gifkey".into();
 
         ctx.api_service
             .expect_gif_search()
-            .times(1)
+            .once()
+            .withf(|key, search| key == "gifkey" && search == "what")
             .returning(|_, _| Ok(GifResponse { results: vec![] }));
 
         let result = GifCommand::new("what".into())

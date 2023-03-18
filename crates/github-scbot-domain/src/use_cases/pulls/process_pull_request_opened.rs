@@ -155,3 +155,318 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_ghapi_interface::{
+        types::{GhBranch, GhCommitStatus, GhPullRequest, GhRepository, GhUser, GhUserPermission},
+        MockApiService,
+    };
+    use github_scbot_lock_interface::{LockInstance, LockStatus, MockLockService};
+
+    use super::*;
+
+    fn prepare_lock_service_calls() -> MockLockService {
+        let mut lock_service = MockLockService::new();
+
+        lock_service
+            .expect_wait_lock_resource()
+            .once()
+            .withf(|name, timeout| name == "summary-me-test-1" && timeout == &10000)
+            .return_once(|_, _| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        lock_service
+    }
+
+    fn prepare_api_service_calls() -> MockApiService {
+        let mut api_service = MockApiService::new();
+
+        api_service
+            .expect_pulls_get()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    head: GhBranch {
+                        sha: "abcdef".into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+            });
+
+        api_service
+            .expect_pull_reviews_list()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_check_runs_list()
+            .once()
+            .withf(|owner, name, sha| owner == "me" && name == "test" && sha == "abcdef")
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, issue_id| owner == "me" && name == "test" && issue_id == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_replace_all()
+            .once()
+            .withf(|owner, name, issue_id, labels| {
+                owner == "me"
+                    && name == "test"
+                    && issue_id == &1
+                    && labels == ["step/awaiting-checks".to_string()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me" && name == "test" && pr_id == &1 && !text.is_empty()
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_commit_statuses_update()
+            .once()
+            .withf(|owner, name, sha, status, title, body| {
+                owner == "me"
+                    && name == "test"
+                    && sha == "abcdef"
+                    && *status == GhCommitStatus::Pending
+                    && title == "Validation"
+                    && body == "Waiting for checks"
+            })
+            .return_once(|_, _, _, _, _, _| Ok(()));
+
+        api_service
+    }
+
+    #[actix_rt::test]
+    async fn no_manual_interaction() {
+        let config = Config::from_env();
+        let api_service = prepare_api_service_calls();
+        let mut db_service = MemoryDb::new();
+        let lock_service = prepare_lock_service_calls();
+
+        let result = ProcessPullRequestOpenedUseCase {
+            api_service: &api_service,
+            config: &config,
+            db_service: &mut db_service,
+            event: GhPullRequestEvent {
+                pull_request: GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                },
+                repository: GhRepository {
+                    owner: GhUser { login: "me".into() },
+                    name: "test".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            lock_service: &lock_service,
+        }
+        .run()
+        .await;
+
+        assert!(matches!(result, Ok(PullRequestOpenedStatus::Created)))
+    }
+
+    #[actix_rt::test]
+    async fn already_created() {
+        let config = Config::from_env();
+        let api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let lock_service = MockLockService::new();
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        db_service
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let result = ProcessPullRequestOpenedUseCase {
+            api_service: &api_service,
+            config: &config,
+            db_service: &mut db_service,
+            event: GhPullRequestEvent {
+                pull_request: GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                },
+                repository: GhRepository {
+                    owner: GhUser { login: "me".into() },
+                    name: "test".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            lock_service: &lock_service,
+        }
+        .run()
+        .await;
+
+        assert!(matches!(
+            result,
+            Ok(PullRequestOpenedStatus::AlreadyCreated)
+        ))
+    }
+
+    #[actix_rt::test]
+    async fn manual_interaction_without_comment() {
+        let config = Config::from_env();
+        let api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let lock_service = MockLockService::new();
+
+        db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                manual_interaction: true,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let result = ProcessPullRequestOpenedUseCase {
+            api_service: &api_service,
+            config: &config,
+            db_service: &mut db_service,
+            event: GhPullRequestEvent {
+                pull_request: GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                },
+                repository: GhRepository {
+                    owner: GhUser { login: "me".into() },
+                    name: "test".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            lock_service: &lock_service,
+        }
+        .run()
+        .await;
+
+        assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
+    }
+
+    #[actix_rt::test]
+    async fn manual_interaction_with_wrong_comment() {
+        let config = Config::from_env();
+        let api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let lock_service = MockLockService::new();
+
+        db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                manual_interaction: true,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let result = ProcessPullRequestOpenedUseCase {
+            api_service: &api_service,
+            config: &config,
+            db_service: &mut db_service,
+            event: GhPullRequestEvent {
+                pull_request: GhPullRequest {
+                    number: 1,
+                    body: Some("bot hello".into()),
+                    ..Default::default()
+                },
+                repository: GhRepository {
+                    owner: GhUser { login: "me".into() },
+                    name: "test".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            lock_service: &lock_service,
+        }
+        .run()
+        .await;
+
+        assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
+    }
+
+    #[actix_rt::test]
+    async fn manual_interaction_with_enable_comment_non_admin_user() {
+        let config = Config::from_env();
+        let mut api_service = prepare_api_service_calls();
+        let mut db_service = MemoryDb::new();
+        let lock_service = prepare_lock_service_calls();
+
+        db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                manual_interaction: true,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        api_service
+            .expect_user_permissions_get()
+            .once()
+            .withf(|owner, name, username| owner == "me" && name == "test" && username == "user")
+            .return_once(|_, _, _| Ok(GhUserPermission::Write));
+
+        let result = ProcessPullRequestOpenedUseCase {
+            api_service: &api_service,
+            config: &config,
+            db_service: &mut db_service,
+            event: GhPullRequestEvent {
+                pull_request: GhPullRequest {
+                    number: 1,
+                    body: Some("bot admin-enable".into()),
+                    user: GhUser {
+                        login: "user".into(),
+                    },
+                    ..Default::default()
+                },
+                repository: GhRepository {
+                    owner: GhUser { login: "me".into() },
+                    name: "test".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            lock_service: &lock_service,
+        }
+        .run()
+        .await;
+
+        assert!(matches!(result, Ok(PullRequestOpenedStatus::Created)))
+    }
+}
