@@ -16,7 +16,7 @@ use github_scbot_ghapi_interface::{
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info};
+use tracing::debug;
 
 use crate::{
     auth::{build_github_url, get_anonymous_client_builder, get_authenticated_client_builder},
@@ -55,19 +55,12 @@ impl GithubApiService {
         Fut: Future<Output = Result<T, GitHubError>>,
     {
         let conf = ExponentialBackoffBuilder::default()
-            .with_max_elapsed_time(Some(Duration::from_secs(30)))
+            .with_max_elapsed_time(Some(Duration::from_secs(10)))
             .build();
 
         backoff::future::retry(conf, || async {
             f().await.map_err(|e| match e {
-                GitHubError::HttpError { .. } => {
-                    error!(
-                        message = "Error while calling API",
-                        error = %e
-                    );
-                    info!("Will retry API call ...");
-                    backoff::Error::transient(e)
-                }
+                GitHubError::HttpError { .. } => backoff::Error::transient(e),
                 _ => backoff::Error::permanent(e),
             })
         })
