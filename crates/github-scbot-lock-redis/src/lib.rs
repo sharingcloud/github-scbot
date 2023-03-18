@@ -5,4 +5,4 @@
 
 mod redis;
 
-pub use redis::RedisLockService;
+pub use crate::redis::RedisLockService;

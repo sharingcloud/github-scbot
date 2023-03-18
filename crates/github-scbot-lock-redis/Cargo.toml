@@ -9,11 +9,7 @@ edition = "2021"
 [dependencies]
 github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 
-actix = "0.13.0"
-actix-redis = "0.12.0"
+redis = { version = "0.22.3", features = ["tokio-comp"] }
+tokio = { version = "1.26.0", features = ["time"] }
 async-trait = "0.1.66"
-redis-async = "0.13.0"
 tracing = "0.1.37"
-
-[dev-dependencies]
-actix-rt = "2.8.0"

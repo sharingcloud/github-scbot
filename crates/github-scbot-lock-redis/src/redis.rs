@@ -1,33 +1,29 @@
 use std::time::Duration;
 
-use actix::Addr;
-use actix_redis::{Command, RedisActor, RespValue};
 use async_trait::async_trait;
 use github_scbot_lock_interface::{LockError, LockInstance, LockService, LockStatus};
-use redis_async::resp_array;
+use redis::{Client, Cmd, Value};
 
 /// Redis lock service.
 #[derive(Clone)]
-pub struct RedisLockService(Addr<RedisActor>);
+pub struct RedisLockService(Client);
 
 impl RedisLockService {
     /// Creates a new redis adapter.
-    pub fn new<T: Into<String>>(addr: T) -> Self {
-        Self(RedisActor::start(addr))
+    pub fn new(addr: &str) -> Self {
+        Self(Client::open(addr).unwrap_or_else(|_| panic!("Unsupported redis URL: {addr}")))
     }
 
-    async fn execute_command(&self, value: RespValue) -> Result<RespValue, LockError> {
-        let response = self
+    async fn execute_command(&self, cmd: &Cmd) -> Result<Value, LockError> {
+        let mut conn = self
             .0
-            .send(Command(value))
+            .get_async_connection()
             .await
-            .map_err(|e| LockError::ImplementationError { source: e.into() })?
             .map_err(|e| LockError::ImplementationError { source: e.into() })?;
 
-        match response {
-            RespValue::Error(e) => Err(LockError::ImplementationError { source: e.into() }),
-            v => Ok(v),
-        }
+        cmd.query_async(&mut conn)
+            .await
+            .map_err(|e| LockError::ImplementationError { source: e.into() })
     }
 }
 
@@ -36,46 +32,44 @@ impl LockService for RedisLockService {
     #[tracing::instrument(skip(self), ret)]
     async fn try_lock_resource<'a>(&'a self, name: &str) -> Result<LockStatus<'a>, LockError> {
         let response = self
-            .execute_command(resp_array!["SET", name, "1", "NX", "PX", "30000"])
+            .execute_command(
+                redis::cmd("SET")
+                    .arg(name)
+                    .arg(1)
+                    .arg("NX")
+                    .arg("PX")
+                    .arg(30000),
+            )
             .await?;
 
         match response {
-            RespValue::SimpleString(s) => {
-                if &s == "OK" {
-                    Ok(LockStatus::SuccessfullyLocked(LockInstance::new(
-                        self, name,
-                    )))
-                } else {
-                    Err(LockError::ImplementationError {
-                        source: format!("Unsupported response: {:?}", RespValue::SimpleString(s))
-                            .into(),
-                    })
-                }
-            }
-            RespValue::Nil => Ok(LockStatus::AlreadyLocked),
-            v => Err(LockError::ImplementationError {
-                source: format!("Unsupported response: {:?}", v).into(),
+            Value::Okay => Ok(LockStatus::SuccessfullyLocked(LockInstance::new(
+                self, name,
+            ))),
+            Value::Nil => Ok(LockStatus::AlreadyLocked),
+            other => Err(LockError::ImplementationError {
+                source: format!("Unsupported response: {other:?}").into(),
             }),
         }
     }
 
     async fn has_resource(&self, name: &str) -> Result<bool, LockError> {
-        let response = self.execute_command(resp_array!["GET", name]).await?;
-        Ok(response != RespValue::Nil)
+        let response = self.execute_command(redis::cmd("GET").arg(name)).await?;
+        Ok(response != Value::Nil)
     }
 
     async fn del_resource(&self, name: &str) -> Result<(), LockError> {
-        self.execute_command(resp_array!["DEL", name]).await?;
+        self.execute_command(redis::cmd("DEL").arg(name)).await?;
         Ok(())
     }
 
     async fn health_check(&self) -> Result<(), LockError> {
-        self.execute_command(resp_array!["PING"]).await?;
+        self.execute_command(&redis::cmd("PING")).await?;
         Ok(())
     }
 
     async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError> {
-        actix::clock::sleep(duration).await;
+        tokio::time::sleep(duration).await;
         Ok(())
     }
 }
@@ -86,9 +80,9 @@ mod tests {
 
     use super::*;
 
-    #[actix_rt::test]
+    #[tokio::test]
     async fn test_redis() -> Result<(), Box<dyn Error>> {
-        let lock_mgr = RedisLockService::new("127.0.0.1:6379");
+        let lock_mgr = RedisLockService::new("redis://localhost");
         let key = "this-is-a-test";
 
         lock_mgr.del_resource(key).await?;

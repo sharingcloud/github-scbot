@@ -15,7 +15,7 @@ pub struct MetricsRedisService {
 
 impl MetricsRedisService {
     /// Creates a new service.
-    pub fn new<T: Into<String>>(addr: T) -> Self {
+    pub fn new(addr: &str) -> Self {
         Self {
             inner: RedisLockService::new(addr),
         }

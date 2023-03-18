@@ -79,7 +79,7 @@ impl Config {
             github_app_private_key: env_to_str("BOT_GITHUB_APP_PRIVATE_KEY", ""),
             github_webhook_secret: env_to_str("BOT_GITHUB_WEBHOOK_SECRET", ""),
             logging_use_bunyan: env_to_bool("BOT_LOGGING_USE_BUNYAN", false),
-            redis_address: env_to_str("BOT_REDIS_ADDRESS", ""),
+            redis_address: env_to_str("BOT_REDIS_ADDRESS", "redis://localhost"),
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
             sentry_traces_sample_rate: env_to_f32("BOT_SENTRY_TRACES_SAMPLE_RATE", 0.0),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),

@@ -33,11 +33,11 @@ where
             options.in_app_exclude.push("sentry_backtrace");
             options.in_app_exclude.push("sentry_core");
             options.in_app_exclude.push("tokio");
-            options.release = sentry::release_name!();
+            options.release = Some(env!("CARGO_PKG_VERSION").into());
             options.send_default_pii = true;
             options.attach_stacktrace = true;
             options.traces_sample_rate = config.sentry_traces_sample_rate;
-            options.debug = true;
+            options.debug = false;
 
             let init = sentry::init(options);
             Some(init)
