@@ -10,6 +10,7 @@ pub struct RemoveExternalAccountRightUseCase<'a> {
 }
 
 impl<'a> RemoveExternalAccountRightUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username, self.repository_path))]
     pub async fn run(&mut self) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 

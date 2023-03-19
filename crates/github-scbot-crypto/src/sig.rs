@@ -6,14 +6,12 @@ use super::errors::CryptoError;
 /// Check if a signature is valid.
 pub fn is_valid_signature(signature: &str, body: &[u8], secret: &str) -> Result<bool, CryptoError> {
     let decoded_signature =
-        &hex::decode(signature).map_err(|e| CryptoError::InvalidSignatureFormat {
+        &hex::decode(signature).map_err(|_| CryptoError::InvalidSignatureFormat {
             sig: signature.to_string(),
-            source: e,
         })?;
-    let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|e| {
+    let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|_| {
         CryptoError::InvalidSecretKeyLength {
             key: secret.to_string(),
-            source: e,
         }
     })?;
     hmac.update(body);

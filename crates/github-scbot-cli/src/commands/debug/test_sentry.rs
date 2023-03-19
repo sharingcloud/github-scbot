@@ -22,7 +22,7 @@ impl Command for DebugTestSentryCommand {
         if ctx.config.sentry_url.is_empty() {
             Err(anyhow!("Sentry URL is not configured."))
         } else {
-            send_test_event(&ctx.config, self.message).await;
+            send_test_event(self.message).await;
             Ok(())
         }
     }

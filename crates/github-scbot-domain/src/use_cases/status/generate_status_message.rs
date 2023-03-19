@@ -17,6 +17,7 @@ pub struct GenerateStatusMessageUseCase<'a> {
 }
 
 impl<'a> GenerateStatusMessageUseCase<'a> {
+    #[tracing::instrument(skip(self))]
     pub fn run(&mut self) -> Result<StatusMessage> {
         let status_title = VALIDATION_STATUS_MESSAGE;
         let mut status_state = GhCommitStatus::Success;

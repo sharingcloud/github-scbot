@@ -22,7 +22,7 @@ struct FilterCheckRunsUseCase<'a> {
 }
 
 impl<'a> DetermineChecksStatusUseCase<'a> {
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.commit_sha, self.wait_for_initial_checks), ret)]
     pub async fn run(&mut self) -> Result<ChecksStatus> {
         // Get upstream checks
         let check_runs = self

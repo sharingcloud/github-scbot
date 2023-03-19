@@ -22,6 +22,7 @@ impl<'a> MergePullRequestUseCase<'a> {
         }
     }
 
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number, self.merge_strategy))]
     pub async fn run(&mut self) -> Result<(), ApiError> {
         let commit_title = format!("{} (#{})", self.upstream_pr.title, self.upstream_pr.number);
 

@@ -4,10 +4,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum DatabaseError {
-    #[error("Import/Export JSON error")]
+    #[error("Import/Export JSON error: {source}")]
     ExchangeJsonError { source: serde_json::Error },
 
-    #[error("Crypto error.")]
+    #[error("Crypto error: {source}")]
     CryptoError { source: CryptoError },
 
     #[error("Unknown repository path '{0}'")]

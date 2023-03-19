@@ -16,10 +16,8 @@ use github_scbot_database_interface::DbService;
 use github_scbot_database_pg::{DbPool, PostgresDb};
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
-use github_scbot_sentry::with_sentry_configuration;
 use sentry_actix::Sentry;
 use tracing::info;
-use tracing_actix_web::TracingLogger;
 
 use crate::{
     debug::configure_debug_handlers,
@@ -82,10 +80,7 @@ pub async fn run_bot_server(context: AppContext) -> Result<()> {
         message = "Starting bot server",
     );
 
-    with_sentry_configuration(&context.config.clone(), || async {
-        run_bot_server_internal(address, context).await
-    })
-    .await
+    run_bot_server_internal(address, context).await
 }
 
 fn get_bind_address(config: &Config) -> String {
@@ -103,7 +98,6 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
             .wrap(Logger::default())
-            .wrap(TracingLogger::default())
             .service(
                 web::scope("/external")
                     .wrap(HttpAuthentication::bearer(jwt_auth_validator))

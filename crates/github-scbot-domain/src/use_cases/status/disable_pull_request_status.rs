@@ -13,6 +13,7 @@ pub struct DisablePullRequestStatusUseCase<'a> {
 }
 
 impl<'a> DisablePullRequestStatusUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number))]
     pub async fn run(&mut self) -> Result<()> {
         let sha = self
             .api_service

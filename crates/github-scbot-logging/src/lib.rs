@@ -78,12 +78,12 @@ pub fn configure_logging(config: &Config) -> Result<(), LoggingError> {
     };
 
     let subscriber = tracing_subscriber::registry()
+        .with(sentry_layer)
         .with(error_layer)
         .with(hierarchical_layer)
         .with(filter_layer)
         .with(json_storage_layer)
-        .with(bunyan_layer)
-        .with(sentry_layer);
+        .with(bunyan_layer);
 
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| LoggingError::TracingSetGlobalDefaultError { source: e })?;

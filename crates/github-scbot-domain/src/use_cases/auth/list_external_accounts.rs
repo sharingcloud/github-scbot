@@ -8,6 +8,7 @@ pub struct ListExternalAccountsUseCase<'a> {
 }
 
 impl<'a> ListExternalAccountsUseCase<'a> {
+    #[tracing::instrument(skip(self))]
     pub async fn run(&mut self) -> Result<Vec<ExternalAccount>> {
         self.db_service
             .external_accounts_all()

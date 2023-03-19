@@ -8,6 +8,7 @@ pub struct ListAdminAccountsUseCase<'a> {
 }
 
 impl<'a> ListAdminAccountsUseCase<'a> {
+    #[tracing::instrument(skip(self))]
     pub async fn run(&mut self) -> Result<Vec<Account>> {
         self.db_service
             .accounts_list_admins()

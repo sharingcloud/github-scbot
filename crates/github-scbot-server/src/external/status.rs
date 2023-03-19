@@ -19,6 +19,12 @@ pub(crate) struct QaStatusJson {
     status: Option<bool>,
 }
 
+#[tracing::instrument(skip_all, fields(
+    repository_path = data.repository_path,
+    pull_request_numbers = ?data.pull_request_numbers,
+    author = data.author,
+    status = data.status
+), ret)]
 pub(crate) async fn set_qa_status(
     ctx: web::Data<Arc<AppContext>>,
     data: web::Json<QaStatusJson>,

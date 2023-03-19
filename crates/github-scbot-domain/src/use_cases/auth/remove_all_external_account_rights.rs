@@ -8,6 +8,7 @@ pub struct RemoveAllExternalAccountRightsUseCase<'a> {
 }
 
 impl<'a> RemoveAllExternalAccountRightsUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username))]
     pub async fn run(&mut self) -> Result<()> {
         self.db_service
             .external_account_rights_delete_all(&self.username)

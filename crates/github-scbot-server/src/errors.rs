@@ -10,11 +10,7 @@ use crate::event_type::EventType;
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
 pub enum ServerError {
-    #[error(
-        "Error while parsing webhook event for type {},\n  caused by: {}",
-        event_type,
-        source
-    )]
+    #[error("Error while parsing webhook event for type {event_type}: {source}")]
     EventParseError {
         event_type: EventType,
         source: serde_json::Error,
@@ -26,10 +22,10 @@ pub enum ServerError {
     #[error("Invalid webhook signature.")]
     InvalidWebhookSignature,
 
-    #[error("I/O error,\n  caused by: {}", source)]
+    #[error("I/O error: {source}")]
     IoError { source: std::io::Error },
 
-    #[error("Logic error,\n  caused by: {}", source)]
+    #[error(transparent)]
     DomainError {
         source: github_scbot_domain::DomainError,
     },

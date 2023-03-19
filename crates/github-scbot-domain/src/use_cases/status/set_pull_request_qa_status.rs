@@ -33,7 +33,7 @@ impl<'a> SetPullRequestQaStatusUseCase<'a> {
         fields(
             repository_path = %self.repository_path,
             pr_numbers = ?self.pull_request_numbers,
-            username = %self.author,
+            author = %self.author,
             status = ?self.status
         )
     )]

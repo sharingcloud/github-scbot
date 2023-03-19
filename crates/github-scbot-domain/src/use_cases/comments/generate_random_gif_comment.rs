@@ -10,6 +10,7 @@ pub struct GenerateRandomGifCommentUseCase<'a> {
 }
 
 impl<'a> GenerateRandomGifCommentUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.search_terms), ret)]
     pub async fn run(&mut self) -> Result<String> {
         let random_gif = RandomGifFromQueryUseCase {
             config: self.config,

@@ -30,6 +30,7 @@ impl<'a> SetStepLabelUseCase<'a> {
         preserved_labels
     }
 
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number, self.label))]
     pub async fn run(&mut self) -> Result<()> {
         let existing_labels = self
             .api_service

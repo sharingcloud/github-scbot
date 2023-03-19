@@ -12,6 +12,7 @@ pub struct GetOrCreateRepositoryUseCase<'a> {
 }
 
 impl<'a> GetOrCreateRepositoryUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name))]
     pub async fn run(&mut self) -> Result<Repository> {
         match self
             .db_service

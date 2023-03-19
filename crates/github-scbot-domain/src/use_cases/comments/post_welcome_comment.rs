@@ -11,6 +11,7 @@ pub struct PostWelcomeCommentUseCase<'a> {
 }
 
 impl<'a> PostWelcomeCommentUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number, self.pr_author))]
     pub async fn run(&mut self) -> Result<()> {
         CommentApi::post_comment(
             self.api_service,

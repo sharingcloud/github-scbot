@@ -9,6 +9,7 @@ pub struct AddAdminRightUseCase<'a> {
 }
 
 impl<'a> AddAdminRightUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username))]
     pub async fn run(&mut self) -> Result<()> {
         match self.db_service.accounts_get(self.username).await? {
             Some(_) => {

@@ -13,6 +13,7 @@ pub struct DeterminePullRequestMergeStrategyUseCase<'a> {
 }
 
 impl<'a> DeterminePullRequestMergeStrategyUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.base_branch, self.head_branch, self.default_strategy), ret)]
     pub async fn run(&mut self) -> Result<MergeStrategy> {
         match self
             .db_service

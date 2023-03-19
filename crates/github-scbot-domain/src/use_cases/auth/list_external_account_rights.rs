@@ -9,6 +9,7 @@ pub struct ListExternalAccountRightsUseCase<'a> {
 }
 
 impl<'a> ListExternalAccountRightsUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username))]
     pub async fn run(&mut self) -> Result<Vec<Repository>> {
         let rights = self
             .db_service

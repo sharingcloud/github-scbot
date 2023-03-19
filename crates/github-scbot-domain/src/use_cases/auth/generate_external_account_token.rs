@@ -8,6 +8,7 @@ pub struct GenerateExternalAccountTokenUseCase<'a> {
 }
 
 impl<'a> GenerateExternalAccountTokenUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username))]
     pub async fn run(&mut self) -> Result<String> {
         let exa = self
             .db_service

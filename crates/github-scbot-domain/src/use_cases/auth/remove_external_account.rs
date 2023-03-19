@@ -8,6 +8,7 @@ pub struct RemoveExternalAccountUseCase<'a> {
 }
 
 impl<'a> RemoveExternalAccountUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username))]
     pub async fn run(&mut self) -> Result<()> {
         self.db_service
             .external_accounts_delete(&self.username)

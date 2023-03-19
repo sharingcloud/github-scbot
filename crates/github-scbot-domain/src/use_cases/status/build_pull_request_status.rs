@@ -14,6 +14,7 @@ pub struct BuildPullRequestStatusUseCase<'a> {
 }
 
 impl<'a> BuildPullRequestStatusUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number), ret)]
     pub async fn run(&mut self) -> Result<PullRequestStatus> {
         PullRequestStatus::from_database(
             self.api_service,

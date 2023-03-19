@@ -16,6 +16,7 @@ pub struct PostSummaryCommentUseCase<'a> {
 }
 
 impl<'a> PostSummaryCommentUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(repo_owner, repo_name, pr_number))]
     pub async fn run(&mut self) -> Result<()> {
         SummaryCommentSender::create_or_update(
             self.api_service,

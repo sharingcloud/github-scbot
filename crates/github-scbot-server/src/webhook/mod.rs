@@ -16,7 +16,6 @@ use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::ApiService;
 use github_scbot_lock_interface::LockService;
-use github_scbot_sentry::sentry;
 use serde::Deserialize;
 
 use self::{
@@ -28,6 +27,7 @@ use crate::{
     utils::convert_payload_to_string, Result, ServerError,
 };
 
+#[tracing::instrument(skip_all, fields(event_type))]
 async fn parse_event(
     config: &Config,
     api_service: &dyn ApiService,
@@ -96,6 +96,7 @@ fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
         .and_then(|x| EventType::try_from(x).ok())
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
@@ -104,11 +105,6 @@ pub(crate) async fn event_handler(
     // Route event depending on header
     if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
-            sentry::configure_scope(|scope| {
-                scope.set_extra("Event type", event_type.to_str().into());
-                scope.set_extra("Payload", body.clone().into());
-            });
-
             parse_event(
                 &ctx.config,
                 ctx.api_service.as_ref(),

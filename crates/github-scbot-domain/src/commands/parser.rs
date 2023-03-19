@@ -7,6 +7,7 @@ pub struct CommandParser;
 
 impl CommandParser {
     /// Parse commands from comment body.
+    #[tracing::instrument(skip(config), ret)]
     pub fn parse_commands(config: &Config, comment_body: &str) -> Vec<CommandResult<Command>> {
         let mut commands = vec![];
 
@@ -26,6 +27,7 @@ impl CommandParser {
     }
 
     /// Parse command from a single comment line.
+    #[tracing::instrument(skip(config), ret)]
     pub fn parse_single_command(config: &Config, line: &str) -> CommandResult<Option<Command>> {
         if let Some((command_line, args)) =
             Self::parse_command_string_from_comment_line(config, line)

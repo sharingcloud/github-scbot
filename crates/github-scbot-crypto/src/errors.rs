@@ -5,24 +5,18 @@ use thiserror::Error;
 /// Crypto error.
 #[derive(Debug, Error)]
 pub enum CryptoError {
-    #[error("Jwt creation error,\n  caused by: {}", source)]
+    #[error("Jwt creation error: {source}")]
     JwtCreationFailed { source: jsonwebtoken::errors::Error },
-    #[error("Jwt verification error,\n  caused by: {}", source)]
+    #[error("Jwt verification error: {source}")]
     JwtVerificationFailed { source: jsonwebtoken::errors::Error },
-    #[error("Invalid encoding key,\n  caused by: {}", source)]
+    #[error("Invalid encoding key: {source}")]
     InvalidEncodingKey { source: jsonwebtoken::errors::Error },
-    #[error("Invalid decoding key,\n  caused by: {}", source)]
+    #[error("Invalid decoding key: {source}")]
     InvalidDecodingKey { source: jsonwebtoken::errors::Error },
-    #[error("Invalid signature format: {}", sig)]
-    InvalidSignatureFormat {
-        sig: String,
-        source: hex::FromHexError,
-    },
-    #[error("Invalid HMAC secret key length: {}", key)]
-    InvalidSecretKeyLength {
-        key: String,
-        source: hmac::digest::InvalidLength,
-    },
+    #[error("Invalid signature format {sig}.")]
+    InvalidSignatureFormat { sig: String },
+    #[error("Invalid HMAC secret key length '{key}'")]
+    InvalidSecretKeyLength { key: String },
 }
 
 /// Result alias for `CryptoError`.

@@ -11,6 +11,7 @@ pub struct CheckWriteRightUseCase<'a> {
 }
 
 impl<'a> CheckWriteRightUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.username, self.user_permission), ret)]
     pub async fn run(&mut self) -> Result<bool> {
         let is_admin = CheckIsAdminUseCase {
             username: self.username,

@@ -14,6 +14,7 @@ pub struct SynchronizePullRequestUseCase<'a> {
 }
 
 impl<'a> SynchronizePullRequestUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number))]
     pub async fn run(&mut self) -> Result<()> {
         let repo = GetOrCreateRepositoryUseCase {
             db_service: self.db_service,

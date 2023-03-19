@@ -15,9 +15,10 @@ impl<'a> HandleReviewEventUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            repository_path = %self.event.repository.full_name,
+            repo_owner = self.event.repository.owner.login,
+            repo_name = self.event.repository.name,
             pr_number = self.event.pull_request.number,
-            reviewer = %self.event.review.user.login,
+            reviewer = self.event.review.user.login,
             state = ?self.event.review.state
         )
     )]

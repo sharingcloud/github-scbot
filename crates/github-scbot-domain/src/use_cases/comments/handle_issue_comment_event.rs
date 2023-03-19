@@ -22,6 +22,12 @@ pub struct HandleIssueCommentEventUseCase<'a> {
 }
 
 impl<'a> HandleIssueCommentEventUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(
+        action = ?self.event.action,
+        repo_owner = self.event.repository.owner.login,
+        repo_name = self.event.repository.name,
+        number = self.event.issue.number
+    ))]
     pub async fn run(&mut self) -> Result<()> {
         if let GhIssueCommentAction::Created = self.event.action {
             self.run_created_comment().await

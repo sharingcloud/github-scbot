@@ -13,6 +13,7 @@ pub struct DeleteSummaryCommentUseCase<'a> {
 }
 
 impl<'a> DeleteSummaryCommentUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(repo_owner, repo_name, pr_number))]
     pub async fn run(&mut self) -> Result<()> {
         SummaryCommentSender::delete(
             self.api_service,

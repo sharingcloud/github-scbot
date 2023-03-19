@@ -38,7 +38,8 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
             pr_number = self.event.number,
             repository_path = %self.event.repository.full_name,
             username = %self.event.pull_request.user.login
-        )
+        ),
+        ret
     )]
     pub async fn run(&mut self) -> Result<PullRequestOpenedStatus> {
         // Get or create repository

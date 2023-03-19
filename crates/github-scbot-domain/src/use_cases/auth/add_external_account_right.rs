@@ -10,6 +10,7 @@ pub struct AddExternalAccountRightUseCase<'a> {
 }
 
 impl<'a> AddExternalAccountRightUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(self.repository_path, self.username))]
     pub async fn run(&mut self) -> Result<()> {
         let (owner, name) = self.repository_path.components();
         let repository = self.db_service.repositories_get_expect(owner, name).await?;

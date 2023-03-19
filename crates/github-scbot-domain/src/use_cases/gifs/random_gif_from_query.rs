@@ -49,6 +49,7 @@ impl<'a> RandomGifFromQueryUseCase<'a> {
         Self::get_first_matching_gif(&response)
     }
 
+    #[tracing::instrument(skip(self), fields(self.search), ret)]
     pub async fn run(&mut self) -> Result<Option<String>> {
         Ok(Self::random_gif_from_response(
             self.api_service
