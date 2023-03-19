@@ -233,3 +233,430 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{PullRequest, Repository};
+    use github_scbot_ghapi_interface::{
+        types::{GhBranch, GhCommitStatus, GhMergeStrategy},
+        ApiError, MockApiService,
+    };
+    use github_scbot_lock_interface::{LockInstance, MockLockService};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn update() {
+        let mut api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let mut lock_service = MockLockService::new();
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                default_enable_checks: false,
+                default_enable_qa: false,
+                default_needed_reviewers_count: 1,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let _ = db_service
+            .pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+        let upstream_pr = GhPullRequest {
+            number: 1,
+            head: GhBranch {
+                sha: "abcdef".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        lock_service
+            .expect_wait_lock_resource()
+            .once()
+            .withf(|name, timeout| name == "summary-me-test-1" && timeout == &10000)
+            .return_once(|_, _| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        api_service
+            .expect_pull_reviews_list()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, issue_id| owner == "me" && name == "test" && issue_id == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_replace_all()
+            .once()
+            .withf(|owner, name, issue_id, labels| {
+                owner == "me"
+                    && name == "test"
+                    && issue_id == &1
+                    && labels == ["step/awaiting-review".to_string()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me" && name == "test" && pr_id == &1 && !text.is_empty()
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_commit_statuses_update()
+            .once()
+            .withf(|owner, name, sha, status, title, body| {
+                owner == "me"
+                    && name == "test"
+                    && sha == "abcdef"
+                    && *status == GhCommitStatus::Pending
+                    && title == "Validation"
+                    && body == "Waiting on reviews"
+            })
+            .return_once(|_, _, _, _, _, _| Ok(()));
+
+        UpdatePullRequestStatusUseCase {
+            api_service: &api_service,
+            db_service: &mut db_service,
+            lock_service: &lock_service,
+            pr_number: 1,
+            repo_owner: "me",
+            repo_name: "test",
+            upstream_pr: &upstream_pr,
+        }
+        .run()
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn automerge_success() {
+        let mut api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let mut lock_service = MockLockService::new();
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                default_enable_checks: false,
+                default_enable_qa: false,
+                default_needed_reviewers_count: 0,
+                default_automerge: true,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let _ = db_service
+            .pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+        let upstream_pr = GhPullRequest {
+            number: 1,
+            title: "Sample".into(),
+            head: GhBranch {
+                sha: "abcdef".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        lock_service
+            .expect_wait_lock_resource()
+            .once()
+            .withf(|name, timeout| name == "summary-me-test-1" && timeout == &10000)
+            .return_once(|_, _| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        lock_service
+            .expect_try_lock_resource()
+            .once()
+            .withf(|name| name == "pr-merge_me-test_1")
+            .return_once(|_| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        api_service
+            .expect_pull_reviews_list()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, issue_id| owner == "me" && name == "test" && issue_id == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_replace_all()
+            .once()
+            .withf(|owner, name, issue_id, labels| {
+                owner == "me"
+                    && name == "test"
+                    && issue_id == &1
+                    && labels == ["step/awaiting-merge".to_string()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me" && name == "test" && pr_id == &1 && !text.is_empty()
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me"
+                    && name == "test"
+                    && pr_id == &1
+                    && text
+                        .starts_with("Pull request successfully auto-merged! (strategy: 'merge')")
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_commit_statuses_update()
+            .once()
+            .withf(|owner, name, sha, status, title, body| {
+                owner == "me"
+                    && name == "test"
+                    && sha == "abcdef"
+                    && *status == GhCommitStatus::Success
+                    && title == "Validation"
+                    && body == "All good."
+            })
+            .return_once(|_, _, _, _, _, _| Ok(()));
+
+        api_service
+            .expect_pulls_merge()
+            .once()
+            .withf(|owner, name, issue_number, title, message, strategy| {
+                owner == "me"
+                    && name == "test"
+                    && issue_number == &1
+                    && title == "Sample (#1)"
+                    && message.is_empty()
+                    && *strategy == GhMergeStrategy::Merge
+            })
+            .return_once(|_, _, _, _, _, _| Ok(()));
+
+        UpdatePullRequestStatusUseCase {
+            api_service: &api_service,
+            db_service: &mut db_service,
+            lock_service: &lock_service,
+            pr_number: 1,
+            repo_owner: "me",
+            repo_name: "test",
+            upstream_pr: &upstream_pr,
+        }
+        .run()
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn automerge_failure() {
+        let mut api_service = MockApiService::new();
+        let mut db_service = MemoryDb::new();
+        let mut lock_service = MockLockService::new();
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                default_enable_checks: false,
+                default_enable_qa: false,
+                default_needed_reviewers_count: 0,
+                default_automerge: true,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let _ = db_service
+            .pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+        let upstream_pr = GhPullRequest {
+            number: 1,
+            title: "Sample".into(),
+            head: GhBranch {
+                sha: "abcdef".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        lock_service
+            .expect_wait_lock_resource()
+            .once()
+            .withf(|name, timeout| name == "summary-me-test-1" && timeout == &10000)
+            .return_once(|_, _| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        lock_service
+            .expect_try_lock_resource()
+            .once()
+            .withf(|name| name == "pr-merge_me-test_1")
+            .return_once(|_| {
+                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
+                    "dummy",
+                )))
+            });
+
+        api_service
+            .expect_pull_reviews_list()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, issue_id| owner == "me" && name == "test" && issue_id == &1)
+            .return_once(|_, _, _| Ok(vec![]));
+
+        api_service
+            .expect_issue_labels_replace_all()
+            .once()
+            .withf(|owner, name, issue_id, labels| {
+                owner == "me"
+                    && name == "test"
+                    && issue_id == &1
+                    && labels == ["step/awaiting-merge".to_string()]
+            })
+            .return_once(|_, _, _, _| Ok(()));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me" && name == "test" && pr_id == &1 && !text.is_empty()
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_comments_post()
+            .once()
+            .withf(|owner, name, pr_id, text| {
+                owner == "me"
+                    && name == "test"
+                    && pr_id == &1
+                    && text.starts_with("Could not auto-merge this pull request")
+            })
+            .return_once(|_, _, _, _| Ok(2));
+
+        api_service
+            .expect_comments_update()
+            .once()
+            .withf(|owner, name, comment_id, body| {
+                owner == "me" && name == "test" && comment_id == &1 && !body.is_empty()
+            })
+            .return_once(|_, _, _, _| Ok(1));
+
+        api_service
+            .expect_commit_statuses_update()
+            .once()
+            .withf(|owner, name, sha, status, title, body| {
+                owner == "me"
+                    && name == "test"
+                    && sha == "abcdef"
+                    && *status == GhCommitStatus::Success
+                    && title == "Validation"
+                    && body == "All good."
+            })
+            .return_once(|_, _, _, _, _, _| Ok(()));
+
+        api_service
+            .expect_pulls_merge()
+            .once()
+            .withf(|owner, name, issue_number, title, message, strategy| {
+                owner == "me"
+                    && name == "test"
+                    && issue_number == &1
+                    && title == "Sample (#1)"
+                    && message.is_empty()
+                    && *strategy == GhMergeStrategy::Merge
+            })
+            .return_once(|_, _, _, _, _, _| {
+                Err(ApiError::MergeError {
+                    pr_number: 1,
+                    repository_path: "me/test".into(),
+                })
+            });
+
+        UpdatePullRequestStatusUseCase {
+            api_service: &api_service,
+            db_service: &mut db_service,
+            lock_service: &lock_service,
+            pr_number: 1,
+            repo_owner: "me",
+            repo_name: "test",
+            upstream_pr: &upstream_pr,
+        }
+        .run()
+        .await
+        .unwrap();
+
+        // Merge error resets automerge status.
+        assert!(
+            !db_service
+                .pull_requests_get("me", "test", 1)
+                .await
+                .unwrap()
+                .unwrap()
+                .automerge
+        );
+    }
+}
