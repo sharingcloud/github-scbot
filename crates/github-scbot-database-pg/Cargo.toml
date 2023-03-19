@@ -10,7 +10,7 @@ github-scbot-config = { path = "../github-scbot-config" }
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
 github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 
-async-trait = "0.1.66"
+async-trait = "0.1.67"
 sqlx = { version = "0.6.2", features = ["runtime-tokio-native-tls", "postgres"] }
 tracing = "0.1.37"
 

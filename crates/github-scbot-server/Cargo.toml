@@ -22,14 +22,14 @@ actix-http = "3.3.1"
 actix-web = "4.3.1"
 actix-web-httpauth = "0.8.0"
 actix-web-prom = "0.6.0"
-async-trait = "0.1.66"
+async-trait = "0.1.67"
 futures = "0.3.27"
 lazy_static = "1.4.0"
 prometheus = { version = "0.13.3", features = ["process"] }
 sentry-actix = "0.30.0"
-serde = { version = "1.0.156", features = ["derive"] }
+serde = { version = "1.0.157", features = ["derive"] }
 serde_json = "1.0.94"
-thiserror = "1.0.39"
+thiserror = "1.0.40"
 time = { version = "0.3.20" }
 tracing = "0.1.37"
 

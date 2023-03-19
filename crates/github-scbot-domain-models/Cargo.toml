@@ -9,5 +9,5 @@ edition = "2021"
 github-scbot-config = { path = "../github-scbot-config" }
 github-scbot-crypto = { path = "../github-scbot-crypto" }
 
-serde = { version = "1.0.156", features = ["derive"] }
-thiserror = "1.0.39"
+serde = { version = "1.0.157", features = ["derive"] }
+thiserror = "1.0.40"

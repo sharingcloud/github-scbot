@@ -11,5 +11,5 @@ github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
 
 redis = { version = "0.22.3", features = ["tokio-comp"] }
 tokio = { version = "1.26.0", features = ["time"] }
-async-trait = "0.1.66"
+async-trait = "0.1.67"
 tracing = "0.1.37"

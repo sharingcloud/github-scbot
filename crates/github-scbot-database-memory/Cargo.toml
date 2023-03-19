@@ -9,4 +9,4 @@ edition = "2021"
 github-scbot-database-interface = { path = "../github-scbot-database-interface" }
 github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 
-async-trait = "0.1.66"
+async-trait = "0.1.67"

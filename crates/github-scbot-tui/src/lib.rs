@@ -11,7 +11,7 @@ mod terminal;
 use std::time::{Duration, Instant};
 
 use app::App;
-use crossterm::event::Event;
+use crossterm::event::{Event, KeyEventKind};
 pub use errors::UiError;
 use github_scbot_database_interface::DbService;
 use terminal::TerminalWrapper;
@@ -39,7 +39,9 @@ pub async fn run_tui(db_service: &mut dyn DbService) -> Result<()> {
 
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = crossterm::event::read()? {
-                app.on_key(key.code);
+                if key.kind == KeyEventKind::Press {
+                    app.on_key(key.code);
+                }
             }
         }
 

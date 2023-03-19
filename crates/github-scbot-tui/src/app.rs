@@ -32,7 +32,9 @@ impl<'a> App<'a> {
     }
 
     pub async fn load_from_db(&mut self, db_service: &mut dyn DbService) -> Result<()> {
-        let repositories = db_service.repositories_all().await?;
+        let mut repositories = db_service.repositories_all().await?;
+        repositories.sort_by_key(|r| r.path().full_name());
+
         let mut pull_requests = db_service.pull_requests_all().await?;
         pull_requests.sort_by_key(|p| u64::MAX - p.number);
 
@@ -340,13 +342,13 @@ impl<'a> App<'a> {
                 'q' => {
                     self.should_quit = true;
                 }
-                o => {
-                    self.data.on_ui_key(KeyCode::Char(o));
+                _ => {
+                    self.data.on_ui_key(key);
                 }
             },
-            o => {
-                self.last_key_pressed = Some(o);
-                self.data.on_ui_key(o);
+            other => {
+                self.last_key_pressed = Some(other);
+                self.data.on_ui_key(other);
             }
         }
     }
