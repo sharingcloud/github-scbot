@@ -1,14 +1,13 @@
 [package]
 name = "github-scbot-tui"
-version = "0.23.0-rc1"
+version = "0.23.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-database = { path = "../github-scbot-database" }
-snafu = "0.7.1"
+github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 
-[target.'cfg(unix)'.dependencies]
-termion = "1.5.6"
-tui = { version = "0.18.0", features = ["termion"] }
+crossterm = "0.26.1"
+thiserror = "1.0.40"
+tui = "0.19.0"

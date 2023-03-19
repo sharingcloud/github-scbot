@@ -1,17 +1,14 @@
 //! Issue webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{events::EventType, issues::GhIssueCommentEvent};
-use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_logic::comments::handle_issue_comment_event;
-use github_scbot_redis::RedisService;
+use github_scbot_config::Config;
+use github_scbot_database_interface::DbService;
+use github_scbot_domain::use_cases::comments::HandleIssueCommentEventUseCase;
+use github_scbot_ghapi_interface::{types::GhIssueCommentEvent, ApiService};
+use github_scbot_lock_interface::LockService;
 
 use super::parse_event_type;
-use crate::errors::LogicSnafu;
-use crate::errors::Result;
-use snafu::ResultExt;
+use crate::{event_type::EventType, Result, ServerError};
 
 pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEvent> {
     parse_event_type(EventType::IssueComment, body)
@@ -19,13 +16,20 @@ pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEven
 
 pub(crate) async fn issue_comment_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
-    redis_adapter: &dyn RedisService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {
-    handle_issue_comment_event(config, api_adapter, db_adapter, redis_adapter, event)
-        .await
-        .context(LogicSnafu)?;
+    HandleIssueCommentEventUseCase {
+        config,
+        api_service,
+        db_service,
+        lock_service,
+        event,
+    }
+    .run()
+    .await
+    .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Issue comment."))
 }

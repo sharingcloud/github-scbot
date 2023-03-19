@@ -1,63 +1,39 @@
-use crate::errors::DatabaseSnafu;
-use crate::Result;
-use github_scbot_database::{
-    ExternalAccount, ExternalAccountDB, PullRequest, PullRequestDB, Repository, RepositoryDB,
-};
-use snafu::{whatever, ResultExt};
+use anyhow::{anyhow, Result};
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::{PullRequest, Repository};
 
 pub struct CliDbExt;
 
 impl CliDbExt {
     pub async fn get_existing_repository(
-        repository_db: &mut dyn RepositoryDB,
+        db_service: &mut dyn DbService,
         owner: &str,
         name: &str,
     ) -> Result<Repository> {
-        let opt = repository_db
-            .get(owner, name)
-            .await
-            .context(DatabaseSnafu)?;
+        let opt = db_service.repositories_get(owner, name).await?;
 
         match opt {
             Some(s) => Ok(s),
-            None => whatever!("Unknown repository '{}/{}'", owner, name),
+            None => Err(anyhow!("Unknown repository '{}/{}'", owner, name)),
         }
     }
 
     pub async fn get_existing_pull_request(
-        pull_request_db: &mut dyn PullRequestDB,
+        db_service: &mut dyn DbService,
         owner: &str,
         name: &str,
         number: u64,
     ) -> Result<PullRequest> {
-        let opt = pull_request_db
-            .get(owner, name, number)
-            .await
-            .context(DatabaseSnafu)?;
+        let opt = db_service.pull_requests_get(owner, name, number).await?;
 
         match opt {
             Some(p) => Ok(p),
-            None => whatever!(
+            None => Err(anyhow!(
                 "Unknown pull request #{} for repository '{}/{}'",
                 number,
                 owner,
                 name
-            ),
-        }
-    }
-
-    pub async fn get_existing_external_account(
-        external_account_db: &mut dyn ExternalAccountDB,
-        username: &str,
-    ) -> Result<ExternalAccount> {
-        let opt = external_account_db
-            .get(username)
-            .await
-            .context(DatabaseSnafu)?;
-
-        match opt {
-            Some(e) => Ok(e),
-            None => whatever!("Unknown external account '{}'", username),
+            )),
         }
     }
 }

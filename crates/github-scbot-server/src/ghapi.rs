@@ -1,17 +1,16 @@
 //! GitHub Api wrappers.
 
 use async_trait::async_trait;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    checks::GhCheckSuite,
-    common::GhUserPermission,
-    issues::GhReactionType,
-    pulls::{GhMergeStrategy, GhPullRequest},
-    status::StatusState,
-};
-use github_scbot_ghapi::{
-    adapter::{ApiService, GhReviewApi, GifResponse, GithubApiService},
-    Result,
+use github_scbot_config::Config;
+use github_scbot_ghapi_github::GithubApiService;
+use github_scbot_ghapi_interface::{
+    gif::GifResponse,
+    review::GhReviewApi,
+    types::{
+        GhCheckRun, GhCommitStatus, GhMergeStrategy, GhPullRequest, GhReactionType,
+        GhUserPermission,
+    },
+    ApiService, Result,
 };
 
 use crate::metrics::{GITHUB_API_CALLS, TENOR_API_CALLS};
@@ -80,14 +79,14 @@ impl ApiService for MetricsApiService {
         self.inner.user_permissions_get(owner, name, username).await
     }
 
-    async fn check_suites_list(
+    async fn check_runs_list(
         &self,
         owner: &str,
         name: &str,
         git_ref: &str,
-    ) -> Result<Vec<GhCheckSuite>> {
+    ) -> Result<Vec<GhCheckRun>> {
         GITHUB_API_CALLS.inc();
-        self.inner.check_suites_list(owner, name, git_ref).await
+        self.inner.check_runs_list(owner, name, git_ref).await
     }
 
     async fn comments_post(
@@ -204,7 +203,7 @@ impl ApiService for MetricsApiService {
         owner: &str,
         name: &str,
         git_ref: &str,
-        status: StatusState,
+        status: GhCommitStatus,
         title: &str,
         body: &str,
     ) -> Result<()> {

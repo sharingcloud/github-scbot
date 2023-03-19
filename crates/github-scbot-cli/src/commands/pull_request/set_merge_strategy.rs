@@ -1,18 +1,16 @@
 use std::io::Write;
 
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::{pulls::GhMergeStrategy, repository::RepositoryPath};
-use snafu::ResultExt;
+use github_scbot_domain_models::{MergeStrategy, RepositoryPath};
 
 use crate::{
     commands::{Command, CommandContext},
     utils::CliDbExt,
+    Result,
 };
 
-/// List known pull request for a repository
+/// Set merge strategy for a pull request
 #[derive(Parser)]
 pub(crate) struct PullRequestSetMergeStrategyCommand {
     /// Repository path (e.g. 'MyOrganization/my-project')
@@ -22,7 +20,7 @@ pub(crate) struct PullRequestSetMergeStrategyCommand {
     number: u64,
 
     /// Merge strategy
-    strategy: Option<GhMergeStrategy>,
+    strategy: Option<MergeStrategy>,
 }
 
 #[async_trait(?Send)]
@@ -30,28 +28,25 @@ impl Command for PullRequestSetMergeStrategyCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let mut pr_db = ctx.db_adapter.pull_requests();
         let _pr =
-            CliDbExt::get_existing_pull_request(&mut *pr_db, owner, name, self.number).await?;
-        pr_db
-            .set_strategy_override(owner, name, self.number, self.strategy)
-            .await
-            .context(DatabaseSnafu)?;
+            CliDbExt::get_existing_pull_request(ctx.db_service.as_mut(), owner, name, self.number)
+                .await?;
+        ctx.db_service
+            .pull_requests_set_strategy_override(owner, name, self.number, self.strategy)
+            .await?;
 
         if let Some(s) = self.strategy {
             writeln!(
                 ctx.writer,
-                "Setting {:?} as a merge strategy override for pull request #{} on repository {}",
+                "Setting '{}' as a merge strategy override for pull request #{} on repository '{}'.",
                 s, self.number, self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
             writeln!(
                 ctx.writer,
-                "Removing merge strategy override for pull request #{} on repository {}",
+                "Removing merge strategy override for pull request #{} on repository '{}'.",
                 self.number, self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         }
 
         Ok(())
@@ -60,72 +55,70 @@ impl Command for PullRequestSetMergeStrategyCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
-    use github_scbot_core::types::pulls::GhMergeStrategy;
-    use github_scbot_database::{
-        use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
-    };
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use std::error::Error;
 
-    use crate::testutils::test_command;
+    use github_scbot_database_interface::DbService;
+    use github_scbot_domain_models::{PullRequest, Repository};
 
-    #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_pull_request_set_merge_strategy",
-            |config, pool| async move {
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let repo = db_adapter
-                    .repositories()
-                    .create(
-                        Repository::builder()
-                        .owner("owner")
-                        .name("name")
-                        .default_strategy(GhMergeStrategy::Merge)
-                        .build()?
-                    )
-                    .await?;
+    use crate::testutils::{test_command, CommandContextTest};
 
-                let pr = db_adapter
-                    .pull_requests()
-                    .create(PullRequest::builder().with_repository(&repo).number(1u64).build()?)
-                    .await?;
-                assert!(pr.strategy_override().is_none(), "no strategy override should be set");
+    #[tokio::test]
+    async fn run_set() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_service
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
 
-                let output = test_command(
-                    config.clone(),
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "set-merge-strategy", "owner/name", "1", "squash"],
-                )
-                .await?;
+        ctx.db_service
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
-                assert_eq!(*pr.strategy_override(), Some(GhMergeStrategy::Squash));
-                assert_eq!(output, "Setting Squash as a merge strategy override for pull request #1 on repository owner/name\n");
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "set-merge-strategy", "owner/name", "1", "squash"]).await,
+            "Setting 'squash' as a merge strategy override for pull request #1 on repository 'owner/name'.\n"
+        );
 
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "set-merge-strategy", "owner/name", "1"],
-                )
-                .await?;
+        Ok(())
+    }
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                let pr = db_adapter.pull_requests().get("owner", "name", 1).await?.unwrap();
-                assert_eq!(*pr.strategy_override(), None);
-                assert_eq!(output, "Removing merge strategy override for pull request #1 on repository owner/name\n");
+    #[tokio::test]
+    async fn run_unset() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_service
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
 
-                Ok(())
-            },
-        )
-        .await;
+        ctx.db_service
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
+
+        assert_eq!(
+            test_command(
+                ctx,
+                &["pull-requests", "set-merge-strategy", "owner/name", "1"]
+            )
+            .await,
+            "Removing merge strategy override for pull request #1 on repository 'owner/name'.\n"
+        );
+
+        Ok(())
     }
 }

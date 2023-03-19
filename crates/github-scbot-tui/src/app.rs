@@ -1,8 +1,8 @@
 //! Application module.
 
-use github_scbot_core::types::status::QaStatus;
-use github_scbot_database::DbService;
-use termion::event::Key;
+use crossterm::event::KeyCode;
+use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::QaStatus;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -18,7 +18,7 @@ pub struct App<'a> {
     pub title: &'a str,
     pub should_quit: bool,
     pub data: AppState,
-    pub last_key_pressed: Option<Key>,
+    pub last_key_pressed: Option<KeyCode>,
 }
 
 impl<'a> App<'a> {
@@ -31,16 +31,18 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_adapter: &mut dyn DbService) -> Result<()> {
-        let repositories = db_adapter.repositories().all().await?;
-        let mut pull_requests = db_adapter.pull_requests().all().await?;
-        pull_requests.sort_by_key(|p| u64::MAX - p.number());
+    pub async fn load_from_db(&mut self, db_service: &mut dyn DbService) -> Result<()> {
+        let mut repositories = db_service.repositories_all().await?;
+        repositories.sort_by_key(|r| r.path().full_name());
+
+        let mut pull_requests = db_service.pull_requests_all().await?;
+        pull_requests.sort_by_key(|p| u64::MAX - p.number);
 
         let mut pr_kvs = Vec::new();
         for repo in repositories {
             let mut prs = Vec::new();
             for pr in &pull_requests {
-                if repo.id() == pr.repository_id() {
+                if repo.id == pr.repository_id {
                     prs.push(pr.clone());
                 }
             }
@@ -68,7 +70,7 @@ impl<'a> App<'a> {
                 .data
                 .iter()
                 .map(|i| {
-                    let lines = vec![Spans::from(i.0.path())];
+                    let lines = vec![Spans::from(i.0.path().full_name())];
                     ListItem::new(lines)
                 })
                 .collect();
@@ -95,7 +97,7 @@ impl<'a> App<'a> {
                 .pull_requests_for_repository()
                 .iter()
                 .map(|i| {
-                    let desc = format!("#{}", i.number());
+                    let desc = format!("#{}", i.number);
                     let lines = vec![Spans::from(desc)];
                     ListItem::new(lines)
                 })
@@ -119,7 +121,7 @@ impl<'a> App<'a> {
         if let Some(selected_repo) = self.data.get_current_repository() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    selected_repo.path(),
+                    selected_repo.path().full_name(),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),
@@ -162,7 +164,7 @@ impl<'a> App<'a> {
         if let Some(selected_pr) = self.data.get_current_pull_request() {
             let text = vec![
                 Spans::from(vec![Span::styled(
-                    format!("#{number}", number = selected_pr.number()),
+                    format!("#{number}", number = selected_pr.number),
                     Style::default().add_modifier(Modifier::BOLD),
                 )]),
                 Spans::from(""),
@@ -173,7 +175,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.checks_enabled();
+                        let status = selected_pr.checks_enabled;
                         let color = if status { Color::Green } else { Color::Red };
                         Span::styled(status.to_string(), Style::default().fg(color))
                     },
@@ -182,7 +184,7 @@ impl<'a> App<'a> {
                     Span::styled("QA status", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(": "),
                     {
-                        let status = selected_pr.qa_status();
+                        let status = selected_pr.qa_status;
                         let color = match status {
                             QaStatus::Pass | QaStatus::Skipped => Color::Green,
                             QaStatus::Fail => Color::Red,
@@ -198,7 +200,7 @@ impl<'a> App<'a> {
                     ),
                     Span::raw(": "),
                     Span::styled(
-                        format!("{}", selected_pr.needed_reviewers_count()),
+                        format!("{}", selected_pr.needed_reviewers_count),
                         Style::default().fg(Color::Blue),
                     ),
                 ]),
@@ -206,7 +208,7 @@ impl<'a> App<'a> {
                     Span::styled("Locked?", Style::default().add_modifier(Modifier::BOLD)),
                     Span::raw(" "),
                     {
-                        let (msg, color) = if selected_pr.locked() {
+                        let (msg, color) = if selected_pr.locked {
                             ("Yes", Color::Red)
                         } else {
                             ("No", Color::Green)
@@ -334,19 +336,19 @@ impl<'a> App<'a> {
         self.draw_help(f, help_area);
     }
 
-    pub fn on_key(&mut self, key: Key) {
+    pub fn on_key(&mut self, key: KeyCode) {
         match key {
-            Key::Char(c) => match c {
+            KeyCode::Char(c) => match c {
                 'q' => {
                     self.should_quit = true;
                 }
-                o => {
-                    self.data.on_ui_key(Key::Char(o));
+                _ => {
+                    self.data.on_ui_key(key);
                 }
             },
-            o => {
-                self.last_key_pressed = Some(o);
-                self.data.on_ui_key(o);
+            other => {
+                self.last_key_pressed = Some(other);
+                self.data.on_ui_key(other);
             }
         }
     }

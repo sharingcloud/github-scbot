@@ -3,63 +3,51 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
-#[cfg(unix)]
 mod app;
-#[cfg(unix)]
-mod events;
-#[cfg(unix)]
-mod state;
-
 mod errors;
-use github_scbot_database::DbService;
+mod state;
+mod terminal;
+
+use std::time::{Duration, Instant};
+
+use app::App;
+use crossterm::event::{Event, KeyEventKind};
+pub use errors::UiError;
+use github_scbot_database_interface::DbService;
+use terminal::TerminalWrapper;
 
 use self::errors::Result;
-pub use errors::UiError;
 
 /// Run TUI interface.
-#[cfg(windows)]
-pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
-    use self::errors::UiError;
-
-    Err(UiError::Unsupported)
-}
-
-/// Run TUI interface.
-#[cfg(unix)]
-pub async fn run_tui(db_adapter: &mut dyn DbService) -> Result<()> {
-    use std::io;
-
-    use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-    use tui::{backend::TermionBackend, Terminal};
-
-    use self::{
-        app::App,
-        events::{Event, Events},
-    };
-
-    // Terminal initialization
-    let stdout = io::stdout().into_raw_mode()?;
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    let events = Events::new();
+pub async fn run_tui(db_service: &mut dyn DbService) -> Result<()> {
+    let mut terminal = TerminalWrapper::new()?;
 
     let mut app = App::new("SC Bot");
-    app.load_from_db(db_adapter).await?;
+    app.load_from_db(db_service).await?;
+
+    let tick_rate = Duration::from_millis(250);
+    let mut last_tick = Instant::now();
 
     loop {
         terminal.draw(|f| {
             app.draw(f);
         })?;
 
-        match events.next()? {
-            Event::Input(input) => {
-                app.on_key(input);
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| Duration::from_secs(0));
+
+        if crossterm::event::poll(timeout)? {
+            if let Event::Key(key) = crossterm::event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    app.on_key(key.code);
+                }
             }
-            Event::Tick => {
-                app.on_tick();
-            }
+        }
+
+        if last_tick.elapsed() >= tick_rate {
+            app.on_tick();
+            last_tick = Instant::now();
         }
 
         if app.should_quit {

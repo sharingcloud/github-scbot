@@ -12,39 +12,36 @@ mod tests;
 use std::{convert::TryFrom, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse, Result as ActixResult};
-use github_scbot_core::config::Config;
-use github_scbot_core::sentry::sentry;
-use github_scbot_core::types::events::EventType;
-use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_config::Config;
+use github_scbot_database_interface::DbService;
+use github_scbot_ghapi_interface::ApiService;
+use github_scbot_lock_interface::LockService;
 use serde::Deserialize;
-use snafu::ResultExt;
 
 use self::{
     checks::parse_check_suite_event, issues::parse_issue_comment_event, ping::parse_ping_event,
     pulls::parse_pull_request_event, reviews::parse_review_event,
 };
-use crate::errors::EventParseSnafu;
 use crate::{
-    constants::GITHUB_EVENT_HEADER, errors::Result, server::AppContext,
-    utils::convert_payload_to_string,
+    constants::GITHUB_EVENT_HEADER, event_type::EventType, server::AppContext,
+    utils::convert_payload_to_string, Result, ServerError,
 };
 
+#[tracing::instrument(skip_all, fields(event_type))]
 async fn parse_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
-    redis_adapter: &dyn RedisService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event_type: EventType,
     body: &str,
 ) -> Result<HttpResponse> {
     match event_type {
         EventType::CheckSuite => {
             checks::check_suite_event(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_check_suite_event(body)?,
             )
             .await
@@ -52,9 +49,9 @@ async fn parse_event(
         EventType::IssueComment => {
             issues::issue_comment_event(
                 config,
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_issue_comment_event(body)?,
             )
             .await
@@ -63,18 +60,18 @@ async fn parse_event(
         EventType::PullRequest => {
             pulls::pull_request_event(
                 config,
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_pull_request_event(body)?,
             )
             .await
         }
         EventType::PullRequestReview => {
             reviews::review_event(
-                api_adapter,
-                db_adapter,
-                redis_adapter,
+                api_service,
+                db_service,
+                lock_service,
                 parse_review_event(body)?,
             )
             .await
@@ -86,7 +83,10 @@ fn parse_event_type<'de, T>(event_type: EventType, body: &'de str) -> Result<T>
 where
     T: Deserialize<'de>,
 {
-    serde_json::from_str(body).context(EventParseSnafu { event_type })
+    serde_json::from_str(body).map_err(|e| ServerError::EventParseError {
+        event_type,
+        source: e,
+    })
 }
 
 fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
@@ -96,6 +96,7 @@ fn extract_event_from_request(req: &HttpRequest) -> Option<EventType> {
         .and_then(|x| EventType::try_from(x).ok())
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) async fn event_handler(
     req: HttpRequest,
     mut payload: web::Payload,
@@ -104,16 +105,11 @@ pub(crate) async fn event_handler(
     // Route event depending on header
     if let Some(event_type) = extract_event_from_request(&req) {
         if let Ok(body) = convert_payload_to_string(&mut payload).await {
-            sentry::configure_scope(|scope| {
-                scope.set_extra("Event type", event_type.to_str().into());
-                scope.set_extra("Payload", body.clone().into());
-            });
-
             parse_event(
                 &ctx.config,
-                ctx.api_adapter.as_ref(),
-                ctx.db_adapter.as_ref(),
-                ctx.redis_adapter.as_ref(),
+                ctx.api_service.as_ref(),
+                ctx.db_service.lock().await.as_mut(),
+                ctx.lock_service.as_ref(),
                 event_type,
                 &body,
             )

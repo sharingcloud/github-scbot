@@ -1,26 +1,31 @@
 [package]
 name = "github-scbot-cli"
-version = "0.23.0-rc1"
+version = "0.23.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 [dependencies]
-github-scbot-core = { path = "../github-scbot-core" }
-github-scbot-ghapi = { path = "../github-scbot-ghapi" }
-github-scbot-database = { path = "../github-scbot-database" }
-github-scbot-logic = { path = "../github-scbot-logic" }
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
+github-scbot-database-interface = { path = "../github-scbot-database-interface" }
+github-scbot-database-pg = { path = "../github-scbot-database-pg" }
+github-scbot-domain = { path = "../github-scbot-domain" }
+github-scbot-domain-models = { path = "../github-scbot-domain-models" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
+github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
+github-scbot-logging = { path = "../github-scbot-logging" }
+github-scbot-sentry = { path = "../github-scbot-sentry" }
 github-scbot-server = { path = "../github-scbot-server" }
 github-scbot-tui = { path = "../github-scbot-tui" }
-github-scbot-redis = { path = "../github-scbot-redis" }
 
-actix-rt = "2.7.0"
-async-trait = "0.1.56"
-argh = "0.1.8"
-dialoguer = "0.10.1"
-owo-colors = "3.4.0"
-tokio = { version = "1.20.1", features = ["full"] }
-snafu = { version = "0.7.1", features = ["backtrace", "backtraces-impl-backtrace-crate"] }
-clap = { version = "3.2.15", features = ["derive"] }
+actix-rt = "2.8.0"
+anyhow = { version = "1.0", features = ["backtrace"] }
+async-trait = "0.1.67"
+clap = { version = "4.1.11", features = ["derive"] }
+dotenv = "0.15.0"
+thiserror = "1.0.40"
+tokio = { version = "1.26.0", features = ["full"] }
 
 [dev-dependencies]
-indoc = "1.0.6"
+github-scbot-database-memory = { path = "../github-scbot-database-memory" }
+github-scbot-database-tests = { path = "../github-scbot-database-tests" }

@@ -2,7 +2,10 @@
 /.vscode
 /export
 /target
-/.env
 /docker
-/Justfile
-/*.md
+Justfile
+.md
+.cov
+.env
+htmlcov
+lcov.info

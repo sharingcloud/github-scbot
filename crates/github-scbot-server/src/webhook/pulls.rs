@@ -1,40 +1,58 @@
 //! Pull webhook handlers.
 
 use actix_web::HttpResponse;
-use github_scbot_core::config::Config;
-use github_scbot_core::types::{
-    events::EventType,
-    pulls::{GhPullRequestAction, GhPullRequestEvent},
+use github_scbot_config::Config;
+use github_scbot_database_interface::DbService;
+use github_scbot_domain::use_cases::pulls::{
+    HandlePullRequestEventUseCase, ProcessPullRequestOpenedUseCase,
 };
-use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_logic::pulls::{handle_pull_request_event, handle_pull_request_opened};
-use github_scbot_redis::RedisService;
-use snafu::ResultExt;
+use github_scbot_ghapi_interface::{
+    types::{GhPullRequestAction, GhPullRequestEvent},
+    ApiService,
+};
+use github_scbot_lock_interface::LockService;
 
 use super::parse_event_type;
-use crate::errors::LogicSnafu;
-use crate::errors::Result;
+use crate::{event_type::EventType, Result, ServerError};
 
 pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent> {
     parse_event_type(EventType::PullRequest, body)
 }
 
+#[tracing::instrument(skip_all, fields(
+    action = ?event.action,
+    repo_owner = event.repository.owner.login,
+    repo_name = event.repository.name,
+    pr_number = event.pull_request.number,
+))]
 pub(crate) async fn pull_request_event(
     config: &Config,
-    api_adapter: &dyn ApiService,
-    db_adapter: &dyn DbService,
-    redis_adapter: &dyn RedisService,
+    api_service: &dyn ApiService,
+    db_service: &mut dyn DbService,
+    lock_service: &dyn LockService,
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {
     if matches!(event.action, GhPullRequestAction::Opened) {
-        handle_pull_request_opened(config, api_adapter, db_adapter, redis_adapter, event)
-            .await
-            .context(LogicSnafu)?;
+        ProcessPullRequestOpenedUseCase {
+            api_service,
+            db_service,
+            config,
+            lock_service,
+            event,
+        }
+        .run()
+        .await
+        .map_err(|e| ServerError::DomainError { source: e })?;
     } else {
-        handle_pull_request_event(api_adapter, db_adapter, redis_adapter, event)
-            .await
-            .context(LogicSnafu)?;
+        HandlePullRequestEventUseCase {
+            api_service,
+            db_service,
+            lock_service,
+            event,
+        }
+        .run()
+        .await
+        .map_err(|e| ServerError::DomainError { source: e })?;
     }
 
     Ok(HttpResponse::Ok().body("Pull request."))

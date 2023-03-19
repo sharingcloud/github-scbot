@@ -1,13 +1,13 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_core::types::repository::RepositoryPath;
+use github_scbot_domain_models::RepositoryPath;
 
-use crate::commands::{Command, CommandContext};
-use crate::errors::{DatabaseSnafu, IoSnafu};
-use snafu::ResultExt;
+use crate::{
+    commands::{Command, CommandContext},
+    Result,
+};
 
 /// List known pull request for a repository
 #[derive(Parser)]
@@ -21,23 +21,17 @@ impl Command for PullRequestListCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let prs = ctx
-            .db_adapter
-            .pull_requests()
-            .list(owner, name)
-            .await
-            .context(DatabaseSnafu)?;
+        let prs = ctx.db_service.pull_requests_list(owner, name).await?;
 
         if prs.is_empty() {
             writeln!(
                 ctx.writer,
-                "No PR found from repository '{}'.",
+                "No pull request found for repository '{}'.",
                 self.repository_path
-            )
-            .context(IoSnafu)?;
+            )?;
         } else {
             for pr in prs {
-                writeln!(ctx.writer, "- #{}", pr.number()).context(IoSnafu)?;
+                writeln!(ctx.writer, "- #{}", pr.number)?;
             }
         }
 
@@ -47,80 +41,50 @@ impl Command for PullRequestListCommand {
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_core::config::Config;
-    use github_scbot_database::{
-        use_temporary_db, DbService, DbServiceImplPool, PullRequest, Repository,
-    };
-    use github_scbot_ghapi::adapter::MockApiService;
-    use github_scbot_redis::MockRedisService;
+    use std::error::Error;
 
-    use crate::testutils::test_command;
+    use github_scbot_database_interface::DbService;
+    use github_scbot_domain_models::{PullRequest, Repository};
 
-    #[actix_rt::test]
-    async fn test() {
-        let config = Config::from_env();
-        use_temporary_db(
-            config,
-            "test_command_pull_request_list",
-            |config, pool| async move {
-                let db_adapter = DbServiceImplPool::new(pool.clone());
+    use crate::testutils::{test_command, CommandContextTest};
 
-                let repo = db_adapter
-                    .repositories()
-                    .create(Repository::builder().owner("owner").name("name").build()?)
-                    .await?;
+    #[tokio::test]
+    async fn run_no_prs() -> Result<(), Box<dyn Error>> {
+        let ctx = CommandContextTest::new();
 
-                let output = test_command(
-                    config.clone(),
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "list", "owner/name"],
-                )
-                .await?;
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "list", "owner/name"]).await,
+            "No pull request found for repository 'owner/name'.\n"
+        );
 
-                assert_eq!(output, "No PR found from repository 'owner/name'.\n");
+        Ok(())
+    }
 
-                let db_adapter = DbServiceImplPool::new(pool.clone());
-                db_adapter
-                    .pull_requests()
-                    .create(
-                        PullRequest::builder()
-                            .with_repository(&repo)
-                            .number(1u64)
-                            .build()?,
-                    )
-                    .await?;
-                db_adapter
-                    .pull_requests()
-                    .create(
-                        PullRequest::builder()
-                            .with_repository(&repo)
-                            .number(2u64)
-                            .build()?,
-                    )
-                    .await?;
+    #[tokio::test]
+    async fn run() -> Result<(), Box<dyn Error>> {
+        let mut ctx = CommandContextTest::new();
+        let repo = ctx
+            .db_service
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
 
-                let output = test_command(
-                    config,
-                    Box::new(db_adapter),
-                    Box::new(MockApiService::new()),
-                    Box::new(MockRedisService::new()),
-                    &["pull-requests", "list", "owner/name"],
-                )
-                .await?;
+        ctx.db_service
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
+            })
+            .await?;
 
-                assert_eq!(
-                    output,
-                    indoc::indoc! {r#"
-                        - #1
-                        - #2
-                    "#}
-                );
+        assert_eq!(
+            test_command(ctx, &["pull-requests", "list", "owner/name"]).await,
+            "- #1\n"
+        );
 
-                Ok(())
-            },
-        )
-        .await;
+        Ok(())
     }
 }

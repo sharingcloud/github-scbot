@@ -2,19 +2,20 @@
 
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Subcommand;
-use github_scbot_core::config::Config;
-use github_scbot_database::DbService;
-use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
+use github_scbot_config::Config;
+use github_scbot_database_interface::DbService;
+use github_scbot_ghapi_interface::ApiService;
+use github_scbot_lock_interface::LockService;
 
 use self::{
     auth::AuthCommand, debug::DebugCommand, export::ExportCommand, import::ImportCommand,
     pull_request::PullRequestCommand, repository::RepositoryCommand, server::ServerCommand,
     ui::UiCommand,
 };
+use crate::Result;
+
 mod auth;
 mod debug;
 mod export;
@@ -26,9 +27,9 @@ mod ui;
 
 pub(crate) struct CommandContext<W: Write> {
     pub config: Config,
-    pub db_adapter: Box<dyn DbService>,
-    pub api_adapter: Box<dyn ApiService>,
-    pub redis_adapter: Box<dyn RedisService>,
+    pub db_service: Box<dyn DbService>,
+    pub api_service: Box<dyn ApiService>,
+    pub lock_service: Box<dyn LockService>,
     pub writer: W,
 }
 

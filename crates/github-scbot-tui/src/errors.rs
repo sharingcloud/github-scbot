@@ -1,58 +1,40 @@
 //! UI errors.
 
-use snafu::{prelude::*, Backtrace};
+use thiserror::Error;
 
 /// UI error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum UiError {
-    /// Unsupported OS.
-    #[snafu(display("Current OS is unsupported (for now)."))]
-    Unsupported { backtrace: Backtrace },
-
     /// Wraps [`std::io::IoError`].
-    #[snafu(display("I/O error,\n  caused by: {}", source))]
-    Io {
-        source: std::io::Error,
-        backtrace: Backtrace,
-    },
+    #[error("I/O error,\n  caused by: {}", source)]
+    Io { source: std::io::Error },
 
     /// Wraps [`std::sync::mpsc::RecvError`].
-    #[snafu(display("Channel communication error,\n  caused by: {}", source))]
-    Recv {
-        source: std::sync::mpsc::RecvError,
-        backtrace: Backtrace,
-    },
+    #[error("Channel communication error,\n  caused by: {}", source)]
+    Recv { source: std::sync::mpsc::RecvError },
 
     /// Wraps [`github_scbot_database::DatabaseError`].
-    #[snafu(display("Database error,\n  caused by: {}", source))]
+    #[error("Database error,\n  caused by: {}", source)]
     Database {
-        #[snafu(backtrace)]
-        source: github_scbot_database::DatabaseError,
+        source: github_scbot_database_interface::DatabaseError,
     },
 }
 
 impl From<std::io::Error> for UiError {
     fn from(e: std::io::Error) -> Self {
-        Self::Io {
-            source: e,
-            backtrace: Backtrace::new(),
-        }
+        Self::Io { source: e }
     }
 }
 
 impl From<std::sync::mpsc::RecvError> for UiError {
     fn from(e: std::sync::mpsc::RecvError) -> Self {
-        Self::Recv {
-            source: e,
-            backtrace: Backtrace::new(),
-        }
+        Self::Recv { source: e }
     }
 }
 
-impl From<github_scbot_database::DatabaseError> for UiError {
-    fn from(e: github_scbot_database::DatabaseError) -> Self {
+impl From<github_scbot_database_interface::DatabaseError> for UiError {
+    fn from(e: github_scbot_database_interface::DatabaseError) -> Self {
         Self::Database { source: e }
     }
 }

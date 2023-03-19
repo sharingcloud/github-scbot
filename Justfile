@@ -6,7 +6,11 @@ _default:
 
 # Check code style
 fmt:
-	cargo fmt --all
+	cargo +nightly fmt --all -- \
+		--unstable-features \
+		--config \
+			imports_granularity=Crate,\
+			group_imports=StdExternalCrate
 
 # Check code style and error if changes are needed
 fmt-check:
@@ -32,8 +36,17 @@ build-release:
 test:
 	cargo test --all
 
-test-coverage:
-	cargo tarpaulin -- --test-threads 1
+# Test with coverage
+test-cov:
+    rm -rf .cov
+    rm -rf htmlcov
+    RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo build
+    RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo test
+    grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+
+# Build HTML coverage
+cov-html:
+    grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing --ignore "/*" -o htmlcov
 
 # Set crates version
 set-version v:
@@ -45,18 +58,15 @@ show-version:
 
 # Run server (debug)
 run-server:
-	#!/bin/bash
-	RUST_LOG=info,github_scbot=debug cargo run -q -- server
+	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo run -q -- server
 
 # Run server (release)
 run-server-release:
-	#!/bin/bash
-	RUST_LOG=info,github_scbot=debug cargo run -q --release -- server
+	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo run -q --release -- server
 
 # Run server (watch)
 run-server-watch:
-	#!/bin/bash
-	RUST_LOG=info,github_scbot=debug cargo watch -x "run -- server"
+	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo watch -x "run -- server"
 
 # Build Docker image
 docker-build:

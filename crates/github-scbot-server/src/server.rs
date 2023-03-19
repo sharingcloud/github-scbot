@@ -10,14 +10,14 @@ use actix_web::{
     App, HttpResponse, HttpServer,
 };
 use actix_web_httpauth::middleware::HttpAuthentication;
-use github_scbot_core::config::Config;
-use github_scbot_core::sentry::{actix::Sentry, with_sentry_configuration};
-use github_scbot_database::{DbPool, DbService, DbServiceImplPool};
-use github_scbot_ghapi::adapter::ApiService;
-use github_scbot_redis::RedisService;
-use snafu::ResultExt;
+use futures::lock::Mutex;
+use github_scbot_config::Config;
+use github_scbot_database_interface::DbService;
+use github_scbot_database_pg::{DbPool, PostgresDb};
+use github_scbot_ghapi_interface::ApiService;
+use github_scbot_lock_interface::LockService;
+use sentry_actix::Sentry;
 use tracing::info;
-use tracing_actix_web::TracingLogger;
 
 use crate::{
     debug::configure_debug_handlers,
@@ -28,21 +28,19 @@ use crate::{
     middlewares::VerifySignature,
     redis::MetricsRedisService,
     webhook::configure_webhook_handlers,
-    Result,
+    Result, ServerError,
 };
-
-use crate::errors::IoSnafu;
 
 /// App context.
 pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_adapter: Box<dyn DbService>,
+    pub db_service: Mutex<Box<dyn DbService>>,
     /// API adapter
-    pub api_adapter: Box<dyn ApiService>,
+    pub api_service: Box<dyn ApiService>,
     /// Redis adapter
-    pub redis_adapter: Box<dyn RedisService>,
+    pub lock_service: Box<dyn LockService>,
 }
 
 impl AppContext {
@@ -50,24 +48,24 @@ impl AppContext {
     pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
-            db_adapter: Box::new(DbServiceImplPool::new(pool)),
-            api_adapter: Box::new(MetricsApiService::new(config.clone())),
-            redis_adapter: Box::new(MetricsRedisService::new(&config.redis_address)),
+            db_service: Mutex::new(Box::new(PostgresDb::new(pool))),
+            api_service: Box::new(MetricsApiService::new(config.clone())),
+            lock_service: Box::new(MetricsRedisService::new(&config.redis_address)),
         }
     }
 
     /// Create new app context using adapters.
     pub fn new_with_adapters(
         config: Config,
-        db_adapter: Box<dyn DbService>,
-        api_adapter: Box<dyn ApiService>,
-        redis_adapter: Box<dyn RedisService>,
+        db_service: Box<dyn DbService>,
+        api_service: Box<dyn ApiService>,
+        lock_service: Box<dyn LockService>,
     ) -> Self {
         Self {
             config,
-            db_adapter,
-            api_adapter,
-            redis_adapter,
+            db_service: Mutex::new(db_service),
+            api_service,
+            lock_service,
         }
     }
 }
@@ -82,10 +80,7 @@ pub async fn run_bot_server(context: AppContext) -> Result<()> {
         message = "Starting bot server",
     );
 
-    with_sentry_configuration(&context.config.sentry_url.clone(), || async {
-        run_bot_server_internal(address, context).await
-    })
-    .await
+    run_bot_server_internal(address, context).await
 }
 
 fn get_bind_address(config: &Config) -> String {
@@ -103,7 +98,6 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
             .wrap(prometheus.clone())
             .wrap(Sentry::new())
             .wrap(Logger::default())
-            .wrap(TracingLogger::default())
             .service(
                 web::scope("/external")
                     .wrap(HttpAuthentication::bearer(jwt_auth_validator))
@@ -147,8 +141,8 @@ async fn run_bot_server_internal(ip_with_port: String, context: AppContext) -> R
 
     server
         .bind(ip_with_port)
-        .context(IoSnafu)?
+        .map_err(|e| ServerError::IoError { source: e })?
         .run()
         .await
-        .context(IoSnafu)
+        .map_err(|e| ServerError::IoError { source: e })
 }

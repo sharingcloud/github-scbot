@@ -5,7 +5,7 @@ on:
 
 jobs:
   format:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -13,7 +13,7 @@ jobs:
     - run: just fmt-check
 
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
     - run: just lint-err
 
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     services:
       postgres:
@@ -60,10 +60,7 @@ jobs:
           ~/.cargo/git
           target
         key: test-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - uses: actions-rs/tarpaulin@v0.1
-      with:
-        args: '-- --test-threads 1'
-        out-type: Lcov
+    - run: just test-cov
       env:
         DATABASE_URL: postgres://user:pass@localhost:5432/test-bot
     - uses: coverallsapp/github-action@master
@@ -73,7 +70,7 @@ jobs:
       continue-on-error: true
 
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2

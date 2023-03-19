@@ -1,13 +1,11 @@
 use std::io::Write;
 
-use crate::errors::ServerSnafu;
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
 use github_scbot_server::server::{run_bot_server, AppContext};
-use snafu::ResultExt;
 
 use super::{Command, CommandContext};
+use crate::Result;
 
 /// Start server
 #[derive(Parser)]
@@ -18,11 +16,11 @@ impl Command for ServerCommand {
     async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         let context = AppContext::new_with_adapters(
             ctx.config,
-            ctx.db_adapter,
-            ctx.api_adapter,
-            ctx.redis_adapter,
+            ctx.db_service,
+            ctx.api_service,
+            ctx.lock_service,
         );
 
-        run_bot_server(context).await.context(ServerSnafu)
+        run_bot_server(context).await.map_err(Into::into)
     }
 }

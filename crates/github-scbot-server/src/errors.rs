@@ -2,44 +2,35 @@
 
 use actix_http::StatusCode;
 use actix_web::ResponseError;
-use github_scbot_core::types::events::EventType;
-use snafu::{prelude::*, Backtrace};
+use thiserror::Error;
+
+use crate::event_type::EventType;
 
 /// Webhook error.
 #[allow(missing_docs)]
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug, Error)]
 pub enum ServerError {
-    #[snafu(display(
-        "Error while parsing webhook event for type {},\n  caused by: {}",
-        event_type,
-        source
-    ))]
+    #[error("Error while parsing webhook event for type {event_type}: {source}")]
     EventParseError {
         event_type: EventType,
         source: serde_json::Error,
-        backtrace: Backtrace,
     },
 
-    #[snafu(display("Missing webhook signature."))]
-    MissingWebhookSignature { backtrace: Backtrace },
+    #[error("Missing webhook signature.")]
+    MissingWebhookSignature,
 
-    #[snafu(display("Invalid webhook signature."))]
-    InvalidWebhookSignature { backtrace: Backtrace },
+    #[error("Invalid webhook signature.")]
+    InvalidWebhookSignature,
 
-    #[snafu(display("I/O error,\n  caused by: {}", source))]
-    IoError {
-        source: std::io::Error,
-        backtrace: Backtrace,
+    #[error("I/O error: {source}")]
+    IoError { source: std::io::Error },
+
+    #[error(transparent)]
+    DomainError {
+        source: github_scbot_domain::DomainError,
     },
 
-    #[snafu(display("Logic error,\n  caused by: {}", source))]
-    LogicError {
-        source: github_scbot_logic::LogicError,
-        backtrace: Backtrace,
-    },
-
-    #[snafu(display("Internal error."))]
+    #[error("Internal error.")]
     InternalError,
 }
 

@@ -1,13 +1,12 @@
 use std::io::Write;
 
-use crate::Result;
 use async_trait::async_trait;
 use clap::Parser;
+use github_scbot_logging::temporarily_disable_logging;
 use github_scbot_tui::run_tui;
-use snafu::ResultExt;
 
 use super::{Command, CommandContext};
-use crate::errors::UiSnafu;
+use crate::Result;
 
 /// Start TUI
 #[derive(Parser)]
@@ -16,6 +15,7 @@ pub(crate) struct UiCommand;
 #[async_trait(?Send)]
 impl Command for UiCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        run_tui(&mut *ctx.db_adapter).await.context(UiSnafu)
+        let _guard = temporarily_disable_logging();
+        run_tui(ctx.db_service.as_mut()).await.map_err(Into::into)
     }
 }

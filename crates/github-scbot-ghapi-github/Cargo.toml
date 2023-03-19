@@ -1,0 +1,21 @@
+[package]
+name = "github-scbot-ghapi-github"
+version = "0.23.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+[dependencies]
+github-scbot-config = { path = "../github-scbot-config" }
+github-scbot-crypto = { path = "../github-scbot-crypto" }
+github-scbot-ghapi-interface = { path = "../github-scbot-ghapi-interface" }
+
+async-trait = "0.1.67"
+backoff = { version = "0.4.0", features = ["tokio"] }
+http = "0.2.9"
+reqwest = { version = "0.11.14", features = ["json"] }
+serde = { version = "1.0.157", features = ["derive"] }
+thiserror = "1.0.40"
+tracing = "0.1.37"
+
+[dev-dependencies]
+tokio = { version = "1.26.0", features = ["rt"] }

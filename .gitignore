@@ -1,7 +1,13 @@
-/target
-/.env
-/data.db
+# VSCode
 /.vscode
+
+# Rust
+/target
+
+# Environment variables
+.env
+
+# Coverage
+.cov
 lcov.info
-/export
-/tarpaulin-report.html
+/htmlcov

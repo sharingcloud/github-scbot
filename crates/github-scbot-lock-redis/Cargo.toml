@@ -1,0 +1,15 @@
+[package]
+name = "github-scbot-lock-redis"
+version = "0.23.0"
+authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+github-scbot-lock-interface = { path = "../github-scbot-lock-interface" }
+
+redis = { version = "0.22.3", features = ["tokio-comp"] }
+tokio = { version = "1.26.0", features = ["time"] }
+async-trait = "0.1.67"
+tracing = "0.1.37"

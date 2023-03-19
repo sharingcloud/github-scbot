@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use clap::{Parser, Subcommand};
 
 use super::{Command, CommandContext};
-
 use crate::Result;
 mod test_sentry;
 use test_sentry::DebugTestSentryCommand;

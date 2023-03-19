@@ -6,6 +6,7 @@
 pub mod constants;
 mod debug;
 pub mod errors;
+mod event_type;
 mod external;
 pub mod ghapi;
 mod health;

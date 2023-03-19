@@ -15,11 +15,12 @@ use futures::{
     stream::StreamExt,
     Future,
 };
-use github_scbot_core::{config::Config, crypto::is_valid_signature};
+use github_scbot_config::Config;
+use github_scbot_crypto::is_valid_signature;
 use tracing::warn;
 
 use super::constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH};
-use crate::errors::{InvalidWebhookSignatureSnafu, MissingWebhookSignatureSnafu};
+use crate::ServerError;
 
 /// Signature verification configuration.
 pub struct VerifySignature {
@@ -103,15 +104,15 @@ where
                     let headers = req.headers().clone();
                     let signature = headers
                         .get(GITHUB_SIGNATURE_HEADER)
-                        .ok_or_else(|| MissingWebhookSignatureSnafu.build())?
+                        .ok_or(ServerError::MissingWebhookSignature)?
                         .to_str()
                         .map_err(|_| {
-                            actix_web::Error::from(InvalidWebhookSignatureSnafu.build())
+                            actix_web::Error::from(ServerError::InvalidWebhookSignature)
                         })?;
 
                     // Quick check because split_at can panic.
                     if signature.len() <= SIGNATURE_PREFIX_LENGTH {
-                        return Err(InvalidWebhookSignatureSnafu.build().into());
+                        return Err(ServerError::InvalidWebhookSignature.into());
                     }
 
                     // Strip signature prefix
@@ -126,7 +127,7 @@ where
 
                     match is_valid_signature(sig, &body, &secret) {
                         Ok(false) | Err(_) => {
-                            return Err(InvalidWebhookSignatureSnafu.build().into())
+                            return Err(ServerError::InvalidWebhookSignature.into())
                         }
                         _ => (),
                     }
