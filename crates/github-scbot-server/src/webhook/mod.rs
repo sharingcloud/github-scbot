@@ -108,7 +108,7 @@ pub(crate) async fn event_handler(
             parse_event(
                 &ctx.config,
                 ctx.api_service.as_ref(),
-                ctx.db_service.lock().await.as_mut(),
+                ctx.db_service.lock().await.as_ref(),
                 ctx.lock_service.as_ref(),
                 event_type,
                 &body,

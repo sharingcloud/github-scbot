@@ -6,29 +6,29 @@ use crate::Result;
 
 pub const VALIDATION_STATUS_MESSAGE: &str = "Validation";
 
+#[derive(Debug)]
 pub struct StatusMessage {
     pub state: GhCommitStatus,
     pub title: &'static str,
     pub message: String,
 }
 
-pub struct GenerateStatusMessageUseCase<'a> {
-    pub pr_status: &'a PullRequestStatus,
-}
+#[derive(Default)]
+pub struct StatusMessageGenerator;
 
-impl<'a> GenerateStatusMessageUseCase<'a> {
-    #[tracing::instrument(skip(self))]
-    pub fn run(&mut self) -> Result<StatusMessage> {
+impl StatusMessageGenerator {
+    #[tracing::instrument(skip_all, ret)]
+    pub fn generate(&self, pr_status: &PullRequestStatus) -> Result<StatusMessage> {
         let status_title = VALIDATION_STATUS_MESSAGE;
         let mut status_state = GhCommitStatus::Success;
         let mut status_message = "All good.".to_string();
 
-        if self.pr_status.wip {
+        if pr_status.wip {
             status_message = "PR is still in WIP".to_string();
             status_state = GhCommitStatus::Failure;
-        } else if self.pr_status.valid_pr_title {
+        } else if pr_status.valid_pr_title {
             // Check CI status
-            match self.pr_status.checks_status {
+            match pr_status.checks_status {
                 ChecksStatus::Fail => {
                     status_message = "Checks failed. Please fix.".to_string();
                     status_state = GhCommitStatus::Failure;
@@ -39,26 +39,25 @@ impl<'a> GenerateStatusMessageUseCase<'a> {
                 }
                 ChecksStatus::Pass | ChecksStatus::Skipped => {
                     // Check review status
-                    if self.pr_status.changes_required() {
+                    if pr_status.changes_required() {
                         status_message = "Changes required".to_string();
                         status_state = GhCommitStatus::Failure;
-                    } else if !self.pr_status.mergeable && !self.pr_status.merged {
+                    } else if !pr_status.mergeable && !pr_status.merged {
                         status_message = "Pull request is not mergeable.".to_string();
                         status_state = GhCommitStatus::Failure;
-                    } else if !self.pr_status.missing_required_reviewers.is_empty() {
+                    } else if !pr_status.missing_required_reviewers.is_empty() {
                         status_message = format!(
                             "Waiting on mandatory reviews ({})",
-                            self.pr_status.missing_required_reviewers.join(", ")
+                            pr_status.missing_required_reviewers.join(", ")
                         );
                         status_state = GhCommitStatus::Pending;
-                    } else if self.pr_status.needed_reviewers_count
-                        > self.pr_status.approved_reviewers.len()
+                    } else if pr_status.needed_reviewers_count > pr_status.approved_reviewers.len()
                     {
                         status_message = "Waiting on reviews".to_string();
                         status_state = GhCommitStatus::Pending;
                     } else {
                         // Check QA status
-                        match self.pr_status.qa_status {
+                        match pr_status.qa_status {
                             QaStatus::Fail => {
                                 status_message = "QA failed. Please fix.".to_string();
                                 status_state = GhCommitStatus::Failure;
@@ -68,7 +67,7 @@ impl<'a> GenerateStatusMessageUseCase<'a> {
                                 status_state = GhCommitStatus::Pending;
                             }
                             QaStatus::Pass | QaStatus::Skipped => {
-                                if self.pr_status.locked {
+                                if pr_status.locked {
                                     status_message = "PR is locked".to_string();
                                     status_state = GhCommitStatus::Failure;
                                 }

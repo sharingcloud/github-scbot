@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::PullRequestHandle;
 use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::LockService;
 
@@ -22,6 +23,12 @@ pub struct CommandContext<'a> {
     pub upstream_pr: &'a GhPullRequest,
     pub comment_id: u64,
     pub comment_author: &'a str,
+}
+
+impl<'a> CommandContext<'a> {
+    pub fn pr_handle(&self) -> PullRequestHandle {
+        (self.repo_owner, self.repo_name, self.pr_number).into()
+    }
 }
 
 #[async_trait(?Send)]
@@ -66,11 +73,11 @@ pub(crate) mod tests {
             }
         }
 
-        pub fn as_context(&mut self) -> CommandContext {
+        pub fn as_context(&self) -> CommandContext {
             CommandContext {
                 config: &self.config,
                 api_service: &self.api_service,
-                db_service: &mut self.db_service,
+                db_service: &self.db_service,
                 lock_service: &self.lock_service,
                 repo_owner: &self.repo_owner,
                 repo_name: &self.repo_name,

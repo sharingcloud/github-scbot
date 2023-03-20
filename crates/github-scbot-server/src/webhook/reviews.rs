@@ -23,9 +23,8 @@ pub(crate) async fn review_event(
         api_service,
         db_service,
         lock_service,
-        event,
     }
-    .run()
+    .run(event)
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Pull request review."))

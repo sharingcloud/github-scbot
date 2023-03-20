@@ -3,16 +3,15 @@ use github_scbot_database_interface::DbService;
 use crate::Result;
 
 pub struct GenerateExternalAccountTokenUseCase<'a> {
-    pub username: &'a str,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> GenerateExternalAccountTokenUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<String> {
+    pub async fn run(&self, username: &str) -> Result<String> {
         let exa = self
             .db_service
-            .external_accounts_get(self.username)
+            .external_accounts_get(username)
             .await?
             .unwrap();
         exa.generate_access_token().map_err(Into::into)
@@ -42,13 +41,10 @@ mod tests {
         )
         .await?;
 
-        assert!(GenerateExternalAccountTokenUseCase {
-            username: "me",
-            db_service: &db,
-        }
-        .run()
-        .await?
-        .starts_with("ey"));
+        assert!(GenerateExternalAccountTokenUseCase { db_service: &db }
+            .run("me")
+            .await?
+            .starts_with("ey"));
 
         Ok(())
     }

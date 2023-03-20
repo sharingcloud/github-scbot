@@ -1,12 +1,11 @@
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::StepLabel;
+use github_scbot_domain_models::{PullRequestHandle, StepLabel};
 use github_scbot_ghapi_interface::{comments::CommentApi, types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::{LockService, LockStatus};
 
 use super::{
-    build_pull_request_status::BuildPullRequestStatusUseCase,
-    determine_automatic_step::DetermineAutomaticStepUseCase,
-    generate_status_message::GenerateStatusMessageUseCase,
+    build_pull_request_status::BuildPullRequestStatusUseCase, utils::StatusMessageGenerator,
+    StepLabelChooser,
 };
 use crate::{
     use_cases::{
@@ -22,66 +21,51 @@ pub struct UpdatePullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub repo_owner: &'a str,
-    pub repo_name: &'a str,
-    pub pr_number: u64,
-    pub upstream_pr: &'a GhPullRequest,
 }
 
 impl<'a> UpdatePullRequestStatusUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            repo_owner = %self.repo_owner,
-            repo_name = %self.repo_name,
-            pr_number = self.pr_number,
-            head_sha = %self.upstream_pr.head.sha
+            pr_handle,
+            head_sha = %upstream_pr.head.sha
         )
     )]
-    pub async fn run(&mut self) -> Result<()> {
-        let commit_sha = &self.upstream_pr.head.sha;
+    pub async fn run(
+        &self,
+        pr_handle: &PullRequestHandle,
+        upstream_pr: &GhPullRequest,
+    ) -> Result<()> {
+        let commit_sha = &upstream_pr.head.sha;
         let pr_status = BuildPullRequestStatusUseCase {
             api_service: self.api_service,
             db_service: self.db_service,
-            pr_number: self.pr_number,
-            repo_name: self.repo_name,
-            repo_owner: self.repo_owner,
-            upstream_pr: self.upstream_pr,
         }
-        .run()
+        .run(pr_handle, upstream_pr)
         .await?;
 
         // Update step label.
-        let step_label = DetermineAutomaticStepUseCase {
-            pr_status: &pr_status,
-        }
-        .run();
+        let step_label = StepLabelChooser::default().choose_from_status(&pr_status);
 
-        self.apply_pull_request_step(Some(step_label)).await?;
+        self.apply_pull_request_step(pr_handle, Some(step_label))
+            .await?;
 
         // Post status.
         PostSummaryCommentUseCase {
             api_service: self.api_service,
             db_service: self.db_service,
             lock_service: self.lock_service,
-            repo_name: self.repo_name,
-            repo_owner: self.repo_owner,
-            pr_number: self.pr_number,
-            pr_status: &pr_status,
         }
-        .run()
+        .run(pr_handle, &pr_status)
         .await?;
 
         // Create or update status.
-        let status_message = GenerateStatusMessageUseCase {
-            pr_status: &pr_status,
-        }
-        .run()?;
+        let status_message = StatusMessageGenerator::default().generate(&pr_status)?;
 
         self.api_service
             .commit_statuses_update(
-                self.repo_owner,
-                self.repo_name,
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
                 commit_sha,
                 status_message.state,
                 status_message.title,
@@ -91,29 +75,38 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
 
         let pr_model = self
             .db_service
-            .pull_requests_get(self.repo_owner, self.repo_name, self.pr_number)
+            .pull_requests_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
+            )
             .await?
             .unwrap();
 
         // Merge if auto-merge is enabled
         if matches!(step_label, StepLabel::AwaitingMerge)
-            && self.upstream_pr.merged != Some(true)
+            && upstream_pr.merged != Some(true)
             && pr_model.automerge
         {
             // Use lock
             let key = format!(
                 "pr-merge_{}-{}_{}",
-                self.repo_owner, self.repo_name, self.pr_number
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number()
             );
             if let LockStatus::SuccessfullyLocked(l) =
                 self.lock_service.try_lock_resource(&key).await?
             {
-                if !self.try_automerge_pull_request().await? {
+                if !self
+                    .try_automerge_pull_request(pr_handle, upstream_pr)
+                    .await?
+                {
                     self.db_service
                         .pull_requests_set_automerge(
-                            self.repo_owner,
-                            self.repo_name,
-                            self.pr_number,
+                            pr_handle.repository().owner(),
+                            pr_handle.repository().name(),
+                            pr_handle.number(),
                             false,
                         )
                         .await?;
@@ -123,12 +116,8 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
                         api_service: self.api_service,
                         db_service: self.db_service,
                         lock_service: self.lock_service,
-                        repo_name: self.repo_name,
-                        repo_owner: self.repo_owner,
-                        pr_number: self.pr_number,
-                        pr_status: &pr_status,
                     }
-                    .run()
+                    .run(pr_handle, &pr_status)
                     .await?;
                 }
 
@@ -141,37 +130,40 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
 
     /// Apply pull request step.
     #[tracing::instrument(skip(self))]
-    async fn apply_pull_request_step(&mut self, step: Option<StepLabel>) -> Result<()> {
+    async fn apply_pull_request_step(
+        &self,
+        pr_handle: &PullRequestHandle,
+        step: Option<StepLabel>,
+    ) -> Result<()> {
         SetStepLabelUseCase {
             api_service: self.api_service,
-            repo_owner: self.repo_owner,
-            repo_name: self.repo_name,
-            pr_number: self.pr_number,
-            label: step,
         }
-        .run()
+        .run(pr_handle, step)
         .await
         .map_err(Into::into)
     }
 
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            repo_owner = %self.repo_owner,
-            repo_name = %self.repo_name,
-            pr_number = self.pr_number
-        ),
-        ret
-    )]
-    async fn try_automerge_pull_request(&mut self) -> Result<bool> {
+    #[tracing::instrument(skip_all, fields(pr_handle), ret)]
+    async fn try_automerge_pull_request(
+        &self,
+        pr_handle: &PullRequestHandle,
+        upstream_pr: &GhPullRequest,
+    ) -> Result<bool> {
         let repository = self
             .db_service
-            .repositories_get(self.repo_owner, self.repo_name)
+            .repositories_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+            )
             .await?
             .unwrap();
         let pull_request = self
             .db_service
-            .pull_requests_get(self.repo_owner, self.repo_name, self.pr_number)
+            .pull_requests_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
+            )
             .await?
             .unwrap();
 
@@ -180,34 +172,29 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
         } else {
             DeterminePullRequestMergeStrategyUseCase {
                 db_service: self.db_service,
-                repo_owner: self.repo_owner,
-                repo_name: self.repo_name,
-                head_branch: &self.upstream_pr.base.reference,
-                base_branch: &self.upstream_pr.head.reference,
-                default_strategy: repository.default_strategy,
             }
-            .run()
+            .run(
+                pr_handle.repository(),
+                &upstream_pr.base.reference,
+                &upstream_pr.head.reference,
+                repository.default_strategy,
+            )
             .await?
         };
 
         let merge_result = MergePullRequestUseCase {
             api_service: self.api_service,
-            repo_name: self.repo_name,
-            repo_owner: self.repo_owner,
-            pr_number: self.pr_number,
-            merge_strategy: strategy,
-            upstream_pr: self.upstream_pr,
         }
-        .run()
+        .run(pr_handle, strategy, upstream_pr)
         .await;
 
         match merge_result {
             Ok(()) => {
                 CommentApi::post_comment(
                     self.api_service,
-                    self.repo_owner,
-                    self.repo_name,
-                    self.pr_number,
+                    pr_handle.repository().owner(),
+                    pr_handle.repository().name(),
+                    pr_handle.number(),
                     &format!(
                         "Pull request successfully auto-merged! (strategy: '{}')",
                         strategy
@@ -219,9 +206,9 @@ impl<'a> UpdatePullRequestStatusUseCase<'a> {
             Err(e) => {
                 CommentApi::post_comment(
                     self.api_service,
-                    self.repo_owner,
-                    self.repo_name,
-                    self.pr_number,
+                    pr_handle.repository().owner(),
+                    pr_handle.repository().name(),
+                    pr_handle.number(),
                     &format!(
                         "Could not auto-merge this pull request: _{}_\nAuto-merge disabled",
                         e
@@ -342,12 +329,8 @@ mod tests {
             api_service: &api_service,
             db_service: &db_service,
             lock_service: &lock_service,
-            pr_number: 1,
-            repo_owner: "me",
-            repo_name: "test",
-            upstream_pr: &upstream_pr,
         }
-        .run()
+        .run(&("me", "test", 1).into(), &upstream_pr)
         .await
         .unwrap();
     }
@@ -485,12 +468,8 @@ mod tests {
             api_service: &api_service,
             db_service: &db_service,
             lock_service: &lock_service,
-            pr_number: 1,
-            repo_owner: "me",
-            repo_name: "test",
-            upstream_pr: &upstream_pr,
         }
-        .run()
+        .run(&("me", "test", 1).into(), &upstream_pr)
         .await
         .unwrap();
     }
@@ -640,12 +619,8 @@ mod tests {
             api_service: &api_service,
             db_service: &db_service,
             lock_service: &lock_service,
-            pr_number: 1,
-            repo_owner: "me",
-            repo_name: "test",
-            upstream_pr: &upstream_pr,
         }
-        .run()
+        .run(&("me", "test", 1).into(), &upstream_pr)
         .await
         .unwrap();
 

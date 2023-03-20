@@ -10,7 +10,7 @@ use crate::{
     },
     use_cases::{
         pulls::MergePullRequestUseCase,
-        status::{BuildPullRequestStatusUseCase, DetermineAutomaticStepUseCase},
+        status::{BuildPullRequestStatusUseCase, StepLabelChooser},
     },
     Result,
 };
@@ -35,18 +35,11 @@ impl BotCommand for MergeCommand {
         let pr_status = BuildPullRequestStatusUseCase {
             api_service: ctx.api_service,
             db_service: ctx.db_service,
-            pr_number: ctx.pr_number,
-            repo_name: ctx.repo_name,
-            repo_owner: ctx.repo_owner,
-            upstream_pr: ctx.upstream_pr,
         }
-        .run()
+        .run(&ctx.pr_handle(), ctx.upstream_pr)
         .await?;
 
-        let step = DetermineAutomaticStepUseCase {
-            pr_status: &pr_status,
-        }
-        .run();
+        let step = StepLabelChooser::default().choose_from_status(&pr_status);
 
         let mut actions = vec![];
 
@@ -55,13 +48,8 @@ impl BotCommand for MergeCommand {
             let strategy = self.strategy.unwrap_or(pr_status.merge_strategy);
             let merge_result = MergePullRequestUseCase {
                 api_service: ctx.api_service,
-                repo_name: ctx.repo_name,
-                repo_owner: ctx.repo_owner,
-                pr_number: ctx.pr_number,
-                merge_strategy: strategy,
-                upstream_pr: ctx.upstream_pr,
             }
-            .run()
+            .run(&ctx.pr_handle(), strategy, ctx.upstream_pr)
             .await;
 
             match merge_result {

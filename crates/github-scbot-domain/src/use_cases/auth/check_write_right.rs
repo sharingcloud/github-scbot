@@ -5,22 +5,19 @@ use super::check_is_admin::CheckIsAdminUseCase;
 use crate::Result;
 
 pub struct CheckWriteRightUseCase<'a> {
-    pub username: &'a str,
-    pub user_permission: GhUserPermission,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> CheckWriteRightUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username, self.user_permission), ret)]
-    pub async fn run(&mut self) -> Result<bool> {
+    #[tracing::instrument(skip(self), fields(username, user_permission), ret)]
+    pub async fn run(&self, username: &str, user_permission: GhUserPermission) -> Result<bool> {
         let is_admin = CheckIsAdminUseCase {
-            username: self.username,
             db_service: self.db_service,
         }
-        .run()
+        .run(username)
         .await?;
 
-        Ok(is_admin || self.user_permission.can_write())
+        Ok(is_admin || user_permission.can_write())
     }
 }
 
@@ -46,13 +43,9 @@ mod tests {
         .await?;
 
         assert!(
-            !CheckWriteRightUseCase {
-                username: "me",
-                user_permission: GhUserPermission::Read,
-                db_service: &db,
-            }
-            .run()
-            .await?
+            !CheckWriteRightUseCase { db_service: &db }
+                .run("me", GhUserPermission::Read)
+                .await?
         );
 
         Ok(())
@@ -69,13 +62,9 @@ mod tests {
         .await?;
 
         assert!(
-            CheckWriteRightUseCase {
-                username: "me",
-                user_permission: GhUserPermission::Read,
-                db_service: &db,
-            }
-            .run()
-            .await?
+            CheckWriteRightUseCase { db_service: &db }
+                .run("me", GhUserPermission::Read)
+                .await?
         );
 
         Ok(())
@@ -92,13 +81,9 @@ mod tests {
         .await?;
 
         assert!(
-            CheckWriteRightUseCase {
-                username: "me",
-                user_permission: GhUserPermission::Write,
-                db_service: &db,
-            }
-            .run()
-            .await?
+            CheckWriteRightUseCase { db_service: &db }
+                .run("me", GhUserPermission::Write)
+                .await?
         );
 
         Ok(())
@@ -115,13 +100,9 @@ mod tests {
         .await?;
 
         assert!(
-            CheckWriteRightUseCase {
-                username: "me",
-                user_permission: GhUserPermission::Write,
-                db_service: &db,
-            }
-            .run()
-            .await?
+            CheckWriteRightUseCase { db_service: &db }
+                .run("me", GhUserPermission::Write)
+                .await?
         );
 
         Ok(())

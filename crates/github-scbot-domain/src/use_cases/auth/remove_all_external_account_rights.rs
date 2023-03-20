@@ -3,15 +3,14 @@ use github_scbot_database_interface::DbService;
 use crate::Result;
 
 pub struct RemoveAllExternalAccountRightsUseCase<'a> {
-    pub username: String,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveAllExternalAccountRightsUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(&self, username: &str) -> Result<()> {
         self.db_service
-            .external_account_rights_delete_all(&self.username)
+            .external_account_rights_delete_all(username)
             .await?;
 
         Ok(())
@@ -52,12 +51,9 @@ mod tests {
         })
         .await?;
 
-        RemoveAllExternalAccountRightsUseCase {
-            username: "acc".into(),
-            db_service: &db,
-        }
-        .run()
-        .await?;
+        RemoveAllExternalAccountRightsUseCase { db_service: &db }
+            .run("acc")
+            .await?;
 
         assert_eq!(
             db.external_account_rights_get("owner", "name", "acc")

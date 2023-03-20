@@ -23,7 +23,7 @@ pub(crate) struct RepositorySetDefaultReviewersCountCommand {
 impl Command for RepositorySetDefaultReviewersCountCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
-        let _repo = CliDbExt::get_existing_repository(ctx.db_service.as_mut(), owner, name).await?;
+        let _repo = CliDbExt::get_existing_repository(ctx.db_service.as_ref(), owner, name).await?;
 
         ctx.db_service
             .repositories_set_default_needed_reviewers_count(owner, name, self.reviewers_count)

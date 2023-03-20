@@ -23,9 +23,8 @@ pub(crate) async fn check_suite_event(
         api_service,
         db_service,
         lock_service,
-        event,
     }
-    .run()
+    .run(event)
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
 

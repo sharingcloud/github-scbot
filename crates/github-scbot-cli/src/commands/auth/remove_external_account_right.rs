@@ -18,11 +18,9 @@ pub(crate) struct AuthRemoveExternalAccountRightCommand {
 impl AuthRemoveExternalAccountRightCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveExternalAccountRightUseCase {
-            username: self.username.clone(),
-            repository_path: self.repository_path.clone(),
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
-        .run()
+        .run(&self.repository_path, &self.username)
         .await?;
 
         writeln!(

@@ -1,6 +1,6 @@
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::PullRequest;
+use github_scbot_domain_models::{PullRequest, PullRequestHandle};
 
 use super::GetOrCreateRepositoryUseCase;
 use crate::Result;
@@ -8,33 +8,32 @@ use crate::Result;
 pub struct SynchronizePullRequestUseCase<'a> {
     pub config: &'a Config,
     pub db_service: &'a dyn DbService,
-    pub repo_owner: &'a str,
-    pub repo_name: &'a str,
-    pub pr_number: u64,
 }
 
 impl<'a> SynchronizePullRequestUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number))]
-    pub async fn run(&mut self) -> Result<()> {
+    #[tracing::instrument(skip(self), fields(pr_handle))]
+    pub async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()> {
         let repo = GetOrCreateRepositoryUseCase {
             db_service: self.db_service,
             config: self.config,
-            repo_name: self.repo_name,
-            repo_owner: self.repo_owner,
         }
-        .run()
+        .run(pr_handle.repository())
         .await?;
 
         if self
             .db_service
-            .pull_requests_get(self.repo_owner, self.repo_name, self.pr_number)
+            .pull_requests_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
+            )
             .await?
             .is_none()
         {
             self.db_service
                 .pull_requests_create(
                     PullRequest {
-                        number: self.pr_number,
+                        number: pr_handle.number(),
                         ..Default::default()
                     }
                     .with_repository(&repo),
@@ -63,11 +62,8 @@ mod tests {
         SynchronizePullRequestUseCase {
             db_service: &db_service,
             config: &config,
-            repo_owner: "me",
-            repo_name: "test",
-            pr_number: 1,
         }
-        .run()
+        .run(&("me", "test", 1).into())
         .await
         .unwrap();
 

@@ -20,10 +20,10 @@ pub(crate) struct ImportCommand {
 
 #[async_trait(?Send)]
 impl Command for ImportCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         let file = File::open(&self.input_file)?;
         let reader = BufReader::new(file);
-        Exchanger::import_from_json(ctx.db_service.as_mut(), reader).await?;
+        Exchanger::import_from_json(ctx.db_service.as_ref(), reader).await?;
 
         Ok(())
     }

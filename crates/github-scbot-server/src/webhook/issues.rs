@@ -26,9 +26,8 @@ pub(crate) async fn issue_comment_event(
         api_service,
         db_service,
         lock_service,
-        event,
     }
-    .run()
+    .run(event)
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Issue comment."))

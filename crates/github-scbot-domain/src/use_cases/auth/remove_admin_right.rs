@@ -4,23 +4,22 @@ use github_scbot_domain_models::Account;
 use crate::Result;
 
 pub struct RemoveAdminRightUseCase<'a> {
-    pub username: String,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveAdminRightUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<()> {
-        match self.db_service.accounts_get(&self.username).await? {
+    pub async fn run(&self, username: &str) -> Result<()> {
+        match self.db_service.accounts_get(username).await? {
             Some(_) => {
                 self.db_service
-                    .accounts_set_is_admin(&self.username, false)
+                    .accounts_set_is_admin(username, false)
                     .await?
             }
             None => {
                 self.db_service
                     .accounts_create(Account {
-                        username: self.username.clone(),
+                        username: username.to_string(),
                         is_admin: false,
                     })
                     .await?
@@ -51,12 +50,9 @@ mod tests {
         })
         .await?;
 
-        RemoveAdminRightUseCase {
-            username: "acc".into(),
-            db_service: &db,
-        }
-        .run()
-        .await?;
+        RemoveAdminRightUseCase { db_service: &db }
+            .run("acc")
+            .await?;
 
         assert!(!db.accounts_get_expect("acc").await?.is_admin);
 

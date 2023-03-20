@@ -28,13 +28,10 @@ impl Command for PullRequestSyncCommand {
         SynchronizePullRequestAndUpdateStatusUseCase {
             api_service: ctx.api_service.as_ref(),
             config: &ctx.config,
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
             lock_service: ctx.lock_service.as_ref(),
-            pr_number: self.number,
-            repo_name,
-            repo_owner,
         }
-        .run()
+        .run(&(repo_owner, repo_name, self.number).into())
         .await?;
 
         writeln!(

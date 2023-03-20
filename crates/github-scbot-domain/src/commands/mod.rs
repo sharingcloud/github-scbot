@@ -100,12 +100,8 @@ impl CommandExecutor {
                 api_service: ctx.api_service,
                 db_service: ctx.db_service,
                 lock_service: ctx.lock_service,
-                repo_owner: ctx.repo_owner,
-                repo_name: ctx.repo_name,
-                pr_number: ctx.pr_number,
-                upstream_pr: &upstream_pr,
             }
-            .run()
+            .run(&ctx.pr_handle(), &upstream_pr)
             .await?;
         }
 
@@ -348,23 +344,12 @@ impl CommandExecutor {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
                 _ => {
-                    CheckWriteRightUseCase {
-                        username,
-                        user_permission,
-                        db_service,
-                    }
-                    .run()
-                    .await
+                    CheckWriteRightUseCase { db_service }
+                        .run(username, user_permission)
+                        .await
                 }
             },
-            Command::Admin(_) => {
-                CheckIsAdminUseCase {
-                    username,
-                    db_service,
-                }
-                .run()
-                .await
-            }
+            Command::Admin(_) => CheckIsAdminUseCase { db_service }.run(username).await,
         }
     }
 }

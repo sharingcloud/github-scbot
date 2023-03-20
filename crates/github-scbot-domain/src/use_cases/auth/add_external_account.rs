@@ -4,17 +4,16 @@ use github_scbot_domain_models::ExternalAccount;
 use crate::Result;
 
 pub struct AddExternalAccountUseCase<'a> {
-    pub username: &'a str,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> AddExternalAccountUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(&self, username: &str) -> Result<()> {
         self.db_service
             .external_accounts_create(
                 ExternalAccount {
-                    username: self.username.into(),
+                    username: username.into(),
                     ..Default::default()
                 }
                 .with_generated_keys(),
@@ -38,12 +37,9 @@ mod tests {
     async fn run() -> Result<(), Box<dyn Error>> {
         let db = MemoryDb::new();
 
-        AddExternalAccountUseCase {
-            username: "me",
-            db_service: &db,
-        }
-        .run()
-        .await?;
+        AddExternalAccountUseCase { db_service: &db }
+            .run("me")
+            .await?;
 
         assert!(db.external_accounts_get("me").await?.is_some());
 

@@ -3,16 +3,15 @@ use github_scbot_database_interface::DbService;
 use crate::Result;
 
 pub struct CheckIsAdminUseCase<'a> {
-    pub username: &'a str,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> CheckIsAdminUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username), ret)]
-    pub async fn run(&mut self) -> Result<bool> {
+    pub async fn run(&self, username: &str) -> Result<bool> {
         let known_admins: Vec<_> = self.db_service.accounts_list_admins().await?;
 
-        Ok(known_admins.iter().any(|acc| acc.username == self.username))
+        Ok(known_admins.iter().any(|acc| acc.username == username))
     }
 }
 
@@ -36,14 +35,7 @@ mod tests {
         })
         .await?;
 
-        assert!(
-            CheckIsAdminUseCase {
-                username: "me",
-                db_service: &db,
-            }
-            .run()
-            .await?
-        );
+        assert!(CheckIsAdminUseCase { db_service: &db }.run("me").await?);
 
         Ok(())
     }
@@ -58,14 +50,7 @@ mod tests {
         })
         .await?;
 
-        assert!(
-            !CheckIsAdminUseCase {
-                username: "me",
-                db_service: &db,
-            }
-            .run()
-            .await?
-        );
+        assert!(!CheckIsAdminUseCase { db_service: &db }.run("me").await?);
 
         Ok(())
     }

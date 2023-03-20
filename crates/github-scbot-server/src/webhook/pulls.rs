@@ -38,9 +38,8 @@ pub(crate) async fn pull_request_event(
             db_service,
             config,
             lock_service,
-            event,
         }
-        .run()
+        .run(event)
         .await
         .map_err(|e| ServerError::DomainError { source: e })?;
     } else {
@@ -48,9 +47,8 @@ pub(crate) async fn pull_request_event(
             api_service,
             db_service,
             lock_service,
-            event,
         }
-        .run()
+        .run(event)
         .await
         .map_err(|e| ServerError::DomainError { source: e })?;
     }

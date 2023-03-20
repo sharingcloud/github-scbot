@@ -21,16 +21,16 @@ pub(crate) struct ExportCommand {
 
 #[async_trait(?Send)]
 impl Command for ExportCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         if let Some(file_path) = self.output_file {
             let file = File::create(file_path.clone())?;
             let mut writer = BufWriter::new(file);
-            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         } else {
             let mut writer = std::io::stdout();
-            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         }

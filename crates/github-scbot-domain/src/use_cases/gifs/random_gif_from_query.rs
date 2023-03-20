@@ -19,7 +19,6 @@ const GIF_KEYS: &[GifFormat] = &[
 pub struct RandomGifFromQueryUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub search: &'a str,
 }
 
 impl<'a> RandomGifFromQueryUseCase<'a> {
@@ -50,10 +49,10 @@ impl<'a> RandomGifFromQueryUseCase<'a> {
     }
 
     #[tracing::instrument(skip(self), fields(self.search), ret)]
-    pub async fn run(&mut self) -> Result<Option<String>> {
+    pub async fn run(&self, search: &str) -> Result<Option<String>> {
         Ok(Self::random_gif_from_response(
             self.api_service
-                .gif_search(&self.config.tenor_api_key, self.search)
+                .gif_search(&self.config.tenor_api_key, search)
                 .await?,
         ))
     }

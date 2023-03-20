@@ -15,10 +15,9 @@ pub(crate) struct AuthRemoveExternalAccountCommand {
 impl AuthRemoveExternalAccountCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveExternalAccountUseCase {
-            username: self.username.clone(),
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
-        .run()
+        .run(&self.username)
         .await?;
 
         writeln!(ctx.writer, "External account '{}' removed.", self.username)?;

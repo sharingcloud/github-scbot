@@ -12,7 +12,7 @@ pub(crate) struct AuthListAdminAccountsCommand;
 impl AuthListAdminAccountsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let accounts = ListAdminAccountsUseCase {
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
         .run()
         .await?;

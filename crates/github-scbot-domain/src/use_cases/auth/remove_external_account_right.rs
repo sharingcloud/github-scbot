@@ -4,18 +4,16 @@ use github_scbot_domain_models::RepositoryPath;
 use crate::Result;
 
 pub struct RemoveExternalAccountRightUseCase<'a> {
-    pub username: String,
-    pub repository_path: RepositoryPath,
     pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveExternalAccountRightUseCase<'a> {
     #[tracing::instrument(skip(self), fields(self.username, self.repository_path))]
-    pub async fn run(&mut self) -> Result<()> {
-        let (owner, name) = self.repository_path.components();
+    pub async fn run(&self, repository_path: &RepositoryPath, username: &str) -> Result<()> {
+        let (owner, name) = repository_path.components();
 
         self.db_service
-            .external_account_rights_delete(owner, name, &self.username)
+            .external_account_rights_delete(owner, name, username)
             .await?;
 
         Ok(())
@@ -28,9 +26,7 @@ mod tests {
 
     use github_scbot_database_interface::DbService;
     use github_scbot_database_memory::MemoryDb;
-    use github_scbot_domain_models::{
-        ExternalAccount, ExternalAccountRight, Repository, RepositoryPath,
-    };
+    use github_scbot_domain_models::{ExternalAccount, ExternalAccountRight, Repository};
 
     use super::RemoveExternalAccountRightUseCase;
 
@@ -58,13 +54,9 @@ mod tests {
         })
         .await?;
 
-        RemoveExternalAccountRightUseCase {
-            repository_path: RepositoryPath::new_from_components("owner", "name"),
-            username: "acc".into(),
-            db_service: &db,
-        }
-        .run()
-        .await?;
+        RemoveExternalAccountRightUseCase { db_service: &db }
+            .run(&("owner", "name").into(), "acc")
+            .await?;
 
         assert_eq!(
             db.external_account_rights_get("owner", "name", "acc")

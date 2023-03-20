@@ -30,7 +30,7 @@ pub(crate) async fn set_qa_status(
     data: web::Json<QaStatusJson>,
     auth: BearerAuth,
 ) -> Result<HttpResponse> {
-    let target_account = extract_account_from_auth(ctx.db_service.lock().await.as_mut(), &auth)
+    let target_account = extract_account_from_auth(ctx.db_service.lock().await.as_ref(), &auth)
         .await
         .map_err(actix_web::Error::from)?;
 
@@ -52,15 +52,16 @@ pub(crate) async fn set_qa_status(
     SetPullRequestQaStatusUseCase {
         config: &ctx.config,
         api_service: ctx.api_service.as_ref(),
-        db_service: ctx.db_service.lock().await.as_mut(),
+        db_service: ctx.db_service.lock().await.as_ref(),
         lock_service: ctx.lock_service.as_ref(),
-        external_account: &target_account,
-        repository_path: repo_path,
-        pull_request_numbers: &data.pull_request_numbers,
-        author: &data.author,
-        status,
     }
-    .run()
+    .run(
+        &target_account,
+        repo_path,
+        &data.pull_request_numbers,
+        &data.author,
+        status,
+    )
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
 
