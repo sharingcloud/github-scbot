@@ -6,7 +6,7 @@ use crate::Result;
 
 pub struct DeleteSummaryCommentUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,

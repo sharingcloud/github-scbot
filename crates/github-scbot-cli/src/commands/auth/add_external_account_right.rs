@@ -44,7 +44,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         ctx.db_service
             .repositories_create(Repository {
                 owner: "me".into(),

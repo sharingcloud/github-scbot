@@ -4,7 +4,7 @@ use crate::Result;
 
 pub struct CheckIsAdminUseCase<'a> {
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> CheckIsAdminUseCase<'a> {
@@ -28,7 +28,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -39,7 +39,7 @@ mod tests {
         assert!(
             CheckIsAdminUseCase {
                 username: "me",
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?
@@ -50,7 +50,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_not_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -61,7 +61,7 @@ mod tests {
         assert!(
             !CheckIsAdminUseCase {
                 username: "me",
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?

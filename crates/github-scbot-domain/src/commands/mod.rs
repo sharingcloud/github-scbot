@@ -339,7 +339,7 @@ impl CommandExecutor {
 
     /// Validate user rights on command.
     pub async fn validate_user_rights_on_command(
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         username: &str,
         user_permission: GhUserPermission,
         command: &Command,

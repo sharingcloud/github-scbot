@@ -14,7 +14,7 @@ pub use user::*;
 pub struct CommandContext<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,

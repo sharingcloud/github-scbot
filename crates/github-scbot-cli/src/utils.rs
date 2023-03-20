@@ -6,7 +6,7 @@ pub struct CliDbExt;
 
 impl CliDbExt {
     pub async fn get_existing_repository(
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         owner: &str,
         name: &str,
     ) -> Result<Repository> {
@@ -19,7 +19,7 @@ impl CliDbExt {
     }
 
     pub async fn get_existing_pull_request(
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         owner: &str,
         name: &str,
         number: u64,

@@ -17,7 +17,7 @@ pub(crate) fn parse_issue_comment_event(body: &str) -> Result<GhIssueCommentEven
 pub(crate) async fn issue_comment_event(
     config: &Config,
     api_service: &dyn ApiService,
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     lock_service: &dyn LockService,
     event: GhIssueCommentEvent,
 ) -> Result<HttpResponse> {

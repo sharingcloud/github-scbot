@@ -6,7 +6,7 @@ use crate::Result;
 pub struct AddExternalAccountRightUseCase<'a> {
     pub repository_path: RepositoryPath,
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> AddExternalAccountRightUseCase<'a> {
@@ -41,7 +41,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let repository = db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
@@ -59,7 +59,7 @@ mod tests {
         AddExternalAccountRightUseCase {
             repository_path: repository.path(),
             username: "me",
-            db_service: &mut db_service,
+            db_service: &db_service,
         }
         .run()
         .await?;

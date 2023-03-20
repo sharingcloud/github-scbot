@@ -5,7 +5,7 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn create() {
-    db_test_case("required_reviewer_create", |mut db| async move {
+    db_test_case("required_reviewer_create", |db| async move {
         let repo = db
             .repositories_create(Repository {
                 owner: "owner".into(),
@@ -48,7 +48,7 @@ async fn create() {
 
 #[tokio::test]
 async fn list() {
-    db_test_case("required_reviewer_list", |mut db| async move {
+    db_test_case("required_reviewer_list", |db| async move {
         assert_eq!(db.required_reviewers_list("me", "repo", 1).await?, vec![]);
 
         let repo = db
@@ -91,7 +91,7 @@ async fn list() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("required_reviewer_all", |mut db| async move {
+    db_test_case("required_reviewer_all", |db| async move {
         assert_eq!(db.required_reviewers_all().await?, vec![]);
 
         let repo = db
@@ -144,7 +144,7 @@ async fn all() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("required_reviewer_get", |mut db| async move {
+    db_test_case("required_reviewer_get", |db| async move {
         assert_eq!(
             db.required_reviewers_get("owner", "name", 1, "me").await?,
             None
@@ -184,7 +184,7 @@ async fn get() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("required_reviewer_delete", |mut db| async move {
+    db_test_case("required_reviewer_delete", |db| async move {
         assert!(
             !db.required_reviewers_delete("owner", "name", 1, "me")
                 .await?
@@ -227,70 +227,64 @@ async fn delete() {
 
 #[tokio::test]
 async fn cascade_pull_request() {
-    db_test_case(
-        "required_reviewer_cascade_pull_request",
-        |mut db| async move {
-            let repo = db
-                .repositories_create(Repository {
-                    owner: "owner".into(),
-                    name: "name".into(),
-                    ..Default::default()
-                })
-                .await?;
-            let pr = db
-                .pull_requests_create(PullRequest {
-                    repository_id: repo.id,
-                    number: 1,
-                    ..Default::default()
-                })
-                .await?;
-
-            db.required_reviewers_create(RequiredReviewer {
-                pull_request_id: pr.id,
-                username: "me".into(),
+    db_test_case("required_reviewer_cascade_pull_request", |db| async move {
+        let repo = db
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+        let pr = db
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
             })
             .await?;
 
-            db.pull_requests_delete("owner", "name", 1).await?;
-            assert_eq!(db.required_reviewers_all().await?, vec![]);
+        db.required_reviewers_create(RequiredReviewer {
+            pull_request_id: pr.id,
+            username: "me".into(),
+        })
+        .await?;
 
-            Ok(())
-        },
-    )
+        db.pull_requests_delete("owner", "name", 1).await?;
+        assert_eq!(db.required_reviewers_all().await?, vec![]);
+
+        Ok(())
+    })
     .await;
 }
 
 #[tokio::test]
 async fn cascade_repository() {
-    db_test_case(
-        "required_reviewer_cascade_repository",
-        |mut db| async move {
-            let repo = db
-                .repositories_create(Repository {
-                    owner: "owner".into(),
-                    name: "name".into(),
-                    ..Default::default()
-                })
-                .await?;
-            let pr = db
-                .pull_requests_create(PullRequest {
-                    repository_id: repo.id,
-                    number: 1,
-                    ..Default::default()
-                })
-                .await?;
-
-            db.required_reviewers_create(RequiredReviewer {
-                pull_request_id: pr.id,
-                username: "me".into(),
+    db_test_case("required_reviewer_cascade_repository", |db| async move {
+        let repo = db
+            .repositories_create(Repository {
+                owner: "owner".into(),
+                name: "name".into(),
+                ..Default::default()
+            })
+            .await?;
+        let pr = db
+            .pull_requests_create(PullRequest {
+                repository_id: repo.id,
+                number: 1,
+                ..Default::default()
             })
             .await?;
 
-            db.repositories_delete("owner", "name").await?;
-            assert_eq!(db.required_reviewers_all().await?, vec![]);
+        db.required_reviewers_create(RequiredReviewer {
+            pull_request_id: pr.id,
+            username: "me".into(),
+        })
+        .await?;
 
-            Ok(())
-        },
-    )
+        db.repositories_delete("owner", "name").await?;
+        assert_eq!(db.required_reviewers_all().await?, vec![]);
+
+        Ok(())
+    })
     .await;
 }

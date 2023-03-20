@@ -18,7 +18,7 @@ use crate::{
 pub struct SetPullRequestQaStatusUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
     pub external_account: &'a ExternalAccount,
     pub repository_path: RepositoryPath,

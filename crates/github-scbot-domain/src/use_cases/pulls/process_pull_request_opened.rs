@@ -25,7 +25,7 @@ pub enum PullRequestOpenedStatus {
 pub struct ProcessPullRequestOpenedUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
     pub event: GhPullRequestEvent,
 }
@@ -258,13 +258,13 @@ mod tests {
     async fn no_manual_interaction() {
         let config = Config::from_env();
         let api_service = prepare_api_service_calls();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = prepare_lock_service_calls();
 
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
+            db_service: &db_service,
             event: GhPullRequestEvent {
                 pull_request: GhPullRequest {
                     number: 1,
@@ -289,7 +289,7 @@ mod tests {
     async fn already_created() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         let repo = db_service
@@ -313,7 +313,7 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
+            db_service: &db_service,
             event: GhPullRequestEvent {
                 pull_request: GhPullRequest {
                     number: 1,
@@ -341,7 +341,7 @@ mod tests {
     async fn manual_interaction_without_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         db_service
@@ -357,7 +357,7 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
+            db_service: &db_service,
             event: GhPullRequestEvent {
                 pull_request: GhPullRequest {
                     number: 1,
@@ -382,7 +382,7 @@ mod tests {
     async fn manual_interaction_with_wrong_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         db_service
@@ -398,7 +398,7 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
+            db_service: &db_service,
             event: GhPullRequestEvent {
                 pull_request: GhPullRequest {
                     number: 1,
@@ -424,7 +424,7 @@ mod tests {
     async fn manual_interaction_with_enable_comment_non_admin_user() {
         let config = Config::from_env();
         let mut api_service = prepare_api_service_calls();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = prepare_lock_service_calls();
 
         db_service
@@ -446,7 +446,7 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
+            db_service: &db_service,
             event: GhPullRequestEvent {
                 pull_request: GhPullRequest {
                     number: 1,

@@ -65,7 +65,7 @@ impl PullRequestStatus {
     )]
     pub async fn from_database(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -243,7 +243,7 @@ mod tests {
     #[tokio::test]
     async fn blank_no_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -280,7 +280,7 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
+            &db_service,
             "me",
             "test",
             1,
@@ -314,7 +314,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -362,7 +362,7 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
+            &db_service,
             "me",
             "test",
             1,
@@ -396,7 +396,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -444,7 +444,7 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
+            &db_service,
             "me",
             "test",
             1,
@@ -478,7 +478,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_qa_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -534,7 +534,7 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
+            &db_service,
             "me",
             "test",
             1,

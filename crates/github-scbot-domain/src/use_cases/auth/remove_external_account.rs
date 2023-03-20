@@ -4,7 +4,7 @@ use crate::Result;
 
 pub struct RemoveExternalAccountUseCase<'a> {
     pub username: String,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveExternalAccountUseCase<'a> {
@@ -30,7 +30,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.external_accounts_create(ExternalAccount {
             username: "acc".into(),
@@ -40,7 +40,7 @@ mod tests {
 
         RemoveExternalAccountUseCase {
             username: "acc".into(),
-            db_service: &mut db,
+            db_service: &db,
         }
         .run()
         .await?;

@@ -7,7 +7,7 @@ use crate::Result;
 
 pub struct SynchronizePullRequestUseCase<'a> {
     pub config: &'a Config,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
     pub pr_number: u64,
@@ -58,10 +58,10 @@ mod tests {
         let mut config = Config::from_env();
         config.default_needed_reviewers_count = 0;
 
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         SynchronizePullRequestUseCase {
-            db_service: &mut db_service,
+            db_service: &db_service,
             config: &config,
             repo_owner: "me",
             repo_name: "test",

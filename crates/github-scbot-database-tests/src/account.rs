@@ -5,27 +5,24 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn default_account_is_not_admin() {
-    db_test_case(
-        "account_default_account_is_not_admin",
-        |mut db| async move {
-            let account = db
-                .accounts_create(Account {
-                    username: "me".into(),
-                    ..Default::default()
-                })
-                .await?;
-            assert_eq!(account.username, "me");
-            assert!(!account.is_admin);
+    db_test_case("account_default_account_is_not_admin", |db| async move {
+        let account = db
+            .accounts_create(Account {
+                username: "me".into(),
+                ..Default::default()
+            })
+            .await?;
+        assert_eq!(account.username, "me");
+        assert!(!account.is_admin);
 
-            Ok(())
-        },
-    )
+        Ok(())
+    })
     .await;
 }
 
 #[tokio::test]
 async fn create() {
-    db_test_case("account_create", |mut db| async move {
+    db_test_case("account_create", |db| async move {
         let account = db
             .accounts_create(Account {
                 username: "me".into(),
@@ -41,7 +38,7 @@ async fn create() {
 
 #[tokio::test]
 async fn update() {
-    db_test_case("account_update", |mut db| async move {
+    db_test_case("account_update", |db| async move {
         db.accounts_create(Account {
             username: "me".into(),
             is_admin: false,
@@ -63,7 +60,7 @@ async fn update() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("account_get", |mut db| async move {
+    db_test_case("account_get", |db| async move {
         assert_eq!(db.accounts_get("me").await?, None);
 
         let account = db
@@ -83,7 +80,7 @@ async fn get() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("account_delete", |mut db| async move {
+    db_test_case("account_delete", |db| async move {
         assert!(!db.accounts_delete("me").await?);
 
         db.accounts_create(Account {
@@ -102,7 +99,7 @@ async fn delete() {
 
 #[tokio::test]
 async fn list_admins() {
-    db_test_case("account_list_admins", |mut db| async move {
+    db_test_case("account_list_admins", |db| async move {
         assert_eq!(db.accounts_list_admins().await?, vec![]);
 
         db.accounts_create(Account {
@@ -133,7 +130,7 @@ async fn list_admins() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("account_all", |mut db| async move {
+    db_test_case("account_all", |db| async move {
         assert_eq!(db.accounts_all().await?, vec![]);
 
         let account1 = db
@@ -165,7 +162,7 @@ async fn all() {
 
 #[tokio::test]
 async fn set_is_admin() {
-    db_test_case("account_set_is_admin", |mut db| async move {
+    db_test_case("account_set_is_admin", |db| async move {
         assert!(matches!(
             db.accounts_set_is_admin("me", true).await,
             Err(DatabaseError::UnknownAccount(_))

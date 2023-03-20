@@ -5,7 +5,7 @@ use github_scbot_domain_models::Repository;
 use crate::Result;
 
 pub struct GetOrCreateRepositoryUseCase<'a> {
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub repo_name: &'a str,
     pub repo_owner: &'a str,
     pub config: &'a Config,

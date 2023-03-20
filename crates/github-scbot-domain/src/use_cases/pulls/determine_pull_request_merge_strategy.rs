@@ -4,7 +4,7 @@ use github_scbot_domain_models::MergeStrategy;
 use crate::Result;
 
 pub struct DeterminePullRequestMergeStrategyUseCase<'a> {
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub repo_name: &'a str,
     pub repo_owner: &'a str,
     pub base_branch: &'a str,

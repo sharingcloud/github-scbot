@@ -4,7 +4,7 @@ use crate::Result;
 
 pub struct GenerateExternalAccountTokenUseCase<'a> {
     pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> GenerateExternalAccountTokenUseCase<'a> {
@@ -31,7 +31,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.external_accounts_create(
             ExternalAccount {
@@ -44,7 +44,7 @@ mod tests {
 
         assert!(GenerateExternalAccountTokenUseCase {
             username: "me",
-            db_service: &mut db,
+            db_service: &db,
         }
         .run()
         .await?

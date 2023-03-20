@@ -5,7 +5,7 @@ use crate::Result;
 
 pub struct RemoveAdminRightUseCase<'a> {
     pub username: String,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveAdminRightUseCase<'a> {
@@ -43,7 +43,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "acc".into(),
@@ -53,7 +53,7 @@ mod tests {
 
         RemoveAdminRightUseCase {
             username: "acc".into(),
-            db_service: &mut db,
+            db_service: &db,
         }
         .run()
         .await?;

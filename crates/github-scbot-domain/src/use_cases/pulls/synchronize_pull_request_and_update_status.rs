@@ -8,7 +8,7 @@ use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 
 pub struct SynchronizePullRequestAndUpdateStatusUseCase<'a> {
     pub config: &'a Config,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub api_service: &'a dyn ApiService,
     pub lock_service: &'a dyn LockService,
     pub repo_owner: &'a str,

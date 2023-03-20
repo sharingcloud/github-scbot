@@ -15,7 +15,7 @@ pub(crate) fn parse_check_suite_event(body: &str) -> Result<GhCheckSuiteEvent> {
 
 pub(crate) async fn check_suite_event(
     api_service: &dyn ApiService,
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     lock_service: &dyn LockService,
     event: GhCheckSuiteEvent,
 ) -> Result<HttpResponse> {

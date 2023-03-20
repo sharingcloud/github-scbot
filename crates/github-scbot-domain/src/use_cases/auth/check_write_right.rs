@@ -7,7 +7,7 @@ use crate::Result;
 pub struct CheckWriteRightUseCase<'a> {
     pub username: &'a str,
     pub user_permission: GhUserPermission,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> CheckWriteRightUseCase<'a> {
@@ -37,7 +37,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_read_not_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -49,7 +49,7 @@ mod tests {
             !CheckWriteRightUseCase {
                 username: "me",
                 user_permission: GhUserPermission::Read,
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?
@@ -60,7 +60,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_read_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -72,7 +72,7 @@ mod tests {
             CheckWriteRightUseCase {
                 username: "me",
                 user_permission: GhUserPermission::Read,
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?
@@ -83,7 +83,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_write_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -95,7 +95,7 @@ mod tests {
             CheckWriteRightUseCase {
                 username: "me",
                 user_permission: GhUserPermission::Write,
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?
@@ -106,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_write_not_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -118,7 +118,7 @@ mod tests {
             CheckWriteRightUseCase {
                 username: "me",
                 user_permission: GhUserPermission::Write,
-                db_service: &mut db,
+                db_service: &db,
             }
             .run()
             .await?

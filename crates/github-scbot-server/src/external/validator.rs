@@ -73,14 +73,14 @@ async fn jwt_auth_validator_inner(
 
 /// Extract account from auth.
 pub async fn extract_account_from_auth(
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     credentials: &BearerAuth,
 ) -> Result<ExternalAccount, ValidationError> {
     extract_account_from_token(db_service, credentials.token()).await
 }
 
 pub async fn extract_account_from_token(
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     token: &str,
 ) -> Result<ExternalAccount, ValidationError> {
     let claims: ExternalJwtClaims =

@@ -4,7 +4,7 @@ use github_scbot_domain_models::ExternalAccount;
 use crate::Result;
 
 pub struct ListExternalAccountsUseCase<'a> {
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> ListExternalAccountsUseCase<'a> {
@@ -29,7 +29,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         let acc = db
             .external_accounts_create(ExternalAccount {
@@ -39,11 +39,9 @@ mod tests {
             .await?;
 
         assert_eq!(
-            ListExternalAccountsUseCase {
-                db_service: &mut db,
-            }
-            .run()
-            .await?,
+            ListExternalAccountsUseCase { db_service: &db }
+                .run()
+                .await?,
             vec![acc]
         );
 

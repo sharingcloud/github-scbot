@@ -28,7 +28,7 @@ pub(crate) fn parse_pull_request_event(body: &str) -> Result<GhPullRequestEvent>
 pub(crate) async fn pull_request_event(
     config: &Config,
     api_service: &dyn ApiService,
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     lock_service: &dyn LockService,
     event: GhPullRequestEvent,
 ) -> Result<HttpResponse> {

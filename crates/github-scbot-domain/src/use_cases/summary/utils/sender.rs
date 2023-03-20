@@ -22,7 +22,7 @@ impl SummaryCommentSender {
     )]
     pub async fn create_or_update(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         lock_service: &dyn LockService,
         repo_owner: &str,
         repo_name: &str,
@@ -92,7 +92,7 @@ impl SummaryCommentSender {
 
     async fn create(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -112,7 +112,7 @@ impl SummaryCommentSender {
 
     async fn update(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -156,7 +156,7 @@ impl SummaryCommentSender {
     /// Delete comment.
     pub async fn delete(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -175,7 +175,7 @@ impl SummaryCommentSender {
     }
 
     async fn get_status_comment_id(
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         pr_number: u64,
@@ -193,7 +193,7 @@ impl SummaryCommentSender {
 
     async fn post_github_comment(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
+        db_service: &dyn DbService,
         repo_owner: &str,
         repo_name: &str,
         issue_number: u64,

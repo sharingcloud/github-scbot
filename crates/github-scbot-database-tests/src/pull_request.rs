@@ -5,7 +5,7 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn create() {
-    db_test_case("pull_request_create", |mut db| async move {
+    db_test_case("pull_request_create", |db| async move {
         assert!(matches!(
             db.pull_requests_create(PullRequest {
                 repository_id: 1,
@@ -39,7 +39,7 @@ async fn create() {
 
 #[tokio::test]
 async fn update() {
-    db_test_case("pull_request_update", |mut db| async move {
+    db_test_case("pull_request_update", |db| async move {
         assert!(matches!(
             db.pull_requests_update(PullRequest {
                 id: 1,
@@ -95,7 +95,7 @@ async fn update() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("pull_request_get", |mut db| async move {
+    db_test_case("pull_request_get", |db| async move {
         assert_eq!(db.pull_requests_get("me", "repo", 1).await?, None);
 
         let repo = db
@@ -124,7 +124,7 @@ async fn get() {
 
 #[tokio::test]
 async fn get_from_id() {
-    db_test_case("pull_request_get_from_id", |mut db| async move {
+    db_test_case("pull_request_get_from_id", |db| async move {
         assert_eq!(db.pull_requests_get_from_id(1).await?, None);
 
         let repo = db
@@ -153,7 +153,7 @@ async fn get_from_id() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("pull_request_delete", |mut db| async move {
+    db_test_case("pull_request_delete", |db| async move {
         assert!(!db.pull_requests_delete("me", "repo", 1).await?);
 
         let repo = db
@@ -181,7 +181,7 @@ async fn delete() {
 
 #[tokio::test]
 async fn list() {
-    db_test_case("pull_request_list", |mut db| async move {
+    db_test_case("pull_request_list", |db| async move {
         assert_eq!(db.pull_requests_list("me", "repo").await?, vec![]);
 
         let repo = db
@@ -217,7 +217,7 @@ async fn list() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("pull_request_all", |mut db| async move {
+    db_test_case("pull_request_all", |db| async move {
         assert_eq!(db.pull_requests_all().await?, vec![]);
 
         let repo = db
@@ -253,7 +253,7 @@ async fn all() {
 
 #[tokio::test]
 async fn set_qa_status() {
-    db_test_case("pull_request_set_qa_status", |mut db| async move {
+    db_test_case("pull_request_set_qa_status", |db| async move {
         assert!(matches!(
             db.pull_requests_set_qa_status("me", "repo", 1, QaStatus::Skipped)
                 .await,
@@ -294,51 +294,48 @@ async fn set_qa_status() {
 
 #[tokio::test]
 async fn set_needed_reviewers_count() {
-    db_test_case(
-        "pull_request_set_needed_reviewers_count",
-        |mut db| async move {
-            assert!(matches!(
-                db.pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
-                    .await,
-                Err(DatabaseError::UnknownRepository(_))
-            ));
+    db_test_case("pull_request_set_needed_reviewers_count", |db| async move {
+        assert!(matches!(
+            db.pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
+                .await,
+            Err(DatabaseError::UnknownRepository(_))
+        ));
 
-            let repo = db
-                .repositories_create(Repository {
-                    owner: "me".into(),
-                    name: "repo".into(),
-                    ..Default::default()
-                })
-                .await?;
-
-            assert!(matches!(
-                db.pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
-                    .await,
-                Err(DatabaseError::UnknownPullRequest(_, _))
-            ));
-
-            db.pull_requests_create(PullRequest {
-                repository_id: repo.id,
-                number: 1,
-                needed_reviewers_count: 0,
+        let repo = db
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "repo".into(),
                 ..Default::default()
             })
             .await?;
 
-            let pr = db
-                .pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
-                .await?;
-            assert_eq!(pr.needed_reviewers_count, 1);
+        assert!(matches!(
+            db.pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
+                .await,
+            Err(DatabaseError::UnknownPullRequest(_, _))
+        ));
 
-            Ok(())
-        },
-    )
+        db.pull_requests_create(PullRequest {
+            repository_id: repo.id,
+            number: 1,
+            needed_reviewers_count: 0,
+            ..Default::default()
+        })
+        .await?;
+
+        let pr = db
+            .pull_requests_set_needed_reviewers_count("me", "repo", 1, 1)
+            .await?;
+        assert_eq!(pr.needed_reviewers_count, 1);
+
+        Ok(())
+    })
     .await;
 }
 
 #[tokio::test]
 async fn set_status_comment_id() {
-    db_test_case("pull_request_set_status_comment_id", |mut db| async move {
+    db_test_case("pull_request_set_status_comment_id", |db| async move {
         assert!(matches!(
             db.pull_requests_set_status_comment_id("me", "repo", 1, 1)
                 .await,
@@ -379,7 +376,7 @@ async fn set_status_comment_id() {
 
 #[tokio::test]
 async fn set_checks_enabled() {
-    db_test_case("pull_request_set_checks_enabled", |mut db| async move {
+    db_test_case("pull_request_set_checks_enabled", |db| async move {
         assert!(matches!(
             db.pull_requests_set_checks_enabled("me", "repo", 1, true)
                 .await,
@@ -420,7 +417,7 @@ async fn set_checks_enabled() {
 
 #[tokio::test]
 async fn set_automerge() {
-    db_test_case("pull_request_set_automerge", |mut db| async move {
+    db_test_case("pull_request_set_automerge", |db| async move {
         assert!(matches!(
             db.pull_requests_set_automerge("me", "repo", 1, true).await,
             Err(DatabaseError::UnknownRepository(_))
@@ -459,7 +456,7 @@ async fn set_automerge() {
 
 #[tokio::test]
 async fn set_locked() {
-    db_test_case("pull_request_set_locked", |mut db| async move {
+    db_test_case("pull_request_set_locked", |db| async move {
         assert!(matches!(
             db.pull_requests_set_locked("me", "repo", 1, true).await,
             Err(DatabaseError::UnknownRepository(_))
@@ -496,7 +493,7 @@ async fn set_locked() {
 
 #[tokio::test]
 async fn set_strategy_override() {
-    db_test_case("pull_request_set_strategy_override", |mut db| async move {
+    db_test_case("pull_request_set_strategy_override", |db| async move {
         assert!(matches!(
             db.pull_requests_set_strategy_override("me", "repo", 1, Some(MergeStrategy::Squash))
                 .await,

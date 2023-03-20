@@ -4,7 +4,7 @@ use crate::Result;
 
 pub struct RemoveAllExternalAccountRightsUseCase<'a> {
     pub username: String,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveAllExternalAccountRightsUseCase<'a> {
@@ -30,7 +30,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         let repo = db
             .repositories_create(Repository {
@@ -54,7 +54,7 @@ mod tests {
 
         RemoveAllExternalAccountRightsUseCase {
             username: "acc".into(),
-            db_service: &mut db,
+            db_service: &db,
         }
         .run()
         .await?;

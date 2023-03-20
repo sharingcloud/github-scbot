@@ -20,7 +20,7 @@ use crate::{
 
 pub struct UpdatePullRequestStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
     pub repo_owner: &'a str,
     pub repo_name: &'a str,
@@ -249,7 +249,7 @@ mod tests {
     #[tokio::test]
     async fn update() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let mut lock_service = MockLockService::new();
 
         let repo = db_service
@@ -340,7 +340,7 @@ mod tests {
 
         UpdatePullRequestStatusUseCase {
             api_service: &api_service,
-            db_service: &mut db_service,
+            db_service: &db_service,
             lock_service: &lock_service,
             pr_number: 1,
             repo_owner: "me",
@@ -355,7 +355,7 @@ mod tests {
     #[tokio::test]
     async fn automerge_success() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let mut lock_service = MockLockService::new();
 
         let repo = db_service
@@ -483,7 +483,7 @@ mod tests {
 
         UpdatePullRequestStatusUseCase {
             api_service: &api_service,
-            db_service: &mut db_service,
+            db_service: &db_service,
             lock_service: &lock_service,
             pr_number: 1,
             repo_owner: "me",
@@ -498,7 +498,7 @@ mod tests {
     #[tokio::test]
     async fn automerge_failure() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let mut lock_service = MockLockService::new();
 
         let repo = db_service
@@ -638,7 +638,7 @@ mod tests {
 
         UpdatePullRequestStatusUseCase {
             api_service: &api_service,
-            db_service: &mut db_service,
+            db_service: &db_service,
             lock_service: &lock_service,
             pr_number: 1,
             repo_owner: "me",

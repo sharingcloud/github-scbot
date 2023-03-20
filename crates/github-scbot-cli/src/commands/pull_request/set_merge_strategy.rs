@@ -64,7 +64,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_set() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         let repo = ctx
             .db_service
             .repositories_create(Repository {
@@ -92,7 +92,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_unset() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         let repo = ctx
             .db_service
             .repositories_create(Repository {
