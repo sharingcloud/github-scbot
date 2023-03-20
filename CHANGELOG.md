@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2023-03-20
+
+- Fix JWT verification after `jsonwebtoken` update
+- Fix performance problems due to an unneeded lock around the `DbService`. 
+
 ## [0.23.0] - 2023-03-19
 
 ### Changed
