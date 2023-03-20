@@ -15,5 +15,5 @@ github-scbot-domain-models = { path = "../github-scbot-domain-models" }
 futures = "0.3.27"
 
 [dev-dependencies]
-tokio = { version = "1.26.0", features = ["rt"] }
+tokio = { version = "1.26.0", features = ["rt", "macros"] }
 pretty_assertions = "1.3.0"

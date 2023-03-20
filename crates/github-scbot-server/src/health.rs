@@ -6,7 +6,7 @@ use actix_web::{web, HttpResponse, Responder};
 use crate::server::AppContext;
 
 pub async fn health_check_route(ctx: web::Data<Arc<AppContext>>) -> impl Responder {
-    let pg_status = ctx.db_service.lock().await.health_check().await.is_ok();
+    let pg_status = ctx.db_service.health_check().await.is_ok();
     let redis_status = ctx.lock_service.health_check().await.is_ok();
     let all_good = pg_status && redis_status;
     let status_code = if all_good {

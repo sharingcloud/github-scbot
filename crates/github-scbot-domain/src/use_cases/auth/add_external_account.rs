@@ -8,7 +8,7 @@ pub struct AddExternalAccountUseCase<'a> {
 }
 
 impl<'a> AddExternalAccountUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username))]
+    #[tracing::instrument(skip(self), fields(username))]
     pub async fn run(&self, username: &str) -> Result<()> {
         self.db_service
             .external_accounts_create(

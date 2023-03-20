@@ -7,7 +7,7 @@ pub struct CheckIsAdminUseCase<'a> {
 }
 
 impl<'a> CheckIsAdminUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username), ret)]
+    #[tracing::instrument(skip(self), fields(username), ret)]
     pub async fn run(&self, username: &str) -> Result<bool> {
         let known_admins: Vec<_> = self.db_service.accounts_list_admins().await?;
 

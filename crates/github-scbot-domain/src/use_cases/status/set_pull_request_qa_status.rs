@@ -26,7 +26,7 @@ impl<'a> SetPullRequestQaStatusUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            external_account = ?external_account,
+            external_account = external_account.username,
             repository_path = %repository_path,
             pr_numbers = ?pull_request_numbers,
             author = %author,

@@ -10,7 +10,6 @@ use actix_web::{
     App, HttpResponse, HttpServer,
 };
 use actix_web_httpauth::middleware::HttpAuthentication;
-use futures::lock::Mutex;
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_database_pg::{DbPool, PostgresDb};
@@ -36,7 +35,7 @@ pub struct AppContext {
     /// Config.
     pub config: Config,
     /// Database pool.
-    pub db_service: Mutex<Box<dyn DbService>>,
+    pub db_service: Box<dyn DbService>,
     /// API adapter
     pub api_service: Box<dyn ApiService>,
     /// Redis adapter
@@ -48,7 +47,7 @@ impl AppContext {
     pub fn new(config: Config, pool: DbPool) -> Self {
         Self {
             config: config.clone(),
-            db_service: Mutex::new(Box::new(PostgresDb::new(pool))),
+            db_service: Box::new(PostgresDb::new(pool)),
             api_service: Box::new(MetricsApiService::new(config.clone())),
             lock_service: Box::new(MetricsRedisService::new(&config.redis_address)),
         }
@@ -63,7 +62,7 @@ impl AppContext {
     ) -> Self {
         Self {
             config,
-            db_service: Mutex::new(db_service),
+            db_service,
             api_service,
             lock_service,
         }

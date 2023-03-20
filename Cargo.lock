@@ -1248,6 +1248,7 @@ dependencies = [
  "github-scbot-config",
  "github-scbot-crypto",
  "github-scbot-database-interface",
+ "github-scbot-database-memory",
  "github-scbot-database-pg",
  "github-scbot-domain",
  "github-scbot-domain-models",
@@ -1264,6 +1265,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "time",
+ "tokio",
  "tracing",
 ]
 
