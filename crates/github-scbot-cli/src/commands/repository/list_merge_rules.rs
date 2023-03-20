@@ -22,7 +22,7 @@ impl Command for RepositoryListMergeRulesCommand {
     async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let (owner, name) = self.repository_path.components();
 
-        let repo = CliDbExt::get_existing_repository(ctx.db_service.as_mut(), owner, name).await?;
+        let repo = CliDbExt::get_existing_repository(ctx.db_service.as_ref(), owner, name).await?;
 
         let default_strategy = repo.default_strategy;
         let rules = ctx.db_service.merge_rules_list(owner, name).await?;

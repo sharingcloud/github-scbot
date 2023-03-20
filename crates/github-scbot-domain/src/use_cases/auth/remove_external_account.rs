@@ -3,16 +3,13 @@ use github_scbot_database_interface::DbService;
 use crate::Result;
 
 pub struct RemoveExternalAccountUseCase<'a> {
-    pub username: String,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> RemoveExternalAccountUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<()> {
-        self.db_service
-            .external_accounts_delete(&self.username)
-            .await?;
+    #[tracing::instrument(skip(self), fields(username))]
+    pub async fn run(&self, username: &str) -> Result<()> {
+        self.db_service.external_accounts_delete(username).await?;
 
         Ok(())
     }
@@ -30,7 +27,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.external_accounts_create(ExternalAccount {
             username: "acc".into(),
@@ -38,12 +35,9 @@ mod tests {
         })
         .await?;
 
-        RemoveExternalAccountUseCase {
-            username: "acc".into(),
-            db_service: &mut db,
-        }
-        .run()
-        .await?;
+        RemoveExternalAccountUseCase { db_service: &db }
+            .run("acc")
+            .await?;
 
         assert_eq!(db.external_accounts_get("acc").await?, None);
 

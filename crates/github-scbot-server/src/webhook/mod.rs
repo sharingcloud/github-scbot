@@ -31,7 +31,7 @@ use crate::{
 async fn parse_event(
     config: &Config,
     api_service: &dyn ApiService,
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     lock_service: &dyn LockService,
     event_type: EventType,
     body: &str,
@@ -108,7 +108,7 @@ pub(crate) async fn event_handler(
             parse_event(
                 &ctx.config,
                 ctx.api_service.as_ref(),
-                ctx.db_service.lock().await.as_mut(),
+                ctx.db_service.as_ref(),
                 ctx.lock_service.as_ref(),
                 event_type,
                 &body,

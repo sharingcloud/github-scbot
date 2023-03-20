@@ -15,10 +15,9 @@ pub(crate) struct AuthRemoveAllExternalAccountRightsCommand {
 impl AuthRemoveAllExternalAccountRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveAllExternalAccountRightsUseCase {
-            username: self.username.clone(),
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
-        .run()
+        .run(&self.username)
         .await?;
 
         writeln!(
@@ -42,7 +41,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         ctx.db_service
             .external_accounts_create(ExternalAccount {
                 username: "me".into(),

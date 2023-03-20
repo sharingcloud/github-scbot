@@ -31,11 +31,8 @@ impl BotCommand for AdminDisableCommand {
             DisablePullRequestStatusUseCase {
                 api_service: ctx.api_service,
                 db_service: ctx.db_service,
-                pr_number: ctx.pr_number,
-                repo_name: ctx.repo_name,
-                repo_owner: ctx.repo_owner,
             }
-            .run()
+            .run(&ctx.pr_handle())
             .await?;
 
             ctx.db_service

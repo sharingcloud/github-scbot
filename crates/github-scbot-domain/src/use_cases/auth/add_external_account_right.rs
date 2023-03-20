@@ -4,24 +4,22 @@ use github_scbot_domain_models::{ExternalAccountRight, RepositoryPath};
 use crate::Result;
 
 pub struct AddExternalAccountRightUseCase<'a> {
-    pub repository_path: RepositoryPath,
-    pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> AddExternalAccountRightUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.repository_path, self.username))]
-    pub async fn run(&mut self) -> Result<()> {
-        let (owner, name) = self.repository_path.components();
+    #[tracing::instrument(skip(self), fields(repository_path, username))]
+    pub async fn run(&self, repository_path: &RepositoryPath, username: &str) -> Result<()> {
+        let (owner, name) = repository_path.components();
         let repository = self.db_service.repositories_get_expect(owner, name).await?;
 
         self.db_service
-            .external_account_rights_delete(owner, name, self.username)
+            .external_account_rights_delete(owner, name, username)
             .await?;
         self.db_service
             .external_account_rights_create(ExternalAccountRight {
                 repository_id: repository.id,
-                username: self.username.into(),
+                username: username.into(),
             })
             .await?;
 
@@ -41,7 +39,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let repository = db_service
             .repositories_create(Repository {
                 owner: "owner".into(),
@@ -57,11 +55,9 @@ mod tests {
             .await?;
 
         AddExternalAccountRightUseCase {
-            repository_path: repository.path(),
-            username: "me",
-            db_service: &mut db_service,
+            db_service: &db_service,
         }
-        .run()
+        .run(&repository.path(), "me")
         .await?;
 
         assert!(db_service

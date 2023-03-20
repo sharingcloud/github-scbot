@@ -29,7 +29,7 @@ impl Command for PullRequestSetMergeStrategyCommand {
         let (owner, name) = self.repository_path.components();
 
         let _pr =
-            CliDbExt::get_existing_pull_request(ctx.db_service.as_mut(), owner, name, self.number)
+            CliDbExt::get_existing_pull_request(ctx.db_service.as_ref(), owner, name, self.number)
                 .await?;
         ctx.db_service
             .pull_requests_set_strategy_override(owner, name, self.number, self.strategy)
@@ -64,7 +64,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_set() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         let repo = ctx
             .db_service
             .repositories_create(Repository {
@@ -92,7 +92,7 @@ mod tests {
 
     #[tokio::test]
     async fn run_unset() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         let repo = ctx
             .db_service
             .repositories_create(Repository {

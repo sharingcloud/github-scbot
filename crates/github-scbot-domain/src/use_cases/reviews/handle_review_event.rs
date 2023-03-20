@@ -6,26 +6,25 @@ use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 
 pub struct HandleReviewEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub event: GhReviewEvent,
 }
 
 impl<'a> HandleReviewEventUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            repo_owner = self.event.repository.owner.login,
-            repo_name = self.event.repository.name,
-            pr_number = self.event.pull_request.number,
-            reviewer = self.event.review.user.login,
-            state = ?self.event.review.state
+            repo_owner = event.repository.owner.login,
+            repo_name = event.repository.name,
+            pr_number = event.pull_request.number,
+            reviewer = event.review.user.login,
+            state = ?event.review.state
         )
     )]
-    pub async fn run(&mut self) -> Result<()> {
-        let repo_owner = &self.event.repository.owner.login;
-        let repo_name = &self.event.repository.name;
-        let pr_number = self.event.pull_request.number;
+    pub async fn run(&self, event: GhReviewEvent) -> Result<()> {
+        let repo_owner = &event.repository.owner.login;
+        let repo_name = &event.repository.name;
+        let pr_number = event.pull_request.number;
 
         // Detect required reviews
         if self
@@ -43,12 +42,11 @@ impl<'a> HandleReviewEventUseCase<'a> {
                 api_service: self.api_service,
                 db_service: self.db_service,
                 lock_service: self.lock_service,
-                repo_name,
-                repo_owner,
-                pr_number,
-                upstream_pr: &upstream_pr,
             }
-            .run()
+            .run(
+                &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
+                &upstream_pr,
+            )
             .await?;
         }
 

@@ -4,16 +4,15 @@ use github_scbot_domain_models::Repository;
 use crate::Result;
 
 pub struct ListExternalAccountRightsUseCase<'a> {
-    pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> ListExternalAccountRightsUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username))]
-    pub async fn run(&mut self) -> Result<Vec<Repository>> {
+    #[tracing::instrument(skip(self), fields(username))]
+    pub async fn run(&self, username: &str) -> Result<Vec<Repository>> {
         let rights = self
             .db_service
-            .external_account_rights_list(self.username)
+            .external_account_rights_list(username)
             .await?;
 
         let mut repositories = Vec::new();
@@ -44,7 +43,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         let repo1 = db
             .repositories_create(Repository {
@@ -80,12 +79,9 @@ mod tests {
         .await?;
 
         assert_eq!(
-            ListExternalAccountRightsUseCase {
-                username: "acc",
-                db_service: &mut db,
-            }
-            .run()
-            .await?,
+            ListExternalAccountRightsUseCase { db_service: &db }
+                .run("acc")
+                .await?,
             vec![repo1, repo2]
         );
 

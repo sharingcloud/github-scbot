@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::RwLock};
 
 use async_trait::async_trait;
 use github_scbot_database_interface::{DbService, Result};
@@ -9,13 +9,13 @@ use github_scbot_domain_models::{
 
 #[derive(Debug, Default)]
 pub struct MemoryDb {
-    repositories: HashMap<u64, Repository>,
-    pull_requests: HashMap<u64, PullRequest>,
-    accounts: HashMap<String, Account>,
-    external_accounts: HashMap<String, ExternalAccount>,
-    external_account_rights: HashMap<(String, u64), ExternalAccountRight>,
-    merge_rules: HashMap<(u64, RuleBranch, RuleBranch), MergeRule>,
-    required_reviewers: HashMap<(String, u64), RequiredReviewer>,
+    repositories: RwLock<HashMap<u64, Repository>>,
+    pull_requests: RwLock<HashMap<u64, PullRequest>>,
+    accounts: RwLock<HashMap<String, Account>>,
+    external_accounts: RwLock<HashMap<String, ExternalAccount>>,
+    external_account_rights: RwLock<HashMap<(String, u64), ExternalAccountRight>>,
+    merge_rules: RwLock<HashMap<(u64, RuleBranch, RuleBranch), MergeRule>>,
+    required_reviewers: RwLock<HashMap<(String, u64), RequiredReviewer>>,
 }
 
 impl MemoryDb {
@@ -24,50 +24,70 @@ impl MemoryDb {
     }
 
     fn get_last_repository_id(&self) -> u64 {
-        self.repositories.keys().max().copied().unwrap_or(0) + 1
+        self.repositories
+            .read()
+            .unwrap()
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(0)
+            + 1
     }
 
     fn get_last_pull_request_id(&self) -> u64 {
-        self.pull_requests.keys().max().copied().unwrap_or(0) + 1
+        self.pull_requests
+            .read()
+            .unwrap()
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(0)
+            + 1
     }
 }
 
 #[async_trait]
 impl DbService for MemoryDb {
-    async fn accounts_create(&mut self, instance: Account) -> Result<Account> {
+    async fn accounts_create(&self, instance: Account) -> Result<Account> {
         self.accounts
+            .write()
+            .unwrap()
             .insert(instance.username.clone(), instance.clone());
         Ok(instance)
     }
 
-    async fn accounts_update(&mut self, instance: Account) -> Result<Account> {
+    async fn accounts_update(&self, instance: Account) -> Result<Account> {
         self.accounts
+            .write()
+            .unwrap()
             .insert(instance.username.clone(), instance.clone());
         Ok(instance)
     }
 
-    async fn accounts_all(&mut self) -> Result<Vec<Account>> {
-        let mut values: Vec<_> = self.accounts.values().cloned().collect();
+    async fn accounts_all(&self) -> Result<Vec<Account>> {
+        let mut values: Vec<_> = self.accounts.read().unwrap().values().cloned().collect();
         values.sort_by(|a, b| a.username.cmp(&b.username));
         Ok(values)
     }
 
-    async fn accounts_get(&mut self, username: &str) -> Result<Option<Account>> {
-        Ok(self.accounts.get(username).cloned())
+    async fn accounts_get(&self, username: &str) -> Result<Option<Account>> {
+        Ok(self.accounts.read().unwrap().get(username).cloned())
     }
 
-    async fn accounts_delete(&mut self, username: &str) -> Result<bool> {
-        if self.accounts.get(username).is_some() {
-            self.accounts.remove(username);
+    async fn accounts_delete(&self, username: &str) -> Result<bool> {
+        if self.accounts.read().unwrap().get(username).is_some() {
+            self.accounts.write().unwrap().remove(username);
             Ok(true)
         } else {
             Ok(false)
         }
     }
 
-    async fn accounts_list_admins(&mut self) -> Result<Vec<Account>> {
+    async fn accounts_list_admins(&self) -> Result<Vec<Account>> {
         let mut values: Vec<_> = self
             .accounts
+            .read()
+            .unwrap()
             .values()
             .filter(|a| a.is_admin)
             .cloned()
@@ -76,10 +96,12 @@ impl DbService for MemoryDb {
         Ok(values)
     }
 
-    async fn accounts_set_is_admin(&mut self, username: &str, value: bool) -> Result<Account> {
+    async fn accounts_set_is_admin(&self, username: &str, value: bool) -> Result<Account> {
         let mut account = self.accounts_get_expect(username).await?;
         account.is_admin = value;
         self.accounts
+            .write()
+            .unwrap()
             .insert(account.username.clone(), account.clone());
         Ok(account)
     }
@@ -88,14 +110,14 @@ impl DbService for MemoryDb {
     // External account rights
 
     async fn external_account_rights_create(
-        &mut self,
+        &self,
         instance: ExternalAccountRight,
     ) -> Result<ExternalAccountRight> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
         self.external_accounts_get_expect(&instance.username)
             .await?;
-        self.external_account_rights.insert(
+        self.external_account_rights.write().unwrap().insert(
             (instance.username.clone(), instance.repository_id),
             instance.clone(),
         );
@@ -103,7 +125,7 @@ impl DbService for MemoryDb {
     }
 
     async fn external_account_rights_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         username: &str,
@@ -111,6 +133,8 @@ impl DbService for MemoryDb {
         if let Some(repo) = self.repositories_get(owner, name).await? {
             Ok(self
                 .external_account_rights
+                .read()
+                .unwrap()
                 .get(&(username.to_owned(), repo.id))
                 .cloned())
         } else {
@@ -119,7 +143,7 @@ impl DbService for MemoryDb {
     }
 
     async fn external_account_rights_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         username: &str,
@@ -129,6 +153,8 @@ impl DbService for MemoryDb {
             .await?
         {
             self.external_account_rights
+                .write()
+                .unwrap()
                 .remove(&(username.to_owned(), r.repository_id));
             Ok(true)
         } else {
@@ -136,26 +162,30 @@ impl DbService for MemoryDb {
         }
     }
 
-    async fn external_account_rights_delete_all(&mut self, username: &str) -> Result<bool> {
+    async fn external_account_rights_delete_all(&self, username: &str) -> Result<bool> {
         let keys_to_remove: Vec<_> = self
             .external_account_rights
+            .write()
+            .unwrap()
             .keys()
             .filter(|(u, _)| u == username)
             .cloned()
             .collect();
         let has_values = !keys_to_remove.is_empty();
         for key in keys_to_remove {
-            self.external_account_rights.remove(&key);
+            self.external_account_rights.write().unwrap().remove(&key);
         }
         Ok(has_values)
     }
 
     async fn external_account_rights_list(
-        &mut self,
+        &self,
         username: &str,
     ) -> Result<Vec<ExternalAccountRight>> {
         let mut values: Vec<_> = self
             .external_account_rights
+            .read()
+            .unwrap()
             .iter()
             .filter(|((u, _), _)| u == username)
             .map(|(_, v)| v.clone())
@@ -164,8 +194,14 @@ impl DbService for MemoryDb {
         Ok(values)
     }
 
-    async fn external_account_rights_all(&mut self) -> Result<Vec<ExternalAccountRight>> {
-        let mut values: Vec<_> = self.external_account_rights.values().cloned().collect();
+    async fn external_account_rights_all(&self) -> Result<Vec<ExternalAccountRight>> {
+        let mut values: Vec<_> = self
+            .external_account_rights
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
         values.sort_by(|a, b| (&a.username, a.repository_id).cmp(&(&b.username, b.repository_id)));
         Ok(values)
     }
@@ -173,36 +209,47 @@ impl DbService for MemoryDb {
     ////////////////////
     // External accounts
 
-    async fn external_accounts_create(
-        &mut self,
-        instance: ExternalAccount,
-    ) -> Result<ExternalAccount> {
+    async fn external_accounts_create(&self, instance: ExternalAccount) -> Result<ExternalAccount> {
         self.external_accounts
+            .write()
+            .unwrap()
             .insert(instance.username.clone(), instance.clone());
         Ok(instance)
     }
 
-    async fn external_accounts_update(
-        &mut self,
-        instance: ExternalAccount,
-    ) -> Result<ExternalAccount> {
+    async fn external_accounts_update(&self, instance: ExternalAccount) -> Result<ExternalAccount> {
         self.external_accounts_get_expect(&instance.username)
             .await?;
 
         self.external_accounts
+            .write()
+            .unwrap()
             .insert(instance.username.clone(), instance.clone());
         Ok(instance)
     }
 
-    async fn external_accounts_get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
-        Ok(self.external_accounts.get(username).cloned())
+    async fn external_accounts_get(&self, username: &str) -> Result<Option<ExternalAccount>> {
+        Ok(self
+            .external_accounts
+            .read()
+            .unwrap()
+            .get(username)
+            .cloned())
     }
 
-    async fn external_accounts_delete(&mut self, username: &str) -> Result<bool> {
-        if self.external_accounts.get(username).is_some() {
+    async fn external_accounts_delete(&self, username: &str) -> Result<bool> {
+        if self
+            .external_accounts
+            .read()
+            .unwrap()
+            .get(username)
+            .is_some()
+        {
             // Cascade!
             let exrs_to_remove: Vec<_> = self
                 .external_account_rights
+                .read()
+                .unwrap()
                 .values()
                 .filter(|exr| exr.username == username)
                 .cloned()
@@ -212,21 +259,27 @@ impl DbService for MemoryDb {
                     .await?;
             }
 
-            self.external_accounts.remove(username);
+            self.external_accounts.write().unwrap().remove(username);
             Ok(true)
         } else {
             Ok(false)
         }
     }
 
-    async fn external_accounts_all(&mut self) -> Result<Vec<ExternalAccount>> {
-        let mut values: Vec<_> = self.external_accounts.values().cloned().collect();
+    async fn external_accounts_all(&self) -> Result<Vec<ExternalAccount>> {
+        let mut values: Vec<_> = self
+            .external_accounts
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
         values.sort_by(|a, b| a.username.cmp(&b.username));
         Ok(values)
     }
 
     async fn external_accounts_set_keys(
-        &mut self,
+        &self,
         username: &str,
         public_key: &str,
         private_key: &str,
@@ -235,6 +288,8 @@ impl DbService for MemoryDb {
         account.public_key = public_key.to_owned();
         account.private_key = private_key.to_owned();
         self.external_accounts
+            .write()
+            .unwrap()
             .insert(account.username.clone(), account.clone());
         Ok(account)
     }
@@ -242,18 +297,18 @@ impl DbService for MemoryDb {
     ///////////////
     // Health check
 
-    async fn health_check(&mut self) -> Result<()> {
+    async fn health_check(&self) -> Result<()> {
         Ok(())
     }
 
     //////////////
     // Merge rules
 
-    async fn merge_rules_create(&mut self, instance: MergeRule) -> Result<MergeRule> {
+    async fn merge_rules_create(&self, instance: MergeRule) -> Result<MergeRule> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
 
-        self.merge_rules.insert(
+        self.merge_rules.write().unwrap().insert(
             (
                 instance.repository_id,
                 instance.base_branch.clone(),
@@ -264,7 +319,7 @@ impl DbService for MemoryDb {
         Ok(instance)
     }
 
-    async fn merge_rules_update(&mut self, instance: MergeRule) -> Result<MergeRule> {
+    async fn merge_rules_update(&self, instance: MergeRule) -> Result<MergeRule> {
         let repo = self
             .repositories_get_from_id_expect(instance.repository_id)
             .await?;
@@ -276,7 +331,7 @@ impl DbService for MemoryDb {
         )
         .await?;
 
-        self.merge_rules.insert(
+        self.merge_rules.write().unwrap().insert(
             (
                 instance.repository_id,
                 instance.base_branch.clone(),
@@ -288,7 +343,7 @@ impl DbService for MemoryDb {
     }
 
     async fn merge_rules_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         base_branch: RuleBranch,
@@ -297,6 +352,8 @@ impl DbService for MemoryDb {
         if let Some(repo) = self.repositories_get(owner, name).await? {
             Ok(self
                 .merge_rules
+                .read()
+                .unwrap()
                 .get(&(repo.id, base_branch, head_branch))
                 .cloned())
         } else {
@@ -305,7 +362,7 @@ impl DbService for MemoryDb {
     }
 
     async fn merge_rules_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         base_branch: RuleBranch,
@@ -315,16 +372,19 @@ impl DbService for MemoryDb {
             .merge_rules_get(owner, name, base_branch, head_branch)
             .await?
         {
-            self.merge_rules
-                .remove(&(r.repository_id, r.base_branch, r.head_branch));
+            self.merge_rules.write().unwrap().remove(&(
+                r.repository_id,
+                r.base_branch,
+                r.head_branch,
+            ));
             Ok(true)
         } else {
             Ok(false)
         }
     }
 
-    async fn merge_rules_all(&mut self) -> Result<Vec<MergeRule>> {
-        let mut values: Vec<_> = self.merge_rules.values().cloned().collect();
+    async fn merge_rules_all(&self) -> Result<Vec<MergeRule>> {
+        let mut values: Vec<_> = self.merge_rules.read().unwrap().values().cloned().collect();
         values.sort_by(|a, b| {
             (a.repository_id, &a.base_branch, &a.head_branch).cmp(&(
                 b.repository_id,
@@ -335,10 +395,12 @@ impl DbService for MemoryDb {
         Ok(values)
     }
 
-    async fn merge_rules_list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
+    async fn merge_rules_list(&self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
         if let Some(repo) = self.repositories_get(owner, name).await? {
             let mut values: Vec<_> = self
                 .merge_rules
+                .read()
+                .unwrap()
                 .values()
                 .filter(|r| r.repository_id == repo.id)
                 .cloned()
@@ -360,17 +422,20 @@ impl DbService for MemoryDb {
     ////////////////
     // Pull requests
 
-    async fn pull_requests_create(&mut self, mut instance: PullRequest) -> Result<PullRequest> {
+    async fn pull_requests_create(&self, mut instance: PullRequest) -> Result<PullRequest> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
 
         let id = self.get_last_pull_request_id();
         instance.id = id;
-        self.pull_requests.insert(instance.id, instance.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(instance.id, instance.clone());
         Ok(instance)
     }
 
-    async fn pull_requests_update(&mut self, instance: PullRequest) -> Result<PullRequest> {
+    async fn pull_requests_update(&self, instance: PullRequest) -> Result<PullRequest> {
         assert!(instance.id != 0);
         let repo = self
             .repositories_get_from_id_expect(instance.repository_id)
@@ -378,12 +443,15 @@ impl DbService for MemoryDb {
         self.pull_requests_get_expect(&repo.owner, &repo.name, instance.id)
             .await?;
 
-        self.pull_requests.insert(instance.id, instance.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(instance.id, instance.clone());
         Ok(instance)
     }
 
     async fn pull_requests_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -391,6 +459,8 @@ impl DbService for MemoryDb {
         if let Some(repo) = self.repositories_get(owner, name).await? {
             Ok(self
                 .pull_requests
+                .read()
+                .unwrap()
                 .values()
                 .find(|pr| pr.repository_id == repo.id && pr.number == number)
                 .cloned())
@@ -399,15 +469,17 @@ impl DbService for MemoryDb {
         }
     }
 
-    async fn pull_requests_get_from_id(&mut self, id: u64) -> Result<Option<PullRequest>> {
-        Ok(self.pull_requests.get(&id).cloned())
+    async fn pull_requests_get_from_id(&self, id: u64) -> Result<Option<PullRequest>> {
+        Ok(self.pull_requests.read().unwrap().get(&id).cloned())
     }
 
-    async fn pull_requests_delete(&mut self, owner: &str, name: &str, number: u64) -> Result<bool> {
+    async fn pull_requests_delete(&self, owner: &str, name: &str, number: u64) -> Result<bool> {
         if let Some(pr) = self.pull_requests_get(owner, name, number).await? {
             // Cascade!
             let reviewers_to_remove: Vec<_> = self
                 .required_reviewers
+                .read()
+                .unwrap()
                 .values()
                 .filter(|r| r.pull_request_id == pr.id)
                 .cloned()
@@ -417,17 +489,19 @@ impl DbService for MemoryDb {
                     .await?;
             }
 
-            self.pull_requests.remove(&pr.id);
+            self.pull_requests.write().unwrap().remove(&pr.id);
             Ok(true)
         } else {
             Ok(false)
         }
     }
 
-    async fn pull_requests_list(&mut self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
+    async fn pull_requests_list(&self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
         if let Some(repo) = self.repositories_get(owner, name).await? {
             let mut values: Vec<_> = self
                 .pull_requests
+                .read()
+                .unwrap()
                 .values()
                 .filter(|pr| pr.repository_id == repo.id)
                 .cloned()
@@ -439,14 +513,20 @@ impl DbService for MemoryDb {
         }
     }
 
-    async fn pull_requests_all(&mut self) -> Result<Vec<PullRequest>> {
-        let mut values: Vec<_> = self.pull_requests.values().cloned().collect();
+    async fn pull_requests_all(&self) -> Result<Vec<PullRequest>> {
+        let mut values: Vec<_> = self
+            .pull_requests
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
         values.sort_by(|a, b| (a.repository_id, a.number).cmp(&(b.repository_id, b.number)));
         Ok(values)
     }
 
     async fn pull_requests_set_qa_status(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -455,12 +535,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.qa_status = status;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_needed_reviewers_count(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -469,12 +552,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.needed_reviewers_count = count;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_status_comment_id(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -483,12 +569,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.status_comment_id = id;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_checks_enabled(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -497,12 +586,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.checks_enabled = value;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_automerge(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -511,12 +603,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.automerge = value;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_locked(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -525,12 +620,15 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.locked = value;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     async fn pull_requests_set_strategy_override(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -539,50 +637,69 @@ impl DbService for MemoryDb {
         self.repositories_get_expect(owner, name).await?;
         let mut pr = self.pull_requests_get_expect(owner, name, number).await?;
         pr.strategy_override = strategy;
-        self.pull_requests.insert(pr.id, pr.clone());
+        self.pull_requests
+            .write()
+            .unwrap()
+            .insert(pr.id, pr.clone());
         Ok(pr)
     }
 
     ///////////////
     // Repositories
 
-    async fn repositories_create(&mut self, mut instance: Repository) -> Result<Repository> {
+    async fn repositories_create(&self, mut instance: Repository) -> Result<Repository> {
         let id = self.get_last_repository_id();
         instance.id = id;
-        self.repositories.insert(instance.id, instance.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(instance.id, instance.clone());
         Ok(instance)
     }
 
-    async fn repositories_update(&mut self, instance: Repository) -> Result<Repository> {
+    async fn repositories_update(&self, instance: Repository) -> Result<Repository> {
         assert!(instance.id != 0);
-        self.repositories.insert(instance.id, instance.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(instance.id, instance.clone());
         Ok(instance)
     }
 
-    async fn repositories_all(&mut self) -> Result<Vec<Repository>> {
-        let mut values: Vec<_> = self.repositories.values().cloned().collect();
+    async fn repositories_all(&self) -> Result<Vec<Repository>> {
+        let mut values: Vec<_> = self
+            .repositories
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
         values.sort_by(|a, b| (&a.owner, &a.name).cmp(&(&b.owner, &b.name)));
 
         Ok(values)
     }
 
-    async fn repositories_get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>> {
+    async fn repositories_get(&self, owner: &str, name: &str) -> Result<Option<Repository>> {
         Ok(self
             .repositories
+            .read()
+            .unwrap()
             .values()
             .find(|v| v.owner == owner && v.name == name)
             .cloned())
     }
 
-    async fn repositories_get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
-        Ok(self.repositories.get(&id).cloned())
+    async fn repositories_get_from_id(&self, id: u64) -> Result<Option<Repository>> {
+        Ok(self.repositories.read().unwrap().get(&id).cloned())
     }
 
-    async fn repositories_delete(&mut self, owner: &str, name: &str) -> Result<bool> {
+    async fn repositories_delete(&self, owner: &str, name: &str) -> Result<bool> {
         if let Some(v) = self.repositories_get(owner, name).await? {
             // Cascades!
             let rights_to_remove: Vec<_> = self
                 .external_account_rights
+                .read()
+                .unwrap()
                 .keys()
                 .filter(|(_, i)| *i == v.id)
                 .cloned()
@@ -593,6 +710,8 @@ impl DbService for MemoryDb {
             }
             let pull_requests_to_remove: Vec<_> = self
                 .pull_requests
+                .read()
+                .unwrap()
                 .values()
                 .filter(|pr| pr.repository_id == v.id)
                 .cloned()
@@ -602,6 +721,8 @@ impl DbService for MemoryDb {
             }
             let merge_rules_to_remove: Vec<_> = self
                 .merge_rules
+                .read()
+                .unwrap()
                 .values()
                 .filter(|mr| mr.repository_id == v.id)
                 .cloned()
@@ -611,7 +732,7 @@ impl DbService for MemoryDb {
                     .await?;
             }
 
-            self.repositories.remove(&v.id);
+            self.repositories.write().unwrap().remove(&v.id);
             Ok(true)
         } else {
             Ok(false)
@@ -619,86 +740,107 @@ impl DbService for MemoryDb {
     }
 
     async fn repositories_set_manual_interaction(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.manual_interaction = value;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_pr_title_validation_regex(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: &str,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.pr_title_validation_regex = value.to_owned();
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_default_strategy(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         strategy: MergeStrategy,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_strategy = strategy;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_default_needed_reviewers_count(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         count: u64,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_needed_reviewers_count = count;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_default_automerge(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_automerge = value;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_default_enable_qa(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_enable_qa = value;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
     async fn repositories_set_default_enable_checks(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
         repository.default_enable_checks = value;
-        self.repositories.insert(repository.id, repository.clone());
+        self.repositories
+            .write()
+            .unwrap()
+            .insert(repository.id, repository.clone());
         Ok(repository)
     }
 
@@ -706,13 +848,13 @@ impl DbService for MemoryDb {
     // Required reviewers
 
     async fn required_reviewers_create(
-        &mut self,
+        &self,
         instance: RequiredReviewer,
     ) -> Result<RequiredReviewer> {
         self.pull_requests_get_from_id_expect(instance.pull_request_id)
             .await?;
 
-        self.required_reviewers.insert(
+        self.required_reviewers.write().unwrap().insert(
             (instance.username.clone(), instance.pull_request_id),
             instance.clone(),
         );
@@ -720,7 +862,7 @@ impl DbService for MemoryDb {
     }
 
     async fn required_reviewers_list(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -728,6 +870,8 @@ impl DbService for MemoryDb {
         if let Some(pr) = self.pull_requests_get(owner, name, number).await? {
             let mut values: Vec<_> = self
                 .required_reviewers
+                .read()
+                .unwrap()
                 .values()
                 .filter(|r| r.pull_request_id == pr.id)
                 .cloned()
@@ -742,7 +886,7 @@ impl DbService for MemoryDb {
     }
 
     async fn required_reviewers_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -751,6 +895,8 @@ impl DbService for MemoryDb {
         if let Some(pr) = self.pull_requests_get(owner, name, number).await? {
             Ok(self
                 .required_reviewers
+                .read()
+                .unwrap()
                 .values()
                 .find(|r| r.username == username && r.pull_request_id == pr.id)
                 .cloned())
@@ -760,7 +906,7 @@ impl DbService for MemoryDb {
     }
 
     async fn required_reviewers_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -771,6 +917,8 @@ impl DbService for MemoryDb {
             .await?
         {
             self.required_reviewers
+                .write()
+                .unwrap()
                 .remove(&(r.username, r.pull_request_id));
             Ok(true)
         } else {
@@ -778,8 +926,14 @@ impl DbService for MemoryDb {
         }
     }
 
-    async fn required_reviewers_all(&mut self) -> Result<Vec<RequiredReviewer>> {
-        let mut values: Vec<_> = self.required_reviewers.values().cloned().collect();
+    async fn required_reviewers_all(&self) -> Result<Vec<RequiredReviewer>> {
+        let mut values: Vec<_> = self
+            .required_reviewers
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect();
         values.sort_by(|a, b| {
             (a.pull_request_id, &a.username).cmp(&(b.pull_request_id, &b.username))
         });

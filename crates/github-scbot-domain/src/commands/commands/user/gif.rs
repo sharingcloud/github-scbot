@@ -29,9 +29,8 @@ impl BotCommand for GifCommand {
                 GenerateRandomGifCommentUseCase {
                     config: ctx.config,
                     api_service: ctx.api_service,
-                    search_terms: &self.search_terms,
                 }
-                .run()
+                .run(&self.search_terms)
                 .await?,
             ))
             .build())

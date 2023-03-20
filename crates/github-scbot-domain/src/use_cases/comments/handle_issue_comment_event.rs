@@ -1,5 +1,6 @@
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
+use github_scbot_domain_models::PullRequestHandle;
 use github_scbot_ghapi_interface::{
     types::{GhIssueCommentAction, GhIssueCommentEvent},
     ApiService,
@@ -16,32 +17,33 @@ use crate::{
 pub struct HandleIssueCommentEventUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub event: GhIssueCommentEvent,
 }
 
 impl<'a> HandleIssueCommentEventUseCase<'a> {
     #[tracing::instrument(skip(self), fields(
-        action = ?self.event.action,
-        repo_owner = self.event.repository.owner.login,
-        repo_name = self.event.repository.name,
-        number = self.event.issue.number
+        action = ?event.action,
+        repo_owner = event.repository.owner.login,
+        repo_name = event.repository.name,
+        number = event.issue.number
     ))]
-    pub async fn run(&mut self) -> Result<()> {
-        if let GhIssueCommentAction::Created = self.event.action {
-            self.run_created_comment().await
+    pub async fn run(&self, event: GhIssueCommentEvent) -> Result<()> {
+        if let GhIssueCommentAction::Created = event.action {
+            self.run_created_comment(event).await
         } else {
             Ok(())
         }
     }
 
-    async fn run_created_comment(&mut self) -> Result<()> {
-        let repo_owner = &self.event.repository.owner.login;
-        let repo_name = &self.event.repository.name;
-        let pr_number = self.event.issue.number;
+    async fn run_created_comment(&self, event: GhIssueCommentEvent) -> Result<()> {
+        let repo_owner = &event.repository.owner.login;
+        let repo_name = &event.repository.name;
+        let pr_number = event.issue.number;
+        let pr_handle: &PullRequestHandle =
+            &(repo_owner.as_str(), repo_name.as_str(), pr_number).into();
 
-        let commands = CommandParser::parse_commands(self.config, &self.event.comment.body);
+        let commands = CommandParser::parse_commands(self.config, &event.comment.body);
         match self
             .db_service
             .pull_requests_get(repo_owner, repo_name, pr_number)
@@ -62,8 +64,8 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                     repo_name,
                     pr_number,
                     upstream_pr: &upstream_pr,
-                    comment_id: self.event.comment.id,
-                    comment_author: &self.event.comment.user.login,
+                    comment_id: event.comment.id,
+                    comment_author: &event.comment.user.login,
                 };
 
                 CommandExecutor::execute_commands(&mut ctx, commands).await?;
@@ -81,16 +83,13 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                         SynchronizePullRequestUseCase {
                             config: self.config,
                             db_service: self.db_service,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
                         }
-                        .run()
+                        .run(pr_handle)
                         .await?;
 
                         info!(
-                            pull_request_number = self.event.issue.number,
-                            repository_path = %self.event.repository.full_name,
+                            pull_request_number = event.issue.number,
+                            repository_path = %event.repository.full_name,
                             message = "Manual activation on pull request",
                         );
 
@@ -98,12 +97,8 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                             api_service: self.api_service,
                             db_service: self.db_service,
                             lock_service: self.lock_service,
-                            repo_name,
-                            repo_owner,
-                            pr_number,
-                            upstream_pr: &upstream_pr,
                         }
-                        .run()
+                        .run(pr_handle, &upstream_pr)
                         .await?;
 
                         handled = true;
@@ -114,8 +109,8 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                 if !handled {
                     info!(
                         commands = ?commands,
-                        repository_path = %self.event.repository.full_name,
-                        pull_request_number = self.event.issue.number,
+                        repository_path = %event.repository.full_name,
+                        pull_request_number = event.issue.number,
                         message = "Executing commands on unknown PR",
                     );
                 }

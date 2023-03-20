@@ -18,34 +18,37 @@ use crate::{
 pub struct SetPullRequestQaStatusUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub external_account: &'a ExternalAccount,
-    pub repository_path: RepositoryPath,
-    pub pull_request_numbers: &'a [u64],
-    pub author: &'a str,
-    pub status: QaStatus,
 }
 
 impl<'a> SetPullRequestQaStatusUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            repository_path = %self.repository_path,
-            pr_numbers = ?self.pull_request_numbers,
-            author = %self.author,
-            status = ?self.status
+            external_account = external_account.username,
+            repository_path = %repository_path,
+            pr_numbers = ?pull_request_numbers,
+            author = %author,
+            status = ?status
         )
     )]
-    pub async fn run(&mut self) -> Result<()> {
-        let (repo_owner, repo_name) = self.repository_path.components();
+    pub async fn run(
+        &self,
+        external_account: &ExternalAccount,
+        repository_path: RepositoryPath,
+        pull_request_numbers: &[u64],
+        author: &str,
+        status: QaStatus,
+    ) -> Result<()> {
+        let (repo_owner, repo_name) = repository_path.components();
         if self
             .db_service
-            .external_account_rights_get(repo_owner, repo_name, &self.external_account.username)
+            .external_account_rights_get(repo_owner, repo_name, &external_account.username)
             .await?
             .is_some()
         {
-            for pr_number in self.pull_request_numbers {
+            for pr_number in pull_request_numbers {
                 if self
                     .db_service
                     .pull_requests_get(repo_owner, repo_name, *pr_number)
@@ -67,12 +70,10 @@ impl<'a> SetPullRequestQaStatusUseCase<'a> {
                         pr_number: *pr_number,
                         upstream_pr: &upstream_pr,
                         comment_id: 0,
-                        comment_author: self.author,
+                        comment_author: author,
                     };
 
-                    let result = SetQaStatusCommand::new(self.status)
-                        .handle(&mut ctx)
-                        .await?;
+                    let result = SetQaStatusCommand::new(status).handle(&mut ctx).await?;
                     CommandExecutor::process_command_result(&mut ctx, &result).await?;
                 }
             }

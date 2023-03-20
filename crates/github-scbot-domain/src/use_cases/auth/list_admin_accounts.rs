@@ -4,12 +4,12 @@ use github_scbot_domain_models::Account;
 use crate::Result;
 
 pub struct ListAdminAccountsUseCase<'a> {
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> ListAdminAccountsUseCase<'a> {
     #[tracing::instrument(skip(self))]
-    pub async fn run(&mut self) -> Result<Vec<Account>> {
+    pub async fn run(&self) -> Result<Vec<Account>> {
         self.db_service
             .accounts_list_admins()
             .await
@@ -29,7 +29,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         let one = db
             .accounts_create(Account {
@@ -46,11 +46,7 @@ mod tests {
             .await?;
 
         assert_eq!(
-            ListAdminAccountsUseCase {
-                db_service: &mut db,
-            }
-            .run()
-            .await?,
+            ListAdminAccountsUseCase { db_service: &db }.run().await?,
             vec![one, two]
         );
 

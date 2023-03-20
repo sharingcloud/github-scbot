@@ -54,8 +54,7 @@ async fn jwt_auth_validator_inner(
     credentials: BearerAuth,
 ) -> Result<ServiceRequest, (ValidationError, ServiceRequest)> {
     let ctx = req.app_data::<web::Data<Arc<AppContext>>>().unwrap();
-    let target_account =
-        extract_account_from_auth(ctx.db_service.lock().await.as_mut(), &credentials).await;
+    let target_account = extract_account_from_auth(ctx.db_service.as_ref(), &credentials).await;
     let target_account = match target_account {
         Ok(acc) => acc,
         Err(e) => return Err((e, req)),
@@ -73,14 +72,14 @@ async fn jwt_auth_validator_inner(
 
 /// Extract account from auth.
 pub async fn extract_account_from_auth(
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     credentials: &BearerAuth,
 ) -> Result<ExternalAccount, ValidationError> {
     extract_account_from_token(db_service, credentials.token()).await
 }
 
 pub async fn extract_account_from_token(
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     token: &str,
 ) -> Result<ExternalAccount, ValidationError> {
     let claims: ExternalJwtClaims =
@@ -90,4 +89,41 @@ pub async fn extract_account_from_token(
         .await
         .map_err(|e| ValidationError::DatabaseError { source: e })?
         .ok_or(ValidationError::UnknownAccount)
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_crypto::JwtUtils;
+    use github_scbot_database_interface::DbService;
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{ExternalAccount, ExternalJwtClaims};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn extract() {
+        let db_service = MemoryDb::new();
+        let external_account = db_service
+            .external_accounts_create(
+                ExternalAccount {
+                    username: "Test".into(),
+                    ..Default::default()
+                }
+                .with_generated_keys(),
+            )
+            .await
+            .unwrap();
+
+        let claims = ExternalJwtClaims {
+            iat: 1,
+            iss: "Test".into(),
+        };
+
+        let token = JwtUtils::create_jwt(&external_account.private_key, &claims).unwrap();
+        let extracted_account = extract_account_from_token(&db_service, &token)
+            .await
+            .unwrap();
+
+        assert_eq!(external_account, extracted_account);
+    }
 }

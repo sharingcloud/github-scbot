@@ -93,3 +93,9 @@ impl std::fmt::Display for RepositoryPath {
         f.write_str(&self.full_name())
     }
 }
+
+impl From<(&str, &str)> for RepositoryPath {
+    fn from((owner, name): (&str, &str)) -> Self {
+        Self::new_from_components(owner, name)
+    }
+}

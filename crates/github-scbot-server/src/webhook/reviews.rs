@@ -15,7 +15,7 @@ pub(crate) fn parse_review_event(body: &str) -> Result<GhReviewEvent> {
 
 pub(crate) async fn review_event(
     api_service: &dyn ApiService,
-    db_service: &mut dyn DbService,
+    db_service: &dyn DbService,
     lock_service: &dyn LockService,
     event: GhReviewEvent,
 ) -> Result<HttpResponse> {
@@ -23,9 +23,8 @@ pub(crate) async fn review_event(
         api_service,
         db_service,
         lock_service,
-        event,
     }
-    .run()
+    .run(event)
     .await
     .map_err(|e| ServerError::DomainError { source: e })?;
     Ok(HttpResponse::Ok().body("Pull request review."))

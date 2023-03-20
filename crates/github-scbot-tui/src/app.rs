@@ -31,7 +31,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub async fn load_from_db(&mut self, db_service: &mut dyn DbService) -> Result<()> {
+    pub async fn load_from_db(&mut self, db_service: &dyn DbService) -> Result<()> {
         let mut repositories = db_service.repositories_all().await?;
         repositories.sort_by_key(|r| r.path().full_name());
 

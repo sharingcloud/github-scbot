@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{
-    ChecksStatus, MergeStrategy, PullRequest, QaStatus, Repository, RequiredReviewer,
+    ChecksStatus, MergeStrategy, PullRequest, PullRequestHandle, QaStatus, Repository,
+    RequiredReviewer,
 };
 use github_scbot_ghapi_interface::{
     reviews::ReviewApi,
@@ -55,47 +56,51 @@ pub struct PullRequestStatus {
 
 impl PullRequestStatus {
     /// Create status from pull request and database.
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            repo_owner = %repo_owner,
-            repo_name = %repo_name,
-            pr_number = pr_number
-        )
-    )]
+    #[tracing::instrument(skip_all, fields(pr_handle))]
     pub async fn from_database(
         api_service: &dyn ApiService,
-        db_service: &mut dyn DbService,
-        repo_owner: &str,
-        repo_name: &str,
-        pr_number: u64,
+        db_service: &dyn DbService,
+        pr_handle: &PullRequestHandle,
         upstream_pr: &GhPullRequest,
     ) -> Result<Self> {
         let repo_model = db_service
-            .repositories_get(repo_owner, repo_name)
+            .repositories_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+            )
             .await?
             .unwrap();
         let pr_model = db_service
-            .pull_requests_get(repo_owner, repo_name, pr_number)
+            .pull_requests_get(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
+            )
             .await?
             .unwrap();
 
-        let upstream_reviews =
-            ReviewApi::list_reviews_for_pull_request(api_service, repo_owner, repo_name, pr_number)
-                .await?;
+        let upstream_reviews = ReviewApi::list_reviews_for_pull_request(
+            api_service,
+            pr_handle.repository().owner(),
+            pr_handle.repository().name(),
+            pr_handle.number(),
+        )
+        .await?;
         let required_reviewers = db_service
-            .required_reviewers_list(repo_owner, repo_name, pr_number)
+            .required_reviewers_list(
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
+            )
             .await?;
         let checks_status = if pr_model.checks_enabled {
-            DetermineChecksStatusUseCase {
-                api_service,
-                repo_owner,
-                repo_name,
-                commit_sha: &upstream_pr.head.sha,
-                wait_for_initial_checks: pr_model.checks_enabled,
-            }
-            .run()
-            .await?
+            DetermineChecksStatusUseCase { api_service }
+                .run(
+                    pr_handle.repository(),
+                    &upstream_pr.head.sha,
+                    pr_model.checks_enabled,
+                )
+                .await?
         } else {
             ChecksStatus::Skipped
         };
@@ -105,16 +110,14 @@ impl PullRequestStatus {
         } else {
             let base_branch = &upstream_pr.base.reference;
             let head_branch = &upstream_pr.head.reference;
-            DeterminePullRequestMergeStrategyUseCase {
-                db_service,
-                repo_owner,
-                repo_name,
-                head_branch,
-                base_branch,
-                default_strategy: repo_model.default_strategy,
-            }
-            .run()
-            .await?
+            DeterminePullRequestMergeStrategyUseCase { db_service }
+                .run(
+                    pr_handle.repository(),
+                    head_branch,
+                    base_branch,
+                    repo_model.default_strategy,
+                )
+                .await?
         };
 
         Self::from_pull_request(
@@ -243,7 +246,7 @@ mod tests {
     #[tokio::test]
     async fn blank_no_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -280,10 +283,8 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
-            "me",
-            "test",
-            1,
+            &db_service,
+            &("me", "test", 1).into(),
             &upstream_pr,
         )
         .await
@@ -314,7 +315,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_no_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -362,10 +363,8 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
-            "me",
-            "test",
-            1,
+            &db_service,
+            &("me", "test", 1).into(),
             &upstream_pr,
         )
         .await
@@ -396,7 +395,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_qa_no_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -444,10 +443,8 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
-            "me",
-            "test",
-            1,
+            &db_service,
+            &("me", "test", 1).into(),
             &upstream_pr,
         )
         .await
@@ -478,7 +475,7 @@ mod tests {
     #[tokio::test]
     async fn blank_checks_qa_reviewers() {
         let mut api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
 
         let repo = db_service
             .repositories_create(Repository {
@@ -534,10 +531,8 @@ mod tests {
 
         let status = PullRequestStatus::from_database(
             &api_service,
-            &mut db_service,
-            "me",
-            "test",
-            1,
+            &db_service,
+            &("me", "test", 1).into(),
             &upstream_pr,
         )
         .await

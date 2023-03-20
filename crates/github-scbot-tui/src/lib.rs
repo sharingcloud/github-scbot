@@ -19,7 +19,7 @@ use terminal::TerminalWrapper;
 use self::errors::Result;
 
 /// Run TUI interface.
-pub async fn run_tui(db_service: &mut dyn DbService) -> Result<()> {
+pub async fn run_tui(db_service: &dyn DbService) -> Result<()> {
     let mut terminal = TerminalWrapper::new()?;
 
     let mut app = App::new("SC Bot");

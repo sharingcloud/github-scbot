@@ -9,28 +9,27 @@ use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
 
 pub struct HandlePullRequestEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub event: GhPullRequestEvent,
 }
 
 impl<'a> HandlePullRequestEventUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            action = ?self.event.action,
-            pr_number = self.event.number,
-            repository_path = %self.event.repository.full_name,
-            username = %self.event.pull_request.user.login
+            action = ?event.action,
+            pr_number = event.number,
+            repository_path = %event.repository.full_name,
+            username = %event.pull_request.user.login
         )
     )]
-    pub async fn run(&mut self) -> Result<()> {
-        let repo_owner = &self.event.repository.owner.login;
-        let repo_name = &self.event.repository.name;
+    pub async fn run(&self, event: GhPullRequestEvent) -> Result<()> {
+        let repo_owner = &event.repository.owner.login;
+        let repo_name = &event.repository.name;
 
         let pr_model = match self
             .db_service
-            .pull_requests_get(repo_owner, repo_name, self.event.pull_request.number)
+            .pull_requests_get(repo_owner, repo_name, event.pull_request.number)
             .await?
         {
             Some(pr) => pr,
@@ -41,7 +40,7 @@ impl<'a> HandlePullRequestEventUseCase<'a> {
         let mut status_changed = false;
 
         // Status update
-        match self.event.action {
+        match event.action {
             GhPullRequestAction::Synchronize => {
                 // Force status to waiting
                 status_changed = true;
@@ -61,7 +60,7 @@ impl<'a> HandlePullRequestEventUseCase<'a> {
             _ => (),
         }
 
-        if let GhPullRequestAction::Edited = self.event.action {
+        if let GhPullRequestAction::Edited = event.action {
             // Update PR title
             status_changed = true;
         }
@@ -76,12 +75,11 @@ impl<'a> HandlePullRequestEventUseCase<'a> {
                 api_service: self.api_service,
                 db_service: self.db_service,
                 lock_service: self.lock_service,
-                repo_name,
-                repo_owner,
-                pr_number,
-                upstream_pr: &upstream_pr,
             }
-            .run()
+            .run(
+                &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
+                &upstream_pr,
+            )
             .await?;
         }
 

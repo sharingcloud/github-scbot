@@ -15,10 +15,9 @@ pub(crate) struct AuthAddAdminRightsCommand {
 impl AuthAddAdminRightsCommand {
     pub async fn run<W: Write>(self, ctx: &mut CommandContext<W>) -> Result<()> {
         AddAdminRightUseCase {
-            username: &self.username,
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
-        .run()
+        .run(&self.username)
         .await?;
 
         writeln!(

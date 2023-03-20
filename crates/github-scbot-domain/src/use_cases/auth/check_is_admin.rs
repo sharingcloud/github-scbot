@@ -3,16 +3,15 @@ use github_scbot_database_interface::DbService;
 use crate::Result;
 
 pub struct CheckIsAdminUseCase<'a> {
-    pub username: &'a str,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
 }
 
 impl<'a> CheckIsAdminUseCase<'a> {
-    #[tracing::instrument(skip(self), fields(self.username), ret)]
-    pub async fn run(&mut self) -> Result<bool> {
+    #[tracing::instrument(skip(self), fields(username), ret)]
+    pub async fn run(&self, username: &str) -> Result<bool> {
         let known_admins: Vec<_> = self.db_service.accounts_list_admins().await?;
 
-        Ok(known_admins.iter().any(|acc| acc.username == self.username))
+        Ok(known_admins.iter().any(|acc| acc.username == username))
     }
 }
 
@@ -28,7 +27,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -36,21 +35,14 @@ mod tests {
         })
         .await?;
 
-        assert!(
-            CheckIsAdminUseCase {
-                username: "me",
-                db_service: &mut db,
-            }
-            .run()
-            .await?
-        );
+        assert!(CheckIsAdminUseCase { db_service: &db }.run("me").await?);
 
         Ok(())
     }
 
     #[tokio::test]
     async fn run_not_admin() -> Result<(), Box<dyn Error>> {
-        let mut db = MemoryDb::new();
+        let db = MemoryDb::new();
 
         db.accounts_create(Account {
             username: "me".into(),
@@ -58,14 +50,7 @@ mod tests {
         })
         .await?;
 
-        assert!(
-            !CheckIsAdminUseCase {
-                username: "me",
-                db_service: &mut db,
-            }
-            .run()
-            .await?
-        );
+        assert!(!CheckIsAdminUseCase { db_service: &db }.run("me").await?);
 
         Ok(())
     }

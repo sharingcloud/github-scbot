@@ -64,7 +64,7 @@ impl PostgresDb {
     }
 
     async fn external_accounts_get_from_id(
-        &mut self,
+        &self,
         username: &str,
         repository_id: u64,
     ) -> Result<Option<ExternalAccountRight>> {
@@ -85,7 +85,7 @@ impl PostgresDb {
         Ok(row.map(Into::into))
     }
 
-    async fn merge_rules_get_from_id(&mut self, id: i32) -> Result<Option<MergeRule>> {
+    async fn merge_rules_get_from_id(&self, id: i32) -> Result<Option<MergeRule>> {
         let row = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT *
@@ -102,7 +102,7 @@ impl PostgresDb {
     }
 
     async fn required_reviewers_get_from_pull_request_id(
-        &mut self,
+        &self,
         pull_request_id: u64,
         username: &str,
     ) -> Result<Option<RequiredReviewer>> {
@@ -127,7 +127,7 @@ impl PostgresDb {
 #[async_trait]
 impl DbService for PostgresDb {
     #[tracing::instrument(skip(self))]
-    async fn accounts_create(&mut self, instance: Account) -> Result<Account> {
+    async fn accounts_create(&self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
             INSERT INTO account
@@ -155,7 +155,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_update(&mut self, instance: Account) -> Result<Account> {
+    async fn accounts_update(&self, instance: Account) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
             UPDATE account
@@ -175,7 +175,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_all(&mut self) -> Result<Vec<Account>> {
+    async fn accounts_all(&self) -> Result<Vec<Account>> {
         let rows = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
@@ -191,7 +191,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_get(&mut self, username: &str) -> Result<Option<Account>> {
+    async fn accounts_get(&self, username: &str) -> Result<Option<Account>> {
         let row = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
@@ -208,7 +208,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_delete(&mut self, username: &str) -> Result<bool> {
+    async fn accounts_delete(&self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM account
@@ -223,7 +223,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_list_admins(&mut self) -> Result<Vec<Account>> {
+    async fn accounts_list_admins(&self) -> Result<Vec<Account>> {
         let rows = sqlx::query_as::<_, AccountRow>(
             r#"
                 SELECT *
@@ -241,7 +241,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn accounts_set_is_admin(&mut self, username: &str, value: bool) -> Result<Account> {
+    async fn accounts_set_is_admin(&self, username: &str, value: bool) -> Result<Account> {
         let username: String = sqlx::query(
             r#"
             UPDATE account
@@ -265,7 +265,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_account_rights_create(
-        &mut self,
+        &self,
         instance: ExternalAccountRight,
     ) -> Result<ExternalAccountRight> {
         self.repositories_get_from_id_expect(instance.repository_id)
@@ -299,7 +299,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_account_rights_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         username: &str,
@@ -326,7 +326,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_account_rights_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         username: &str,
@@ -351,7 +351,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_account_rights_delete_all(&mut self, username: &str) -> Result<bool> {
+    async fn external_account_rights_delete_all(&self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM external_account_right
@@ -367,7 +367,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_account_rights_list(
-        &mut self,
+        &self,
         username: &str,
     ) -> Result<Vec<ExternalAccountRight>> {
         let rows = sqlx::query_as::<_, ExternalAccountRightRow>(
@@ -387,7 +387,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_account_rights_all(&mut self) -> Result<Vec<ExternalAccountRight>> {
+    async fn external_account_rights_all(&self) -> Result<Vec<ExternalAccountRight>> {
         let rows = sqlx::query_as::<_, ExternalAccountRightRow>(
             r#"
             SELECT *
@@ -406,10 +406,7 @@ impl DbService for PostgresDb {
     // External accounts
 
     #[tracing::instrument(skip(self))]
-    async fn external_accounts_create(
-        &mut self,
-        instance: ExternalAccount,
-    ) -> Result<ExternalAccount> {
+    async fn external_accounts_create(&self, instance: ExternalAccount) -> Result<ExternalAccount> {
         let username: String = sqlx::query(
             r#"
             INSERT INTO external_account
@@ -439,10 +436,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_accounts_update(
-        &mut self,
-        instance: ExternalAccount,
-    ) -> Result<ExternalAccount> {
+    async fn external_accounts_update(&self, instance: ExternalAccount) -> Result<ExternalAccount> {
         let username: String = sqlx::query(
             r#"
             UPDATE external_account
@@ -464,7 +458,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_accounts_get(&mut self, username: &str) -> Result<Option<ExternalAccount>> {
+    async fn external_accounts_get(&self, username: &str) -> Result<Option<ExternalAccount>> {
         let row = sqlx::query_as::<_, ExternalAccountRow>(
             r#"
                 SELECT *
@@ -481,7 +475,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_accounts_delete(&mut self, username: &str) -> Result<bool> {
+    async fn external_accounts_delete(&self, username: &str) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM external_account
@@ -496,7 +490,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn external_accounts_all(&mut self) -> Result<Vec<ExternalAccount>> {
+    async fn external_accounts_all(&self) -> Result<Vec<ExternalAccount>> {
         let rows = sqlx::query_as::<_, ExternalAccountRow>(
             r#"
             SELECT *
@@ -513,7 +507,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn external_accounts_set_keys(
-        &mut self,
+        &self,
         username: &str,
         public_key: &str,
         private_key: &str,
@@ -541,7 +535,7 @@ impl DbService for PostgresDb {
     ///////////////
     // Health check
 
-    async fn health_check(&mut self) -> Result<()> {
+    async fn health_check(&self) -> Result<()> {
         sqlx::query("SELECT 1;")
             .execute(&self.pool)
             .await
@@ -554,7 +548,7 @@ impl DbService for PostgresDb {
     // Merge rules
 
     #[tracing::instrument(skip(self))]
-    async fn merge_rules_create(&mut self, instance: MergeRule) -> Result<MergeRule> {
+    async fn merge_rules_create(&self, instance: MergeRule) -> Result<MergeRule> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
 
@@ -593,7 +587,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn merge_rules_update(&mut self, instance: MergeRule) -> Result<MergeRule> {
+    async fn merge_rules_update(&self, instance: MergeRule) -> Result<MergeRule> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
 
@@ -623,7 +617,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         base_branch: RuleBranch,
@@ -651,7 +645,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn merge_rules_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         base_branch: RuleBranch,
@@ -680,7 +674,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn merge_rules_all(&mut self) -> Result<Vec<MergeRule>> {
+    async fn merge_rules_all(&self) -> Result<Vec<MergeRule>> {
         let rows = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT *
@@ -696,7 +690,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn merge_rules_list(&mut self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
+    async fn merge_rules_list(&self, owner: &str, name: &str) -> Result<Vec<MergeRule>> {
         let rows = sqlx::query_as::<_, MergeRuleRow>(
             r#"
             SELECT merge_rule.*
@@ -718,7 +712,7 @@ impl DbService for PostgresDb {
     // Pull requests
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_create(&mut self, instance: PullRequest) -> Result<PullRequest> {
+    async fn pull_requests_create(&self, instance: PullRequest) -> Result<PullRequest> {
         self.repositories_get_from_id_expect(instance.repository_id)
             .await?;
 
@@ -769,7 +763,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_update(&mut self, instance: PullRequest) -> Result<PullRequest> {
+    async fn pull_requests_update(&self, instance: PullRequest) -> Result<PullRequest> {
         let repo = self
             .repositories_get_from_id_expect(instance.repository_id)
             .await?;
@@ -808,7 +802,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -834,7 +828,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_get_from_id(&mut self, id: u64) -> Result<Option<PullRequest>> {
+    async fn pull_requests_get_from_id(&self, id: u64) -> Result<Option<PullRequest>> {
         let row = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT *
@@ -851,7 +845,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_delete(&mut self, owner: &str, name: &str, number: u64) -> Result<bool> {
+    async fn pull_requests_delete(&self, owner: &str, name: &str, number: u64) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM pull_request
@@ -872,7 +866,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_list(&mut self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
+    async fn pull_requests_list(&self, owner: &str, name: &str) -> Result<Vec<PullRequest>> {
         let rows = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT pull_request.*
@@ -893,7 +887,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pull_requests_all(&mut self) -> Result<Vec<PullRequest>> {
+    async fn pull_requests_all(&self) -> Result<Vec<PullRequest>> {
         let rows = sqlx::query_as::<_, PullRequestRow>(
             r#"
             SELECT *
@@ -910,7 +904,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_qa_status(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -944,7 +938,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_needed_reviewers_count(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -978,7 +972,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_status_comment_id(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1012,7 +1006,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_checks_enabled(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1046,7 +1040,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_automerge(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1080,7 +1074,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_locked(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1114,7 +1108,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn pull_requests_set_strategy_override(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1150,7 +1144,7 @@ impl DbService for PostgresDb {
     // Repositories
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_create(&mut self, instance: Repository) -> Result<Repository> {
+    async fn repositories_create(&self, instance: Repository) -> Result<Repository> {
         let new_id: i32 = sqlx::query(
             r#"
             INSERT INTO repository
@@ -1201,7 +1195,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_update(&mut self, instance: Repository) -> Result<Repository> {
+    async fn repositories_update(&self, instance: Repository) -> Result<Repository> {
         let new_id: i32 = sqlx::query(
             r#"
             UPDATE repository
@@ -1240,7 +1234,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_all(&mut self) -> Result<Vec<Repository>> {
+    async fn repositories_all(&self) -> Result<Vec<Repository>> {
         let rows = sqlx::query_as::<_, RepositoryRow>(
             r#"
                 SELECT *
@@ -1256,7 +1250,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_get(&mut self, owner: &str, name: &str) -> Result<Option<Repository>> {
+    async fn repositories_get(&self, owner: &str, name: &str) -> Result<Option<Repository>> {
         let row = sqlx::query_as::<_, RepositoryRow>(
             r#"
             SELECT *
@@ -1275,7 +1269,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_get_from_id(&mut self, id: u64) -> Result<Option<Repository>> {
+    async fn repositories_get_from_id(&self, id: u64) -> Result<Option<Repository>> {
         let row = sqlx::query_as::<_, RepositoryRow>(
             r#"
             SELECT *
@@ -1292,7 +1286,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn repositories_delete(&mut self, owner: &str, name: &str) -> Result<bool> {
+    async fn repositories_delete(&self, owner: &str, name: &str) -> Result<bool> {
         sqlx::query(
             r#"
             DELETE FROM repository
@@ -1309,7 +1303,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_manual_interaction(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
@@ -1338,7 +1332,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_pr_title_validation_regex(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: &str,
@@ -1367,7 +1361,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_default_strategy(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         strategy: MergeStrategy,
@@ -1396,7 +1390,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_default_needed_reviewers_count(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         count: u64,
@@ -1425,7 +1419,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_default_automerge(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
@@ -1454,7 +1448,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_default_enable_qa(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
@@ -1483,7 +1477,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn repositories_set_default_enable_checks(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         value: bool,
@@ -1515,7 +1509,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn required_reviewers_create(
-        &mut self,
+        &self,
         instance: RequiredReviewer,
     ) -> Result<RequiredReviewer> {
         self.pull_requests_get_from_id_expect(instance.pull_request_id)
@@ -1551,7 +1545,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn required_reviewers_list(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1577,7 +1571,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn required_reviewers_get(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1605,7 +1599,7 @@ impl DbService for PostgresDb {
 
     #[tracing::instrument(skip(self))]
     async fn required_reviewers_delete(
-        &mut self,
+        &self,
         owner: &str,
         name: &str,
         number: u64,
@@ -1634,7 +1628,7 @@ impl DbService for PostgresDb {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn required_reviewers_all(&mut self) -> Result<Vec<RequiredReviewer>> {
+    async fn required_reviewers_all(&self) -> Result<Vec<RequiredReviewer>> {
         let rows = sqlx::query_as::<_, RequiredReviewerRow>(
             r#"
                 SELECT *

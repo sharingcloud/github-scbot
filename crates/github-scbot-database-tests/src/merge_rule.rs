@@ -5,7 +5,7 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn create() {
-    db_test_case("merge_rule_create", |mut db| async move {
+    db_test_case("merge_rule_create", |db| async move {
         assert!(matches!(
             db.merge_rules_create(MergeRule {
                 repository_id: 1,
@@ -46,7 +46,7 @@ async fn create() {
 
 #[tokio::test]
 async fn update() {
-    db_test_case("merge_rule_update", |mut db| async move {
+    db_test_case("merge_rule_update", |db| async move {
         assert!(matches!(
             db.merge_rules_update(MergeRule {
                 repository_id: 1,
@@ -116,7 +116,7 @@ async fn update() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("merge_rule_get", |mut db| async move {
+    db_test_case("merge_rule_get", |db| async move {
         assert_eq!(
             db.merge_rules_get(
                 "me",
@@ -162,7 +162,7 @@ async fn get() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("merge_rule_delete", |mut db| async move {
+    db_test_case("merge_rule_delete", |db| async move {
         assert!(
             !db.merge_rules_delete(
                 "me",
@@ -217,7 +217,7 @@ async fn delete() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("merge_rule_all", |mut db| async move {
+    db_test_case("merge_rule_all", |db| async move {
         assert_eq!(db.merge_rules_all().await?, vec![]);
 
         let repo1 = db
@@ -280,7 +280,7 @@ async fn all() {
 
 #[tokio::test]
 async fn list() {
-    db_test_case("merge_rule_list", |mut db| async move {
+    db_test_case("merge_rule_list", |db| async move {
         assert_eq!(db.merge_rules_list("me", "repo").await?, vec![]);
 
         let repo = db
@@ -317,7 +317,7 @@ async fn list() {
 
 #[tokio::test]
 async fn cascade_repository() {
-    db_test_case("merge_rule_cascade_repository", |mut db| async move {
+    db_test_case("merge_rule_cascade_repository", |db| async move {
         let repo = db
             .repositories_create(Repository {
                 owner: "me".into(),

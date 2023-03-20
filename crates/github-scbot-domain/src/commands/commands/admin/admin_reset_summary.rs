@@ -24,12 +24,8 @@ impl BotCommand for AdminResetSummaryCommand {
         let pr_status = BuildPullRequestStatusUseCase {
             api_service: ctx.api_service,
             db_service: ctx.db_service,
-            repo_owner: ctx.repo_owner,
-            repo_name: ctx.repo_name,
-            pr_number: ctx.pr_number,
-            upstream_pr: ctx.upstream_pr,
         }
-        .run()
+        .run(&ctx.pr_handle(), ctx.upstream_pr)
         .await?;
 
         // Reset comment ID
@@ -41,12 +37,8 @@ impl BotCommand for AdminResetSummaryCommand {
             api_service: ctx.api_service,
             db_service: ctx.db_service,
             lock_service: ctx.lock_service,
-            repo_owner: ctx.repo_owner,
-            repo_name: ctx.repo_name,
-            pr_number: ctx.pr_number,
-            pr_status: &pr_status,
         }
-        .run()
+        .run(&ctx.pr_handle(), &pr_status)
         .await?;
 
         Ok(CommandExecutionResult::builder()

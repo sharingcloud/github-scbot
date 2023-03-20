@@ -5,7 +5,7 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn create() {
-    db_test_case("external_account_right_create", |mut db| async move {
+    db_test_case("external_account_right_create", |db| async move {
         assert!(matches!(
             db.external_account_rights_create(ExternalAccountRight {
                 repository_id: 1,
@@ -56,7 +56,7 @@ async fn create() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("external_account_right_get", |mut db| async move {
+    db_test_case("external_account_right_get", |db| async move {
         assert_eq!(
             db.external_account_rights_get("me", "repo", "me").await?,
             None
@@ -93,7 +93,7 @@ async fn get() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("external_account_right_delete", |mut db| async move {
+    db_test_case("external_account_right_delete", |db| async move {
         assert!(
             !db.external_account_rights_delete("me", "repo", "me")
                 .await?
@@ -135,7 +135,7 @@ async fn delete() {
 
 #[tokio::test]
 async fn delete_all() {
-    db_test_case("external_account_right_delete_all", |mut db| async move {
+    db_test_case("external_account_right_delete_all", |db| async move {
         assert!(!db.external_account_rights_delete_all("me").await?);
 
         let repo1 = db
@@ -193,7 +193,7 @@ async fn delete_all() {
 
 #[tokio::test]
 async fn list() {
-    db_test_case("external_account_right_list", |mut db| async move {
+    db_test_case("external_account_right_list", |db| async move {
         assert_eq!(db.external_account_rights_list("me").await?, vec![]);
 
         let repo1 = db
@@ -242,7 +242,7 @@ async fn list() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("external_account_right_all", |mut db| async move {
+    db_test_case("external_account_right_all", |db| async move {
         assert_eq!(db.external_account_rights_all().await?, vec![]);
 
         let repo1 = db
@@ -311,7 +311,7 @@ async fn all() {
 async fn cascade_external_account() {
     db_test_case(
         "external_account_right_cascade_external_account",
-        |mut db| async move {
+        |db| async move {
             let repo = db
                 .repositories_create(Repository {
                     owner: "me".into(),
@@ -345,7 +345,7 @@ async fn cascade_external_account() {
 async fn cascade_repository() {
     db_test_case(
         "external_account_right_cascade_repository",
-        |mut db| async move {
+        |db| async move {
             let repo = db
                 .repositories_create(Repository {
                     owner: "me".into(),

@@ -12,7 +12,7 @@ pub(crate) struct AuthListExternalAccountsCommand;
 impl AuthListExternalAccountsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let accounts = ListExternalAccountsUseCase {
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
         .run()
         .await?;
@@ -53,7 +53,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() -> Result<(), Box<dyn Error>> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         ctx.db_service
             .external_accounts_create(ExternalAccount {
                 username: "me".into(),

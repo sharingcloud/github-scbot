@@ -38,15 +38,18 @@ test:
 
 # Test with coverage
 test-cov:
-    rm -rf .cov
-    rm -rf htmlcov
-    RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo build
-    RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo test
-    grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+	rm -rf .cov
+	RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo build
+	RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo test
+	grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
 
 # Build HTML coverage
-cov-html:
-    grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing --ignore "/*" -o htmlcov
+test-cov-html:
+	rm -rf .cov
+	rm -rf htmlcov
+	RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo build
+	RUSTFLAGS="-Cinstrument-coverage" LLVM_PROFILE_FILE=".cov/test-%p-%m.profraw" cargo test
+	grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing --ignore "/*" -o htmlcov
 
 # Set crates version
 set-version v:

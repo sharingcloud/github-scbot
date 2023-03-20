@@ -1,6 +1,6 @@
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::{PullRequest, Repository};
+use github_scbot_domain_models::{PullRequest, PullRequestHandle, Repository};
 use github_scbot_ghapi_interface::{types::GhPullRequestEvent, ApiService};
 use github_scbot_lock_interface::LockService;
 
@@ -25,35 +25,34 @@ pub enum PullRequestOpenedStatus {
 pub struct ProcessPullRequestOpenedUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
-    pub db_service: &'a mut dyn DbService,
+    pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
-    pub event: GhPullRequestEvent,
 }
 
 impl<'a> ProcessPullRequestOpenedUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
-            action = ?self.event.action,
-            pr_number = self.event.number,
-            repository_path = %self.event.repository.full_name,
-            username = %self.event.pull_request.user.login
+            action = ?event.action,
+            pr_number = event.number,
+            repository_path = %event.repository.full_name,
+            username = %event.pull_request.user.login
         ),
         ret
     )]
-    pub async fn run(&mut self) -> Result<PullRequestOpenedStatus> {
+    pub async fn run(&self, event: GhPullRequestEvent) -> Result<PullRequestOpenedStatus> {
         // Get or create repository
-        let repo_owner = &self.event.repository.owner.login;
-        let repo_name = &self.event.repository.name;
-        let pr_number = self.event.pull_request.number;
+        let repo_owner = &event.repository.owner.login;
+        let repo_name = &event.repository.name;
+        let pr_number = event.pull_request.number;
+        let pr_handle: &PullRequestHandle =
+            &(repo_owner.as_str(), repo_name.as_str(), pr_number).into();
 
         let repo_model = GetOrCreateRepositoryUseCase {
             db_service: self.db_service,
             config: self.config,
-            repo_name,
-            repo_owner,
         }
-        .run()
+        .run(pr_handle.repository())
         .await?;
 
         match self
@@ -63,12 +62,12 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
         {
             Some(_p) => Ok(PullRequestOpenedStatus::AlreadyCreated),
             None => {
-                if Self::should_create_pull_request(self.config, &repo_model, &self.event) {
+                if Self::should_create_pull_request(self.config, &repo_model, &event) {
                     let pr_model = self
                         .db_service
                         .pull_requests_create(
                             PullRequest {
-                                number: self.event.pull_request.number,
+                                number: event.pull_request.number,
                                 ..Default::default()
                             }
                             .with_repository(&repo_model),
@@ -85,30 +84,22 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
                         api_service: self.api_service,
                         db_service: self.db_service,
                         lock_service: self.lock_service,
-                        repo_name,
-                        repo_owner,
-                        pr_number,
-                        upstream_pr: &upstream_pr,
                     }
-                    .run()
+                    .run(pr_handle, &upstream_pr)
                     .await?;
 
                     if self.config.server_enable_welcome_comments {
                         PostWelcomeCommentUseCase {
                             api_service: self.api_service,
-                            repo_owner,
-                            repo_name,
-                            pr_number,
-                            pr_author: &self.event.pull_request.user.login,
                         }
-                        .run()
+                        .run(pr_handle, &event.pull_request.user.login)
                         .await?;
                     }
 
                     // Now, handle commands from body.
                     let commands = CommandParser::parse_commands(
                         self.config,
-                        self.event.pull_request.body.as_deref().unwrap_or_default(),
+                        event.pull_request.body.as_deref().unwrap_or_default(),
                     );
 
                     let mut ctx = CommandContext {
@@ -121,7 +112,7 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
                         pr_number,
                         upstream_pr: &upstream_pr,
                         comment_id: 0,
-                        comment_author: &self.event.pull_request.user.login,
+                        comment_author: &event.pull_request.user.login,
                     };
 
                     CommandExecutor::execute_commands(&mut ctx, commands).await?;
@@ -258,28 +249,27 @@ mod tests {
     async fn no_manual_interaction() {
         let config = Config::from_env();
         let api_service = prepare_api_service_calls();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = prepare_lock_service_calls();
 
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
-            event: GhPullRequestEvent {
-                pull_request: GhPullRequest {
-                    number: 1,
-                    ..Default::default()
-                },
-                repository: GhRepository {
-                    owner: GhUser { login: "me".into() },
-                    name: "test".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            db_service: &db_service,
             lock_service: &lock_service,
         }
-        .run()
+        .run(GhPullRequestEvent {
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .await;
 
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Created)))
@@ -289,7 +279,7 @@ mod tests {
     async fn already_created() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         let repo = db_service
@@ -313,22 +303,21 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
-            event: GhPullRequestEvent {
-                pull_request: GhPullRequest {
-                    number: 1,
-                    ..Default::default()
-                },
-                repository: GhRepository {
-                    owner: GhUser { login: "me".into() },
-                    name: "test".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            db_service: &db_service,
             lock_service: &lock_service,
         }
-        .run()
+        .run(GhPullRequestEvent {
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .await;
 
         assert!(matches!(
@@ -341,7 +330,7 @@ mod tests {
     async fn manual_interaction_without_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         db_service
@@ -357,22 +346,21 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
-            event: GhPullRequestEvent {
-                pull_request: GhPullRequest {
-                    number: 1,
-                    ..Default::default()
-                },
-                repository: GhRepository {
-                    owner: GhUser { login: "me".into() },
-                    name: "test".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            db_service: &db_service,
             lock_service: &lock_service,
         }
-        .run()
+        .run(GhPullRequestEvent {
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .await;
 
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
@@ -382,7 +370,7 @@ mod tests {
     async fn manual_interaction_with_wrong_comment() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
 
         db_service
@@ -398,23 +386,22 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
-            event: GhPullRequestEvent {
-                pull_request: GhPullRequest {
-                    number: 1,
-                    body: Some("bot hello".into()),
-                    ..Default::default()
-                },
-                repository: GhRepository {
-                    owner: GhUser { login: "me".into() },
-                    name: "test".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
+            db_service: &db_service,
             lock_service: &lock_service,
         }
-        .run()
+        .run(GhPullRequestEvent {
+            pull_request: GhPullRequest {
+                number: 1,
+                body: Some("bot hello".into()),
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .await;
 
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Ignored)))
@@ -424,7 +411,7 @@ mod tests {
     async fn manual_interaction_with_enable_comment_non_admin_user() {
         let config = Config::from_env();
         let mut api_service = prepare_api_service_calls();
-        let mut db_service = MemoryDb::new();
+        let db_service = MemoryDb::new();
         let lock_service = prepare_lock_service_calls();
 
         db_service
@@ -446,26 +433,25 @@ mod tests {
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
-            db_service: &mut db_service,
-            event: GhPullRequestEvent {
-                pull_request: GhPullRequest {
-                    number: 1,
-                    body: Some("bot admin-enable".into()),
-                    user: GhUser {
-                        login: "user".into(),
-                    },
-                    ..Default::default()
-                },
-                repository: GhRepository {
-                    owner: GhUser { login: "me".into() },
-                    name: "test".into(),
-                    ..Default::default()
+            db_service: &db_service,
+            lock_service: &lock_service,
+        }
+        .run(GhPullRequestEvent {
+            pull_request: GhPullRequest {
+                number: 1,
+                body: Some("bot admin-enable".into()),
+                user: GhUser {
+                    login: "user".into(),
                 },
                 ..Default::default()
             },
-            lock_service: &lock_service,
-        }
-        .run()
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
         .await;
 
         assert!(matches!(result, Ok(PullRequestOpenedStatus::Created)))

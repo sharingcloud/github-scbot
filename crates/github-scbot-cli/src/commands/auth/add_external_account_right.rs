@@ -18,11 +18,9 @@ pub(crate) struct AuthAddExternalAccountRightCommand {
 impl AuthAddExternalAccountRightCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddExternalAccountRightUseCase {
-            username: &self.username,
-            repository_path: self.repository_path.clone(),
-            db_service: ctx.db_service.as_mut(),
+            db_service: ctx.db_service.as_ref(),
         }
-        .run()
+        .run(&self.repository_path, &self.username)
         .await?;
 
         writeln!(
@@ -44,7 +42,7 @@ mod tests {
 
     #[tokio::test]
     async fn run() {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         ctx.db_service
             .repositories_create(Repository {
                 owner: "me".into(),

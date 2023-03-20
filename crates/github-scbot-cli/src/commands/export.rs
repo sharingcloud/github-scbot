@@ -21,16 +21,16 @@ pub(crate) struct ExportCommand {
 
 #[async_trait(?Send)]
 impl Command for ExportCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         if let Some(file_path) = self.output_file {
             let file = File::create(file_path.clone())?;
             let mut writer = BufWriter::new(file);
-            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         } else {
             let mut writer = std::io::stdout();
-            Exchanger::export_to_json(ctx.db_service.as_mut(), &mut writer)
+            Exchanger::export_to_json(ctx.db_service.as_ref(), &mut writer)
                 .await
                 .map_err(Into::into)
         }
@@ -51,7 +51,7 @@ mod tests {
 
     #[tokio::test]
     async fn test() {
-        db_test_case("command_export", |mut db| async move {
+        db_test_case("command_export", |db| async move {
             let config = Config::from_env();
 
             let repo = db
@@ -102,11 +102,11 @@ mod tests {
             let mut s = Vec::new();
             {
                 let mut writer = BufWriter::new(&mut s);
-                Exchanger::export_to_json(db.as_mut(), &mut writer).await?;
+                Exchanger::export_to_json(db.as_ref(), &mut writer).await?;
             }
 
             let cursor = Cursor::new(&s);
-            Exchanger::import_from_json(db.as_mut(), cursor).await?;
+            Exchanger::import_from_json(db.as_ref(), cursor).await?;
 
             Ok(())
         })

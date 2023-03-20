@@ -1,7 +1,7 @@
 use github_scbot_domain_models::{ChecksStatus, MergeStrategy, QaStatus};
 
 use crate::{
-    use_cases::status::{GenerateStatusMessageUseCase, PullRequestStatus},
+    use_cases::status::{PullRequestStatus, StatusMessageGenerator},
     Result,
 };
 
@@ -153,10 +153,7 @@ impl SummaryTextGenerator {
     }
 
     fn generate_status_comment_footer(pull_request_status: &PullRequestStatus) -> Result<String> {
-        let status_message = GenerateStatusMessageUseCase {
-            pr_status: pull_request_status,
-        }
-        .run()?;
+        let status_message = StatusMessageGenerator::default().generate(pull_request_status)?;
 
         Ok(format!(
             ":scroll: &mdash; **Current status**\n\

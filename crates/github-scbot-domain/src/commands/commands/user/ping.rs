@@ -37,7 +37,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_command() -> Result<()> {
-        let mut ctx = CommandContextTest::new();
+        let ctx = CommandContextTest::new();
         let cmd = PingCommand::new();
 
         let result = cmd.handle(&mut ctx.as_context()).await?;

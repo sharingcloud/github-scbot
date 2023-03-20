@@ -1,4 +1,4 @@
-use github_scbot_domain_models::MergeStrategy;
+use github_scbot_domain_models::{MergeStrategy, PullRequestHandle};
 use github_scbot_ghapi_interface::{
     types::{GhMergeStrategy, GhPullRequest},
     ApiError, ApiService,
@@ -6,11 +6,6 @@ use github_scbot_ghapi_interface::{
 
 pub struct MergePullRequestUseCase<'a> {
     pub api_service: &'a dyn ApiService,
-    pub repo_name: &'a str,
-    pub repo_owner: &'a str,
-    pub pr_number: u64,
-    pub merge_strategy: MergeStrategy,
-    pub upstream_pr: &'a GhPullRequest,
 }
 
 impl<'a> MergePullRequestUseCase<'a> {
@@ -22,18 +17,23 @@ impl<'a> MergePullRequestUseCase<'a> {
         }
     }
 
-    #[tracing::instrument(skip(self), fields(self.repo_owner, self.repo_name, self.pr_number, self.merge_strategy))]
-    pub async fn run(&mut self) -> Result<(), ApiError> {
-        let commit_title = format!("{} (#{})", self.upstream_pr.title, self.upstream_pr.number);
+    #[tracing::instrument(skip(self), fields(pr_handle, merge_strategy))]
+    pub async fn run(
+        &self,
+        pr_handle: &PullRequestHandle,
+        merge_strategy: MergeStrategy,
+        upstream_pr: &GhPullRequest,
+    ) -> Result<(), ApiError> {
+        let commit_title = format!("{} (#{})", upstream_pr.title, upstream_pr.number);
 
         self.api_service
             .pulls_merge(
-                self.repo_owner,
-                self.repo_name,
-                self.pr_number,
+                pr_handle.repository().owner(),
+                pr_handle.repository().name(),
+                pr_handle.number(),
                 &commit_title,
                 "",
-                Self::convert_strategy_for_github(self.merge_strategy),
+                Self::convert_strategy_for_github(merge_strategy),
             )
             .await
     }

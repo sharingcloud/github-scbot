@@ -5,7 +5,7 @@ use crate::testcase::db_test_case;
 
 #[tokio::test]
 async fn create_no_keys() {
-    db_test_case("external_account_create_no_keys", |mut db| async move {
+    db_test_case("external_account_create_no_keys", |db| async move {
         let exa = db
             .external_accounts_create(ExternalAccount {
                 username: "me".into(),
@@ -23,7 +23,7 @@ async fn create_no_keys() {
 
 #[tokio::test]
 async fn create_keys() {
-    db_test_case("external_account_create_keys", |mut db| async move {
+    db_test_case("external_account_create_keys", |db| async move {
         let exa = db
             .external_accounts_create(
                 ExternalAccount {
@@ -44,7 +44,7 @@ async fn create_keys() {
 
 #[tokio::test]
 async fn update() {
-    db_test_case("external_account_update", |mut db| async move {
+    db_test_case("external_account_update", |db| async move {
         assert!(matches!(
             db.external_accounts_update(ExternalAccount {
                 username: "me".into(),
@@ -79,7 +79,7 @@ async fn update() {
 
 #[tokio::test]
 async fn set_keys() {
-    db_test_case("external_account_set_keys", |mut db| async move {
+    db_test_case("external_account_set_keys", |db| async move {
         assert!(matches!(
             db.external_accounts_set_keys("me", "one", "two").await,
             Err(DatabaseError::UnknownExternalAccount(_))
@@ -103,7 +103,7 @@ async fn set_keys() {
 
 #[tokio::test]
 async fn get() {
-    db_test_case("external_account_get", |mut db| async move {
+    db_test_case("external_account_get", |db| async move {
         assert_eq!(db.external_accounts_get("me").await?, None);
 
         let exa = db
@@ -123,7 +123,7 @@ async fn get() {
 
 #[tokio::test]
 async fn delete() {
-    db_test_case("external_account_delete", |mut db| async move {
+    db_test_case("external_account_delete", |db| async move {
         assert!(!db.external_accounts_delete("me").await?);
 
         db.external_accounts_create(ExternalAccount {
@@ -144,7 +144,7 @@ async fn delete() {
 
 #[tokio::test]
 async fn all() {
-    db_test_case("external_account_all", |mut db| async move {
+    db_test_case("external_account_all", |db| async move {
         assert_eq!(db.external_accounts_all().await?, vec![]);
 
         let exa1 = db
