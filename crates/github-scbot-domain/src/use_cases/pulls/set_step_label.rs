@@ -18,7 +18,7 @@ pub struct SetStepLabelUseCase<'a> {
 impl<'a> SetStepLabelUseCaseInterface for SetStepLabelUseCase<'a> {
     #[tracing::instrument(skip(self), fields(pr_handle, label))]
     async fn run(&self, pr_handle: &PullRequestHandle, label: Option<StepLabel>) -> Result<()> {
-        let existing_labels = self
+        let previous_labels = self
             .api_service
             .issue_labels_list(
                 pr_handle.repository().owner(),
@@ -26,15 +26,18 @@ impl<'a> SetStepLabelUseCaseInterface for SetStepLabelUseCase<'a> {
                 pr_handle.number(),
             )
             .await?;
-        let existing_labels = Self::add_step_in_existing_labels(&existing_labels, label);
-        self.api_service
-            .issue_labels_replace_all(
-                pr_handle.repository().owner(),
-                pr_handle.repository().name(),
-                pr_handle.number(),
-                &existing_labels,
-            )
-            .await?;
+        let new_labels = Self::add_step_in_existing_labels(&previous_labels, label);
+
+        if previous_labels != new_labels {
+            self.api_service
+                .issue_labels_replace_all(
+                    pr_handle.repository().owner(),
+                    pr_handle.repository().name(),
+                    pr_handle.number(),
+                    &new_labels,
+                )
+                .await?;
+        }
 
         Ok(())
     }
@@ -164,6 +167,27 @@ mod tests {
             api_service: &adapter,
         }
         .run(&("owner", "name", 1).into(), Some(StepLabel::Wip))
+        .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn no_need_to_replace_labels() -> Result<()> {
+        let mut api_service = MockApiService::new();
+        api_service
+            .expect_issue_labels_list()
+            .once()
+            .withf(|owner, name, pr_number| owner == "owner" && name == "name" && pr_number == &1)
+            .return_once(|_, _, _| Ok(vec!["dummy".into(), "step/awaiting-review".into()]));
+
+        SetStepLabelUseCase {
+            api_service: &api_service,
+        }
+        .run(
+            &("owner", "name", 1).into(),
+            Some(StepLabel::AwaitingReview),
+        )
         .await?;
 
         Ok(())
