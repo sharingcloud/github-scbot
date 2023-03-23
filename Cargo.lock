@@ -1170,6 +1170,7 @@ dependencies = [
  "github-scbot-crypto",
  "github-scbot-ghapi-interface",
  "http",
+ "lazy_static",
  "reqwest",
  "serde",
  "thiserror",
