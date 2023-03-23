@@ -6,10 +6,20 @@ use github_scbot_config::Config;
 use github_scbot_crypto::JwtUtils;
 use github_scbot_ghapi_interface::{ApiService, Result};
 use http::{header, HeaderMap};
+use lazy_static::lazy_static;
 use reqwest::ClientBuilder;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
 use crate::errors::GitHubError;
+
+const INSTALLATION_TOKEN_LIFETIME_IN_SECONDS: u64 = 3600;
+const INSTALLATION_TOKEN_RENEW_THRESHOLD: f32 = 0.5;
+
+struct LastInstallationToken {
+    token: String,
+    expiration: u64,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct JwtClaims {
@@ -22,6 +32,13 @@ struct JwtClaims {
 struct InstallationTokenResponse {
     token: String,
     expires_at: String,
+}
+
+lazy_static! {
+    static ref LAST_TOKEN: RwLock<LastInstallationToken> = RwLock::new(LastInstallationToken {
+        token: String::new(),
+        expiration: 0
+    });
 }
 
 /// Get an authenticated GitHub client builder.
@@ -71,9 +88,37 @@ async fn get_authentication_credentials(
     api_service: &dyn ApiService,
 ) -> Result<String, GitHubError> {
     if config.github_api_token.is_empty() {
-        create_installation_access_token(config, api_service).await
+        get_or_create_installation_access_token(config, api_service).await
     } else {
         Ok(config.github_api_token.clone())
+    }
+}
+
+async fn get_or_create_installation_access_token(
+    config: &Config,
+    api_service: &dyn ApiService,
+) -> Result<String, GitHubError> {
+    let (last_token, last_expiration) = {
+        let auth = LAST_TOKEN.read().await;
+        (auth.token.clone(), auth.expiration)
+    };
+
+    let now_timestamp = now_timestamp();
+    if now_timestamp
+        > last_expiration.saturating_sub(
+            (INSTALLATION_TOKEN_LIFETIME_IN_SECONDS as f32 * INSTALLATION_TOKEN_RENEW_THRESHOLD)
+                as u64,
+        )
+    {
+        // Time to rebuild!
+        let token = create_installation_access_token(config, api_service).await?;
+        let mut last_auth = LAST_TOKEN.write().await;
+        last_auth.token = token.clone();
+        last_auth.expiration = now_timestamp + INSTALLATION_TOKEN_LIFETIME_IN_SECONDS;
+
+        Ok(token)
+    } else {
+        Ok(last_token)
     }
 }
 
@@ -101,6 +146,7 @@ fn create_app_token(config: &Config) -> Result<String, GitHubError> {
         .map_err(|e| GitHubError::ImplementationError { source: e.into() })
 }
 
+#[tracing::instrument(skip_all)]
 async fn create_installation_access_token(
     config: &Config,
     api_service: &dyn ApiService,
@@ -193,9 +239,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_authenticated_client_builder() {
         let config = arrange_config();
-        let adapter = MockApiService::new();
+        let api_service = MockApiService::new();
 
-        get_authenticated_client_builder(&config, &adapter)
+        get_authenticated_client_builder(&config, &api_service)
             .await
             .unwrap()
             .build()

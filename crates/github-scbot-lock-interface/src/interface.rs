@@ -18,6 +18,15 @@ pub trait LockService: Send + Sync {
     async fn del_resource(&self, name: &str) -> Result<(), LockError>;
     /// Sleep for duration.
     async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError>;
+    /// Sets a resource.
+    async fn set_resource(
+        &self,
+        name: &str,
+        value: &str,
+        timeout: Duration,
+    ) -> Result<(), LockError>;
+    /// Gets a resource.
+    async fn get_resource(&self, name: &str) -> Result<Option<String>, LockError>;
 
     /// Wait for a resource lock, until timeout.
     #[tracing::instrument(skip(self), ret)]

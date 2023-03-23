@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add conditional mocking on traits
 - Rework the CLI commands (`auth add-admin-rights` => `auth admins add`, etc.)
 - Add more tests on the `github-scbot-domain` crate
+- Keep the GitHub installation token for 30 minutes after its generation (for faster response times)
+- Do not update PR labels if they do not change
 
 ## [0.23.1] - 2023-03-20
 

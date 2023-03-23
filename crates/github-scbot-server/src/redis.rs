@@ -39,6 +39,21 @@ impl LockService for MetricsRedisService {
         self.inner.del_resource(name).await
     }
 
+    async fn set_resource(
+        &self,
+        name: &str,
+        value: &str,
+        timeout: Duration,
+    ) -> Result<(), LockError> {
+        REDIS_CALLS.inc();
+        self.inner.set_resource(name, value, timeout).await
+    }
+
+    async fn get_resource(&self, name: &str) -> Result<Option<String>, LockError> {
+        REDIS_CALLS.inc();
+        self.inner.get_resource(name).await
+    }
+
     async fn health_check(&self) -> Result<(), LockError> {
         REDIS_CALLS.inc_by(2);
         self.inner.health_check().await
