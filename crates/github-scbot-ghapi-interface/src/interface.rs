@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// GitHub API Adapter interface
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait ApiService: Send + Sync {
     /// List labels from a target issue.

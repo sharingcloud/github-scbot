@@ -37,7 +37,7 @@ use crate::{
     Result,
 };
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait CommandExecutorInterface {
     async fn execute_commands<'a>(

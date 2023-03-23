@@ -6,7 +6,7 @@ use github_scbot_ghapi_interface::ApiService;
 use super::utils::sender::SummaryCommentSender;
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait DeleteSummaryCommentUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()>;

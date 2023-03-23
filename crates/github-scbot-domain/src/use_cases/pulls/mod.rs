@@ -10,22 +10,24 @@ mod synchronize_pull_request_and_update_status;
 
 pub use automerge_pull_request::{
     AutomergePullRequestUseCase, AutomergePullRequestUseCaseInterface,
-    MockAutomergePullRequestUseCaseInterface,
 };
 pub use determine_pull_request_merge_strategy::DeterminePullRequestMergeStrategyUseCase;
 pub use get_or_create_repository::GetOrCreateRepositoryUseCase;
 pub use handle_pull_request_event::HandlePullRequestEventUseCase;
-pub use merge_pull_request::{
-    MergePullRequestUseCase, MergePullRequestUseCaseInterface, MockMergePullRequestUseCaseInterface,
-};
+pub use merge_pull_request::{MergePullRequestUseCase, MergePullRequestUseCaseInterface};
 pub use process_pull_request_opened::{
     ProcessPullRequestOpenedUseCase, ProcessPullRequestOpenedUseCaseInterface,
 };
-pub use set_step_label::{
-    MockSetStepLabelUseCaseInterface, SetStepLabelUseCase, SetStepLabelUseCaseInterface,
-};
+pub use set_step_label::{SetStepLabelUseCase, SetStepLabelUseCaseInterface};
 pub use synchronize_pull_request::{
-    MockSynchronizePullRequestUseCaseInterface, SynchronizePullRequestUseCase,
-    SynchronizePullRequestUseCaseInterface,
+    SynchronizePullRequestUseCase, SynchronizePullRequestUseCaseInterface,
 };
 pub use synchronize_pull_request_and_update_status::SynchronizePullRequestAndUpdateStatusUseCase;
+
+#[cfg(any(test, feature = "testkit"))]
+pub use self::{
+    automerge_pull_request::MockAutomergePullRequestUseCaseInterface,
+    merge_pull_request::MockMergePullRequestUseCaseInterface,
+    set_step_label::MockSetStepLabelUseCaseInterface,
+    synchronize_pull_request::MockSynchronizePullRequestUseCaseInterface,
+};

@@ -6,7 +6,7 @@ use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 use super::utils::PullRequestStatus;
 use crate::{use_cases::checks::DetermineChecksStatusUseCaseInterface, Result};
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait BuildPullRequestStatusUseCaseInterface {
     async fn run(

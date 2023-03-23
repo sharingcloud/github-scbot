@@ -9,9 +9,14 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1.67"
 heck = "0.4.1"
-mockall = "0.11.3"
 serde = { version = "1.0.157", features = ["derive"] }
 serde_plain = "1.0.1"
 smart-default = "0.6.0"
 thiserror = "1.0.40"
 time = { version = "0.3.20", features = ["serde", "serde-well-known"] }
+
+mockall = { version = "0.11.3", optional = true }
+
+[features]
+default = []
+testkit = ["mockall"]

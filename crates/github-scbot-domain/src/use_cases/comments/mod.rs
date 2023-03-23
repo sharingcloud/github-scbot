@@ -4,10 +4,12 @@ mod post_welcome_comment;
 
 pub use generate_random_gif_comment::{
     GenerateRandomGifCommentUseCase, GenerateRandomGifCommentUseCaseInterface,
-    MockGenerateRandomGifCommentUseCaseInterface,
 };
 pub use handle_issue_comment_event::HandleIssueCommentEventUseCase;
-pub use post_welcome_comment::{
-    MockPostWelcomeCommentUseCaseInterface, PostWelcomeCommentUseCase,
-    PostWelcomeCommentUseCaseInterface,
+pub use post_welcome_comment::{PostWelcomeCommentUseCase, PostWelcomeCommentUseCaseInterface};
+
+#[cfg(any(test, feature = "testkit"))]
+pub use self::{
+    generate_random_gif_comment::MockGenerateRandomGifCommentUseCaseInterface,
+    post_welcome_comment::MockPostWelcomeCommentUseCaseInterface,
 };

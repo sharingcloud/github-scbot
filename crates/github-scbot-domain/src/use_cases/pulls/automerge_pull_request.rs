@@ -6,7 +6,7 @@ use github_scbot_ghapi_interface::{comments::CommentApi, types::GhPullRequest, A
 use super::{DeterminePullRequestMergeStrategyUseCase, MergePullRequestUseCaseInterface};
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait AutomergePullRequestUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle, upstream_pr: &GhPullRequest)

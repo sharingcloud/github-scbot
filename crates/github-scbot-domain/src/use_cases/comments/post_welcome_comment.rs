@@ -4,7 +4,7 @@ use github_scbot_ghapi_interface::{comments::CommentApi, ApiService};
 
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait PostWelcomeCommentUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle, pr_author: &str) -> Result<()>;

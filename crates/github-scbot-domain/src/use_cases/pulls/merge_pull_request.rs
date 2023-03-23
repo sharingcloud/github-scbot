@@ -5,7 +5,7 @@ use github_scbot_ghapi_interface::{
     ApiError, ApiService,
 };
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait MergePullRequestUseCaseInterface {
     async fn run(

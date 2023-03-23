@@ -9,7 +9,7 @@ use github_scbot_ghapi_interface::{
 
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait DetermineChecksStatusUseCaseInterface {
     async fn run(

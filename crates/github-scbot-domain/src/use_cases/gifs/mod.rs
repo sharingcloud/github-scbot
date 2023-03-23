@@ -1,6 +1,5 @@
 mod random_gif_from_query;
 
-pub use random_gif_from_query::{
-    MockRandomGifFromQueryUseCaseInterface, RandomGifFromQueryUseCase,
-    RandomGifFromQueryUseCaseInterface,
-};
+#[cfg(any(test, feature = "testkit"))]
+pub use random_gif_from_query::MockRandomGifFromQueryUseCaseInterface;
+pub use random_gif_from_query::{RandomGifFromQueryUseCase, RandomGifFromQueryUseCaseInterface};

@@ -18,7 +18,7 @@ const GIF_KEYS: &[GifFormat] = &[
     GifFormat::NanoGif,
 ];
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait RandomGifFromQueryUseCaseInterface {
     async fn run(&self, search: &str) -> Result<Option<String>>;

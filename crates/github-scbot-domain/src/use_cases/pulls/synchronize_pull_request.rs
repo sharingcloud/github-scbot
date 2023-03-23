@@ -6,7 +6,7 @@ use github_scbot_domain_models::{PullRequest, PullRequestHandle};
 use super::GetOrCreateRepositoryUseCase;
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait SynchronizePullRequestUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()>;

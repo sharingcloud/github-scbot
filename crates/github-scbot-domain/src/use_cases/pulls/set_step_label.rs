@@ -4,7 +4,7 @@ use github_scbot_ghapi_interface::ApiService;
 
 use crate::Result;
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait SetStepLabelUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle, label: Option<StepLabel>) -> Result<()>;

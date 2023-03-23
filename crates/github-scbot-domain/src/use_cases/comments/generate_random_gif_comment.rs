@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::{use_cases::gifs::RandomGifFromQueryUseCaseInterface, Result};
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait GenerateRandomGifCommentUseCaseInterface {
     async fn run(&self, search_terms: &str) -> Result<String>;

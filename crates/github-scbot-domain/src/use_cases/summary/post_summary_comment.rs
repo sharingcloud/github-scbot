@@ -7,7 +7,7 @@ use github_scbot_lock_interface::LockService;
 use super::utils::sender::SummaryCommentSender;
 use crate::{use_cases::status::PullRequestStatus, Result};
 
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait(?Send)]
 pub trait PostSummaryCommentUseCaseInterface {
     async fn run(&self, pr_handle: &PullRequestHandle, pr_status: &PullRequestStatus)
