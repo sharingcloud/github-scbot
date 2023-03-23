@@ -94,7 +94,6 @@ async fn get_authentication_credentials(
     }
 }
 
-#[tracing::instrument(skip_all, ret)]
 async fn get_or_create_installation_access_token(
     config: &Config,
     api_service: &dyn ApiService,
