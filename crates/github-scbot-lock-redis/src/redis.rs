@@ -53,23 +53,55 @@ impl LockService for RedisLockService {
         }
     }
 
+    #[tracing::instrument(skip(self), ret)]
     async fn has_resource(&self, name: &str) -> Result<bool, LockError> {
         let response = self.execute_command(redis::cmd("GET").arg(name)).await?;
         Ok(response != Value::Nil)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn del_resource(&self, name: &str) -> Result<(), LockError> {
         self.execute_command(redis::cmd("DEL").arg(name)).await?;
         Ok(())
     }
 
-    async fn health_check(&self) -> Result<(), LockError> {
-        self.execute_command(&redis::cmd("PING")).await?;
+    #[tracing::instrument(skip(self))]
+    async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError> {
+        tokio::time::sleep(duration).await;
         Ok(())
     }
 
-    async fn sleep_for_duration(&self, duration: Duration) -> Result<(), LockError> {
-        tokio::time::sleep(duration).await;
+    #[tracing::instrument(skip(self))]
+    async fn set_resource(
+        &self,
+        name: &str,
+        value: &str,
+        timeout: Duration,
+    ) -> Result<(), LockError> {
+        self.execute_command(
+            redis::cmd("SET")
+                .arg(name)
+                .arg(value)
+                .arg("EX")
+                .arg(timeout.as_secs()),
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self), ret)]
+    async fn get_resource(&self, name: &str) -> Result<Option<String>, LockError> {
+        let result = self.execute_command(redis::cmd("GET").arg(name)).await?;
+        match result {
+            Value::Nil => Ok(None),
+            Value::Data(d) => Ok(Some(String::from_utf8_lossy(&d).into_owned())),
+            _ => unreachable!(),
+        }
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn health_check(&self) -> Result<(), LockError> {
+        self.execute_command(&redis::cmd("PING")).await?;
         Ok(())
     }
 }
