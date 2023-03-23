@@ -1,26 +1,30 @@
 use std::io::Write;
 
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::AddExternalAccountUseCase;
+use github_scbot_domain::use_cases::auth::AddAdminRightUseCase;
 
 use crate::{commands::CommandContext, Result};
 
-/// Create external account
+/// Add admin rights to account
 #[derive(Parser)]
-pub(crate) struct AuthAddExternalAccountCommand {
+pub(crate) struct AuthAdminAddCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthAddExternalAccountCommand {
+impl AuthAdminAddCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        AddExternalAccountUseCase {
+        AddAdminRightUseCase {
             db_service: ctx.db_service.as_ref(),
         }
         .run(&self.username)
         .await?;
 
-        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
+        writeln!(
+            ctx.writer,
+            "Account '{}' added/edited with admin rights.",
+            self.username
+        )?;
 
         Ok(())
     }
@@ -37,8 +41,8 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "add-external-account", "me"]).await,
-            "External account 'me' created.\n"
+            test_command(ctx, &["auth", "admins", "add", "me"]).await,
+            "Account 'me' added/edited with admin rights.\n"
         );
 
         Ok(())

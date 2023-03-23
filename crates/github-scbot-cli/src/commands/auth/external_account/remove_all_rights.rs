@@ -1,32 +1,29 @@
 use std::io::Write;
 
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::RemoveExternalAccountRightUseCase;
-use github_scbot_domain_models::RepositoryPath;
+use github_scbot_domain::use_cases::auth::RemoveAllExternalAccountRightsUseCase;
 
 use crate::{commands::CommandContext, Result};
 
-/// Remove right from account
+/// Remove all rights from account
 #[derive(Parser)]
-pub(crate) struct AuthRemoveExternalAccountRightCommand {
+pub(crate) struct AuthExternalAccountRemoveAllRightsCommand {
     /// Account username
     pub username: String,
-    /// Repository path (e.g. `MyOrganization/my-project`)
-    pub repository_path: RepositoryPath,
 }
 
-impl AuthRemoveExternalAccountRightCommand {
+impl AuthExternalAccountRemoveAllRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        RemoveExternalAccountRightUseCase {
+        RemoveAllExternalAccountRightsUseCase {
             db_service: ctx.db_service.as_ref(),
         }
-        .run(&self.repository_path, &self.username)
+        .run(&self.username)
         .await?;
 
         writeln!(
             ctx.writer,
-            "Right removed to repository '{}' for external account '{}'.",
-            self.repository_path, self.username
+            "All rights removed from external account '{}'.",
+            self.username
         )?;
 
         Ok(())
@@ -71,10 +68,10 @@ mod tests {
         assert_eq!(
             test_command(
                 ctx,
-                &["auth", "remove-external-account-right", "me", "owner/name"]
+                &["auth", "external-accounts", "remove-all-rights", "me"]
             )
             .await,
-            "Right removed to repository 'owner/name' for external account 'me'.\n"
+            "All rights removed from external account 'me'.\n"
         );
 
         Ok(())

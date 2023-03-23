@@ -3,14 +3,13 @@ use github_scbot_ghapi_interface::{
     types::{GhPullRequestAction, GhPullRequestEvent},
     ApiService,
 };
-use github_scbot_lock_interface::LockService;
 
-use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
+use crate::{use_cases::status::UpdatePullRequestStatusUseCaseInterface, Result};
 
 pub struct HandlePullRequestEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a dyn DbService,
-    pub lock_service: &'a dyn LockService,
+    pub update_pull_request_status: &'a dyn UpdatePullRequestStatusUseCaseInterface,
 }
 
 impl<'a> HandlePullRequestEventUseCase<'a> {
@@ -71,18 +70,170 @@ impl<'a> HandlePullRequestEventUseCase<'a> {
                 .pulls_get(repo_owner, repo_name, pr_number)
                 .await?;
 
-            UpdatePullRequestStatusUseCase {
-                api_service: self.api_service,
-                db_service: self.db_service,
-                lock_service: self.lock_service,
-            }
-            .run(
-                &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
-                &upstream_pr,
-            )
-            .await?;
+            self.update_pull_request_status
+                .run(
+                    &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
+                    &upstream_pr,
+                )
+                .await?;
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{PullRequest, Repository};
+    use github_scbot_ghapi_interface::{
+        types::{GhPullRequest, GhRepository, GhUser},
+        MockApiService,
+    };
+
+    use super::*;
+    use crate::use_cases::status::MockUpdatePullRequestStatusUseCaseInterface;
+
+    #[tokio::test]
+    async fn sync_event_on_unknown_pull_request_should_not_update_status() {
+        let api_service = MockApiService::new();
+        let db_service = MemoryDb::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+        HandlePullRequestEventUseCase {
+            api_service: &api_service,
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        }
+        .run(GhPullRequestEvent {
+            action: GhPullRequestAction::Synchronize,
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn assigned_event_on_known_pull_request_should_not_update_status() {
+        let api_service = MockApiService::new();
+        let db_service = MemoryDb::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        db_service
+            .pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+        HandlePullRequestEventUseCase {
+            api_service: &api_service,
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        }
+        .run(GhPullRequestEvent {
+            action: GhPullRequestAction::Assigned,
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn edited_event_on_known_pull_request_should_update_status() {
+        let mut api_service = MockApiService::new();
+        let db_service = MemoryDb::new();
+        let mut update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+        api_service
+            .expect_pulls_get()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                })
+            });
+
+        update_pull_request_status
+            .expect_run()
+            .once()
+            .withf(|pr_handle, upstream_pr| {
+                pr_handle == &("me", "test", 1).into() && upstream_pr.number == 1
+            })
+            .return_once(|_, _| Ok(()));
+
+        let repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        db_service
+            .pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+        HandlePullRequestEventUseCase {
+            api_service: &api_service,
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        }
+        .run(GhPullRequestEvent {
+            action: GhPullRequestAction::Edited,
+            pull_request: GhPullRequest {
+                number: 1,
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap()
     }
 }

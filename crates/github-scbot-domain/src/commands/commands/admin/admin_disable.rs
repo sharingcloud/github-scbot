@@ -6,7 +6,10 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    use_cases::status::DisablePullRequestStatusUseCase,
+    use_cases::{
+        status::{DisablePullRequestStatusUseCase, DisablePullRequestStatusUseCaseInterface},
+        summary::DeleteSummaryCommentUseCase,
+    },
     Result,
 };
 
@@ -20,7 +23,7 @@ impl AdminDisableCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminDisableCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let repo_model = ctx
             .db_service
             .repositories_get(ctx.repo_owner, ctx.repo_name)
@@ -30,7 +33,10 @@ impl BotCommand for AdminDisableCommand {
         if repo_model.manual_interaction {
             DisablePullRequestStatusUseCase {
                 api_service: ctx.api_service,
-                db_service: ctx.db_service,
+                delete_summary_comment: &DeleteSummaryCommentUseCase {
+                    api_service: ctx.api_service,
+                    db_service: ctx.db_service,
+                },
             }
             .run(&ctx.pr_handle())
             .await?;

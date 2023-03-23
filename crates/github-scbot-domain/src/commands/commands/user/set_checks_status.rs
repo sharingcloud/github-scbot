@@ -28,7 +28,7 @@ impl SetChecksStatusCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for SetChecksStatusCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let value = !matches!(self.status, ChecksStatus::Skipped);
 
         ctx.db_service

@@ -8,14 +8,14 @@ use crate::{commands::CommandContext, Result};
 
 /// Add right to account
 #[derive(Parser)]
-pub(crate) struct AuthAddExternalAccountRightCommand {
+pub(crate) struct AuthExternalAccountAddRightCommand {
     /// Account username
     pub username: String,
     /// Repository path (e.g. `MyOrganization/my-project`)
     pub repository_path: RepositoryPath,
 }
 
-impl AuthAddExternalAccountRightCommand {
+impl AuthExternalAccountAddRightCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddExternalAccountRightUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -62,7 +62,7 @@ mod tests {
 
         let result = test_command(
             ctx,
-            &["auth", "add-external-account-right", "me", "me/repo"],
+            &["auth", "external-accounts", "add-right", "me", "me/repo"],
         )
         .await;
         assert_eq!(

@@ -22,7 +22,7 @@ impl AdminSetDefaultMergeStrategyCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultMergeStrategyCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         ctx.db_service
             .repositories_set_default_strategy(ctx.repo_owner, ctx.repo_name, self.strategy)
             .await?;

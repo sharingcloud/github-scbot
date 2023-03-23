@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Expose interfaces for each use case, to improve testing.
+- Add conditional mocking on traits
+- Rework the CLI commands (`auth add-admin-rights` => `auth admins add`, etc.)
+- Add more tests on the `github-scbot-domain` crate
+
 ## [0.23.1] - 2023-03-20
 
 - Fix JWT verification after `jsonwebtoken` update
@@ -296,7 +301,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.23.1...HEAD
+[0.23.1]: https://github.com/sharingcloud/github-scbot/compare/v0.23.0...v0.23.1
+[0.23.0]: https://github.com/sharingcloud/github-scbot/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/sharingcloud/github-scbot/compare/v0.21.2...v0.22.0
 [0.21.2]: https://github.com/sharingcloud/github-scbot/compare/v0.21.1...v0.21.2
 [0.21.1]: https://github.com/sharingcloud/github-scbot/compare/v0.21.0...v0.21.1

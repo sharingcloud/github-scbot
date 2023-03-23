@@ -21,7 +21,7 @@ impl AdminSetDefaultChecksStatusCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminSetDefaultChecksStatusCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         ctx.db_service
             .repositories_set_default_enable_checks(ctx.repo_owner, ctx.repo_name, self.enabled)
             .await?;

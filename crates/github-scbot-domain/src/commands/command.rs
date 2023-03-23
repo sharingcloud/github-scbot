@@ -92,11 +92,11 @@ pub enum AdminCommand {
     /// Set default merge strategy.
     SetDefaultMergeStrategy(MergeStrategy),
     /// Set default PR title validation regex.
-    SetDefaultPRTitleRegex(String),
+    SetDefaultPrTitleRegex(String),
     /// Set default automerge status.
     SetDefaultAutomerge(bool),
     /// Set default QA status.
-    SetDefaultQAStatus(bool),
+    SetDefaultQaStatus(bool),
     /// Set default checks status.
     SetDefaultChecksStatus(bool),
     /// Set needed reviewers count.
@@ -241,7 +241,7 @@ impl Command {
                 AdminCommand::SetDefaultMergeStrategy(Self::parse_merge_strategy(args)?),
             ),
             "admin-set-default-pr-title-regex" => {
-                Self::Admin(AdminCommand::SetDefaultPRTitleRegex(Self::parse_text(args)))
+                Self::Admin(AdminCommand::SetDefaultPrTitleRegex(Self::parse_text(args)))
             }
             "admin-set-default-checks-status+" => {
                 Self::Admin(AdminCommand::SetDefaultChecksStatus(true))
@@ -249,8 +249,8 @@ impl Command {
             "admin-set-default-checks-status-" => {
                 Self::Admin(AdminCommand::SetDefaultChecksStatus(false))
             }
-            "admin-set-default-qa-status+" => Self::Admin(AdminCommand::SetDefaultQAStatus(true)),
-            "admin-set-default-qa-status-" => Self::Admin(AdminCommand::SetDefaultQAStatus(false)),
+            "admin-set-default-qa-status+" => Self::Admin(AdminCommand::SetDefaultQaStatus(true)),
+            "admin-set-default-qa-status-" => Self::Admin(AdminCommand::SetDefaultQaStatus(false)),
             "admin-set-default-automerge+" => Self::Admin(AdminCommand::SetDefaultAutomerge(true)),
             "admin-set-default-automerge-" => Self::Admin(AdminCommand::SetDefaultAutomerge(false)),
             "admin-set-needed-reviewers" => {
@@ -293,7 +293,7 @@ impl Command {
                 AdminCommand::SetDefaultNeededReviewers(count) => {
                     format!("admin-set-default-needed-reviewers {}", count)
                 }
-                AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+                AdminCommand::SetDefaultPrTitleRegex(rgx) => {
                     format!("admin-set-default-pr-title-regex {}", rgx)
                 }
                 AdminCommand::SetDefaultChecksStatus(status) => {
@@ -302,7 +302,7 @@ impl Command {
                         Self::plus_minus(*status)
                     )
                 }
-                AdminCommand::SetDefaultQAStatus(status) => {
+                AdminCommand::SetDefaultQaStatus(status) => {
                     format!("admin-set-default-qa-status{}", Self::plus_minus(*status))
                 }
                 AdminCommand::SetNeededReviewers(count) => {

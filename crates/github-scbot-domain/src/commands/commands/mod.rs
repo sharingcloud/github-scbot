@@ -33,7 +33,7 @@ impl<'a> CommandContext<'a> {
 
 #[async_trait(?Send)]
 pub trait BotCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult>;
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult>;
 }
 
 #[cfg(test)]

@@ -1,30 +1,26 @@
 use std::io::Write;
 
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::RemoveAdminRightUseCase;
+use github_scbot_domain::use_cases::auth::AddExternalAccountUseCase;
 
 use crate::{commands::CommandContext, Result};
 
-/// Remove admin rights from account
+/// Create external account
 #[derive(Parser)]
-pub(crate) struct AuthRemoveAdminRightsCommand {
+pub(crate) struct AuthExternalAccountAddCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthRemoveAdminRightsCommand {
+impl AuthExternalAccountAddCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        RemoveAdminRightUseCase {
+        AddExternalAccountUseCase {
             db_service: ctx.db_service.as_ref(),
         }
         .run(&self.username)
         .await?;
 
-        writeln!(
-            ctx.writer,
-            "Account '{}' added/edited without admin rights.",
-            self.username
-        )?;
+        writeln!(ctx.writer, "External account '{}' created.", self.username)?;
 
         Ok(())
     }
@@ -41,8 +37,8 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "remove-admin-rights", "me"]).await,
-            "Account 'me' added/edited without admin rights.\n"
+            test_command(ctx, &["auth", "external-accounts", "add", "me"]).await,
+            "External account 'me' created.\n"
         );
 
         Ok(())

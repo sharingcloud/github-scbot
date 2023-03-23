@@ -28,7 +28,7 @@ struct FilteredReviewers {
 
 impl FilteredReviewers {
     async fn new<'a>(
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
         pr_model: &PullRequest,
         reviewers: &[String],
     ) -> Result<Self> {
@@ -58,7 +58,7 @@ impl FilteredReviewers {
     }
 
     async fn _create_reviewer<'a>(
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
         pr_model: &PullRequest,
         reviewer_username: &str,
     ) -> Result<()> {
@@ -87,7 +87,7 @@ impl FilteredReviewers {
 }
 
 impl AssignRequiredReviewersCommand {
-    async fn handle<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<CommandExecutionResult> {
+    async fn handle<'a>(&self, ctx: &CommandContext<'a>) -> Result<CommandExecutionResult> {
         let pr_model = self._get_pull_request(ctx).await?;
         let reviewers = self._filter_reviewers(ctx, &pr_model).await?;
 
@@ -106,13 +106,13 @@ impl AssignRequiredReviewersCommand {
 
     async fn _filter_reviewers<'a>(
         &self,
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
         pr_model: &PullRequest,
     ) -> Result<FilteredReviewers> {
         FilteredReviewers::new(ctx, pr_model, &self.reviewers).await
     }
 
-    async fn _get_pull_request<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<PullRequest> {
+    async fn _get_pull_request<'a>(&self, ctx: &CommandContext<'a>) -> Result<PullRequest> {
         Ok(ctx
             .db_service
             .pull_requests_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
@@ -182,7 +182,7 @@ struct UnassignRequiredReviewersCommand {
 }
 
 impl UnassignRequiredReviewersCommand {
-    async fn handle<'a>(&self, ctx: &mut CommandContext<'a>) -> Result<CommandExecutionResult> {
+    async fn handle<'a>(&self, ctx: &CommandContext<'a>) -> Result<CommandExecutionResult> {
         self._remove_reviewer_from_pull_request(ctx).await?;
 
         for reviewer in &self.reviewers {
@@ -213,7 +213,7 @@ impl UnassignRequiredReviewersCommand {
 
     async fn _remove_required_reviewer<'a>(
         &self,
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
         reviewer_username: &str,
     ) -> Result<()> {
         ctx.db_service
@@ -266,7 +266,7 @@ impl SetRequiredReviewersCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for SetRequiredReviewersCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         match self.action {
             Action::Assign => {
                 AssignRequiredReviewersCommand {

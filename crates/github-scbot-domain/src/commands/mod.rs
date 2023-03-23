@@ -5,6 +5,7 @@ mod command;
 pub mod commands;
 mod parser;
 
+use async_trait::async_trait;
 #[cfg(test)]
 pub(crate) use commands::tests::CommandContextTest;
 pub use commands::{BotCommand, CommandContext};
@@ -15,32 +16,51 @@ use github_scbot_ghapi_interface::{
 };
 pub use parser::CommandParser;
 
-pub use self::command::{AdminCommand, Command, CommandResult, UserCommand};
+pub use self::command::{
+    AdminCommand, Command, CommandExecutionResult, CommandHandlingStatus, CommandResult,
+    ResultAction, UserCommand,
+};
 use crate::{
-    commands::{
-        command::{CommandExecutionResult, CommandHandlingStatus, ResultAction},
-        commands::{
-            AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
-            AdminSetDefaultAutomergeCommand, AdminSetDefaultChecksStatusCommand,
-            AdminSetDefaultMergeStrategyCommand, AdminSetDefaultPrTitleRegexCommand,
-            AdminSetDefaultQaStatusCommand, AdminSetDefaultReviewersCommand,
-            AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand, HelpCommand, IsAdminCommand,
-            LockCommand, MergeCommand, PingCommand, SetAutomergeCommand, SetChecksStatusCommand,
-            SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand,
-            SetRequiredReviewersCommand,
-        },
+    commands::commands::{
+        AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
+        AdminSetDefaultAutomergeCommand, AdminSetDefaultChecksStatusCommand,
+        AdminSetDefaultMergeStrategyCommand, AdminSetDefaultPrTitleRegexCommand,
+        AdminSetDefaultQaStatusCommand, AdminSetDefaultReviewersCommand,
+        AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand, HelpCommand, IsAdminCommand,
+        LockCommand, MergeCommand, PingCommand, SetAutomergeCommand, SetChecksStatusCommand,
+        SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand, SetRequiredReviewersCommand,
     },
     use_cases::{
         auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
-        status::UpdatePullRequestStatusUseCase,
+        status::UpdatePullRequestStatusUseCaseInterface,
     },
     Result,
 };
 
-/// Command executor.
-pub struct CommandExecutor;
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
+#[async_trait(?Send)]
+pub trait CommandExecutorInterface {
+    async fn execute_commands<'a>(
+        &self,
+        ctx: &CommandContext<'a>,
+        commands: Vec<CommandResult<Command>>,
+    ) -> Result<CommandExecutionResult>;
 
-impl CommandExecutor {
+    async fn process_command_result<'a>(
+        &self,
+        ctx: &CommandContext<'a>,
+        command_result: &CommandExecutionResult,
+    ) -> Result<()>;
+}
+
+/// Command executor.
+pub struct CommandExecutor<'a> {
+    pub db_service: &'a dyn DbService,
+    pub update_pull_request_status: &'a dyn UpdatePullRequestStatusUseCaseInterface,
+}
+
+#[async_trait(?Send)]
+impl<'a> CommandExecutorInterface for CommandExecutor<'a> {
     /// Execute multiple commands.
     #[tracing::instrument(
         skip_all,
@@ -53,8 +73,9 @@ impl CommandExecutor {
         ),
         ret
     )]
-    pub async fn execute_commands<'a>(
-        ctx: &mut CommandContext<'a>,
+    async fn execute_commands<'b>(
+        &self,
+        ctx: &CommandContext<'b>,
         commands: Vec<CommandResult<Command>>,
     ) -> Result<CommandExecutionResult> {
         let mut status = vec![];
@@ -62,7 +83,7 @@ impl CommandExecutor {
         for command in commands {
             match command {
                 Ok(command) => {
-                    status.push(Self::execute_command(ctx, command).await?);
+                    status.push(self.execute_command(ctx, command).await?);
                 }
                 Err(e) => {
                     // Handle error
@@ -78,15 +99,16 @@ impl CommandExecutor {
         }
 
         // Merge and handle command result
-        let command_result = Self::merge_command_results(status);
-        Self::process_command_result(ctx, &command_result).await?;
+        let command_result = self.merge_command_results(status);
+        self.process_command_result(ctx, &command_result).await?;
 
         Ok(command_result)
     }
 
     /// Process command result.
-    pub async fn process_command_result<'a>(
-        ctx: &mut CommandContext<'a>,
+    async fn process_command_result<'b>(
+        &self,
+        ctx: &CommandContext<'b>,
         command_result: &CommandExecutionResult,
     ) -> Result<()> {
         if command_result.should_update_status {
@@ -96,13 +118,9 @@ impl CommandExecutor {
                 .pulls_get(ctx.repo_owner, ctx.repo_name, ctx.pr_number)
                 .await?;
 
-            UpdatePullRequestStatusUseCase {
-                api_service: ctx.api_service,
-                db_service: ctx.db_service,
-                lock_service: ctx.lock_service,
-            }
-            .run(&ctx.pr_handle(), &upstream_pr)
-            .await?;
+            self.update_pull_request_status
+                .run(&ctx.pr_handle(), &upstream_pr)
+                .await?;
         }
 
         for action in &command_result.result_actions {
@@ -132,9 +150,14 @@ impl CommandExecutor {
 
         Ok(())
     }
+}
 
+impl<'a> CommandExecutor<'a> {
     /// Merge command results.
-    pub fn merge_command_results(results: Vec<CommandExecutionResult>) -> CommandExecutionResult {
+    pub fn merge_command_results(
+        &self,
+        results: Vec<CommandExecutionResult>,
+    ) -> CommandExecutionResult {
         let mut handling_status = CommandHandlingStatus::Ignored;
         let mut result_actions = vec![];
         let mut should_update_status = false;
@@ -197,8 +220,9 @@ impl CommandExecutor {
         ),
         ret
     )]
-    pub async fn execute_command<'a>(
-        ctx: &mut CommandContext<'a>,
+    pub async fn execute_command(
+        &self,
+        ctx: &CommandContext<'_>,
         command: Command,
     ) -> Result<CommandExecutionResult> {
         let mut command_result: CommandExecutionResult;
@@ -208,17 +232,13 @@ impl CommandExecutor {
             .user_permissions_get(ctx.repo_owner, ctx.repo_name, ctx.comment_author)
             .await?;
 
-        if Self::validate_user_rights_on_command(
-            ctx.db_service,
-            ctx.comment_author,
-            permission,
-            &command,
-        )
-        .await?
+        if self
+            .validate_user_rights_on_command(ctx.comment_author, permission, &command)
+            .await?
         {
             command_result = match &command {
-                Command::User(cmd) => Self::_execute_user_command(ctx, cmd).await?,
-                Command::Admin(cmd) => Self::_execute_admin_command(ctx, cmd).await?,
+                Command::User(cmd) => self._execute_user_command(ctx, cmd).await?,
+                Command::Admin(cmd) => self._execute_admin_command(ctx, cmd).await?,
             };
 
             for action in &mut command_result.result_actions {
@@ -237,8 +257,9 @@ impl CommandExecutor {
         Ok(command_result)
     }
 
-    async fn _execute_user_command<'a>(
-        ctx: &mut CommandContext<'a>,
+    async fn _execute_user_command(
+        &self,
+        ctx: &CommandContext<'_>,
         cmd: &UserCommand,
     ) -> Result<CommandExecutionResult> {
         match cmd {
@@ -287,8 +308,9 @@ impl CommandExecutor {
         }
     }
 
-    async fn _execute_admin_command<'a>(
-        ctx: &mut CommandContext<'a>,
+    async fn _execute_admin_command(
+        &self,
+        ctx: &CommandContext<'_>,
         cmd: &AdminCommand,
     ) -> Result<CommandExecutionResult> {
         match cmd {
@@ -307,12 +329,12 @@ impl CommandExecutor {
                     .handle(ctx)
                     .await
             }
-            AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+            AdminCommand::SetDefaultPrTitleRegex(rgx) => {
                 AdminSetDefaultPrTitleRegexCommand::new(rgx.clone())
                     .handle(ctx)
                     .await
             }
-            AdminCommand::SetDefaultQAStatus(status) => {
+            AdminCommand::SetDefaultQaStatus(status) => {
                 AdminSetDefaultQaStatusCommand::new(*status)
                     .handle(ctx)
                     .await
@@ -335,7 +357,7 @@ impl CommandExecutor {
 
     /// Validate user rights on command.
     pub async fn validate_user_rights_on_command(
-        db_service: &dyn DbService,
+        &self,
         username: &str,
         user_permission: GhUserPermission,
         command: &Command,
@@ -344,24 +366,41 @@ impl CommandExecutor {
             Command::User(cmd) => match cmd {
                 UserCommand::Ping | UserCommand::Help | UserCommand::Gif(_) => Ok(true),
                 _ => {
-                    CheckWriteRightUseCase { db_service }
-                        .run(username, user_permission)
-                        .await
+                    CheckWriteRightUseCase {
+                        db_service: self.db_service,
+                    }
+                    .run(username, user_permission)
+                    .await
                 }
             },
-            Command::Admin(_) => CheckIsAdminUseCase { db_service }.run(username).await,
+            Command::Admin(_) => {
+                CheckIsAdminUseCase {
+                    db_service: self.db_service,
+                }
+                .run(username)
+                .await
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use github_scbot_database_memory::MemoryDb;
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::use_cases::status::MockUpdatePullRequestStatusUseCaseInterface;
 
     #[test]
     fn test_merge_command_results() {
+        let db_service = MemoryDb::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        let executor = CommandExecutor {
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        };
+
         let results = vec![
             CommandExecutionResult::builder()
                 .denied()
@@ -379,7 +418,7 @@ mod tests {
                 .build(),
         ];
 
-        let merged = CommandExecutor::merge_command_results(results);
+        let merged = executor.merge_command_results(results);
         assert_eq!(
             merged,
             CommandExecutionResult {
@@ -396,12 +435,19 @@ mod tests {
 
     #[test]
     fn test_merge_command_results_ignored() {
+        let db_service = MemoryDb::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        let executor = CommandExecutor {
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        };
+
         let results = vec![
             CommandExecutionResult::builder().ignored().build(),
             CommandExecutionResult::builder().ignored().build(),
         ];
 
-        let merged = CommandExecutor::merge_command_results(results);
+        let merged = executor.merge_command_results(results);
         assert_eq!(
             merged,
             CommandExecutionResult {

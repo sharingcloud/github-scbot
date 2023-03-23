@@ -1,5 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
+use async_trait::async_trait;
 use github_scbot_domain_models::{ChecksStatus, RepositoryPath};
 use github_scbot_ghapi_interface::{
     types::{GhCheckConclusion, GhCheckRun},
@@ -8,17 +9,29 @@ use github_scbot_ghapi_interface::{
 
 use crate::Result;
 
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
+#[async_trait(?Send)]
+pub trait DetermineChecksStatusUseCaseInterface {
+    async fn run(
+        &self,
+        repository_path: &RepositoryPath,
+        commit_sha: &str,
+        wait_for_initial_checks: bool,
+    ) -> Result<ChecksStatus>;
+}
+
 pub struct DetermineChecksStatusUseCase<'a> {
     pub api_service: &'a dyn ApiService,
 }
 
-impl<'a> DetermineChecksStatusUseCase<'a> {
+#[async_trait(?Send)]
+impl<'a> DetermineChecksStatusUseCaseInterface for DetermineChecksStatusUseCase<'a> {
     #[tracing::instrument(
         skip(self),
         fields(repository_path, commit_sha, wait_for_initial_checks),
         ret
     )]
-    pub async fn run(
+    async fn run(
         &self,
         repository_path: &RepositoryPath,
         commit_sha: &str,
@@ -104,14 +117,96 @@ fn marge_check_run_statuses(
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_ghapi_interface::types::{GhApplication, GhCheckStatus};
+    use github_scbot_ghapi_interface::{
+        types::{GhApplication, GhCheckStatus, GhUser},
+        MockApiService,
+    };
     use time::{Duration, OffsetDateTime};
 
     use super::*;
 
+    #[tokio::test]
+    async fn no_runs_and_wait() {
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_check_runs_list()
+                .once()
+                .withf(|owner, name, sha| owner == "me" && name == "test" && sha == "abcdef")
+                .return_once(|_, _, _| Ok(vec![]));
+
+            svc
+        };
+
+        let status = DetermineChecksStatusUseCase {
+            api_service: &api_service,
+        }
+        .run(&("me", "test").into(), "abcdef", true)
+        .await
+        .unwrap();
+
+        assert_eq!(status, ChecksStatus::Waiting);
+    }
+
+    #[tokio::test]
+    async fn no_runs_and_no_wait() {
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_check_runs_list()
+                .once()
+                .withf(|owner, name, sha| owner == "me" && name == "test" && sha == "abcdef")
+                .return_once(|_, _, _| Ok(vec![]));
+
+            svc
+        };
+
+        let status = DetermineChecksStatusUseCase {
+            api_service: &api_service,
+        }
+        .run(&("me", "test").into(), "abcdef", false)
+        .await
+        .unwrap();
+
+        assert_eq!(status, ChecksStatus::Skipped);
+    }
+
+    #[tokio::test]
+    async fn runs() {
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_check_runs_list()
+                .once()
+                .withf(|owner, name, sha| owner == "me" && name == "test" && sha == "abcdef")
+                .return_once(|_, _, _| {
+                    Ok(vec![GhCheckRun {
+                        name: "dummy".into(),
+                        app: GhApplication {
+                            owner: GhUser {
+                                login: "github-actions".into(),
+                            },
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    }])
+                });
+
+            svc
+        };
+
+        let status = DetermineChecksStatusUseCase {
+            api_service: &api_service,
+        }
+        .run(&("me", "test").into(), "abcdef", false)
+        .await
+        .unwrap();
+
+        assert_eq!(status, ChecksStatus::Skipped);
+    }
+
     #[test]
-    #[allow(clippy::too_many_lines)]
-    pub fn test_merge_check_suite_statuses() {
+    fn merge_check_suite_statuses() {
         // No check suite, no need to wait
         assert_eq!(
             filter_and_merge_check_runs(&[], false),

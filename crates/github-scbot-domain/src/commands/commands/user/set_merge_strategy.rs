@@ -27,7 +27,7 @@ impl SetMergeStrategyCommand {
 
     async fn _handle_set_strategy<'a>(
         &self,
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
         strategy: MergeStrategy,
     ) -> Result<CommandExecutionResult> {
         ctx.db_service
@@ -53,7 +53,7 @@ impl SetMergeStrategyCommand {
 
     async fn _handle_unset_strategy<'a>(
         &self,
-        ctx: &mut CommandContext<'a>,
+        ctx: &CommandContext<'a>,
     ) -> Result<CommandExecutionResult> {
         ctx.db_service
             .pull_requests_set_strategy_override(ctx.repo_owner, ctx.repo_name, ctx.pr_number, None)
@@ -70,7 +70,7 @@ impl SetMergeStrategyCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for SetMergeStrategyCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         if let Some(strategy) = self.strategy {
             self._handle_set_strategy(ctx, strategy).await
         } else {

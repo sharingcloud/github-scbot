@@ -1,6 +1,6 @@
 use crate::RepositoryPath;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PullRequestHandle {
     repository: RepositoryPath,
     number: u64,

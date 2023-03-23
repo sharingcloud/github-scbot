@@ -5,7 +5,8 @@
 Experimental GitHub Bot to manage SharingCloud development workflows.  
 Uses **PostgreSQL** and **Redis**.
 
-[CHANGELOG](./CHANGELOG.md)
+- [CHANGELOG](./CHANGELOG.md)
+- [Project structure](./docs/PROJECT_STRUCTURE.md)
 
 ## Why ?
 

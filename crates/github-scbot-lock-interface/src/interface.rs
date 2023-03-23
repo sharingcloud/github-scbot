@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use crate::{LockError, LockStatus};
 
 /// Cache adapter trait.
-#[mockall::automock]
+#[cfg_attr(any(test, feature = "testkit"), mockall::automock)]
 #[async_trait]
 pub trait LockService: Send + Sync {
     /// Tries to lock a resource.

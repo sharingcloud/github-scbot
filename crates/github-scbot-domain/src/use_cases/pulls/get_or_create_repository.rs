@@ -32,3 +32,51 @@ impl<'a> GetOrCreateRepositoryUseCase<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn non_existing() {
+        let config = Config::from_env();
+        let db_service = MemoryDb::new();
+
+        let repository = GetOrCreateRepositoryUseCase {
+            db_service: &db_service,
+            config: &config,
+        }
+        .run(&("me", "test").into())
+        .await
+        .unwrap();
+
+        assert_eq!(repository.owner, "me");
+        assert_eq!(repository.name, "test");
+    }
+
+    #[tokio::test]
+    async fn already_existing() {
+        let config = Config::from_env();
+        let db_service = MemoryDb::new();
+        let original_repo = db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let repository = GetOrCreateRepositoryUseCase {
+            db_service: &db_service,
+            config: &config,
+        }
+        .run(&("me", "test").into())
+        .await
+        .unwrap();
+
+        assert_eq!(original_repo, repository);
+    }
+}

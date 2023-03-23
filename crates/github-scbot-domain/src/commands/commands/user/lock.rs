@@ -22,7 +22,7 @@ impl LockCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for LockCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let status_text = if self.locked { "locked" } else { "unlocked" };
         ctx.db_service
             .pull_requests_set_locked(ctx.repo_owner, ctx.repo_name, ctx.pr_number, self.locked)
