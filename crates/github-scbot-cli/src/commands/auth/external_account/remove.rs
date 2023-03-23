@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// Remove external account
 #[derive(Parser)]
-pub(crate) struct AuthRemoveExternalAccountCommand {
+pub(crate) struct AuthExternalAccountRemoveCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthRemoveExternalAccountCommand {
+impl AuthExternalAccountRemoveCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveExternalAccountUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -46,7 +46,7 @@ mod tests {
             .await?;
 
         assert_eq!(
-            test_command(ctx, &["auth", "remove-external-account", "me"]).await,
+            test_command(ctx, &["auth", "external-accounts", "remove", "me"]).await,
             "External account 'me' removed.\n"
         );
 

@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// Create external token
 #[derive(Parser)]
-pub(crate) struct AuthGenerateExternalAccountTokenCommand {
+pub(crate) struct AuthExternalAccountGenerateTokenCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthGenerateExternalAccountTokenCommand {
+impl AuthExternalAccountGenerateTokenCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let token = GenerateExternalAccountTokenUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -49,7 +49,7 @@ mod tests {
             .await?;
 
         assert!(
-            test_command(ctx, &["auth", "generate-external-account-token", "me"])
+            test_command(ctx, &["auth", "external-accounts", "generate-token", "me"])
                 .await
                 .starts_with("ey")
         );

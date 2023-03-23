@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// List rights for account
 #[derive(Parser)]
-pub(crate) struct AuthListExternalAccountRightsCommand {
+pub(crate) struct AuthExternalAccountListRightsCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthListExternalAccountRightsCommand {
+impl AuthExternalAccountListRightsCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         let repositories = ListExternalAccountRightsUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -55,7 +55,7 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "list-external-account-rights", "me"]).await,
+            test_command(ctx, &["auth", "external-accounts", "list-rights", "me"]).await,
             "No right found from external account 'me'.\n"
         );
 
@@ -89,7 +89,7 @@ mod tests {
             .await?;
 
         assert_eq!(
-            test_command(ctx, &["auth", "list-external-account-rights", "me"]).await,
+            test_command(ctx, &["auth", "external-accounts", "list-rights", "me"]).await,
             "Rights from external account 'me':\n- owner/name\n"
         );
 

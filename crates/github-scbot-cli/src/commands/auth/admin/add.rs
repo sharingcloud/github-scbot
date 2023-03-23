@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// Add admin rights to account
 #[derive(Parser)]
-pub(crate) struct AuthAddAdminRightsCommand {
+pub(crate) struct AuthAdminAddCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthAddAdminRightsCommand {
+impl AuthAdminAddCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddAdminRightUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -41,7 +41,7 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "add-admin-rights", "me"]).await,
+            test_command(ctx, &["auth", "admins", "add", "me"]).await,
             "Account 'me' added/edited with admin rights.\n"
         );
 

@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// Remove admin rights from account
 #[derive(Parser)]
-pub(crate) struct AuthRemoveAdminRightsCommand {
+pub(crate) struct AuthAdminRemoveCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthRemoveAdminRightsCommand {
+impl AuthAdminRemoveCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         RemoveAdminRightUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -41,7 +41,7 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "remove-admin-rights", "me"]).await,
+            test_command(ctx, &["auth", "admins", "remove", "me"]).await,
             "Account 'me' added/edited without admin rights.\n"
         );
 

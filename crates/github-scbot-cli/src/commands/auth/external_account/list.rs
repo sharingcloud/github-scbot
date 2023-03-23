@@ -1,26 +1,26 @@
 use std::io::Write;
 
 use clap::Parser;
-use github_scbot_domain::use_cases::auth::ListAdminAccountsUseCase;
+use github_scbot_domain::use_cases::auth::ListExternalAccountsUseCase;
 
 use crate::{commands::CommandContext, Result};
 
-/// List admin accounts
+/// List external accounts
 #[derive(Parser)]
-pub(crate) struct AuthListAdminAccountsCommand;
+pub(crate) struct AuthExternalAccountListCommand;
 
-impl AuthListAdminAccountsCommand {
+impl AuthExternalAccountListCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
-        let accounts = ListAdminAccountsUseCase {
+        let accounts = ListExternalAccountsUseCase {
             db_service: ctx.db_service.as_ref(),
         }
         .run()
         .await?;
 
         if accounts.is_empty() {
-            writeln!(ctx.writer, "No admin account found.")?;
+            writeln!(ctx.writer, "No external account found.")?;
         } else {
-            writeln!(ctx.writer, "Admin accounts:")?;
+            writeln!(ctx.writer, "External accounts:")?;
             for account in accounts {
                 writeln!(ctx.writer, "- {}", account.username)?;
             }
@@ -35,7 +35,7 @@ mod tests {
     use std::error::Error;
 
     use github_scbot_database_interface::DbService;
-    use github_scbot_domain_models::Account;
+    use github_scbot_domain_models::ExternalAccount;
 
     use crate::testutils::{test_command, CommandContextTest};
 
@@ -44,8 +44,8 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "list-admin-accounts"]).await,
-            "No admin account found.\n"
+            test_command(ctx, &["auth", "external-accounts", "list"]).await,
+            "No external account found.\n"
         );
 
         Ok(())
@@ -55,15 +55,15 @@ mod tests {
     async fn run() -> Result<(), Box<dyn Error>> {
         let ctx = CommandContextTest::new();
         ctx.db_service
-            .accounts_create(Account {
+            .external_accounts_create(ExternalAccount {
                 username: "me".into(),
-                is_admin: true,
+                ..Default::default()
             })
             .await?;
 
         assert_eq!(
-            test_command(ctx, &["auth", "list-admin-accounts"]).await,
-            "Admin accounts:\n- me\n"
+            test_command(ctx, &["auth", "external-accounts", "list"]).await,
+            "External accounts:\n- me\n"
         );
 
         Ok(())

@@ -7,12 +7,12 @@ use crate::{commands::CommandContext, Result};
 
 /// Create external account
 #[derive(Parser)]
-pub(crate) struct AuthAddExternalAccountCommand {
+pub(crate) struct AuthExternalAccountAddCommand {
     /// Account username
     pub username: String,
 }
 
-impl AuthAddExternalAccountCommand {
+impl AuthExternalAccountAddCommand {
     pub async fn run<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
         AddExternalAccountUseCase {
             db_service: ctx.db_service.as_ref(),
@@ -37,7 +37,7 @@ mod tests {
         let ctx = CommandContextTest::new();
 
         assert_eq!(
-            test_command(ctx, &["auth", "add-external-account", "me"]).await,
+            test_command(ctx, &["auth", "external-accounts", "add", "me"]).await,
             "External account 'me' created.\n"
         );
 
