@@ -329,12 +329,12 @@ impl<'a> CommandExecutor<'a> {
                     .handle(ctx)
                     .await
             }
-            AdminCommand::SetDefaultPRTitleRegex(rgx) => {
+            AdminCommand::SetDefaultPrTitleRegex(rgx) => {
                 AdminSetDefaultPrTitleRegexCommand::new(rgx.clone())
                     .handle(ctx)
                     .await
             }
-            AdminCommand::SetDefaultQAStatus(status) => {
+            AdminCommand::SetDefaultQaStatus(status) => {
                 AdminSetDefaultQaStatusCommand::new(*status)
                     .handle(ctx)
                     .await
