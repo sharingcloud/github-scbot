@@ -42,9 +42,9 @@ lazy_static! {
 }
 
 /// Get an authenticated GitHub client builder.
-pub async fn get_authenticated_client_builder<'a>(
+pub async fn get_authenticated_client_builder(
     config: &Config,
-    api_service: &'a dyn ApiService,
+    api_service: &dyn ApiService,
 ) -> Result<ClientBuilder, GitHubError> {
     let builder = get_anonymous_client_builder(config)?;
     let token = get_authentication_credentials(config, api_service).await?;
