@@ -6,7 +6,11 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    use_cases::{status::BuildPullRequestStatusUseCase, summary::PostSummaryCommentUseCase},
+    use_cases::{
+        checks::DetermineChecksStatusUseCase,
+        status::{BuildPullRequestStatusUseCase, BuildPullRequestStatusUseCaseInterface},
+        summary::{PostSummaryCommentUseCase, PostSummaryCommentUseCaseInterface},
+    },
     Result,
 };
 
@@ -20,10 +24,13 @@ impl AdminResetSummaryCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminResetSummaryCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let pr_status = BuildPullRequestStatusUseCase {
             api_service: ctx.api_service,
             db_service: ctx.db_service,
+            determine_checks_status: &DetermineChecksStatusUseCase {
+                api_service: ctx.api_service,
+            },
         }
         .run(&ctx.pr_handle(), ctx.upstream_pr)
         .await?;

@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{PullRequest, PullRequestHandle};
@@ -5,17 +6,24 @@ use github_scbot_domain_models::{PullRequest, PullRequestHandle};
 use super::GetOrCreateRepositoryUseCase;
 use crate::Result;
 
+#[mockall::automock]
+#[async_trait(?Send)]
+pub trait SynchronizePullRequestUseCaseInterface {
+    async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()>;
+}
+
 pub struct SynchronizePullRequestUseCase<'a> {
     pub config: &'a Config,
     pub db_service: &'a dyn DbService,
 }
 
-impl<'a> SynchronizePullRequestUseCase<'a> {
+#[async_trait(?Send)]
+impl<'a> SynchronizePullRequestUseCaseInterface for SynchronizePullRequestUseCase<'a> {
     #[tracing::instrument(skip(self), fields(pr_handle))]
-    pub async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()> {
+    async fn run(&self, pr_handle: &PullRequestHandle) -> Result<()> {
         let repo = GetOrCreateRepositoryUseCase {
-            db_service: self.db_service,
             config: self.config,
+            db_service: self.db_service,
         }
         .run(pr_handle.repository())
         .await?;

@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use async_trait::async_trait;
 use github_scbot_ghapi_interface::types::GhReactionType;
 
@@ -6,7 +8,10 @@ use crate::{
         command::{CommandExecutionResult, ResultAction},
         BotCommand, CommandContext,
     },
-    use_cases::comments::GenerateRandomGifCommentUseCase,
+    use_cases::{
+        comments::{GenerateRandomGifCommentUseCase, GenerateRandomGifCommentUseCaseInterface},
+        gifs::RandomGifFromQueryUseCase,
+    },
     Result,
 };
 
@@ -22,13 +27,21 @@ impl GifCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for GifCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         Ok(CommandExecutionResult::builder()
             .with_action(ResultAction::AddReaction(GhReactionType::Eyes))
             .with_action(ResultAction::PostComment(
                 GenerateRandomGifCommentUseCase {
-                    config: ctx.config,
-                    api_service: ctx.api_service,
+                    random_gif_from_query: &RandomGifFromQueryUseCase {
+                        config: ctx.config,
+                        api_service: ctx.api_service,
+                        // Use the current timestamp in milliseconds as a seed, this is not used for cryptography,
+                        // so it should be more than enough.
+                        rand_seed: SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as u64,
+                    },
                 }
                 .run(&self.search_terms)
                 .await?,
@@ -68,7 +81,7 @@ mod tests {
             });
 
         let result = GifCommand::new("what".into())
-            .handle(&mut ctx.as_context())
+            .handle(&ctx.as_context())
             .await?;
         assert!(!result.should_update_status);
         assert_eq!(
@@ -96,7 +109,7 @@ mod tests {
             .returning(|_, _| Ok(GifResponse { results: vec![] }));
 
         let result = GifCommand::new("what".into())
-            .handle(&mut ctx.as_context())
+            .handle(&ctx.as_context())
             .await?;
         assert!(!result.should_update_status);
         assert_eq!(

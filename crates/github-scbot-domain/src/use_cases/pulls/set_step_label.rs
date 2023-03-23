@@ -1,15 +1,23 @@
+use async_trait::async_trait;
 use github_scbot_domain_models::{PullRequestHandle, StepLabel};
 use github_scbot_ghapi_interface::ApiService;
 
 use crate::Result;
 
+#[mockall::automock]
+#[async_trait(?Send)]
+pub trait SetStepLabelUseCaseInterface {
+    async fn run(&self, pr_handle: &PullRequestHandle, label: Option<StepLabel>) -> Result<()>;
+}
+
 pub struct SetStepLabelUseCase<'a> {
     pub api_service: &'a dyn ApiService,
 }
 
-impl<'a> SetStepLabelUseCase<'a> {
+#[async_trait(?Send)]
+impl<'a> SetStepLabelUseCaseInterface for SetStepLabelUseCase<'a> {
     #[tracing::instrument(skip(self), fields(pr_handle, label))]
-    pub async fn run(&self, pr_handle: &PullRequestHandle, label: Option<StepLabel>) -> Result<()> {
+    async fn run(&self, pr_handle: &PullRequestHandle, label: Option<StepLabel>) -> Result<()> {
         let existing_labels = self
             .api_service
             .issue_labels_list(
@@ -30,7 +38,9 @@ impl<'a> SetStepLabelUseCase<'a> {
 
         Ok(())
     }
+}
 
+impl<'a> SetStepLabelUseCase<'a> {
     /// Add pull request step label in existing labels by returning a new vector.
     pub fn add_step_in_existing_labels(
         existing_labels: &[String],

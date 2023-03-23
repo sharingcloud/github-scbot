@@ -2,7 +2,12 @@
 
 use actix_web::HttpResponse;
 use github_scbot_database_interface::DbService;
-use github_scbot_domain::use_cases::checks::HandleCheckSuiteEventUseCase;
+use github_scbot_domain::use_cases::{
+    checks::{DetermineChecksStatusUseCase, HandleCheckSuiteEventUseCase},
+    pulls::{AutomergePullRequestUseCase, MergePullRequestUseCase, SetStepLabelUseCase},
+    status::{BuildPullRequestStatusUseCase, UpdatePullRequestStatusUseCase},
+    summary::PostSummaryCommentUseCase,
+};
 use github_scbot_ghapi_interface::{types::GhCheckSuiteEvent, ApiService};
 use github_scbot_lock_interface::LockService;
 
@@ -22,7 +27,27 @@ pub(crate) async fn check_suite_event(
     HandleCheckSuiteEventUseCase {
         api_service,
         db_service,
-        lock_service,
+        update_pull_request_status: &UpdatePullRequestStatusUseCase {
+            api_service,
+            db_service,
+            lock_service,
+            set_step_label: &SetStepLabelUseCase { api_service },
+            automerge_pull_request: &AutomergePullRequestUseCase {
+                db_service,
+                api_service,
+                merge_pull_request: &MergePullRequestUseCase { api_service },
+            },
+            post_summary_comment: &PostSummaryCommentUseCase {
+                api_service,
+                db_service,
+                lock_service,
+            },
+            build_pull_request_status: &BuildPullRequestStatusUseCase {
+                api_service,
+                db_service,
+                determine_checks_status: &DetermineChecksStatusUseCase { api_service },
+            },
+        },
     }
     .run(event)
     .await

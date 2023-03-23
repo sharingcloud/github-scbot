@@ -2,7 +2,15 @@ use std::io::Write;
 
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_domain::use_cases::pulls::SynchronizePullRequestAndUpdateStatusUseCase;
+use github_scbot_domain::use_cases::{
+    checks::DetermineChecksStatusUseCase,
+    pulls::{
+        AutomergePullRequestUseCase, MergePullRequestUseCase, SetStepLabelUseCase,
+        SynchronizePullRequestAndUpdateStatusUseCase, SynchronizePullRequestUseCase,
+    },
+    status::{BuildPullRequestStatusUseCase, UpdatePullRequestStatusUseCase},
+    summary::PostSummaryCommentUseCase,
+};
 use github_scbot_domain_models::RepositoryPath;
 
 use crate::{
@@ -27,9 +35,37 @@ impl Command for PullRequestSyncCommand {
 
         SynchronizePullRequestAndUpdateStatusUseCase {
             api_service: ctx.api_service.as_ref(),
-            config: &ctx.config,
-            db_service: ctx.db_service.as_ref(),
-            lock_service: ctx.lock_service.as_ref(),
+            synchronize_pull_request: &SynchronizePullRequestUseCase {
+                config: &ctx.config,
+                db_service: ctx.db_service.as_ref(),
+            },
+            update_pull_request_status: &UpdatePullRequestStatusUseCase {
+                api_service: ctx.api_service.as_ref(),
+                db_service: ctx.db_service.as_ref(),
+                lock_service: ctx.lock_service.as_ref(),
+                set_step_label: &SetStepLabelUseCase {
+                    api_service: ctx.api_service.as_ref(),
+                },
+                automerge_pull_request: &AutomergePullRequestUseCase {
+                    api_service: ctx.api_service.as_ref(),
+                    db_service: ctx.db_service.as_ref(),
+                    merge_pull_request: &MergePullRequestUseCase {
+                        api_service: ctx.api_service.as_ref(),
+                    },
+                },
+                post_summary_comment: &PostSummaryCommentUseCase {
+                    api_service: ctx.api_service.as_ref(),
+                    db_service: ctx.db_service.as_ref(),
+                    lock_service: ctx.lock_service.as_ref(),
+                },
+                build_pull_request_status: &BuildPullRequestStatusUseCase {
+                    api_service: ctx.api_service.as_ref(),
+                    db_service: ctx.db_service.as_ref(),
+                    determine_checks_status: &DetermineChecksStatusUseCase {
+                        api_service: ctx.api_service.as_ref(),
+                    },
+                },
+            },
         }
         .run(&(repo_owner, repo_name, self.number).into())
         .await?;

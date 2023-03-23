@@ -19,7 +19,7 @@ impl HelpCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for HelpCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let comment = format!(
             "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
             You can ping me with a command in the format: `{} <command> (<arguments>)`\n\
@@ -67,7 +67,7 @@ mod tests {
         let ctx = CommandContextTest::new();
         let cmd = HelpCommand::new();
 
-        let result = cmd.handle(&mut ctx.as_context()).await?;
+        let result = cmd.handle(&ctx.as_context()).await?;
         assert!(!result.should_update_status);
 
         Ok(())

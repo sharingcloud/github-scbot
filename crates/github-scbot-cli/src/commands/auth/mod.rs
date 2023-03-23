@@ -65,9 +65,9 @@ enum AuthSubCommand {
 
 #[async_trait(?Send)]
 impl Command for AuthSubCommand {
-    async fn execute<W: Write>(self, mut ctx: CommandContext<W>) -> Result<()> {
+    async fn execute<W: Write>(self, ctx: CommandContext<W>) -> Result<()> {
         match self {
-            Self::AddAdminRights(sub) => sub.run(&mut ctx).await,
+            Self::AddAdminRights(sub) => sub.run(ctx).await,
             Self::AddExternalAccount(sub) => sub.run(ctx).await,
             Self::AddExternalAccountRight(sub) => sub.run(ctx).await,
             Self::GenerateExternalAccountToken(sub) => sub.run(ctx).await,

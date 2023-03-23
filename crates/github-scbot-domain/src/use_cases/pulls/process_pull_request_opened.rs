@@ -1,13 +1,19 @@
+use async_trait::async_trait;
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
 use github_scbot_domain_models::{PullRequest, PullRequestHandle, Repository};
 use github_scbot_ghapi_interface::{types::GhPullRequestEvent, ApiService};
 use github_scbot_lock_interface::LockService;
 
-use super::GetOrCreateRepositoryUseCase;
 use crate::{
-    commands::{AdminCommand, Command, CommandContext, CommandExecutor, CommandParser},
-    use_cases::{comments::PostWelcomeCommentUseCase, status::UpdatePullRequestStatusUseCase},
+    commands::{
+        AdminCommand, Command, CommandContext, CommandExecutor, CommandExecutorInterface,
+        CommandParser,
+    },
+    use_cases::{
+        comments::PostWelcomeCommentUseCaseInterface, pulls::GetOrCreateRepositoryUseCase,
+        status::UpdatePullRequestStatusUseCaseInterface,
+    },
     Result,
 };
 
@@ -22,14 +28,22 @@ pub enum PullRequestOpenedStatus {
     Ignored,
 }
 
+#[async_trait(?Send)]
+pub trait ProcessPullRequestOpenedUseCaseInterface {
+    async fn run(&self, event: GhPullRequestEvent) -> Result<PullRequestOpenedStatus>;
+}
+
 pub struct ProcessPullRequestOpenedUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
+    pub post_welcome_comment: &'a dyn PostWelcomeCommentUseCaseInterface,
+    pub update_pull_request_status: &'a dyn UpdatePullRequestStatusUseCaseInterface,
 }
 
-impl<'a> ProcessPullRequestOpenedUseCase<'a> {
+#[async_trait(?Send)]
+impl<'a> ProcessPullRequestOpenedUseCaseInterface for ProcessPullRequestOpenedUseCase<'a> {
     #[tracing::instrument(
         skip_all,
         fields(
@@ -40,7 +54,7 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
         ),
         ret
     )]
-    pub async fn run(&self, event: GhPullRequestEvent) -> Result<PullRequestOpenedStatus> {
+    async fn run(&self, event: GhPullRequestEvent) -> Result<PullRequestOpenedStatus> {
         // Get or create repository
         let repo_owner = &event.repository.owner.login;
         let repo_name = &event.repository.name;
@@ -49,8 +63,8 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
             &(repo_owner.as_str(), repo_name.as_str(), pr_number).into();
 
         let repo_model = GetOrCreateRepositoryUseCase {
-            db_service: self.db_service,
             config: self.config,
+            db_service: self.db_service,
         }
         .run(pr_handle.repository())
         .await?;
@@ -80,20 +94,14 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
                         .pulls_get(&repo_model.owner, &repo_model.name, pr_model.number)
                         .await?;
 
-                    UpdatePullRequestStatusUseCase {
-                        api_service: self.api_service,
-                        db_service: self.db_service,
-                        lock_service: self.lock_service,
-                    }
-                    .run(pr_handle, &upstream_pr)
-                    .await?;
+                    self.update_pull_request_status
+                        .run(pr_handle, &upstream_pr)
+                        .await?;
 
                     if self.config.server_enable_welcome_comments {
-                        PostWelcomeCommentUseCase {
-                            api_service: self.api_service,
-                        }
-                        .run(pr_handle, &event.pull_request.user.login)
-                        .await?;
+                        self.post_welcome_comment
+                            .run(pr_handle, &event.pull_request.user.login)
+                            .await?;
                     }
 
                     // Now, handle commands from body.
@@ -102,7 +110,7 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
                         event.pull_request.body.as_deref().unwrap_or_default(),
                     );
 
-                    let mut ctx = CommandContext {
+                    let ctx = CommandContext {
                         config: self.config,
                         api_service: self.api_service,
                         db_service: self.db_service,
@@ -115,7 +123,11 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
                         comment_author: &event.pull_request.user.login,
                     };
 
-                    CommandExecutor::execute_commands(&mut ctx, commands).await?;
+                    let executor = CommandExecutor {
+                        db_service: self.db_service,
+                        update_pull_request_status: self.update_pull_request_status,
+                    };
+                    executor.execute_commands(&ctx, commands).await?;
 
                     Ok(PullRequestOpenedStatus::Created)
                 } else {
@@ -124,7 +136,9 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
             }
         }
     }
+}
 
+impl<'a> ProcessPullRequestOpenedUseCase<'a> {
     pub fn should_create_pull_request(
         config: &Config,
         repo_model: &Repository,
@@ -152,111 +166,62 @@ impl<'a> ProcessPullRequestOpenedUseCase<'a> {
 mod tests {
     use github_scbot_database_memory::MemoryDb;
     use github_scbot_ghapi_interface::{
-        types::{GhBranch, GhCommitStatus, GhPullRequest, GhRepository, GhUser, GhUserPermission},
+        types::{GhPullRequest, GhRepository, GhUser, GhUserPermission},
         MockApiService,
     };
-    use github_scbot_lock_interface::{LockInstance, LockStatus, MockLockService};
+    use github_scbot_lock_interface::MockLockService;
 
     use super::*;
+    use crate::use_cases::{
+        comments::MockPostWelcomeCommentUseCaseInterface,
+        status::MockUpdatePullRequestStatusUseCaseInterface,
+    };
 
-    fn prepare_lock_service_calls() -> MockLockService {
-        let mut lock_service = MockLockService::new();
+    #[tokio::test]
+    async fn no_manual_interaction() {
+        let config = Config::from_env();
+        let lock_service = MockLockService::new();
+        let post_welcome_comment = MockPostWelcomeCommentUseCaseInterface::new();
 
-        lock_service
-            .expect_wait_lock_resource()
-            .once()
-            .withf(|name, timeout| name == "summary-me-test-1" && timeout == &10000)
-            .return_once(|_, _| {
-                Ok(LockStatus::SuccessfullyLocked(LockInstance::new_dummy(
-                    "dummy",
-                )))
-            });
+        let db_service = MemoryDb::new();
+        db_service
+            .repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                manual_interaction: false,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
 
-        lock_service
-    }
-
-    fn prepare_api_service_calls() -> MockApiService {
         let mut api_service = MockApiService::new();
-
         api_service
             .expect_pulls_get()
             .once()
             .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
             .return_once(|_, _, _| {
                 Ok(GhPullRequest {
-                    head: GhBranch {
-                        sha: "abcdef".into(),
-                        ..Default::default()
-                    },
+                    number: 1,
                     ..Default::default()
                 })
             });
 
-        api_service
-            .expect_pull_reviews_list()
+        let mut update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        update_pull_request_status
+            .expect_run()
             .once()
-            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
-            .return_once(|_, _, _| Ok(vec![]));
-
-        api_service
-            .expect_check_runs_list()
-            .once()
-            .withf(|owner, name, sha| owner == "me" && name == "test" && sha == "abcdef")
-            .return_once(|_, _, _| Ok(vec![]));
-
-        api_service
-            .expect_issue_labels_list()
-            .once()
-            .withf(|owner, name, issue_id| owner == "me" && name == "test" && issue_id == &1)
-            .return_once(|_, _, _| Ok(vec![]));
-
-        api_service
-            .expect_issue_labels_replace_all()
-            .once()
-            .withf(|owner, name, issue_id, labels| {
-                owner == "me"
-                    && name == "test"
-                    && issue_id == &1
-                    && labels == ["step/awaiting-checks".to_string()]
+            .withf(|pr_handle, upstream_pr| {
+                pr_handle == &("me", "test", 1).into() && upstream_pr.number == 1
             })
-            .return_once(|_, _, _, _| Ok(()));
-
-        api_service
-            .expect_comments_post()
-            .once()
-            .withf(|owner, name, pr_id, text| {
-                owner == "me" && name == "test" && pr_id == &1 && !text.is_empty()
-            })
-            .return_once(|_, _, _, _| Ok(1));
-
-        api_service
-            .expect_commit_statuses_update()
-            .once()
-            .withf(|owner, name, sha, status, title, body| {
-                owner == "me"
-                    && name == "test"
-                    && sha == "abcdef"
-                    && *status == GhCommitStatus::Pending
-                    && title == "Validation"
-                    && body == "Waiting for checks"
-            })
-            .return_once(|_, _, _, _, _, _| Ok(()));
-
-        api_service
-    }
-
-    #[tokio::test]
-    async fn no_manual_interaction() {
-        let config = Config::from_env();
-        let api_service = prepare_api_service_calls();
-        let db_service = MemoryDb::new();
-        let lock_service = prepare_lock_service_calls();
+            .return_once(|_, _| Ok(()));
 
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
             db_service: &db_service,
             lock_service: &lock_service,
+            post_welcome_comment: &post_welcome_comment,
+            update_pull_request_status: &update_pull_request_status,
         }
         .run(GhPullRequestEvent {
             pull_request: GhPullRequest {
@@ -279,9 +244,11 @@ mod tests {
     async fn already_created() {
         let config = Config::from_env();
         let api_service = MockApiService::new();
-        let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
+        let post_welcome_comment = MockPostWelcomeCommentUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
 
+        let db_service = MemoryDb::new();
         let repo = db_service
             .repositories_create(Repository {
                 owner: "me".into(),
@@ -305,6 +272,8 @@ mod tests {
             config: &config,
             db_service: &db_service,
             lock_service: &lock_service,
+            post_welcome_comment: &post_welcome_comment,
+            update_pull_request_status: &update_pull_request_status,
         }
         .run(GhPullRequestEvent {
             pull_request: GhPullRequest {
@@ -332,6 +301,8 @@ mod tests {
         let api_service = MockApiService::new();
         let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
+        let post_welcome_comment = MockPostWelcomeCommentUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
 
         db_service
             .repositories_create(Repository {
@@ -348,6 +319,8 @@ mod tests {
             config: &config,
             db_service: &db_service,
             lock_service: &lock_service,
+            post_welcome_comment: &post_welcome_comment,
+            update_pull_request_status: &update_pull_request_status,
         }
         .run(GhPullRequestEvent {
             pull_request: GhPullRequest {
@@ -372,6 +345,8 @@ mod tests {
         let api_service = MockApiService::new();
         let db_service = MemoryDb::new();
         let lock_service = MockLockService::new();
+        let post_welcome_comment = MockPostWelcomeCommentUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
 
         db_service
             .repositories_create(Repository {
@@ -388,6 +363,8 @@ mod tests {
             config: &config,
             db_service: &db_service,
             lock_service: &lock_service,
+            post_welcome_comment: &post_welcome_comment,
+            update_pull_request_status: &update_pull_request_status,
         }
         .run(GhPullRequestEvent {
             pull_request: GhPullRequest {
@@ -410,9 +387,10 @@ mod tests {
     #[tokio::test]
     async fn manual_interaction_with_enable_comment_non_admin_user() {
         let config = Config::from_env();
-        let mut api_service = prepare_api_service_calls();
+        let mut api_service = MockApiService::new();
         let db_service = MemoryDb::new();
-        let lock_service = prepare_lock_service_calls();
+        let lock_service = MockLockService::new();
+        let post_welcome_comment = MockPostWelcomeCommentUseCaseInterface::new();
 
         db_service
             .repositories_create(Repository {
@@ -425,16 +403,38 @@ mod tests {
             .unwrap();
 
         api_service
+            .expect_pulls_get()
+            .once()
+            .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+            .return_once(|_, _, _| {
+                Ok(GhPullRequest {
+                    number: 1,
+                    ..Default::default()
+                })
+            });
+
+        api_service
             .expect_user_permissions_get()
             .once()
             .withf(|owner, name, username| owner == "me" && name == "test" && username == "user")
             .return_once(|_, _, _| Ok(GhUserPermission::Write));
+
+        let mut update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        update_pull_request_status
+            .expect_run()
+            .once()
+            .withf(|pr_handle, upstream_pr| {
+                pr_handle == &("me", "test", 1).into() && upstream_pr.number == 1
+            })
+            .return_once(|_, _| Ok(()));
 
         let result = ProcessPullRequestOpenedUseCase {
             api_service: &api_service,
             config: &config,
             db_service: &db_service,
             lock_service: &lock_service,
+            post_welcome_comment: &post_welcome_comment,
+            update_pull_request_status: &update_pull_request_status,
         }
         .run(GhPullRequestEvent {
             pull_request: GhPullRequest {

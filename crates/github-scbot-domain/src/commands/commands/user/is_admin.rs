@@ -20,7 +20,7 @@ impl IsAdminCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for IsAdminCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let is_admin = CheckIsAdminUseCase {
             db_service: ctx.db_service,
         }

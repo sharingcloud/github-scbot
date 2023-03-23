@@ -19,7 +19,7 @@ impl AdminHelpCommand {
 
 #[async_trait(?Send)]
 impl BotCommand for AdminHelpCommand {
-    async fn handle(&self, ctx: &mut CommandContext) -> Result<CommandExecutionResult> {
+    async fn handle(&self, ctx: &CommandContext) -> Result<CommandExecutionResult> {
         let comment = format!(
             "Hello **{}** ! I am a GitHub helper bot ! :robot:\n\
             You can ping me with a command in the format: `{} <command> (<arguments>)`\n\

@@ -9,8 +9,11 @@ use github_scbot_lock_interface::LockService;
 use tracing::info;
 
 use crate::{
-    commands::{AdminCommand, Command, CommandContext, CommandExecutor, CommandParser},
-    use_cases::{pulls::SynchronizePullRequestUseCase, status::UpdatePullRequestStatusUseCase},
+    commands::{AdminCommand, Command, CommandContext, CommandExecutorInterface, CommandParser},
+    use_cases::{
+        pulls::SynchronizePullRequestUseCaseInterface,
+        status::UpdatePullRequestStatusUseCaseInterface,
+    },
     Result,
 };
 
@@ -19,6 +22,9 @@ pub struct HandleIssueCommentEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a dyn DbService,
     pub lock_service: &'a dyn LockService,
+    pub synchronize_pull_request: &'a dyn SynchronizePullRequestUseCaseInterface,
+    pub update_pull_request_status: &'a dyn UpdatePullRequestStatusUseCaseInterface,
+    pub command_executor: &'a dyn CommandExecutorInterface,
 }
 
 impl<'a> HandleIssueCommentEventUseCase<'a> {
@@ -55,7 +61,7 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                     .pulls_get(repo_owner, repo_name, pr_number)
                     .await?;
 
-                let mut ctx = CommandContext {
+                let ctx = CommandContext {
                     config: self.config,
                     api_service: self.api_service,
                     db_service: self.db_service,
@@ -68,7 +74,9 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                     comment_author: &event.comment.user.login,
                 };
 
-                CommandExecutor::execute_commands(&mut ctx, commands).await?;
+                self.command_executor
+                    .execute_commands(&ctx, commands)
+                    .await?;
             }
             None => {
                 // Parse admin enable
@@ -80,12 +88,7 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                             .pulls_get(repo_owner, repo_name, pr_number)
                             .await?;
 
-                        SynchronizePullRequestUseCase {
-                            config: self.config,
-                            db_service: self.db_service,
-                        }
-                        .run(pr_handle)
-                        .await?;
+                        self.synchronize_pull_request.run(pr_handle).await?;
 
                         info!(
                             pull_request_number = event.issue.number,
@@ -93,13 +96,9 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
                             message = "Manual activation on pull request",
                         );
 
-                        UpdatePullRequestStatusUseCase {
-                            api_service: self.api_service,
-                            db_service: self.db_service,
-                            lock_service: self.lock_service,
-                        }
-                        .run(pr_handle, &upstream_pr)
-                        .await?;
+                        self.update_pull_request_status
+                            .run(pr_handle, &upstream_pr)
+                            .await?;
 
                         handled = true;
                         break;
@@ -118,5 +117,277 @@ impl<'a> HandleIssueCommentEventUseCase<'a> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{PullRequest, Repository};
+    use github_scbot_ghapi_interface::{
+        types::{GhIssue, GhIssueComment, GhPullRequest, GhRepository, GhUser},
+        MockApiService,
+    };
+    use github_scbot_lock_interface::MockLockService;
+
+    use super::*;
+    use crate::{
+        commands::{CommandExecutionResult, CommandHandlingStatus, MockCommandExecutorInterface},
+        use_cases::{
+            pulls::MockSynchronizePullRequestUseCaseInterface,
+            status::MockUpdatePullRequestStatusUseCaseInterface,
+        },
+    };
+
+    #[tokio::test]
+    async fn run_edited_comment() {
+        let config = Config::from_env();
+        let api_service = MockApiService::new();
+        let lock_service = MockLockService::new();
+        let db_service = MemoryDb::new();
+        let synchronize_pull_request = MockSynchronizePullRequestUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        let command_executor = MockCommandExecutorInterface::new();
+
+        HandleIssueCommentEventUseCase {
+            config: &config,
+            api_service: &api_service,
+            db_service: &db_service,
+            lock_service: &lock_service,
+            synchronize_pull_request: &synchronize_pull_request,
+            update_pull_request_status: &update_pull_request_status,
+            command_executor: &command_executor,
+        }
+        .run(GhIssueCommentEvent {
+            action: GhIssueCommentAction::Edited,
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            issue: GhIssue {
+                number: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_unknown_pr_admin_enable() {
+        let config = Config::from_env();
+        let lock_service = MockLockService::new();
+        let db_service = MemoryDb::new();
+        let command_executor = MockCommandExecutorInterface::new();
+
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_pulls_get()
+                .once()
+                .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+                .return_once(|_, _, _| {
+                    Ok(GhPullRequest {
+                        number: 1,
+                        ..Default::default()
+                    })
+                });
+
+            svc
+        };
+
+        let synchronize_pull_request = {
+            let mut mock = MockSynchronizePullRequestUseCaseInterface::new();
+
+            mock.expect_run()
+                .once()
+                .withf(|pr_handle| pr_handle == &("me", "test", 1).into())
+                .return_once(|_| Ok(()));
+
+            mock
+        };
+
+        let update_pull_request_status = {
+            let mut mock = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+            mock.expect_run()
+                .once()
+                .withf(|pr_handle, upstream_pr| {
+                    pr_handle == &("me", "test", 1).into() && upstream_pr.number == 1
+                })
+                .return_once(|_, _| Ok(()));
+
+            mock
+        };
+
+        HandleIssueCommentEventUseCase {
+            config: &config,
+            api_service: &api_service,
+            db_service: &db_service,
+            lock_service: &lock_service,
+            synchronize_pull_request: &synchronize_pull_request,
+            update_pull_request_status: &update_pull_request_status,
+            command_executor: &command_executor,
+        }
+        .run(GhIssueCommentEvent {
+            action: GhIssueCommentAction::Created,
+            comment: GhIssueComment {
+                body: "bot admin-enable".into(),
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            issue: GhIssue {
+                number: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_unknown_pr_random_command() {
+        let config = Config::from_env();
+        let lock_service = MockLockService::new();
+        let synchronize_pull_request = MockSynchronizePullRequestUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+        let command_executor = MockCommandExecutorInterface::new();
+        let api_service = MockApiService::new();
+
+        let db_service = {
+            let svc = MemoryDb::new();
+
+            svc.repositories_create(Repository {
+                owner: "me".into(),
+                name: "test".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+            svc
+        };
+
+        HandleIssueCommentEventUseCase {
+            config: &config,
+            api_service: &api_service,
+            db_service: &db_service,
+            lock_service: &lock_service,
+            synchronize_pull_request: &synchronize_pull_request,
+            update_pull_request_status: &update_pull_request_status,
+            command_executor: &command_executor,
+        }
+        .run(GhIssueCommentEvent {
+            action: GhIssueCommentAction::Created,
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            issue: GhIssue {
+                number: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_known_pr() {
+        let config = Config::from_env();
+        let lock_service = MockLockService::new();
+        let synchronize_pull_request = MockSynchronizePullRequestUseCaseInterface::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_pulls_get()
+                .once()
+                .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+                .return_once(|_, _, _| {
+                    Ok(GhPullRequest {
+                        number: 1,
+                        ..Default::default()
+                    })
+                });
+
+            svc
+        };
+
+        let db_service = {
+            let svc = MemoryDb::new();
+
+            let repo = svc
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "test".into(),
+                    ..Default::default()
+                })
+                .await
+                .unwrap();
+            svc.pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+            svc
+        };
+
+        let command_executor = {
+            let mut mock = MockCommandExecutorInterface::new();
+
+            mock.expect_execute_commands()
+                .once()
+                .withf(|_ctx, commands| commands.is_empty())
+                .return_once(|_, _| {
+                    Ok(CommandExecutionResult {
+                        should_update_status: false,
+                        handling_status: CommandHandlingStatus::Ignored,
+                        result_actions: vec![],
+                    })
+                });
+
+            mock
+        };
+
+        HandleIssueCommentEventUseCase {
+            config: &config,
+            api_service: &api_service,
+            db_service: &db_service,
+            lock_service: &lock_service,
+            synchronize_pull_request: &synchronize_pull_request,
+            update_pull_request_status: &update_pull_request_status,
+            command_executor: &command_executor,
+        }
+        .run(GhIssueCommentEvent {
+            action: GhIssueCommentAction::Created,
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            issue: GhIssue {
+                number: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     }
 }

@@ -1,9 +1,11 @@
+use async_trait::async_trait;
 use github_scbot_config::Config;
 use github_scbot_ghapi_interface::{
     gif::{GifFormat, GifResponse},
     ApiService,
 };
-use rand::prelude::*;
+use rand::{seq::SliceRandom, SeedableRng};
+use rand_chacha::ChaCha8Rng;
 
 use crate::Result;
 
@@ -16,13 +18,32 @@ const GIF_KEYS: &[GifFormat] = &[
     GifFormat::NanoGif,
 ];
 
+#[mockall::automock]
+#[async_trait(?Send)]
+pub trait RandomGifFromQueryUseCaseInterface {
+    async fn run(&self, search: &str) -> Result<Option<String>>;
+}
+
 pub struct RandomGifFromQueryUseCase<'a> {
     pub config: &'a Config,
     pub api_service: &'a dyn ApiService,
+    pub rand_seed: u64,
+}
+
+#[async_trait(?Send)]
+impl<'a> RandomGifFromQueryUseCaseInterface for RandomGifFromQueryUseCase<'a> {
+    #[tracing::instrument(skip(self), fields(search), ret)]
+    async fn run(&self, search: &str) -> Result<Option<String>> {
+        Ok(self.random_gif_from_response(
+            self.api_service
+                .gif_search(&self.config.tenor_api_key, search)
+                .await?,
+        ))
+    }
 }
 
 impl<'a> RandomGifFromQueryUseCase<'a> {
-    fn get_first_matching_gif(response: &GifResponse) -> Option<String> {
+    fn get_first_matching_gif(&self, response: &GifResponse) -> Option<String> {
         if !response.results.is_empty() {
             // Get first media found
             for result in &response.results {
@@ -43,30 +64,88 @@ impl<'a> RandomGifFromQueryUseCase<'a> {
         None
     }
 
-    fn random_gif_from_response(mut response: GifResponse) -> Option<String> {
-        response.results.shuffle(&mut thread_rng());
-        Self::get_first_matching_gif(&response)
-    }
+    fn random_gif_from_response(&self, mut response: GifResponse) -> Option<String> {
+        let mut rng = ChaCha8Rng::seed_from_u64(self.rand_seed);
 
-    #[tracing::instrument(skip(self), fields(search), ret)]
-    pub async fn run(&self, search: &str) -> Result<Option<String>> {
-        Ok(Self::random_gif_from_response(
-            self.api_service
-                .gif_search(&self.config.tenor_api_key, search)
-                .await?,
-        ))
+        response.results.shuffle(&mut rng);
+        self.get_first_matching_gif(&response)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use github_scbot_ghapi_interface::gif::{GifObject, MediaObject};
+    use github_scbot_ghapi_interface::{
+        gif::{GifObject, MediaObject},
+        MockApiService,
+    };
     use maplit::hashmap;
 
     use super::*;
 
+    #[tokio::test]
+    async fn run() {
+        let mut config = Config::from_env();
+        config.tenor_api_key = "gifkey".into();
+
+        let api_service = {
+            let mut svc = MockApiService::new();
+            svc.expect_gif_search()
+                .once()
+                .withf(|key, search| key == "gifkey" && search == "random")
+                .return_once(|_, _| {
+                    Ok(GifResponse {
+                        results: vec![
+                            GifObject {
+                                media: vec![hashmap! {
+                                    GifFormat::Mp4 => MediaObject {
+                                        url: "http://local.test".into(),
+                                        size: None
+                                    },
+                                    GifFormat::NanoGif => MediaObject {
+                                        url: "http://aaa".into(),
+                                        size: Some(12)
+                                    }
+                                }],
+                            },
+                            GifObject {
+                                media: vec![hashmap! {
+                                    GifFormat::Mp4 => MediaObject {
+                                        url: "http://local.test/2".into(),
+                                        size: None
+                                    },
+                                    GifFormat::NanoGif => MediaObject {
+                                        url: "http://bbb".into(),
+                                        size: Some(12)
+                                    }
+                                }],
+                            },
+                        ],
+                    })
+                });
+            svc
+        };
+
+        let uc = RandomGifFromQueryUseCase {
+            api_service: &api_service,
+            config: &config,
+            rand_seed: 1,
+        };
+
+        let url = uc.run("random").await.unwrap();
+        assert_eq!(url, Some("http://aaa".into()));
+    }
+
     #[test]
-    fn test_get_first_matching_gif() {
+    fn get_first_matching_gif() {
+        let config = Config::from_env();
+        let api_service = MockApiService::new();
+
+        let uc = RandomGifFromQueryUseCase {
+            api_service: &api_service,
+            config: &config,
+            rand_seed: 1,
+        };
+
         let response = GifResponse {
             results: vec![GifObject {
                 media: vec![hashmap! {
@@ -82,7 +161,7 @@ mod tests {
             }],
         };
         assert_eq!(
-            RandomGifFromQueryUseCase::get_first_matching_gif(&response),
+            uc.get_first_matching_gif(&response),
             Some("http://aaa".into())
         );
 
@@ -100,9 +179,6 @@ mod tests {
                 }],
             }],
         };
-        assert_eq!(
-            RandomGifFromQueryUseCase::get_first_matching_gif(&response),
-            None
-        );
+        assert_eq!(uc.get_first_matching_gif(&response), None);
     }
 }

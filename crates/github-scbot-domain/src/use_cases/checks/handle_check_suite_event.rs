@@ -1,13 +1,12 @@
 use github_scbot_database_interface::DbService;
 use github_scbot_ghapi_interface::{types::GhCheckSuiteEvent, ApiService};
-use github_scbot_lock_interface::LockService;
 
-use crate::{use_cases::status::UpdatePullRequestStatusUseCase, Result};
+use crate::{use_cases::status::UpdatePullRequestStatusUseCaseInterface, Result};
 
 pub struct HandleCheckSuiteEventUseCase<'a> {
     pub api_service: &'a dyn ApiService,
     pub db_service: &'a dyn DbService,
-    pub lock_service: &'a dyn LockService,
+    pub update_pull_request_status: &'a dyn UpdatePullRequestStatusUseCaseInterface,
 }
 
 impl<'a> HandleCheckSuiteEventUseCase<'a> {
@@ -57,19 +56,164 @@ impl<'a> HandleCheckSuiteEventUseCase<'a> {
                     .await?;
 
                 // Update status
-                UpdatePullRequestStatusUseCase {
-                    api_service: self.api_service,
-                    db_service: self.db_service,
-                    lock_service: self.lock_service,
-                }
-                .run(
-                    &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
-                    &upstream_pr,
-                )
-                .await?;
+                self.update_pull_request_status
+                    .run(
+                        &(repo_owner.as_str(), repo_name.as_str(), pr_number).into(),
+                        &upstream_pr,
+                    )
+                    .await?;
             }
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use github_scbot_database_memory::MemoryDb;
+    use github_scbot_domain_models::{PullRequest, Repository};
+    use github_scbot_ghapi_interface::{
+        types::{
+            GhApplication, GhBranch, GhBranchShort, GhCheckSuite, GhPullRequest,
+            GhPullRequestShort, GhRepository, GhUser,
+        },
+        MockApiService,
+    };
+
+    use super::*;
+    use crate::use_cases::status::MockUpdatePullRequestStatusUseCaseInterface;
+
+    #[tokio::test]
+    async fn run_unknown_pr() {
+        let api_service = MockApiService::new();
+        let db_service = MemoryDb::new();
+        let update_pull_request_status = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+        HandleCheckSuiteEventUseCase {
+            api_service: &api_service,
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        }
+        .run(GhCheckSuiteEvent {
+            check_suite: GhCheckSuite {
+                pull_requests: vec![GhPullRequestShort {
+                    number: 1,
+                    head: GhBranchShort {
+                        sha: "abcdef".into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }],
+                head_sha: "abcdef".into(),
+                app: GhApplication {
+                    slug: "github-actions".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_known_pr() {
+        let api_service = {
+            let mut svc = MockApiService::new();
+
+            svc.expect_pulls_get()
+                .once()
+                .withf(|owner, name, number| owner == "me" && name == "test" && number == &1)
+                .return_once(|_, _, _| {
+                    Ok(GhPullRequest {
+                        number: 1,
+                        head: GhBranch {
+                            sha: "abcdef".into(),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })
+                });
+
+            svc
+        };
+
+        let db_service = {
+            let svc = MemoryDb::new();
+
+            let repo = svc
+                .repositories_create(Repository {
+                    owner: "me".into(),
+                    name: "test".into(),
+                    default_enable_checks: true,
+                    ..Default::default()
+                })
+                .await
+                .unwrap();
+
+            svc.pull_requests_create(
+                PullRequest {
+                    number: 1,
+                    ..Default::default()
+                }
+                .with_repository(&repo),
+            )
+            .await
+            .unwrap();
+
+            svc
+        };
+
+        let update_pull_request_status = {
+            let mut mock = MockUpdatePullRequestStatusUseCaseInterface::new();
+
+            mock.expect_run()
+                .once()
+                .withf(|pr_handle, upstream_pr| {
+                    pr_handle == &("me", "test", 1).into() && upstream_pr.number == 1
+                })
+                .return_once(|_, _| Ok(()));
+
+            mock
+        };
+
+        HandleCheckSuiteEventUseCase {
+            api_service: &api_service,
+            db_service: &db_service,
+            update_pull_request_status: &update_pull_request_status,
+        }
+        .run(GhCheckSuiteEvent {
+            check_suite: GhCheckSuite {
+                pull_requests: vec![GhPullRequestShort {
+                    number: 1,
+                    head: GhBranchShort {
+                        sha: "abcdef".into(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }],
+                head_sha: "abcdef".into(),
+                app: GhApplication {
+                    slug: "github-actions".into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            repository: GhRepository {
+                owner: GhUser { login: "me".into() },
+                name: "test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     }
 }

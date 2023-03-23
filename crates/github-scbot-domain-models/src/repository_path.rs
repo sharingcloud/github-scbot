@@ -14,7 +14,7 @@ pub enum RepositoryPathError {
 }
 
 /// Repository path.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepositoryPath {
     owner: String,
     name: String,
