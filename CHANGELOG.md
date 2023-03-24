@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep the GitHub installation token for 30 minutes after its generation (for faster response times)
 - Do not update PR labels if they do not change
 - Remove `req-` and add `r+` / `r-` to set/unset reviewers
+- The PR summary is now directly included in the PR body
 
 ## [0.23.1] - 2023-03-20
 

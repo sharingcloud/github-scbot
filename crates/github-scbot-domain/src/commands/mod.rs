@@ -22,13 +22,13 @@ pub use self::command::{
 };
 use crate::{
     commands::commands::{
-        AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
-        AdminSetDefaultAutomergeCommand, AdminSetDefaultChecksStatusCommand,
-        AdminSetDefaultMergeStrategyCommand, AdminSetDefaultPrTitleRegexCommand,
-        AdminSetDefaultQaStatusCommand, AdminSetDefaultReviewersCommand,
-        AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand, HelpCommand, IsAdminCommand,
-        LockCommand, MergeCommand, PingCommand, SetAutomergeCommand, SetChecksStatusCommand,
-        SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand, SetReviewersCommand,
+        AdminDisableCommand, AdminHelpCommand, AdminSetDefaultAutomergeCommand,
+        AdminSetDefaultChecksStatusCommand, AdminSetDefaultMergeStrategyCommand,
+        AdminSetDefaultPrTitleRegexCommand, AdminSetDefaultQaStatusCommand,
+        AdminSetDefaultReviewersCommand, AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand,
+        HelpCommand, IsAdminCommand, LockCommand, MergeCommand, PingCommand, SetAutomergeCommand,
+        SetChecksStatusCommand, SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand,
+        SetReviewersCommand,
     },
     use_cases::{
         auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
@@ -323,7 +323,6 @@ impl<'a> CommandExecutor<'a> {
             AdminCommand::Enable => Ok(CommandExecutionResult::builder().ignored().build()),
             AdminCommand::Disable => AdminDisableCommand::new().handle(ctx).await,
             AdminCommand::Synchronize => AdminSyncCommand::new().handle(ctx).await,
-            AdminCommand::ResetSummary => AdminResetSummaryCommand::new().handle(ctx).await,
             AdminCommand::SetDefaultNeededReviewers(count) => {
                 AdminSetDefaultReviewersCommand::new(*count)
                     .handle(ctx)

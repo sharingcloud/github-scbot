@@ -38,8 +38,6 @@ impl BotCommand for AdminHelpCommand {
             - `admin-set-default-checks-status+`: _Enable checks validation by default for this repository_\n\
             - `admin-set-default-checks-status-`: _Disable checks validation by default for this repository_\n\
             - `admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_\n\
-            - `admin-reset-reviewers`: _Reset and update reviews on pull request (maintenance-type command)_\n\
-            - `admin-reset-summary`: _Create a new summary message (maintenance-type command)_\n\
             - `admin-sync`: _Update status comment if needed (maintenance-type command)_\n",
             ctx.comment_author, ctx.config.bot_username
         );

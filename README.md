@@ -118,8 +118,6 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-set-default-checks-status+`: _Enable checks validation by default for this repository_
 - `bot admin-set-default-checks-status-`: _Disable checks validation by default for this repository_
 - `bot admin-set-needed-reviewers <count>`: _Set needed reviewers count for this PR_
-- `bot admin-reset-reviews`: _Reset and update reviews on pull request (maintenance-type command)_
-- `bot admin-reset-summary`: _Create a new summary message (maintenance-type command)_
 - `bot admin-sync`: _Update status comment if needed (maintenance-type command)_
 
 ## Exposed URLs
