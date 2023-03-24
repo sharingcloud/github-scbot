@@ -11,7 +11,7 @@ use github_scbot_domain::use_cases::{
         BuildPullRequestStatusUseCase, SetPullRequestQaStatusUseCase,
         UpdatePullRequestStatusUseCase,
     },
-    summary::PostSummaryCommentUseCase,
+    summary::UpdatePullRequestSummaryUseCase,
 };
 use github_scbot_domain_models::{QaStatus, RepositoryPath};
 use github_scbot_sentry::sentry;
@@ -76,10 +76,8 @@ pub(crate) async fn set_qa_status(
                     api_service: ctx.api_service.as_ref(),
                 },
             },
-            post_summary_comment: &PostSummaryCommentUseCase {
+            update_pull_request_summary: &UpdatePullRequestSummaryUseCase {
                 api_service: ctx.api_service.as_ref(),
-                db_service: ctx.db_service.as_ref(),
-                lock_service: ctx.lock_service.as_ref(),
             },
             build_pull_request_status: &BuildPullRequestStatusUseCase {
                 api_service: ctx.api_service.as_ref(),

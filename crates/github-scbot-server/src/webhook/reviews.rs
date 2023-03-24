@@ -7,7 +7,7 @@ use github_scbot_domain::use_cases::{
     pulls::{AutomergePullRequestUseCase, MergePullRequestUseCase, SetStepLabelUseCase},
     reviews::HandleReviewEventUseCase,
     status::{BuildPullRequestStatusUseCase, UpdatePullRequestStatusUseCase},
-    summary::PostSummaryCommentUseCase,
+    summary::UpdatePullRequestSummaryUseCase,
 };
 use github_scbot_ghapi_interface::{types::GhReviewEvent, ApiService};
 use github_scbot_lock_interface::LockService;
@@ -38,11 +38,7 @@ pub(crate) async fn review_event(
                 api_service,
                 merge_pull_request: &MergePullRequestUseCase { api_service },
             },
-            post_summary_comment: &PostSummaryCommentUseCase {
-                api_service,
-                db_service,
-                lock_service,
-            },
+            update_pull_request_summary: &UpdatePullRequestSummaryUseCase { api_service },
             build_pull_request_status: &BuildPullRequestStatusUseCase {
                 api_service,
                 db_service,

@@ -11,7 +11,7 @@ use super::{
 use crate::{
     use_cases::{
         pulls::{AutomergePullRequestUseCaseInterface, SetStepLabelUseCaseInterface},
-        summary::PostSummaryCommentUseCaseInterface,
+        summary::UpdatePullRequestSummaryUseCaseInterface,
     },
     Result,
 };
@@ -29,7 +29,7 @@ pub struct UpdatePullRequestStatusUseCase<'a> {
     pub build_pull_request_status: &'a dyn BuildPullRequestStatusUseCaseInterface,
     pub set_step_label: &'a dyn SetStepLabelUseCaseInterface,
     pub automerge_pull_request: &'a dyn AutomergePullRequestUseCaseInterface,
-    pub post_summary_comment: &'a dyn PostSummaryCommentUseCaseInterface,
+    pub update_pull_request_summary: &'a dyn UpdatePullRequestSummaryUseCaseInterface,
 }
 
 #[async_trait(?Send)]
@@ -52,8 +52,10 @@ impl<'a> UpdatePullRequestStatusUseCaseInterface for UpdatePullRequestStatusUseC
         let step_label = StepLabelChooser::default().choose_from_status(&pr_status);
         self.set_step_label.run(pr_handle, Some(step_label)).await?;
 
-        // Post status.
-        self.post_summary_comment.run(pr_handle, &pr_status).await?;
+        // Update summary.
+        self.update_pull_request_summary
+            .run(pr_handle, &pr_status)
+            .await?;
 
         // Create or update status.
         let status_message = StatusMessageGenerator::default().generate(&pr_status)?;
@@ -108,8 +110,10 @@ impl<'a> UpdatePullRequestStatusUseCaseInterface for UpdatePullRequestStatusUseC
                         )
                         .await?;
 
-                    // Update status
-                    self.post_summary_comment.run(pr_handle, &pr_status).await?;
+                    // Update summary
+                    self.update_pull_request_summary
+                        .run(pr_handle, &pr_status)
+                        .await?;
                 }
 
                 l.release().await?;
@@ -135,7 +139,7 @@ mod tests {
     use crate::use_cases::{
         pulls::{MockAutomergePullRequestUseCaseInterface, MockSetStepLabelUseCaseInterface},
         status::{build_pull_request_status, PullRequestStatus},
-        summary::MockPostSummaryCommentUseCaseInterface,
+        summary::MockUpdatePullRequestSummaryUseCaseInterface,
     };
 
     #[tokio::test]
@@ -201,8 +205,8 @@ mod tests {
             mock
         };
 
-        let post_summary_comment = {
-            let mut mock = MockPostSummaryCommentUseCaseInterface::new();
+        let update_pull_request_summary = {
+            let mut mock = MockUpdatePullRequestSummaryUseCaseInterface::new();
 
             mock.expect_run()
                 .once()
@@ -241,7 +245,7 @@ mod tests {
             lock_service: &lock_service,
             set_step_label: &set_step_label,
             automerge_pull_request: &automerge_pull_request,
-            post_summary_comment: &post_summary_comment,
+            update_pull_request_summary: &update_pull_request_summary,
             build_pull_request_status: &build_pull_request_status,
         }
         .run(
@@ -348,8 +352,8 @@ mod tests {
             set_step_label
         };
 
-        let post_summary_comment = {
-            let mut mock = MockPostSummaryCommentUseCaseInterface::new();
+        let update_pull_request_summary = {
+            let mut mock = MockUpdatePullRequestSummaryUseCaseInterface::new();
 
             mock.expect_run()
                 .once()
@@ -389,7 +393,7 @@ mod tests {
             lock_service: &lock_service,
             set_step_label: &set_step_label,
             automerge_pull_request: &automerge_pull_request,
-            post_summary_comment: &post_summary_comment,
+            update_pull_request_summary: &update_pull_request_summary,
             build_pull_request_status: &build_pull_request_status,
         }
         .run(
@@ -498,8 +502,8 @@ mod tests {
             mock
         };
 
-        let post_summary_comment = {
-            let mut mock = MockPostSummaryCommentUseCaseInterface::new();
+        let update_pull_request_summary = {
+            let mut mock = MockUpdatePullRequestSummaryUseCaseInterface::new();
 
             mock.expect_run()
                 .once()
@@ -544,7 +548,7 @@ mod tests {
             lock_service: &lock_service,
             set_step_label: &set_step_label,
             automerge_pull_request: &automerge_pull_request,
-            post_summary_comment: &post_summary_comment,
+            update_pull_request_summary: &update_pull_request_summary,
             build_pull_request_status: &build_pull_request_status,
         }
         .run(

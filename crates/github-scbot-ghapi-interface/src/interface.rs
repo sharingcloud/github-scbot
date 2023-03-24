@@ -94,16 +94,24 @@ pub trait ApiService: Send + Sync {
         reaction_type: GhReactionType,
     ) -> Result<()>;
     /// Get a pull request from its number.
-    async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest>;
+    async fn pulls_get(&self, owner: &str, name: &str, number: u64) -> Result<GhPullRequest>;
     /// Merge a pull request.
     async fn pulls_merge(
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         commit_title: &str,
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
+    ) -> Result<()>;
+    /// Update a pull request body.
+    async fn pulls_update_body(
+        &self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        body: &str,
     ) -> Result<()>;
     /// Add reviewers to a pull request.
     async fn pull_reviewer_requests_add(

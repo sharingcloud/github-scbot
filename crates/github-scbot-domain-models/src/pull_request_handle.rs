@@ -21,6 +21,14 @@ impl PullRequestHandle {
         &self.repository
     }
 
+    pub fn owner(&self) -> &str {
+        self.repository.owner()
+    }
+
+    pub fn name(&self) -> &str {
+        self.repository.name()
+    }
+
     pub fn number(&self) -> u64 {
         self.number
     }

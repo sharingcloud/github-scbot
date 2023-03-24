@@ -133,16 +133,16 @@ impl ApiService for MetricsApiService {
             .await
     }
 
-    async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
+    async fn pulls_get(&self, owner: &str, name: &str, number: u64) -> Result<GhPullRequest> {
         GITHUB_API_CALLS.inc();
-        self.inner.pulls_get(owner, name, issue_number).await
+        self.inner.pulls_get(owner, name, number).await
     }
 
     async fn pulls_merge(
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         commit_title: &str,
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
@@ -152,11 +152,24 @@ impl ApiService for MetricsApiService {
             .pulls_merge(
                 owner,
                 name,
-                issue_number,
+                number,
                 commit_title,
                 commit_message,
                 merge_strategy,
             )
+            .await
+    }
+
+    async fn pulls_update_body(
+        &self,
+        owner: &str,
+        name: &str,
+        number: u64,
+        body: &str,
+    ) -> Result<()> {
+        GITHUB_API_CALLS.inc();
+        self.inner
+            .pulls_update_body(owner, name, number, body)
             .await
     }
 
