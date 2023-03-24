@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use github_scbot_config::Config;
 use github_scbot_database_interface::DbService;
-use github_scbot_domain_models::PullRequestHandle;
+use github_scbot_domain_models::{PullRequestHandle, RepositoryPath};
 use github_scbot_ghapi_interface::{types::GhPullRequest, ApiService};
 use github_scbot_lock_interface::LockService;
 
@@ -26,6 +26,10 @@ pub struct CommandContext<'a> {
 }
 
 impl<'a> CommandContext<'a> {
+    pub fn repository_path(&self) -> RepositoryPath {
+        (self.repo_owner, self.repo_name).into()
+    }
+
     pub fn pr_handle(&self) -> PullRequestHandle {
         (self.repo_owner, self.repo_name, self.pr_number).into()
     }

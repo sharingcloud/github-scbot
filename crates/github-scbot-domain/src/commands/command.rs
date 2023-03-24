@@ -48,10 +48,12 @@ pub enum UserCommand {
     SkipChecksStatus(bool),
     /// Enable/Disable automerge.
     Automerge(bool),
+    /// Assign reviewers.
+    AssignReviewers(Vec<String>),
     /// Assign required reviewers.
     AssignRequiredReviewers(Vec<String>),
-    /// Unassign required reviewers.
-    UnassignRequiredReviewers(Vec<String>),
+    /// Unassign reviewers.
+    UnassignReviewers(Vec<String>),
     /// Set merge strategy.
     SetMergeStrategy(MergeStrategy),
     /// Unset merge strategy.
@@ -209,12 +211,11 @@ impl Command {
             "automerge-" => Self::User(UserCommand::Automerge(false)),
             "lock+" => Self::User(UserCommand::Lock(true, Self::parse_message(args))),
             "lock-" => Self::User(UserCommand::Lock(false, Self::parse_message(args))),
+            "r+" => Self::User(UserCommand::AssignReviewers(Self::parse_reviewers(args)?)),
             "req+" => Self::User(UserCommand::AssignRequiredReviewers(Self::parse_reviewers(
                 args,
             )?)),
-            "req-" => Self::User(UserCommand::UnassignRequiredReviewers(
-                Self::parse_reviewers(args)?,
-            )),
+            "r-" => Self::User(UserCommand::UnassignReviewers(Self::parse_reviewers(args)?)),
             "strategy+" => Self::User(UserCommand::SetMergeStrategy(Self::parse_merge_strategy(
                 args,
             )?)),
@@ -315,6 +316,9 @@ impl Command {
                 AdminCommand::ResetSummary => "admin-reset-summary".into(),
             },
             Self::User(cmd) => match cmd {
+                UserCommand::AssignReviewers(reviewers) => {
+                    format!("r+ {}", reviewers.join(" "))
+                }
                 UserCommand::AssignRequiredReviewers(reviewers) => {
                     format!("req+ {}", reviewers.join(" "))
                 }
@@ -352,8 +356,8 @@ impl Command {
                 UserCommand::SkipChecksStatus(status) => {
                     format!("nochecks{}", Self::plus_minus(*status))
                 }
-                UserCommand::UnassignRequiredReviewers(reviewers) => {
-                    format!("req- {}", reviewers.join(" "))
+                UserCommand::UnassignReviewers(reviewers) => {
+                    format!("r- {}", reviewers.join(" "))
                 }
             },
         }

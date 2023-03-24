@@ -88,8 +88,9 @@ This README supposes the default bot handle: 'bot'.
 - `bot automerge-`: _Disable auto-merge for this PR_
 - `bot lock+ <reason?>`: _Lock a pull-request (block merge)_
 - `bot lock- <reason?>`: _Unlock a pull-request (unblock merge)_
+- `bot r+ <reviewers>`: _Assign reviewers (you can assign multiple reviewers)_
 - `bot req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_
-- `bot req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_
+- `bot r- <reviewers>`: _Unassign reviewers (you can unassign multiple reviewers)_
 - `bot strategy+ <strategy>`: _Override merge strategy for this pull request_
 - `bot strategy-`: _Remove the overriden merge strategy for this pull request_
 - `bot merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_

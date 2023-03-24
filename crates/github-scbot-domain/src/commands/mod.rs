@@ -28,7 +28,7 @@ use crate::{
         AdminSetDefaultQaStatusCommand, AdminSetDefaultReviewersCommand,
         AdminSetPrReviewersCommand, AdminSyncCommand, GifCommand, HelpCommand, IsAdminCommand,
         LockCommand, MergeCommand, PingCommand, SetAutomergeCommand, SetChecksStatusCommand,
-        SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand, SetRequiredReviewersCommand,
+        SetLabelsCommand, SetMergeStrategyCommand, SetQaStatusCommand, SetReviewersCommand,
     },
     use_cases::{
         auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
@@ -276,8 +276,13 @@ impl<'a> CommandExecutor<'a> {
             UserCommand::Lock(s, reason) => LockCommand::new(*s, reason.clone()).handle(ctx).await,
             UserCommand::Ping => PingCommand::new().handle(ctx).await,
             UserCommand::Merge(strategy) => MergeCommand::new(*strategy).handle(ctx).await,
+            UserCommand::AssignReviewers(reviewers) => {
+                SetReviewersCommand::new_assign(reviewers.clone(), false)
+                    .handle(ctx)
+                    .await
+            }
             UserCommand::AssignRequiredReviewers(reviewers) => {
-                SetRequiredReviewersCommand::new_assign(reviewers.clone())
+                SetReviewersCommand::new_assign(reviewers.clone(), true)
                     .handle(ctx)
                     .await
             }
@@ -297,8 +302,8 @@ impl<'a> CommandExecutor<'a> {
                     .handle(ctx)
                     .await
             }
-            UserCommand::UnassignRequiredReviewers(reviewers) => {
-                SetRequiredReviewersCommand::new_unassign(reviewers.clone())
+            UserCommand::UnassignReviewers(reviewers) => {
+                SetReviewersCommand::new_unassign(reviewers.clone())
                     .handle(ctx)
                     .await
             }
