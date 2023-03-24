@@ -1,11 +1,17 @@
+# Top level file and folders to ignore
 /.github
 /.vscode
-/export
-/target
 /docker
-Justfile
-.md
-.cov
-.env
-htmlcov
+/htmlcov
+/Justfile
+/target
+
+# Ignore Markdown files
+**/*.md
+
+# Ignore coverage code
+**/.cov
 lcov.info
+
+# Ignore environment variables
+.env

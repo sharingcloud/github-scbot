@@ -4,30 +4,7 @@ on:
   push:
 
 jobs:
-  format:
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ./.github/actions/prepare
-    - run: just fmt-check
-
-  lint:
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ./.github/actions/prepare
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: lint-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - run: just lint-err
-
-  test:
+  checks:
     runs-on: ubuntu-22.04
 
     services:
@@ -58,8 +35,10 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          target
-        key: test-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: checks-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - run: just fmt-check
+    - run: just lint-err
+    - run: just build
     - run: just test-cov
       env:
         DATABASE_URL: postgres://user:pass@localhost:5432/test-bot
@@ -68,18 +47,3 @@ jobs:
         path-to-lcov: lcov.info
         github-token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
-
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ./.github/actions/prepare
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: build-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - run: just build

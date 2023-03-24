@@ -10,7 +10,7 @@ COPY ./crates /usr/src/app/crates
 COPY Cargo.lock /usr/src/app
 COPY Cargo.toml /usr/src/app
 
-RUN cargo build --release
+RUN cargo build --release && objcopy --compress-debug-sections ./target/release/github-scbot-cli
 
 # Bundle stage
 FROM debian:buster-slim
