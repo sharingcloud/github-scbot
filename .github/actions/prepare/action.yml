@@ -17,7 +17,5 @@ runs:
     - uses: extractions/setup-just@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
-    - run: cargo install grcov
-      shell: bash
-    - run: sudo apt install lld -y
+    - run: cargo install grcov && sudo apt install lld -y
       shell: bash
