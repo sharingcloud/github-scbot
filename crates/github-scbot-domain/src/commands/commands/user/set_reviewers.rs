@@ -35,7 +35,7 @@ impl AssignReviewersCommand {
                 api_service: ctx.api_service,
             },
         }
-        .run(&ctx.pr_handle(), &self.reviewers, true)
+        .run(&ctx.pr_handle(), &self.reviewers, self.required)
         .await?;
 
         let comment = self._create_status_message(&reviewers);
