@@ -64,6 +64,7 @@ impl<'a> UpdatePullRequestSummaryUseCase<'a> {
             existing.trim(),
             "", // A small additional space to make sure the summary is not directly below the PR body
             SUMMARY_START_MARKER,
+            "<hr />",
             summary.trim(),
             SUMMARY_END_MARKER,
             remaining.trim(),
@@ -136,6 +137,7 @@ mod tests {
                 "Sample PR body.\n",
                 "\n",
                 "<!-- github-scbot:start-summary -->\n",
+                "<hr />\n",
                 "abcd\n",
                 "efgh\n",
                 "<!-- github-scbot:end-summary -->"
@@ -152,6 +154,7 @@ mod tests {
                 "abc\n",
                 "\n",
                 "<!-- github-scbot:start-summary -->\n",
+                "<hr />\n",
                 "Hey\n",
                 "<!-- github-scbot:end-summary -->\n",
                 "After"
@@ -165,6 +168,7 @@ mod tests {
                 "abc\n",
                 "\n",
                 "<!-- github-scbot:start-summary -->\n",
+                "<hr />\n",
                 "abcd\n",
                 "efgh\n",
                 "<!-- github-scbot:end-summary -->\n",
