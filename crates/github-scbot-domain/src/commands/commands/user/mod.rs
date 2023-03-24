@@ -9,7 +9,7 @@ mod set_checks_status;
 mod set_labels;
 mod set_merge_strategy;
 mod set_qa_status;
-mod set_required_reviewers;
+mod set_reviewers;
 
 pub use gif::GifCommand;
 pub use help::HelpCommand;
@@ -22,4 +22,4 @@ pub use set_checks_status::SetChecksStatusCommand;
 pub use set_labels::SetLabelsCommand;
 pub use set_merge_strategy::SetMergeStrategyCommand;
 pub use set_qa_status::SetQaStatusCommand;
-pub use set_required_reviewers::SetRequiredReviewersCommand;
+pub use set_reviewers::SetReviewersCommand;
