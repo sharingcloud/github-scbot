@@ -158,16 +158,37 @@ Once your image is ready, you can use the [docker/docker-compose.yml](./docker/d
 - Add a Webhook on GitHub,
 - Use `http(s)://[your-domain]/webhook` as **Payload URL**,
 - Set the **Content Type** as `application/json`,
-- Use a secret if needed (configure you bot with the `BOT_GITHUB_WEBHOOK_SECRET` env),
+- Use a secret if needed (configure your bot with the `BOT_GITHUB_WEBHOOK_SECRET` env. var.),
 - Then, enable the following events:
-    - Check suite,
-    - Issue comment,
-    - Pull request,
-    - Pull request review,
-    - Pull request review comment
+    - **Check suite**,
+    - **Issue comment**,
+    - **Pull request**,
+    - **Pull request review**,
+    - **Pull request review comment**
 
 Once configured, you should receive a `ping` event.
 
 ### GitHub application (using a bot account)
 
-*TODO*
+- Go to your Account, in *"Settings"* > *"Developer settings"* > *"GitHub Apps"* > *"New GitHub App"*,
+- Set the app name you want, the homepage URL you want,
+- Enable *"Webhooks"*, and set the *"Webhook URL"* `http(s)://[your-domain]/webhook`,
+- Use a secret if needed (configure your bot with the `BOT_GITHUB_WEBHOOK_SECRET` env. var.),
+- Setup the required *"Repository permissions"*:
+    - **Checks: Read/Write** (to read/set checks),
+    - **Commit statuses: Read/Write** (to read/set statuses),
+    - **Contents: Read/Write** (to merge the pull request in the end),
+    - **Issues: Read/Write** (to read/set labels),
+    - **Metadata: Read-only** (well it's mandatory and enabled by default),
+    - **Pull requests: Read/Write** (to read/post/edit comments, get PR info).
+- Setup *"Subscribe to events"*:
+    - **Check suite**,
+    - **Issue comment**,
+    - **Pull request**,
+    - **Pull request review**,
+    - **Pull request review comment**.
+- Create the GitHub App, and keep the *"App ID"* (shown at the top of your app page, set it as the `BOT_GITHUB_APP_ID` env. var.),
+- Generate a *"private key"* for your app, using the button available on your app page, GitHub will make you download the key on your computer,
+    - Then copy its content in your `BOT_GITHUB_APP_PRIVATE_KEY` env. var. (if you are using an environment file, like a `.env` file, you have to put the key between double quotes (") and replace newlines by the "\n" character)
+- Now, install the GitHub App on your repositories (or specific repositories), and when you will be on the *"installation page"* look at the url, which should be like `https://github.com/[your account]/settings/installations/[installation_id]`, and copy that *"installation ID"* from the URL to the `BOT_GITHUB_APP_INSTALLATION_ID` env. var.
+- And that's it, your bot should be working !
