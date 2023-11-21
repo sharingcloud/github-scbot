@@ -16,7 +16,7 @@ use futures::{
     Future,
 };
 use github_scbot_config::Config;
-use github_scbot_crypto::is_valid_signature;
+use github_scbot_crypto::Signature;
 use tracing::warn;
 
 use super::constants::{GITHUB_SIGNATURE_HEADER, SIGNATURE_PREFIX_LENGTH};
@@ -125,7 +125,7 @@ where
                         body.extend_from_slice(&chunk.unwrap());
                     }
 
-                    match is_valid_signature(sig, &body, &secret) {
+                    match Signature(sig).is_valid(&body, &secret) {
                         Ok(false) | Err(_) => {
                             return Err(ServerError::InvalidWebhookSignature.into())
                         }

@@ -3,7 +3,7 @@
 use std::fmt::Write;
 
 use github_scbot_config::Config;
-use github_scbot_crypto::JwtUtils;
+use github_scbot_crypto::RsaUtils;
 use thiserror::Error;
 
 enum ApiConfigError {
@@ -96,7 +96,7 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
     if config.github_app_private_key.is_empty() {
         Err(ApiConfigError::MissingPrivateKey)
     } else {
-        match JwtUtils::parse_encoding_key(&config.github_app_private_key) {
+        match RsaUtils::parse_encoding_key(&config.github_app_private_key) {
             Err(_) => Err(ApiConfigError::InvalidPrivateKey),
             Ok(_) => {
                 // Check App ID

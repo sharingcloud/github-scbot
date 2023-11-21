@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
+use jsonwebtoken::{DecodingKey, EncodingKey};
 use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
+
+use super::{CryptoError, Result};
 
 const RSA_SIZE: u32 = 2048;
 
@@ -12,14 +15,14 @@ pub struct PublicRsaKey(String);
 pub struct PrivateRsaKey(String);
 
 impl PublicRsaKey {
-    /// Get key as string
+    /// Get key as string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
 impl PrivateRsaKey {
-    /// Get key as string
+    /// Get key as string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -58,6 +61,18 @@ impl RsaUtils {
             PrivateRsaKey(priv_key_pem.to_string()),
             PublicRsaKey(pub_key_pem),
         )
+    }
+
+    /// Parse decoding key.
+    pub fn parse_decoding_key(rsa_pub_key: &str) -> Result<DecodingKey> {
+        DecodingKey::from_rsa_pem(rsa_pub_key.as_bytes())
+            .map_err(|e| CryptoError::InvalidDecodingKey { source: e })
+    }
+
+    /// Parse encoding key.
+    pub fn parse_encoding_key(rsa_priv_key: &str) -> Result<EncodingKey> {
+        EncodingKey::from_rsa_pem(rsa_priv_key.as_bytes())
+            .map_err(|e| CryptoError::InvalidEncodingKey { source: e })
     }
 }
 

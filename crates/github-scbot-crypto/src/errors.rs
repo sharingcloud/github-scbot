@@ -13,7 +13,7 @@ pub enum CryptoError {
     InvalidEncodingKey { source: jsonwebtoken::errors::Error },
     #[error("Invalid decoding key: {source}")]
     InvalidDecodingKey { source: jsonwebtoken::errors::Error },
-    #[error("Invalid signature format {sig}.")]
+    #[error("Invalid signature format {sig}")]
     InvalidSignatureFormat { sig: String },
     #[error("Invalid HMAC secret key length '{key}'")]
     InvalidSecretKeyLength { key: String },
