@@ -20,6 +20,7 @@ pub use self::command::{
     AdminCommand, Command, CommandExecutionResult, CommandHandlingStatus, CommandResult,
     ResultAction, UserCommand,
 };
+use self::commands::AdminAddMergeRuleCommand;
 use crate::{
     commands::commands::{
         AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
@@ -324,6 +325,11 @@ impl<'a> CommandExecutor<'a> {
             AdminCommand::Disable => AdminDisableCommand::new().handle(ctx).await,
             AdminCommand::Synchronize => AdminSyncCommand::new().handle(ctx).await,
             AdminCommand::ResetSummary => AdminResetSummaryCommand::new().handle(ctx).await,
+            AdminCommand::AddMergeRule(base, head, strategy) => {
+                AdminAddMergeRuleCommand::new(base.clone(), head.clone(), *strategy)
+                    .handle(ctx)
+                    .await
+            }
             AdminCommand::SetDefaultNeededReviewers(count) => {
                 AdminSetDefaultReviewersCommand::new(*count)
                     .handle(ctx)

@@ -1,5 +1,5 @@
 use github_scbot_config::Config;
-use github_scbot_domain_models::MergeStrategy;
+use github_scbot_domain_models::{MergeStrategy, RuleBranch};
 use github_scbot_ghapi_interface::types::GhReactionType;
 use thiserror::Error;
 
@@ -89,6 +89,8 @@ pub enum AdminCommand {
     Disable,
     /// Reset summary comment.
     ResetSummary,
+    /// Add merge rule.
+    AddMergeRule(RuleBranch, RuleBranch, MergeStrategy),
     /// Set default needed reviewers count.
     SetDefaultNeededReviewers(u64),
     /// Set default merge strategy.
@@ -235,6 +237,10 @@ impl Command {
             "admin-reset-summary" => Self::Admin(AdminCommand::ResetSummary),
             "admin-enable" => Self::Admin(AdminCommand::Enable),
             "admin-disable" => Self::Admin(AdminCommand::Disable),
+            "admin-add-merge-rule" => {
+                let (base, head, strategy) = Self::parse_merge_rule(args)?;
+                Self::Admin(AdminCommand::AddMergeRule(base, head, strategy))
+            }
             "admin-set-default-needed-reviewers" => Self::Admin(
                 AdminCommand::SetDefaultNeededReviewers(Self::parse_u64(args)?),
             ),
@@ -288,6 +294,9 @@ impl Command {
                 AdminCommand::Enable => "admin-enable".into(),
                 AdminCommand::Disable => "admin-disable".into(),
                 AdminCommand::Help => "admin-help".into(),
+                AdminCommand::AddMergeRule(base, head, strategy) => {
+                    format!("admin-add-merge-rule {} {} {}", base, head, strategy)
+                }
                 AdminCommand::SetDefaultMergeStrategy(strategy) => {
                     format!("admin-set-default-merge-strategy {}", strategy)
                 }
@@ -430,6 +439,19 @@ impl Command {
         }
     }
 
+    fn parse_merge_rule(args: &[&str]) -> CommandResult<(RuleBranch, RuleBranch, MergeStrategy)> {
+        if args.len() != 3 {
+            return Err(CommandError::IncompleteCommand);
+        }
+
+        let base = RuleBranch::try_from(args[0]).map_err(|_| CommandError::ArgumentParsingError)?;
+        let head = RuleBranch::try_from(args[1]).map_err(|_| CommandError::ArgumentParsingError)?;
+        let strategy =
+            MergeStrategy::try_from(args[2]).map_err(|_| CommandError::ArgumentParsingError)?;
+
+        Ok((base, head, strategy))
+    }
+
     /// Convert to bot string.
     pub fn to_bot_string(&self, config: &Config) -> String {
         format!(
@@ -512,5 +534,17 @@ mod tests {
             Command::parse_reviewers(&[]),
             Err(CommandError::IncompleteCommand)
         ));
+    }
+
+    #[test]
+    fn test_parse_merge_rule() {
+        assert_eq!(
+            Command::parse_merge_rule(&["*", "stable", "squash"]).unwrap(),
+            (
+                RuleBranch::Wildcard,
+                RuleBranch::Named("stable".into()),
+                MergeStrategy::Squash
+            )
+        )
     }
 }
