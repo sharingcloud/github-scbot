@@ -51,8 +51,8 @@ impl<'a> SetStepLabelUseCase<'a> {
     ) -> Vec<String> {
         let mut preserved_labels: Vec<String> = existing_labels
             .iter()
+            .filter(|&x| StepLabel::try_from(&x[..]).is_err())
             .cloned()
-            .filter(|x| StepLabel::try_from(&x[..]).is_err())
             .collect();
 
         if let Some(step) = step {
