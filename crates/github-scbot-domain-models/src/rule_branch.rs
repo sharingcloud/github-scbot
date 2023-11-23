@@ -16,18 +16,18 @@ pub enum RuleBranch {
 
 impl PartialOrd for RuleBranch {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (self, other) {
-            (Self::Wildcard, Self::Named(_)) => Some(std::cmp::Ordering::Less),
-            (Self::Named(_), Self::Wildcard) => Some(std::cmp::Ordering::Greater),
-            (Self::Wildcard, Self::Wildcard) => Some(std::cmp::Ordering::Equal),
-            (Self::Named(s1), Self::Named(s2)) => s1.partial_cmp(s2),
-        }
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for RuleBranch {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        match (self, other) {
+            (Self::Wildcard, Self::Named(_)) => std::cmp::Ordering::Less,
+            (Self::Named(_), Self::Wildcard) => std::cmp::Ordering::Greater,
+            (Self::Wildcard, Self::Wildcard) => std::cmp::Ordering::Equal,
+            (Self::Named(s1), Self::Named(s2)) => s1.cmp(s2),
+        }
     }
 }
 

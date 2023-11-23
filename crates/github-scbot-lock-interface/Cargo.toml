@@ -1,17 +1,17 @@
 [package]
 name = "github-scbot-lock-interface"
-version = "0.24.0-dev"
+version = "0.24.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.67"
-thiserror = "1.0.40"
-tracing = "0.1.37"
+async-trait = "0.1.74"
+thiserror = "1.0.50"
+tracing = "0.1.40"
 
-mockall = { version = "0.11.3", optional = true }
+mockall = { version = "0.11.4", optional = true }
 
 [features]
 default = []

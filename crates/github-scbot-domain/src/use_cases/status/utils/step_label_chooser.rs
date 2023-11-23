@@ -3,7 +3,9 @@ use github_scbot_domain_models::{ChecksStatus, QaStatus, StepLabel};
 use super::PullRequestStatus;
 
 #[derive(Default)]
-pub struct StepLabelChooser;
+pub struct StepLabelChooser {
+    _private: (),
+}
 
 impl StepLabelChooser {
     pub fn choose_from_status(&self, pr_status: &PullRequestStatus) -> StepLabel {

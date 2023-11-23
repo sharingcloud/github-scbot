@@ -20,6 +20,7 @@ pub use self::command::{
     AdminCommand, Command, CommandExecutionResult, CommandHandlingStatus, CommandResult,
     ResultAction, UserCommand,
 };
+use self::commands::AdminAddMergeRuleCommand;
 use crate::{
     commands::commands::{
         AdminDisableCommand, AdminHelpCommand, AdminResetSummaryCommand,
@@ -32,6 +33,7 @@ use crate::{
     },
     use_cases::{
         auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
+        repositories::AddMergeRuleUseCase,
         status::UpdatePullRequestStatusUseCaseInterface,
     },
     Result,
@@ -324,6 +326,18 @@ impl<'a> CommandExecutor<'a> {
             AdminCommand::Disable => AdminDisableCommand::new().handle(ctx).await,
             AdminCommand::Synchronize => AdminSyncCommand::new().handle(ctx).await,
             AdminCommand::ResetSummary => AdminResetSummaryCommand::new().handle(ctx).await,
+            AdminCommand::AddMergeRule(base, head, strategy) => {
+                AdminAddMergeRuleCommand {
+                    base: base.clone(),
+                    head: head.clone(),
+                    strategy: *strategy,
+                    add_merge_rule_uc: &AddMergeRuleUseCase {
+                        db_service: ctx.db_service,
+                    },
+                }
+                .handle(ctx)
+                .await
+            }
             AdminCommand::SetDefaultNeededReviewers(count) => {
                 AdminSetDefaultReviewersCommand::new(*count)
                     .handle(ctx)

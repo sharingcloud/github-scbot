@@ -28,6 +28,7 @@ impl BotCommand for AdminHelpCommand {
             - `admin-help`: _Show this comment_\n\
             - `admin-enable`: _Enable me on a pull request with manual interaction_\n\
             - `admin-disable`: _Disable me on a pull request with manual interaction_\n\
+            - `admin-add-merge-rule <base> <head> <strategy>`: _Add/Update a merge rule for this repository_\n\
             - `admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_\n\
             - `admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_\n\
             - `admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_\n\

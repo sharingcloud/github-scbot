@@ -7,18 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Expose interfaces for each use case, to improve testing.
+## [0.24.0] - 2023-11-23
+
+### Added
+
 - Add conditional mocking on traits
-- Rework the CLI commands (`auth add-admin-rights` => `auth admins add`, etc.)
 - Add more tests on the `github-scbot-domain` crate
+- Add "admin-add-merge-rule" bot command (fixes #175)
+
+### Changed
+
+- Expose interfaces for each use case, to improve testing.
+- Rework the CLI commands (`auth add-admin-rights` => `auth admins add`, etc.)
 - Keep the GitHub installation token for 30 minutes after its generation (for faster response times)
 - Do not update PR labels if they do not change
 - Remove `req-` and add `r+` / `r-` to set/unset reviewers
+- Lock Rust version to 1.74.0
+- Update all dependencies to their latest versions
+
+### Fixed
+
+- Fix BOT_SERVER_BIND_PORT handling (fixes #174)
 
 ## [0.23.1] - 2023-03-20
 
+### Fixed
+
 - Fix JWT verification after `jsonwebtoken` update
-- Fix performance problems due to an unneeded lock around the `DbService`. 
+- Fix performance problems due to an unneeded lock around the `DbService`
 
 ## [0.23.0] - 2023-03-19
 
@@ -304,7 +320,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.23.1...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/sharingcloud/github-scbot/compare/v0.23.1...v0.24.0
 [0.23.1]: https://github.com/sharingcloud/github-scbot/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/sharingcloud/github-scbot/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/sharingcloud/github-scbot/compare/v0.21.2...v0.22.0

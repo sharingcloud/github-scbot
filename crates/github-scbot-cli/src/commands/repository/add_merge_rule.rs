@@ -2,7 +2,10 @@ use std::io::Write;
 
 use async_trait::async_trait;
 use clap::Parser;
-use github_scbot_domain_models::{MergeRule, MergeStrategy, RepositoryPath, RuleBranch};
+use github_scbot_domain::use_cases::repositories::{
+    AddMergeRuleUseCase, AddMergeRuleUseCaseInterface,
+};
+use github_scbot_domain_models::{MergeStrategy, RepositoryPath, RuleBranch};
 
 use crate::{
     commands::{Command, CommandContext},
@@ -29,35 +32,24 @@ impl Command for RepositoryAddMergeRuleCommand {
         let (owner, name) = self.repository_path.components();
         let repo = CliDbExt::get_existing_repository(ctx.db_service.as_ref(), owner, name).await?;
 
-        if self.base_branch == RuleBranch::Wildcard && self.head_branch == RuleBranch::Wildcard {
-            // Update default strategy
-            ctx.db_service
-                .repositories_set_default_strategy(owner, name, self.strategy)
-                .await?;
+        AddMergeRuleUseCase {
+            db_service: &*ctx.db_service,
+        }
+        .run(
+            &repo,
+            self.base_branch.clone(),
+            self.head_branch.clone(),
+            self.strategy,
+        )
+        .await?;
 
+        if self.base_branch == RuleBranch::Wildcard && self.head_branch == RuleBranch::Wildcard {
             writeln!(
                 ctx.writer,
                 "Default strategy updated to '{}' for repository '{}'",
                 self.strategy, self.repository_path
             )?;
         } else {
-            ctx.db_service
-                .merge_rules_delete(
-                    owner,
-                    name,
-                    self.base_branch.clone(),
-                    self.head_branch.clone(),
-                )
-                .await?;
-            ctx.db_service
-                .merge_rules_create(MergeRule {
-                    repository_id: repo.id,
-                    base_branch: self.base_branch.clone(),
-                    head_branch: self.head_branch.clone(),
-                    strategy: self.strategy,
-                })
-                .await?;
-
             writeln!(ctx.writer, "Merge rule created/updated with '{}' for repository '{}' and branches '{}' (base) <- '{}' (head)", self.strategy, self.repository_path, self.base_branch, self.head_branch)?;
         }
 

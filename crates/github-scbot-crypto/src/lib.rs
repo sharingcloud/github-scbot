@@ -11,7 +11,7 @@ pub use rand;
 pub use self::{
     errors::{CryptoError, Result},
     rsa::RsaUtils,
-    sig::is_valid_signature,
+    sig::Signature,
 };
 
 #[cfg(test)]

@@ -3,24 +3,30 @@ use sha2::Sha256;
 
 use super::errors::CryptoError;
 
-/// Check if a signature is valid.
-pub fn is_valid_signature(signature: &str, body: &[u8], secret: &str) -> Result<bool, CryptoError> {
-    let decoded_signature =
-        &hex::decode(signature).map_err(|_| CryptoError::InvalidSignatureFormat {
-            sig: signature.to_string(),
+/// Signature.
+pub struct Signature<'a>(pub &'a str);
+
+impl<'a> Signature<'a> {
+    /// Check if a signature is valid.
+    pub fn is_valid(&self, body: &[u8], secret: &str) -> Result<bool, CryptoError> {
+        let decoded_signature =
+            &hex::decode(self.0).map_err(|_| CryptoError::InvalidSignatureFormat {
+                sig: self.0.to_string(),
+            })?;
+        let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|_| {
+            CryptoError::InvalidSecretKeyLength {
+                key: secret.to_string(),
+            }
         })?;
-    let mut hmac = SimpleHmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|_| {
-        CryptoError::InvalidSecretKeyLength {
-            key: secret.to_string(),
-        }
-    })?;
-    hmac.update(body);
-    Ok(hmac.verify_slice(decoded_signature).is_ok())
+
+        hmac.update(body);
+        Ok(hmac.verify_slice(decoded_signature).is_ok())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::is_valid_signature;
+    use super::Signature;
 
     struct SigSet {
         signature: &'static str,
@@ -48,7 +54,9 @@ mod tests {
     fn test_is_valid_signature_valid() {
         let sigset = valid_sig_set();
         assert!(
-            is_valid_signature(sigset.signature, sigset.body, sigset.secret).unwrap(),
+            Signature(sigset.signature)
+                .is_valid(sigset.body, sigset.secret)
+                .unwrap(),
             "signature should be valid"
         );
     }
@@ -57,7 +65,9 @@ mod tests {
     fn test_is_valid_signature_invalid() {
         let sigset = invalid_sig_set();
         assert!(
-            !is_valid_signature(sigset.signature, sigset.body, sigset.secret).unwrap(),
+            !Signature(sigset.signature)
+                .is_valid(sigset.body, sigset.secret)
+                .unwrap(),
             "signature should NOT be valid"
         );
     }

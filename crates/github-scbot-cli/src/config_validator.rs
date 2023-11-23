@@ -3,7 +3,7 @@
 use std::fmt::Write;
 
 use github_scbot_config::Config;
-use github_scbot_crypto::JwtUtils;
+use github_scbot_crypto::RsaUtils;
 use thiserror::Error;
 
 enum ApiConfigError {
@@ -57,16 +57,16 @@ fn validate_env_vars(config: &Config) -> Result<(), ValidationError> {
     // Check API credentials: token or private key
     match validate_api_credentials(config) {
         Err(ApiConfigError::MissingToken) => {
-            _missing(&mut error, "ENV_GITHUB_API_TOKEN");
+            _missing(&mut error, "BOT_GITHUB_API_TOKEN");
         }
         Err(ApiConfigError::MissingAppId) => {
-            _missing(&mut error, "ENV_GITHUB_APP_ID");
+            _missing(&mut error, "BOT_GITHUB_APP_ID");
         }
         Err(ApiConfigError::InvalidPrivateKey) => {
-            _invalid_key(&mut error, "ENV_GITHUB_APP_PRIVATE_KEY");
+            _invalid_key(&mut error, "BOT_GITHUB_APP_PRIVATE_KEY");
         }
         Err(ApiConfigError::MissingInstallationId) => {
-            _missing(&mut error, "ENV_GITHUB_APP_INSTALLATION_ID");
+            _missing(&mut error, "BOT_GITHUB_APP_INSTALLATION_ID");
         }
         _ => (),
     }
@@ -96,7 +96,7 @@ fn validate_github_app_config(config: &Config) -> Result<(), ApiConfigError> {
     if config.github_app_private_key.is_empty() {
         Err(ApiConfigError::MissingPrivateKey)
     } else {
-        match JwtUtils::parse_encoding_key(&config.github_app_private_key) {
+        match RsaUtils::parse_encoding_key(&config.github_app_private_key) {
             Err(_) => Err(ApiConfigError::InvalidPrivateKey),
             Ok(_) => {
                 // Check App ID

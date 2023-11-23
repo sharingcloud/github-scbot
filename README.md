@@ -108,6 +108,7 @@ If you have admin rights (you can set with `auth add-admin-rights <username>`), 
 - `bot admin-help`: _Show this comment_
 - `bot admin-enable`: _Enable me on a pull request with manual interaction_
 - `bot admin-disable`: _Disable me on a pull request with manual interaction_
+- `bot admin-add-merge-rule <base> <head> <strategy>`: _Add/Update a merge rule for this repository_
 - `bot admin-set-default-needed-reviewers <count>`: _Set default needed reviewers count for this repository_
 - `bot admin-set-default-merge-strategy <merge|squash|rebase>`: _Set default merge strategy for this repository_
 - `bot admin-set-default-pr-title-regex <regex?>`: _Set default PR title validation regex for this repository_

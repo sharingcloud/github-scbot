@@ -83,7 +83,7 @@ impl Config {
             sentry_url: env_to_str("BOT_SENTRY_URL", ""),
             sentry_traces_sample_rate: env_to_f32("BOT_SENTRY_TRACES_SAMPLE_RATE", 0.0),
             server_bind_ip: env_to_str("BOT_SERVER_BIND_IP", "127.0.0.1"),
-            server_bind_port: env_to_u16("BOT_SERVER_BIND_IP", 8008),
+            server_bind_port: env_to_u16("BOT_SERVER_BIND_PORT", 8008),
             server_workers_count: env_to_optional_u16("BOT_SERVER_WORKERS_COUNT", None),
             server_disable_webhook_signature: env_to_bool(
                 "BOT_SERVER_DISABLE_WEBHOOK_SIGNATURE",

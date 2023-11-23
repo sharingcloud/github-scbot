@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-crypto"
-version = "0.24.0-dev"
+version = "0.24.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 
@@ -9,9 +9,9 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 hmac = "0.12.1"
-jsonwebtoken = "8.3.0"
+jsonwebtoken = "9.1.0"
 rand = "0.8.5"
-rsa = "0.8.2"
-sha2 = "0.10.6"
-serde = { version = "1.0.157", features = ["derive"] }
-thiserror = "1.0.40"
+rsa = "0.9.4"
+sha2 = "0.10.8"
+serde = { version = "1.0.193", features = ["derive"] }
+thiserror = "1.0.50"

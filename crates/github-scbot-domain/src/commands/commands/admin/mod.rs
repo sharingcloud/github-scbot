@@ -1,3 +1,4 @@
+mod admin_add_merge_rule;
 mod admin_disable;
 mod admin_help;
 mod admin_reset_summary;
@@ -10,6 +11,7 @@ mod admin_set_default_reviewers;
 mod admin_set_pr_reviewers;
 mod admin_sync;
 
+pub use admin_add_merge_rule::AdminAddMergeRuleCommand;
 pub use admin_disable::AdminDisableCommand;
 pub use admin_help::AdminHelpCommand;
 pub use admin_reset_summary::AdminResetSummaryCommand;

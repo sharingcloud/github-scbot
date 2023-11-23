@@ -14,7 +14,9 @@ pub struct StatusMessage {
 }
 
 #[derive(Default)]
-pub struct StatusMessageGenerator;
+pub struct StatusMessageGenerator {
+    _private: (),
+}
 
 impl StatusMessageGenerator {
     #[tracing::instrument(skip_all, ret)]
