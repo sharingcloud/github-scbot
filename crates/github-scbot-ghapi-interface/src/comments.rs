@@ -10,7 +10,7 @@ pub struct CommentApi;
 impl CommentApi {
     fn build_bot_comment(source: &str) -> String {
         format!(
-            "{}\n\n{} _(github-scbot {})_",
+            "{}\n---\n{} _(github-scbot {})_",
             source,
             BOT_COMMENT_SIGNATURE,
             env!("CARGO_PKG_VERSION")
