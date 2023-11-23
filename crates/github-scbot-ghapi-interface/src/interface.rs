@@ -94,13 +94,13 @@ pub trait ApiService: Send + Sync {
         reaction_type: GhReactionType,
     ) -> Result<()>;
     /// Get a pull request from its number.
-    async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest>;
+    async fn pulls_get(&self, owner: &str, name: &str, number: u64) -> Result<GhPullRequest>;
     /// Merge a pull request.
     async fn pulls_merge(
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         commit_title: &str,
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
@@ -110,7 +110,7 @@ pub trait ApiService: Send + Sync {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()>;
     /// Remove reviewers from a pull request.
@@ -118,7 +118,7 @@ pub trait ApiService: Send + Sync {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()>;
     /// List reviews from a pull request.
@@ -126,7 +126,7 @@ pub trait ApiService: Send + Sync {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
     ) -> Result<Vec<GhReviewApi>>;
     /// Update commit status.
     async fn commit_statuses_update(
