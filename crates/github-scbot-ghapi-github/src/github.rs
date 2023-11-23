@@ -370,12 +370,12 @@ impl ApiService for GithubApiService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
+    async fn pulls_get(&self, owner: &str, name: &str, number: u64) -> Result<GhPullRequest> {
         self.call_with_retry(|| async move {
             Ok(self
                 .get_client()
                 .await?
-                .get(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}")))
+                .get(&self.build_url(format!("/repos/{owner}/{name}/pulls/{number}")))
                 .send()
                 .await?
                 .error_for_status()?
@@ -390,7 +390,7 @@ impl ApiService for GithubApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         commit_title: &str,
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
@@ -405,7 +405,7 @@ impl ApiService for GithubApiService {
         self.call_with_retry(|| async move {
             self.get_client()
                 .await?
-                .put(&self.build_url(format!("/repos/{owner}/{name}/pulls/{issue_number}/merge")))
+                .put(&self.build_url(format!("/repos/{owner}/{name}/pulls/{number}/merge")))
                 .json(&Request {
                     commit_title,
                     commit_message,
@@ -415,7 +415,7 @@ impl ApiService for GithubApiService {
                 .await?
                 .error_for_status()
                 .map_err(|_| GitHubError::MergeError {
-                    pr_number: issue_number,
+                    pr_number: number,
                     repository_path: format!("{owner}/{name}"),
                 })?;
 
@@ -429,7 +429,7 @@ impl ApiService for GithubApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()> {
         #[derive(Serialize)]
@@ -441,7 +441,7 @@ impl ApiService for GithubApiService {
             self.get_client()
                 .await?
                 .post(&self.build_url(format!(
-                    "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+                    "/repos/{owner}/{name}/pulls/{number}/requested_reviewers"
                 )))
                 .json(&Request { reviewers })
                 .send()
@@ -458,7 +458,7 @@ impl ApiService for GithubApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()> {
         #[derive(Serialize)]
@@ -470,7 +470,7 @@ impl ApiService for GithubApiService {
             self.get_client()
                 .await?
                 .delete(&self.build_url(format!(
-                    "/repos/{owner}/{name}/pulls/{issue_number}/requested_reviewers"
+                    "/repos/{owner}/{name}/pulls/{number}/requested_reviewers"
                 )))
                 .json(&Request { reviewers })
                 .header(
@@ -491,7 +491,7 @@ impl ApiService for GithubApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
     ) -> Result<Vec<GhReviewApi>> {
         let mut responses = vec![];
         let mut curr_page = 1;
@@ -504,9 +504,10 @@ impl ApiService for GithubApiService {
                 .call_with_retry(|| async move {
                     self.get_client()
                         .await?
-                        .get(&self.build_url(format!(
-                            "/repos/{owner}/{name}/pulls/{issue_number}/reviews"
-                        )))
+                        .get(
+                            &self
+                                .build_url(format!("/repos/{owner}/{name}/pulls/{number}/reviews")),
+                        )
                         .query(&[("per_page", max_per_page), ("page", curr_page)])
                         .send()
                         .await?

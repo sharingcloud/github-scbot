@@ -36,8 +36,9 @@ impl BotCommand for HelpCommand {
             - `automerge-`: _Disable auto-merge for this PR_\n\
             - `lock+ <reason?>`: _Lock a pull-request (block merge)_\n\
             - `lock- <reason?>`: _Unlock a pull-request (unblock merge)_\n\
+            - `r+ <reviewers>`: _Assign reviewers (you can assign multiple reviewers)_\n\
             - `req+ <reviewers>`: _Assign required reviewers (you can assign multiple reviewers)_\n\
-            - `req- <reviewers>`: _Unassign required reviewers (you can unassign multiple reviewers)_\n\
+            - `r- <reviewers>`: _Unassign reviewers (you can unassign multiple reviewers)_\n\
             - `strategy+ <strategy>`: _Override merge strategy for this pull request_\n\
             - `strategy-`: _Remove the overriden merge strategy for this pull request_\n\
             - `merge <merge|squash|rebase?>`: _Try merging the pull request with optional strategy_\n\

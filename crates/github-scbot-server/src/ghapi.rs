@@ -133,16 +133,16 @@ impl ApiService for MetricsApiService {
             .await
     }
 
-    async fn pulls_get(&self, owner: &str, name: &str, issue_number: u64) -> Result<GhPullRequest> {
+    async fn pulls_get(&self, owner: &str, name: &str, number: u64) -> Result<GhPullRequest> {
         GITHUB_API_CALLS.inc();
-        self.inner.pulls_get(owner, name, issue_number).await
+        self.inner.pulls_get(owner, name, number).await
     }
 
     async fn pulls_merge(
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         commit_title: &str,
         commit_message: &str,
         merge_strategy: GhMergeStrategy,
@@ -152,7 +152,7 @@ impl ApiService for MetricsApiService {
             .pulls_merge(
                 owner,
                 name,
-                issue_number,
+                number,
                 commit_title,
                 commit_message,
                 merge_strategy,
@@ -164,12 +164,12 @@ impl ApiService for MetricsApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()> {
         GITHUB_API_CALLS.inc();
         self.inner
-            .pull_reviewer_requests_add(owner, name, issue_number, reviewers)
+            .pull_reviewer_requests_add(owner, name, number, reviewers)
             .await
     }
 
@@ -177,12 +177,12 @@ impl ApiService for MetricsApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
         reviewers: &[String],
     ) -> Result<()> {
         GITHUB_API_CALLS.inc();
         self.inner
-            .pull_reviewer_requests_remove(owner, name, issue_number, reviewers)
+            .pull_reviewer_requests_remove(owner, name, number, reviewers)
             .await
     }
 
@@ -190,12 +190,10 @@ impl ApiService for MetricsApiService {
         &self,
         owner: &str,
         name: &str,
-        issue_number: u64,
+        number: u64,
     ) -> Result<Vec<GhReviewApi>> {
         GITHUB_API_CALLS.inc();
-        self.inner
-            .pull_reviews_list(owner, name, issue_number)
-            .await
+        self.inner.pull_reviews_list(owner, name, number).await
     }
 
     async fn commit_statuses_update(
