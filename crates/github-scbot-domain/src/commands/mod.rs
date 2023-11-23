@@ -33,6 +33,7 @@ use crate::{
     },
     use_cases::{
         auth::{CheckIsAdminUseCase, CheckWriteRightUseCase},
+        repositories::AddMergeRuleUseCase,
         status::UpdatePullRequestStatusUseCaseInterface,
     },
     Result,
@@ -326,9 +327,16 @@ impl<'a> CommandExecutor<'a> {
             AdminCommand::Synchronize => AdminSyncCommand::new().handle(ctx).await,
             AdminCommand::ResetSummary => AdminResetSummaryCommand::new().handle(ctx).await,
             AdminCommand::AddMergeRule(base, head, strategy) => {
-                AdminAddMergeRuleCommand::new(base.clone(), head.clone(), *strategy)
-                    .handle(ctx)
-                    .await
+                AdminAddMergeRuleCommand {
+                    base: base.clone(),
+                    head: head.clone(),
+                    strategy: *strategy,
+                    add_merge_rule_uc: &AddMergeRuleUseCase {
+                        db_service: ctx.db_service,
+                    },
+                }
+                .handle(ctx)
+                .await
             }
             AdminCommand::SetDefaultNeededReviewers(count) => {
                 AdminSetDefaultReviewersCommand::new(*count)
