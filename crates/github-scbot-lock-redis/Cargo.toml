@@ -1,6 +1,6 @@
 [package]
 name = "github-scbot-lock-redis"
-version = "0.24.0-dev"
+version = "0.24.0"
 authors = ["Denis BOURGE <denis.bourge@sharingcloud.com>"]
 edition = "2021"
 

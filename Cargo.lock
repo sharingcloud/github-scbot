@@ -1069,7 +1069,7 @@ checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
 
 [[package]]
 name = "github-scbot-cli"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "actix-rt",
  "anyhow",
@@ -1096,11 +1096,11 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-config"
-version = "0.24.0-dev"
+version = "0.24.0"
 
 [[package]]
 name = "github-scbot-crypto"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "hex",
  "hmac",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-interface"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "github-scbot-crypto",
@@ -1126,7 +1126,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-memory"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "github-scbot-database-interface",
@@ -1135,7 +1135,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-pg"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "github-scbot-config",
@@ -1148,7 +1148,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-database-tests"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "futures",
  "github-scbot-config",
@@ -1162,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-domain"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "github-scbot-config",
@@ -1186,7 +1186,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-domain-models"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "github-scbot-config",
  "github-scbot-crypto",
@@ -1196,7 +1196,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi-github"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "backoff",
@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-ghapi-interface"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "heck",
@@ -1228,7 +1228,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-lock-interface"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "mockall",
@@ -1238,7 +1238,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-lock-redis"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "async-trait",
  "github-scbot-lock-interface",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-logging"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "github-scbot-config",
  "github-scbot-sentry",
@@ -1264,7 +1264,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-sentry"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "github-scbot-config",
  "sentry",
@@ -1273,7 +1273,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-server"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1308,7 +1308,7 @@ dependencies = [
 
 [[package]]
 name = "github-scbot-tui"
-version = "0.24.0-dev"
+version = "0.24.0"
 dependencies = [
  "crossterm 0.27.0",
  "github-scbot-database-interface",
