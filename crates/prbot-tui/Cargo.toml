@@ -1,0 +1,13 @@
+[package]
+name = "prbot-tui"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+[dependencies]
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-models = { path = "../prbot-models" }
+
+crossterm = "0.27.0"
+thiserror = { workspace = true }
+tui = "0.19.0"

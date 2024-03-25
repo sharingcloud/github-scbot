@@ -1,0 +1,20 @@
+[package]
+name = "prbot-database-tests"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prbot-config = { path = "../prbot-config" }
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-database-memory = { path = "../prbot-database-memory" }
+prbot-database-pg = { path = "../prbot-database-pg" }
+prbot-models = { path = "../prbot-models" }
+
+tracing = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+pretty_assertions = { workspace = true }

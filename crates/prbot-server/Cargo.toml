@@ -1,0 +1,42 @@
+[package]
+name = "prbot-server"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+[dependencies]
+prbot-config = { path = "../prbot-config" }
+prbot-crypto = { path = "../prbot-crypto" }
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-database-pg = { path = "../prbot-database-pg" }
+prbot-core = { path = "../prbot-core" }
+prbot-models = { path = "../prbot-models" }
+prbot-ghapi-github = { path = "../prbot-ghapi-github" }
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface" }
+prbot-lock-interface = { path = "../prbot-lock-interface" }
+prbot-lock-redis = { path = "../prbot-lock-redis" }
+prbot-sentry = { path = "../prbot-sentry" }
+
+actix-cors = "0.7.0"
+actix-http = "3.6.0"
+actix-web = "4.5.1"
+actix-web-httpauth = "0.8.1"
+actix-web-prom = "0.8.0"
+async-trait = { workspace = true }
+futures = { workspace = true }
+lazy_static = { workspace = true }
+prometheus = { version = "0.13.3", features = ["process"] }
+sentry-actix = "0.32.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+shaku = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+prbot-database-memory = { path = "../prbot-database-memory" }
+
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }

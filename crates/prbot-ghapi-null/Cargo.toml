@@ -1,0 +1,14 @@
+[package]
+name = "prbot-ghapi-null"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+[dependencies]
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface" }
+
+async-trait = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface", features = ["testkit"] }

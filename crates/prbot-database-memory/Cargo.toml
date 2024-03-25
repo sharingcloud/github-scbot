@@ -1,0 +1,12 @@
+[package]
+name = "prbot-database-memory"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-models = { path = "../prbot-models" }
+
+async-trait = { workspace = true }

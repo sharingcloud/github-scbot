@@ -1,0 +1,38 @@
+[package]
+name = "prbot-core"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+[dependencies]
+prbot-config = { path = "../prbot-config" }
+prbot-crypto = { path = "../prbot-crypto" }
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-database-memory = { path = "../prbot-database-memory" }
+prbot-models = { path = "../prbot-models" }
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface" }
+prbot-lock-interface = { path = "../prbot-lock-interface" }
+
+async-trait = { workspace = true }
+rand = { workspace = true }
+rand_chacha = "0.3.1"
+regex = "1.10.4"
+shaku = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+mockall = { workspace = true, optional = true }
+
+[dev-dependencies]
+prbot-lock-interface = { path = "../prbot-lock-interface", features = ["testkit"] }
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface", features = ["testkit"] }
+
+mockall = { workspace = true }
+maplit = "1.0.2"
+pretty_assertions = { workspace = true }
+time = { workspace = true }
+
+[features]
+default = []
+testkit = ["mockall"]
