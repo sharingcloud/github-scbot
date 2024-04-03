@@ -9,7 +9,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:16
         env:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: pass
@@ -23,7 +23,7 @@ jobs:
           - 5432:5432
 
       redis:
-        image: redis
+        image: redis:7
         ports:
           - 6379:6379
 
@@ -41,7 +41,8 @@ jobs:
     - run: just build
     - run: just test-cov
       env:
-        DATABASE_URL: postgres://user:pass@localhost:5432/test-bot
+        BOT_DATABASE_PG_URL: postgres://user:pass@localhost:5432/test-bot
+        BOT_LOCK_REDIS_ADDRESS: redis://localhost:6379
     - uses: coverallsapp/github-action@master
       with:
         path-to-lcov: lcov.info
