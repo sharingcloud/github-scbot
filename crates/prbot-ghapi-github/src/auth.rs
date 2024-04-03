@@ -70,6 +70,11 @@ pub fn get_anonymous_client_builder(config: &Config) -> Result<ClientBuilder, Gi
         header::HeaderValue::from_static("application/vnd.github.squirrel-girl-preview"),
     );
 
+    headers.insert(
+        "X-GitHub-Api-Version",
+        header::HeaderValue::from_static("2022-11-28"),
+    );
+
     Ok(ClientBuilder::new()
         .connect_timeout(Duration::from_millis(config.api.github.connect_timeout))
         .user_agent(format!("prbot/{}", config.version))
@@ -132,10 +137,10 @@ fn create_app_token(config: &Config) -> Result<String, GitHubError> {
 
     let now_ts = now_timestamp();
     let claims = JwtClaims {
-        // Issued at time
-        iat: now_ts,
-        // Expiration time, 1 minute
-        exp: now_ts + 60,
+        // Issued at time (https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app#about-json-web-tokens-jwts)
+        iat: now_ts - 60,
+        // Expiration time, 5 minutes later
+        exp: now_ts + (60 * 5),
         // GitHub App Identifier
         iss: config.api.github.app_id,
     };
@@ -180,7 +185,7 @@ mod tests {
         let token = create_app_token(&config).unwrap();
         let decoded_token: JwtClaims = JwtUtils::decode_jwt(&token).unwrap();
 
-        assert_eq!(decoded_token.exp - decoded_token.iat, 60);
+        assert_eq!(decoded_token.exp - decoded_token.iat, 360);
         assert_eq!(decoded_token.iss, 1234);
     }
 

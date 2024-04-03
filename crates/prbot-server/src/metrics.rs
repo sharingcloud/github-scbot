@@ -44,6 +44,4 @@ fn setup_process_metrics(metrics: &PrometheusMetrics) {
 }
 
 #[cfg(windows)]
-fn setup_process_metrics(_metrics: &PrometheusMetrics) {
-    println!("Process metrics are not supported on Windows.");
-}
+fn setup_process_metrics(_metrics: &PrometheusMetrics) {}

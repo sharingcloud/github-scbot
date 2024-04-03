@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Apply actions based on specific conditions (like enabling automerge if author is named "bot")
 - Driver system for API / Lock / Database to conditionally use a specific backend
 - New command to rename an existing repository
+- New "utils pem-to-string" command to display a PEM file on one-line (to use as an environment variable)
 
 ### Changed
 

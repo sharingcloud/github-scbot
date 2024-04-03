@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 use self::{
     auth::AuthCommand, debug::DebugCommand, export::ExportCommand, import::ImportCommand,
     pull_request::PullRequestCommand, repository::RepositoryCommand, server::ServerCommand,
-    ui::UiCommand,
+    ui::UiCommand, utils::UtilsCommand,
 };
 use crate::Result;
 
@@ -26,6 +26,7 @@ mod pull_request;
 mod repository;
 mod server;
 mod ui;
+mod utils;
 
 pub(crate) struct CommandContext {
     pub config: Config,
@@ -60,6 +61,7 @@ pub(crate) enum SubCommand {
     Ui(UiCommand),
     Export(ExportCommand),
     Import(ImportCommand),
+    Utils(UtilsCommand),
     PullRequests(PullRequestCommand),
     Repositories(RepositoryCommand),
     Auth(AuthCommand),
@@ -74,6 +76,7 @@ impl Command for SubCommand {
             Self::Ui(sub) => sub.execute(ctx).await,
             Self::Export(sub) => sub.execute(ctx).await,
             Self::Import(sub) => sub.execute(ctx).await,
+            Self::Utils(sub) => sub.execute(ctx).await,
             Self::PullRequests(sub) => sub.execute(ctx).await,
             Self::Auth(sub) => sub.execute(ctx).await,
             Self::Repositories(sub) => sub.execute(ctx).await,
