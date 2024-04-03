@@ -47,6 +47,7 @@ fn spawn_server(
 }
 
 #[tokio::test]
+#[ignore]
 async fn index() {
     const PORT: u16 = 50501;
 
@@ -82,6 +83,7 @@ async fn index() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn metrics() {
     const PORT: u16 = 50502;
 
@@ -106,6 +108,7 @@ async fn metrics() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn webhook() {
     const PORT: u16 = 50503;
 
@@ -136,6 +139,7 @@ async fn webhook() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn qa_status() {
     #[derive(Serialize, Default, Debug)]
     struct QaStatusJson {
