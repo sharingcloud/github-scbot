@@ -1,0 +1,15 @@
+[package]
+name = "prbot-lock-redis"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prbot-lock-interface = { path = "../prbot-lock-interface" }
+
+redis = { version = "0.25.2", features = ["tokio-comp"] }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }

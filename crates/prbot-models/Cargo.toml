@@ -1,0 +1,14 @@
+[package]
+name = "prbot-models"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prbot-config = { path = "../prbot-config" }
+prbot-crypto = { path = "../prbot-crypto" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

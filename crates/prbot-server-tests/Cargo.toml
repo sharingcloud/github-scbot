@@ -1,0 +1,24 @@
+[package]
+name = "prbot-server-tests"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+prbot-config = { path = "../prbot-config" }
+prbot-server = { path = "../prbot-server" }
+prbot-core = { path = "../prbot-core", features = ["testkit"] }
+prbot-ghapi-interface = { path = "../prbot-ghapi-interface", features = ["testkit"] }
+prbot-lock-interface = { path = "../prbot-lock-interface", features = ["testkit"] }
+prbot-database-interface = { path = "../prbot-database-interface" }
+prbot-database-tests = { path = "../prbot-database-tests" }
+prbot-models = { path = "../prbot-models" }
+
+tracing = { workspace = true }
+futures = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+
+tokio = { workspace = true }
+pretty_assertions = { workspace = true }

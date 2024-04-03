@@ -1,5 +1,5 @@
 set dotenv-load := false
-version := `cat ./crates/github-scbot-cli/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
+version := `cat ./crates/prbot/Cargo.toml | sed -n "s/^version = \"\(.*\)\"/\1/p"`
 
 _default:
 	@just -l
@@ -53,7 +53,7 @@ test-cov-html:
 
 # Set crates version
 set-version v:
-	ls -d crates/github-scbot-*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
+	ls -d crates/prbot-*/Cargo.toml | xargs sed -i "s/^version = \"\(.*\)\"/version = \"{{ v }}\"/"
 
 # Show version
 show-version:
@@ -61,20 +61,20 @@ show-version:
 
 # Run server (debug)
 run-server:
-	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo run -q -- server
+	RUST_LOG=info,prbot=debug,sqlx=warn cargo run -q -- server
 
 # Run server (release)
 run-server-release:
-	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo run -q --release -- server
+	RUST_LOG=info,prbot=debug,sqlx=warn cargo run -q --release -- server
 
 # Run server (watch)
 run-server-watch:
-	RUST_LOG=info,github_scbot=debug,sqlx=warn cargo watch -x "run -- server"
+	RUST_LOG=info,prbot=debug,sqlx=warn cargo watch -x "run -- server"
 
 # Build Docker image
 docker-build:
-	docker build --rm -t github-scbot:v{{ version }} -f ./docker/Dockerfile .
+	docker build --rm -t prbot:v{{ version }} -f ./docker/Dockerfile .
 
 # Push Docker image
 docker-push reg:
-	docker push {{ reg }}/github-scbot:v{{ version }}
+	docker push {{ reg }}/prbot:v{{ version }}

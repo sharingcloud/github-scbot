@@ -7,12 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0]
+
+### Breaking changes
+
+- Uniformization of some environment variables by using common prefixes
+    - DATABASE_URL => BOT_DATABASE_PG_URL
+    - BOT_USERNAME => BOT_NAME
+    - BOT_DATABASE_POOL_SIZE => BOT_DATABASE_PG_POOL_SIZE
+    - BOT_GITHUB_API_CONNECT_TIMEOUT => BOT_API_GITHUB_CONNECT_TIMEOUT
+    - BOT_GITHUB_API_ROOT_URL => BOT_API_GITHUB_ROOT_URL
+    - BOT_GITHUB_API_TOKEN => BOT_API_GITHUB_TOKEN
+    - BOT_GITHUB_APP_ID => BOT_API_GITHUB_APP_ID
+    - BOT_GITHUB_APP_INSTALLATION_ID => BOT_API_GITHUB_APP_INSTALLATION_ID
+    - BOT_GITHUB_APP_PRIVATE_KEY => BOT_API_GITHUB_APP_PRIVATE_KEY
+    - BOT_GITHUB_WEBHOOK_SECRET => BOT_SERVER_WEBHOOK_SECRET
+    - BOT_REDIS_ADDRESS => BOT_LOCK_REDIS_ADDRESS
+
+### Added
+
+- Pull request rule system
+    - Apply actions based on specific conditions (like enabling automerge if author is named "bot")
+- Driver system for API / Lock / Database to conditionally use a specific backend
+- New command to rename an existing repository
+- New "utils pem-to-string" command to display a PEM file on one-line (to use as an environment variable)
+
+### Changed
+
+- Project renamed to "prbot" for more clarity
+- Use latest stable Rust version
+- Use `shaku` to inject use-cases instead of passing everything everywhere
+    - It greatly eases testing and project maintenance
+- Centralize merging code (between automerge / manual merge)
+
 ## [0.24.0] - 2023-11-23
 
 ### Added
 
 - Add conditional mocking on traits
-- Add more tests on the `github-scbot-domain` crate
+- Add more tests on the `github-scbot-core` crate
 - Add "admin-add-merge-rule" bot command (fixes #175)
 
 ### Changed
@@ -320,7 +353,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/sharingcloud/github-scbot/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/sharingcloud/github-scbot/compare/v0.23.1...v0.24.0
 [0.23.1]: https://github.com/sharingcloud/github-scbot/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/sharingcloud/github-scbot/compare/v0.22.0...v0.23.0

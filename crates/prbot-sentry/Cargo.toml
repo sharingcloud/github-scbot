@@ -1,0 +1,13 @@
+[package]
+name = "prbot-sentry"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prbot-config = { path = "../prbot-config" }
+
+sentry = { version = "0.32.2", features = ["tracing", "debug-images"] }
+tracing = { workspace = true }

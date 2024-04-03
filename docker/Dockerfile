@@ -10,13 +10,13 @@ COPY ./crates /usr/src/app/crates
 COPY Cargo.lock /usr/src/app
 COPY Cargo.toml /usr/src/app
 
-RUN cargo build --release && objcopy --compress-debug-sections ./target/release/github-scbot-cli
+RUN cargo build --release && objcopy --compress-debug-sections ./target/release/prbot
 
 # Bundle stage
 FROM debian:buster-slim
-COPY --from=builder /usr/src/app/target/release/github-scbot-cli github-scbot
+COPY --from=builder /usr/src/app/target/release/prbot prbot
 RUN apt-get update && apt-get install libpq5 ca-certificates -y && rm -rf /var/lib/apt/lists/*
 USER 1000
 
-ENTRYPOINT ["/github-scbot"]
+ENTRYPOINT ["/prbot"]
 CMD ["server"]

@@ -1,8 +1,25 @@
 [workspace]
 members = [
-    "crates/*"
+    "crates/*",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+async-trait = "0.1.79"
+clap = { version = "4.5.4", features = ["derive"] }
+futures = "0.3.30"
+lazy_static = "1.4.0"
+mockall = "0.12.1"
+pretty_assertions = "1.4.0"
+rand = "0.8.5"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.115"
+shaku = "0.6.1"
+time = { version = "0.3.34", features = ["serde", "serde-well-known"] }
+thiserror = "1.0.58"
+tokio = { version = "1.37.0", features = ["full"] }
+tracing = "0.1.40"
 
 [profile.dev.package.backtrace]
 opt-level = 3

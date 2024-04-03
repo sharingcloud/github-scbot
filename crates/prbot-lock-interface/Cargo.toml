@@ -1,0 +1,18 @@
+[package]
+name = "prbot-lock-interface"
+version = "0.0.0"
+authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+mockall = { workspace = true, optional = true }
+
+[features]
+default = []
+testkit = ["mockall"]

@@ -1,4 +1,4 @@
-# GitHub SC Bot
+# PR Bot
 
 [![Coverage Status](https://coveralls.io/repos/github/sharingcloud/github-scbot/badge.svg)](https://coveralls.io/github/sharingcloud/github-scbot)
 
