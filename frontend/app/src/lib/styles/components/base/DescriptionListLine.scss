@@ -1,0 +1,7 @@
+.app-description-list-line {
+	display: flex;
+	flex-direction: row;
+	gap: var(--size-2);
+
+	align-items: baseline;
+}

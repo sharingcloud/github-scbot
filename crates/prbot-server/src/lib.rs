@@ -3,6 +3,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
+pub mod admin;
 pub mod constants;
 mod debug;
 pub mod errors;

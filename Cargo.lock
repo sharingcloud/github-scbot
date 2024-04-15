@@ -2180,6 +2180,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "prbot-frontend"
+version = "0.0.0"
+
+[[package]]
 name = "prbot-ghapi-github"
 version = "0.0.0"
 dependencies = [
@@ -2299,6 +2303,7 @@ dependencies = [
  "async-trait",
  "futures",
  "lazy_static",
+ "percent-encoding",
  "prbot-config",
  "prbot-core",
  "prbot-crypto",

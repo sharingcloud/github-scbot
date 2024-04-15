@@ -10,7 +10,7 @@ pub use rand;
 
 pub use self::{
     errors::{CryptoError, Result},
-    rsa::RsaUtils,
+    rsa::{PrivateRsaKey, PublicRsaKey, RsaUtils},
     sig::Signature,
 };
 

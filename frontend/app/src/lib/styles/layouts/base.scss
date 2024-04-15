@@ -1,0 +1,41 @@
+.app-layout {
+	display: flex;
+	flex-direction: column;
+
+	width: 100%;
+	height: 100%;
+
+	&__header {
+		display: flex;
+		flex-direction: row;
+
+		background-color: black;
+
+		position: fixed;
+		width: 100%;
+
+		padding: var(--size-1);
+		border: 1px solid black;
+
+		&__title {
+			font-weight: bold;
+			margin-right: var(--size-2);
+		}
+
+		&__actions {
+			display: flex;
+			flex-direction: row;
+			gap: var(--size-2);
+
+			&__action {
+				a {
+					color: inherit;
+				}
+			}
+		}
+	}
+
+	&__content {
+		margin-top: 32px;
+	}
+}

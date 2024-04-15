@@ -1,0 +1,20 @@
+.app-card {
+	margin: var(--size-2);
+	border-radius: var(--size-1);
+	border: 1px solid black;
+
+	&__header {
+		padding: var(--size-2);
+		border-bottom: 1px solid black;
+		font-weight: 600;
+	}
+
+	&__footer {
+		padding: var(--size-2);
+		border-top: 1px solid black;
+	}
+
+	&__content {
+		padding: var(--size-2);
+	}
+}

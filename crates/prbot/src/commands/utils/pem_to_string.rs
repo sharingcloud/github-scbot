@@ -20,7 +20,7 @@ impl Command for PemToStringCommand {
         writeln!(
             ctx.writer.write().await,
             "{}",
-            content.split('\n').collect::<Vec<_>>().join("\\n")
+            content.lines().collect::<Vec<_>>().join("\\n")
         )?;
 
         Ok(())

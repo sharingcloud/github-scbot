@@ -20,6 +20,7 @@ use sentry_actix::Sentry;
 use tracing::info;
 
 use crate::{
+    admin::{accounts_list, external_accounts_list, pull_request_rules_create, pull_request_rules_delete, repositories_list, validator::admin_jwt_auth_validator},
     debug::configure_debug_handlers,
     external::{status::set_qa_status, validator::jwt_auth_validator},
     ghapi::MetricsApiService,
@@ -110,6 +111,16 @@ pub fn build_actix_app(
                 .wrap(HttpAuthentication::bearer(jwt_auth_validator))
                 .wrap(Cors::permissive())
                 .route("/set-qa-status", web::post().to(set_qa_status)),
+        )
+        .service(
+            web::scope("/admin")
+                .wrap(HttpAuthentication::bearer(admin_jwt_auth_validator))
+                .wrap(Cors::permissive())
+                .route("/accounts/", web::get().to(accounts_list))
+                .route("/repositories/", web::get().to(repositories_list))
+                .route("/repositories/{repository_id}/pull-request-rules/", web::post().to(pull_request_rules_create))
+                .route("/repositories/{repository_id}/pull-request-rules/{rule_name}/", web::delete().to(pull_request_rules_delete))
+                .route("/external-accounts/", web::get().to(external_accounts_list))
         )
         .service(
             web::scope("/webhook")

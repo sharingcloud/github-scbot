@@ -21,6 +21,8 @@ where
     A: Acquire<'a>,
     <A::Connection as Deref>::Target: Migrate,
 {
+    info!("Running database migrations...");
+
     sqlx::migrate!("./migrations")
         .run(migrator)
         .await
@@ -30,7 +32,7 @@ where
 }
 
 pub async fn establish_pool_connection(config: &Config) -> Result<DbPool> {
-    info!("Trying to establish connection to database pool");
+    info!("Establishing connection to database pool...");
 
     PgPoolOptions::new()
         .acquire_timeout(Duration::from_secs(

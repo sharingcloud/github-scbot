@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
 use jsonwebtoken::{DecodingKey, EncodingKey};
-use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey};
+use rsa::{
+    pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey, EncodeRsaPublicKey},
+    RsaPrivateKey,
+};
 
 use super::{CryptoError, Result};
 
@@ -15,6 +18,10 @@ pub struct PublicRsaKey(String);
 pub struct PrivateRsaKey(String);
 
 impl PublicRsaKey {
+    pub fn new(value: String) -> Self {
+        Self(value)
+    }
+
     /// Get key as string.
     pub fn as_str(&self) -> &str {
         &self.0
@@ -22,9 +29,26 @@ impl PublicRsaKey {
 }
 
 impl PrivateRsaKey {
+    pub fn new(value: String) -> Self {
+        Self(value)
+    }
+
     /// Get key as string.
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    /// Extract public key.
+    pub fn extract_public_key(&self) -> PublicRsaKey {
+        let priv_key: RsaPrivateKey = RsaPrivateKey::from_pkcs1_pem(&self.0).unwrap();
+        let value = priv_key.to_public_key();
+
+        PublicRsaKey(
+            value
+                .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
+                .unwrap()
+                .to_string(),
+        )
     }
 }
 
@@ -43,7 +67,7 @@ impl Display for PrivateRsaKey {
 impl RsaUtils {
     /// Generate a RSA key-pair.
     pub fn generate_rsa_keys() -> (PrivateRsaKey, PublicRsaKey) {
-        use ::rsa::{RsaPrivateKey, RsaPublicKey};
+        use ::rsa::RsaPublicKey;
         use rand::rngs::OsRng;
 
         let mut rng = OsRng;

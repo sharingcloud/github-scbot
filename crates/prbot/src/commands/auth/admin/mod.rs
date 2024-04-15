@@ -1,13 +1,17 @@
 use async_trait::async_trait;
 use clap::{Parser, Subcommand};
 
-use self::{add::AuthAdminAddCommand, list::AuthAdminListCommand, remove::AuthAdminRemoveCommand};
+use self::{
+    add::AuthAdminAddCommand, generate_token::GenerateTokenCommand, list::AuthAdminListCommand,
+    remove::AuthAdminRemoveCommand,
+};
 use crate::{
     commands::{Command, CommandContext},
     Result,
 };
 
 mod add;
+mod generate_token;
 mod list;
 mod remove;
 
@@ -30,6 +34,7 @@ enum AuthAdminSubCommand {
     Add(AuthAdminAddCommand),
     List(AuthAdminListCommand),
     Remove(AuthAdminRemoveCommand),
+    GenerateToken(GenerateTokenCommand),
 }
 
 #[async_trait]
@@ -39,6 +44,7 @@ impl Command for AuthAdminSubCommand {
             Self::Add(sub) => sub.run(ctx).await,
             Self::List(sub) => sub.run(ctx).await,
             Self::Remove(sub) => sub.run(ctx).await,
+            Self::GenerateToken(sub) => sub.run(ctx).await,
         }
     }
 }

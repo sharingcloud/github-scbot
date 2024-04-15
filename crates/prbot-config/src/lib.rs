@@ -92,8 +92,10 @@ pub struct ServerConfig {
     pub webhook_secret: String,
     /// Disable webhook signature verification.
     pub disable_webhook_signature: bool,
-    /// Enable welcome coments.
+    /// Enable welcome comments.
     pub enable_welcome_comments: bool,
+    /// Admin private key.
+    pub admin_private_key: String,
 }
 
 /// Bot configuration.
@@ -182,6 +184,7 @@ impl Config {
                     false,
                 ),
                 enable_welcome_comments: env_to_bool("BOT_SERVER_ENABLE_WELCOME_COMMENTS", false),
+                admin_private_key: env_to_str("BOT_SERVER_ADMIN_PRIVATE_KEY", ""),
             },
             tenor_api_key: env_to_str("BOT_TENOR_API_KEY", ""),
             test_debug_mode: env_to_bool("BOT_TEST_DEBUG_MODE", false),

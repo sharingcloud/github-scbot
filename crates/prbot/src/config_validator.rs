@@ -75,6 +75,13 @@ fn validate_env_vars(config: &Config) -> Result<(), ValidationError> {
         }
     }
 
+    // Check server admin key
+    if !config.server.admin_private_key.is_empty()
+        && RsaUtils::parse_encoding_key(&config.api.github.app_private_key).is_err()
+    {
+        _invalid_key(&mut error, "BOT_SERVER_ADMIN_PRIVATE_KEY");
+    }
+
     if error.is_empty() {
         Ok(())
     } else {

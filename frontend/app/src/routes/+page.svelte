@@ -1,2 +1,15 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
+<script lang="ts">
+	import { authToken } from "../lib/store";
+	import { goto } from "$app/navigation";
+	import { browser } from "$app/environment";
+
+	if (browser) {
+		if ($authToken == undefined) {
+			goto("/signin");
+		} else {
+			goto("/app");
+		}
+	}
+</script>
+
+Loading...

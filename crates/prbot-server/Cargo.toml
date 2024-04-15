@@ -34,6 +34,7 @@ thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+percent-encoding = "2.3.1"
 
 [dev-dependencies]
 prbot-database-memory = { path = "../prbot-database-memory" }

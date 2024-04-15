@@ -6,9 +6,9 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 charset = utf-8
 
-[*.{ts,js,json,svelte}]
+[*.{ts,js,json,svelte,scss}]
 indent_style = tab
-indent_size = 4
+indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false

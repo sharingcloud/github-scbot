@@ -1,0 +1,10 @@
+.app-description-list-term {
+	padding: 0;
+	margin: 0;
+
+	font-weight: 400;
+
+	&::after {
+		content: ":";
+	}
+}
