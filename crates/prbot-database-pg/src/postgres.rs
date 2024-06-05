@@ -1012,7 +1012,7 @@ impl DbService for PostgresDb {
             RETURNING pull_request.id;
             "#,
         )
-        .bind(id as i32)
+        .bind(id as i64)
         .bind(owner)
         .bind(name)
         .bind(number as i32)

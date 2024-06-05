@@ -112,7 +112,7 @@ impl<'r> FromRow<'r, PgRow> for PullRequestRow {
             number: row.try_get::<i32, _>("number")? as u64,
             qa_status: *row.try_get::<QaStatusDecode, _>("qa_status")?,
             needed_reviewers_count: row.try_get::<i32, _>("needed_reviewers_count")? as u64,
-            status_comment_id: row.try_get::<i32, _>("status_comment_id")? as u64,
+            status_comment_id: row.try_get::<i64, _>("status_comment_id")? as u64,
             checks_enabled: row.try_get("checks_enabled")?,
             automerge: row.try_get("automerge")?,
             locked: row.try_get("locked")?,
