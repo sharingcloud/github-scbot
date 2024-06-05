@@ -286,8 +286,8 @@ impl DbService for MemoryDb {
         private_key: &str,
     ) -> Result<ExternalAccount> {
         let mut account = self.external_accounts_get_expect(username).await?;
-        account.public_key = public_key.to_owned();
-        account.private_key = private_key.to_owned();
+        public_key.clone_into(&mut account.public_key);
+        private_key.clone_into(&mut account.private_key);
         self.external_accounts
             .write()
             .unwrap()
@@ -874,7 +874,7 @@ impl DbService for MemoryDb {
         value: &str,
     ) -> Result<Repository> {
         let mut repository = self.repositories_get_expect(owner, name).await?;
-        repository.pr_title_validation_regex = value.to_owned();
+        value.clone_into(&mut repository.pr_title_validation_regex);
         self.repositories
             .write()
             .unwrap()

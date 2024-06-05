@@ -17,7 +17,7 @@ where
     let full_name = format!("test-bot-{test_name}");
     let base_url = get_base_url(&config.database.pg.url);
     let new_url = create_db_url(&base_url, &full_name);
-    config.database.pg.url = new_url.clone();
+    config.database.pg.url.clone_from(&new_url);
     config.database.pg.pool_size = 2;
     config.database.pg.connection_timeout = 5;
 
@@ -50,7 +50,7 @@ where
     let full_name = format!("test-bot-{test_name}");
     let base_url = get_base_url(&config.database.pg.url);
     let new_url = create_db_url(&base_url, &full_name);
-    config.database.pg.url = new_url.clone();
+    config.database.pg.url.clone_from(&new_url);
     config.database.pg.pool_size = 2;
     config.database.pg.connection_timeout = 5;
 

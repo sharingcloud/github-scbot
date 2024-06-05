@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.1]
+
+### Fixes
+
+- Handle status comment IDs as bigint/int8 because of integer overflow (GitHub IDs are just super large!)
+
 ## [0.25.0]
 
 ### Breaking changes
@@ -353,7 +359,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give rights to external accounts on specific repositories
 - Simple terminal UI interface to have an overview on pull requests
 
-[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/sharingcloud/github-scbot/compare/v0.25.1...HEAD
+[0.25.1]: https://github.com/sharingcloud/github-scbot/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/sharingcloud/github-scbot/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/sharingcloud/github-scbot/compare/v0.23.1...v0.24.0
 [0.23.1]: https://github.com/sharingcloud/github-scbot/compare/v0.23.0...v0.23.1

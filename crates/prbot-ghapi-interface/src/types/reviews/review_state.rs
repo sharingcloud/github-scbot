@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 /// GitHub Review state.
@@ -17,9 +19,9 @@ pub enum GhReviewState {
     Pending,
 }
 
-impl ToString for GhReviewState {
-    fn to_string(&self) -> String {
-        serde_plain::to_string(&self).unwrap()
+impl Display for GhReviewState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&serde_plain::to_string(&self).unwrap())
     }
 }
 

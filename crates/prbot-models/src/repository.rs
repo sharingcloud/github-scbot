@@ -44,7 +44,8 @@ impl Repository {
             .try_into()
             .unwrap_or_default();
         self.default_needed_reviewers_count = config.default_needed_reviewers_count;
-        self.pr_title_validation_regex = config.default_pr_title_validation_regex.clone();
+        self.pr_title_validation_regex
+            .clone_from(&config.default_pr_title_validation_regex);
         self
     }
 }

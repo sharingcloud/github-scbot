@@ -68,8 +68,8 @@ mod tests {
         let repo_owner: String = "bar".into();
 
         let mut ctx = CommandContextTest::new();
-        ctx.repo_name = repo_name.clone();
-        ctx.repo_owner = repo_owner.clone();
+        ctx.repo_name.clone_from(&repo_name);
+        ctx.repo_owner.clone_from(&repo_owner);
         ctx.db_service
             .repositories_create(Repository {
                 owner: repo_owner.clone(),

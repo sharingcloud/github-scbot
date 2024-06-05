@@ -116,7 +116,7 @@ async fn get_or_create_installation_access_token(
         // Time to rebuild!
         let token = create_installation_access_token(config, api_service).await?;
         let mut last_auth = LAST_TOKEN.write().await;
-        last_auth.token = token.clone();
+        last_auth.token.clone_from(&token);
         last_auth.expiration = now_timestamp + INSTALLATION_TOKEN_LIFETIME_IN_SECONDS;
 
         Ok(token)

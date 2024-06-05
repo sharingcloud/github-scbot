@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -32,9 +32,9 @@ impl QaStatus {
     }
 }
 
-impl ToString for QaStatus {
-    fn to_string(&self) -> String {
-        self.to_str().into()
+impl Display for QaStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_str())
     }
 }
 

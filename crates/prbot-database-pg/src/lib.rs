@@ -21,6 +21,8 @@ where
     A: Acquire<'a>,
     <A::Connection as Deref>::Target: Migrate,
 {
+    info!("Running migrations");
+
     sqlx::migrate!("./migrations")
         .run(migrator)
         .await
