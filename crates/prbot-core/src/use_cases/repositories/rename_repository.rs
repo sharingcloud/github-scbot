@@ -33,8 +33,8 @@ impl RenameRepositoryInterface for RenameRepository {
             .await?;
 
         if let Some(mut repo) = repo {
-            repo.owner = new_path.owner().to_owned();
-            repo.name = new_path.name().to_owned();
+            new_path.owner().clone_into(&mut repo.owner);
+            new_path.name().clone_into(&mut repo.name);
 
             let repo = ctx.db_service.repositories_update(repo).await?;
             Ok(Some(repo))

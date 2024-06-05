@@ -1,6 +1,6 @@
 //! Label types.
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, fmt::Display};
 
 use thiserror::Error;
 
@@ -41,9 +41,9 @@ impl StepLabel {
     }
 }
 
-impl ToString for StepLabel {
-    fn to_string(&self) -> String {
-        self.to_str().into()
+impl Display for StepLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_str())
     }
 }
 

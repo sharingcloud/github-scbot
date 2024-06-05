@@ -1,6 +1,6 @@
 [package]
 name = "prbot"
-version = "0.25.0"
+version = "0.25.1"
 authors = ["Denis BOURGE <Srynetix@users.noreply.github.com>"]
 edition = "2021"
 build = "build.rs"

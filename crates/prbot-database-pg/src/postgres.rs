@@ -769,7 +769,7 @@ impl DbService for PostgresDb {
         .bind(instance.number as i32)
         .bind(instance.qa_status.to_string())
         .bind(instance.needed_reviewers_count as i32)
-        .bind(instance.status_comment_id as i32)
+        .bind(instance.status_comment_id as i64)
         .bind(instance.checks_enabled)
         .bind(instance.automerge)
         .bind(instance.locked)
@@ -805,7 +805,7 @@ impl DbService for PostgresDb {
         )
         .bind(instance.qa_status.to_string())
         .bind(instance.needed_reviewers_count as i32)
-        .bind(instance.status_comment_id as i32)
+        .bind(instance.status_comment_id as i64)
         .bind(instance.checks_enabled)
         .bind(instance.automerge)
         .bind(instance.locked)
@@ -1012,7 +1012,7 @@ impl DbService for PostgresDb {
             RETURNING pull_request.id;
             "#,
         )
-        .bind(id as i32)
+        .bind(id as i64)
         .bind(owner)
         .bind(name)
         .bind(number as i32)
